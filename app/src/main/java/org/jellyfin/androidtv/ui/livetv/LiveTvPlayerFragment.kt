@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
+import org.jellyfin.androidtv.ui.ScreensaverLock
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.engine.AspectMode
@@ -123,6 +124,17 @@ private fun LivePlayer() {
 			engine.release()
 		}
 	}
+
+	// Sin esto, el salvapantallas de la app tapa el canal a los 5 minutos: el
+	// suscriptor no toca el control mientras ve televisión, que es justo la
+	// condición que el temporizador interpreta como inactividad.
+	//
+	// A diferencia del VOD, que pasa `enabled = playing` para dejar entrar el
+	// salvapantallas en pausa, aquí el bloqueo dura lo que dure la pantalla.
+	// En vivo no hay pausa, y durante un rebuffer por lluvia lo último que
+	// debe pasar es que la imagen se sustituya por un carrusel de carátulas
+	// mientras el usuario espera a que vuelva la señal.
+	ScreensaverLock(enabled = true)
 
 	Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 		AndroidView(

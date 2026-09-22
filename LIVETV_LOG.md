@@ -245,6 +245,21 @@ posterior. Desperdiciaba ~100 ms en cada entrada a un canal, que se pagan
 directamente en el zapping. Corregido atando el motor al canal y entregando la
 superficie por el `update` del `AndroidView`.
 
+**Segundo defecto, encontrado por Edgar en la validación:** a los 5 minutos el
+salvapantallas de la app tapaba el canal. Causa raíz: el reproductor en vivo no
+tomaba el bloqueo del `InteractionTrackerViewModel`. La app ya trae el helper
+`ScreensaverLock`, que `VideoPlayerScreen` usa con `enabled = playing`;
+`LiveTvPlayerFragment` simplemente no lo usaba. Ver televisión **es** la
+condición que el temporizador de inactividad interpreta como estar ausente.
+
+A diferencia del VOD, en vivo el bloqueo dura toda la pantalla y no solo
+mientras `playing`: no hay pausa, y durante un rebuffer por lluvia lo último
+que debe ocurrir es que la imagen se sustituya por un carrusel de carátulas.
+
+Verificado: **7 min 40 s continuos** con el canal en pantalla, pasado el umbral
+de 300 s, sin salvapantallas. En esa misma ventana, **cero** errores de player,
+reintentos de carga, frames perdidos y `BEHIND_LIVE_WINDOW`.
+
 **Observación para M2:** el offset real quedó en 10.5 s sobre una ventana de
 18.59 s en `beisbol`. Por encima de la mitad de la ventana, que es el techo que
 fija `LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION`. En `beisbol` no molesta;
