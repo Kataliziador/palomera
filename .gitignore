@@ -7,3 +7,6 @@ local.properties
 .kotlin/
 build/
 captures/
+
+# Documentos y artefactos locales del fork LiveTV
+jellyfinv3.zip
