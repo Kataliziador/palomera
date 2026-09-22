@@ -39,7 +39,11 @@ import org.koin.android.ext.android.inject
  *
  * Reemplaza la sección LiveTV de Jellyfin (`CLAUDE.md` §4, regla 5): esta se
  * alimenta del servidor de configuración propio y de Flussonic, no del servidor
- * Jellyfin, y funciona sin sesión iniciada.
+ * Jellyfin.
+ *
+ * Queda **detrás del inicio de sesión**, como Inicio y Buscar (`CLAUDE.md` §6).
+ * Los canales en sí no piden credenciales; lo que la sesión controla es quién
+ * llega a la sección.
  *
  * Usa `JellyfinTheme` y los componentes de `ui/base/` a propósito: Inicio,
  * Buscar y TV en vivo tienen que verse como una sola aplicación.

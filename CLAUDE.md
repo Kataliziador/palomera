@@ -262,9 +262,20 @@ Son **dos, separados**:
 |---|---|---|
 | Servidor | Jellyfin del ISP | Servidor propio de configuración |
 | URL | la configura el usuario | cableada por flavor |
-| Auth | usuario Jellyfin | ninguna (v1) |
+| Auth del contenido | usuario Jellyfin | ninguna (v1) |
+| Acceso a la sección | sesión Jellyfin | **sesión Jellyfin** |
 
-El módulo `livetv` debe funcionar **antes** de iniciar sesión en Jellyfin.
+**La sección de canales queda detrás del inicio de sesión.** El suscriptor
+entra a Jellyfin y desde ahí llega a TV en vivo, igual que a Inicio o Buscar.
+
+Los dos backends siguen siendo independientes: los canales se sirven desde el
+servidor de configuración propio y no requieren credenciales, y el módulo
+`livetv` no consulta al servidor Jellyfin para nada. Lo que la sesión controla
+es **quién ve la sección**, no de dónde salen los canales.
+
+Consecuencia práctica: la sesión de Jellyfin es la puerta única de la app, así
+que el enganche natural es la barra principal, junto a Inicio y Buscar, y no
+el destino raíz de la navegación.
 
 ---
 
