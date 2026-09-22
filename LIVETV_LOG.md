@@ -203,6 +203,83 @@ TrueHD, la salida limpia es compilar la extensión LGPL propia.
 
 ---
 
+### Estrellas HD no arranca con Media3 — 2026-09-22 — **abierta**
+
+**Síntoma:** `test-sat77w-estrellashd-mp4` se queda en «Almacenando…»
+indefinidamente. El decoder de video se inicializa
+(`OMX.amlogic.avc.decoder.awesome2`, 75 ms) y el de audio también
+(`c2.android.aac.decoder`), pero **no sale ni un frame**, y el motor **no
+registra ningún error ni reintento**. Falla en silencio.
+
+**Aislamiento:** de los seis canales, **es el único que falla**.
+
+| Canal | Resultado |
+|---|---|
+| `estrellashd` 1440x1080 High@4.0 tt | **atascado, 0 frames** |
+| `beisbol` 1280x720 Main@3.1 progresivo | en vivo |
+| `discoveryhd` 1920x1080 tt | en vivo |
+| `hbohd` 1920x1080 bb | en vivo |
+| `mileniosd` 1024x576 progresivo | en vivo |
+| `estrellassd` MPEG-2 | sin probar (ver defecto de foco) |
+
+Eso descarta de entrada varias hipótesis: **no es el entrelazado** —
+`discoveryhd` y `hbohd` son 1080i y funcionan— ni la codificación por campos,
+que `hbohd` también tiene.
+
+**Lo que distingue a este canal:** perfil **High** (los demás son Main),
+1440x1080 **anamórfico 4:3** (el único HD que lo es), y `ffprobe` reporta
+sobre sus segmentos `number of reference frames (0+5) exceeds max (4)` y
+`mmco: unref short failure`. Puede ser un artefacto de analizar un segmento
+aislado, o un problema real de gestión de referencias que el decoder por
+hardware no tolera.
+
+**Contexto previo que encaja:** `CHANNELS.md` ya registraba que la captura de
+este canal falló (pendiente 14), que su pista de audio es intermitente
+(pendiente 11) y que sus fps están en disputa. Es el canal problemático del
+lineup y ahora hay un síntoma concreto.
+
+**Hipótesis principal, sin confirmar:** flags del extractor de TS
+(`FLAG_DETECT_ACCESS_UNITS`, `FLAG_ALLOW_NON_IDR_KEYFRAMES`) — que es
+exactamente el pendiente 5 y el objeto de la fase **M4**, y que en HLS hay que
+pasar vía `DefaultHlsExtractorFactory`. No se ha tocado nada: M0 no incluye
+flags configurables y arreglarlo a ciegas violaría el Modo A.
+
+**Descartado como causa:** el stream **sí** lleva audio y video en este momento
+(140 y 178 paquetes en un segmento), así que no es la pista intermitente.
+
+**Prueba de control pendiente:** reproducir el mismo stream con libVLC en la
+misma caja. VLC descarga y demuxa, pero no pude determinar por registro si
+pinta imagen, y `screencap` no captura la capa de video por overlay. **Requiere
+mirar la pantalla.**
+
+**Estado:** abierta. Va a **M4**.
+
+---
+
+### Defecto de foco en la fila de canales — 2026-09-22 — **abierta**
+
+Con el control, el foco no siempre entra en la fila de canales al abrir la
+sección: se queda en la barra principal. Cuatro intentos de arreglo fallaron
+(foco en la primera tarjeta, `focusGroup` en la fila, quitar la petición de
+foco, y el patrón de grupo de `HomeFragment`).
+
+**Error de método propio:** las medidas automáticas entran a la sección con un
+**toque**, que no recorre el mismo camino de foco que el mando. Edgar sí pudo
+abrir canales con el control, así que la medición y la realidad no coinciden y
+la medición es la sospechosa. Se revirtió a la variante que él validó.
+
+**Mitigación aplicada:** las tarjetas pasaron de 220x124 dp a 136x92 dp para
+que los **seis canales quepan en pantalla sin desplazamiento**. La fila tampoco
+desplaza el foco más allá de lo visible, y eso con ~120 canales es inviable.
+
+**No se persigue más aquí:** la lista definitiva es **B2**, con grupos,
+favoritos, último canal y entrada por número. El foco y el desplazamiento se
+resuelven allí, sobre la estructura real y no sobre este andamiaje.
+
+**Estado:** abierta. Va a **B2**.
+
+---
+
 ### [M0] Andamiaje — 2026-09-22 — **pendiente de validación**
 
 **Síntoma:** no había código. Cinco documentos y un zip con esos documentos.

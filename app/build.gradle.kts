@@ -23,12 +23,20 @@ android {
 		// En B5 cada uno pasa a ser un valor por product flavor.
 		buildConfigField("boolean", "VOD_ENABLED", "true")
 		buildConfigField("String", "LIVETV_CONFIG_URL", "\"\"")
-		buildConfigField(
-			"String",
-			"LIVETV_BOOTSTRAP_CHANNEL_URL",
-			"\"http://192.168.11.250:8181/beisbol/mono.m3u8\"",
-		)
-		buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNEL_NAME", "\"Béisbol\"")
+
+		// Canales de prueba de M0. Andamiaje: desaparece en B1, cuando el
+		// ConfigRepository consuma el config.json del servidor.
+		// Formato: id|nombre|url|videoCodec|audioCodec, separados por ';'
+		val livetvBase = "http://192.168.11.250:8181"
+		val livetvBootstrapChannels = listOf(
+			"estrellashd|Estrellas HD|$livetvBase/test-sat77w-estrellashd-mp4/mono.m3u8|h264|aac",
+			"beisbol|Béisbol|$livetvBase/beisbol/mono.m3u8|h264|aac",
+			"discoveryhd|Discovery HD|$livetvBase/test-sat70w-discoveryhd-mp4/mono.m3u8|h264|aac",
+			"hbohd|HBO HD|$livetvBase/test-sat70w-hbohd-mp4/mono.m3u8|h264|aac",
+			"estrellassd|Estrellas SD|$livetvBase/test-sat77w-estrellassd-mp2v/mono.m3u8|mpeg2video|mp2",
+			"mileniosd|Milenio SD|$livetvBase/mileniosd/mono.m3u8|h264|aac",
+		).joinToString(";")
+		buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNELS", "\"$livetvBootstrapChannels\"")
 	}
 
 	buildFeatures {

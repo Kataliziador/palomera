@@ -22,9 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
-import org.jellyfin.androidtv.BuildConfig
-import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.ScreensaverLock
+import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.engine.AspectMode
@@ -43,8 +42,8 @@ import org.jellyfin.livetv.source.ChannelProfile
  * (`LIVETV_ENGINE.md` §2). Es lo que permite que libVLC entre en M6 sin tocar
  * esta pantalla.
  *
- * **M0:** el plan de reproducción se construye a mano y el canal llega por
- * `BuildConfig`. La cascada que decide el plan por canal y por caja es M3.
+ * **M0:** el plan de reproducción se construye a mano y el canal llega de la
+ * lista de `BuildConfig`. La cascada que lo decide por canal y por caja es M3.
  */
 class LiveTvPlayerFragment : Fragment() {
 
@@ -54,26 +53,31 @@ class LiveTvPlayerFragment : Fragment() {
 		savedInstanceState: Bundle?,
 	) = content {
 		JellyfinTheme {
-			LivePlayer()
+			LivePlayer(channelId = arguments?.getString(BootstrapChannels.EXTRA_CHANNEL_ID))
 		}
 	}
 }
 
 @Composable
-private fun LivePlayer() {
+private fun LivePlayer(channelId: String?) {
 	val context = LocalContext.current
 
 	var state by remember { mutableStateOf("Conectando…") }
 	var detail by remember { mutableStateOf<String?>(null) }
 
-	val channel = remember {
-		ChannelProfile(
-			id = "bootstrap",
-			name = BuildConfig.LIVETV_BOOTSTRAP_CHANNEL_NAME,
-			url = BuildConfig.LIVETV_BOOTSTRAP_CHANNEL_URL,
-			videoCodec = "h264",
-			audioCodec = "aac",
-		)
+	val channel = remember(channelId) { BootstrapChannels.byId(channelId) }
+
+	if (channel == null) {
+		// Con la lista de BuildConfig no debería ocurrir, pero callarlo sería
+		// un error silencioso (CLAUDE.md regla 8).
+		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+			Text(
+				text = "Canal no encontrado: $channelId",
+				color = Color.White,
+				modifier = Modifier.align(Alignment.Center),
+			)
+		}
+		return
 	}
 
 	// M0: plan fijo. La cascada que lo decide por canal y por caja es M3.
