@@ -23,16 +23,21 @@ private val downmixSupportedAudioCodecs = arrayOf(
 	Codec.Audio.MP3,
 )
 
+// ALAC, DCA/DTS, MLP y TRUEHD salieron de esta lista al retirarse
+// media3-ffmpeg-decoder (GPL-3.0): eran los únicos que dependían de esa
+// extensión y ninguna caja Android los trae por plataforma. Dejarlos aquí
+// significaría prometerle al servidor algo que la app ya no puede cumplir, y
+// una película con audio DTS se reproduciría sin sonido en vez de pedirle al
+// servidor que lo transcodifique. Ver LIVETV_LOG.md, pendiente 19.
+//
+// AC3 y EAC3 se conservan: los decodifica la plataforma en las cajas de TV y
+// ya están detrás de la preferencia `ac3Enabled`.
 private val supportedAudioCodecs = arrayOf(
 	Codec.Audio.AAC,
 	Codec.Audio.AAC_LATM,
 	Codec.Audio.AC3,
-	Codec.Audio.ALAC,
-	Codec.Audio.DCA,
-	Codec.Audio.DTS,
 	Codec.Audio.EAC3,
 	Codec.Audio.FLAC,
-	Codec.Audio.MLP,
 	Codec.Audio.MP2,
 	Codec.Audio.MP3,
 	Codec.Audio.OPUS,
@@ -41,7 +46,6 @@ private val supportedAudioCodecs = arrayOf(
 	Codec.Audio.PCM_S16LE,
 	Codec.Audio.PCM_S20LE,
 	Codec.Audio.PCM_S24LE,
-	Codec.Audio.TRUEHD,
 	Codec.Audio.VORBIS,
 )
 

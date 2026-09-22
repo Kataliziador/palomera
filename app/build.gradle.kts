@@ -169,7 +169,8 @@ dependencies {
 	implementation(libs.androidx.media3.datasource.okhttp)
 	implementation(libs.androidx.media3.exoplayer.hls)
 	implementation(libs.androidx.media3.ui)
-	implementation(libs.jellyfin.androidx.media3.ffmpeg.decoder)
+	// media3-ffmpeg-decoder (GPL-3.0) retirado a propósito: ver LIVETV_LOG.md,
+	// pendiente 19. Solo aportaba decoders de audio que ninguna biblioteca usa.
 
 	// LiveTV — el motor de canales en vivo
 	implementation(projects.livetv)

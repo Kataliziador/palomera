@@ -145,12 +145,63 @@ render o recuperación, es vía M. **Estado:** cerrada.
 | 16 | Validar desentrelazado con los **dos tipos** de codificación | M5 | `discoveryhd-70w` por frames, `hbohd-70w` por campos. Estos dos bastan: cubren las cuatro combinaciones sin depender de `estrellashd`, que está en disputa (#14) |
 | 17 | **Subir `segment_count` de 6 a 12 en Flussonic** | headend | ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
 | 18 | **Aplicar MP2 → AAC a los canales MP2 del lineup** | headend | empezando por `estrellassd-mp2v`. Gatea el cierre real de M3 |
-| 19 | El fork base ya trae `media3-ffmpeg-decoder` (GPL-3.0) | **B7** | en `app/build.gradle.kts:161` y en `playback/media3/exoplayer`. Quitarlo choca con "VOD intacto" y con el límite de un archivo tocado. Se decide antes de Play Store, no antes |
+| 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 
 ---
 
 ## Entradas
+
+### Retirada de `media3-ffmpeg-decoder` (GPL-3.0) — 2026-09-22
+
+**Síntoma:** `CLAUDE.md` §6 prohibía `jellyfin-androidx-media` por GPL-3.0,
+pero el fork base **ya la traía**, en `app/build.gradle.kts:161` y en
+`playback/media3/exoplayer`.
+
+**El motivo escrito era incorrecto.** Decía "incompatibles con la distribución
+en Play"; en Play sí se distribuyen apps GPL-3.0, la tienda con ese conflicto
+es la de Apple. El motivo real: este fork es **GPL-2.0 sin cláusula "or
+later"** (README y `LICENSE`), y GPL-2.0 y GPL-3.0 se consideran mutuamente
+incompatibles.
+
+**Qué aportaba, verificado en el origen** (`build.sh` del repositorio
+`jellyfin/jellyfin-androidx-media`, licencia confirmada en el POM de Maven
+Central):
+
+```
+ENABLED_DECODERS=(flac alac pcm_mulaw pcm_alaw mp3 aac ac3 eac3 dca mlp truehd)
+```
+
+Todos de **audio**, ninguno de video — confirma que por esa vía nunca se iba a
+decodificar MPEG-2. De ellos, solo **DTS/DCA, TrueHD, MLP y ALAC** dependían
+realmente de la extensión; el resto los trae la plataforma.
+
+**Por qué no era borrar una línea:** `deviceProfile.kt` declaraba DTS y TrueHD
+en un **array fijo**, sin derivarlo de las capacidades de la caja, y
+`VideoManager.java:190` activa la extensión como respaldo incluso con la
+preferencia apagada. Quitar la librería sin recortar ese array habría dado
+películas **sin sonido** en vez de transcodificación en el servidor.
+
+**Datos que decidieron:** biblioteca de pruebas consultada por la API de
+Jellyfin — **582 títulos, 1075 pistas de audio, 100 % AAC**, biblioteca de
+música vacía. **Cero títulos afectados.** Confirmado además que las
+bibliotecas de producción están normalizadas igual.
+
+**Cambio:** dependencia retirada de los dos `build.gradle.kts`; ALAC, DCA,
+DTS, MLP y TRUEHD fuera de `supportedAudioCodecs`. AC3 y EAC3 se conservan:
+los decodifica la plataforma en cajas de TV y ya estaban tras `ac3Enabled`.
+
+**Excepción registrada:** es el único cambio permitido dentro de `playback/`.
+La verificación (b) de `CLAUDE.md` §4 lo contempla por nombre.
+
+**Nota para el futuro:** estos decoders **no necesitan GPL**. El build de
+Jellyfin no pasa `--enable-gpl`, así que su FFmpeg es LGPL; el GPL-3.0 sale de
+la licencia de su repositorio envoltorio. Si alguna vez hace falta DTS o
+TrueHD, la salida limpia es compilar la extensión LGPL propia.
+
+**Estado:** cerrada.
+
+---
 
 ### [M0] Andamiaje — 2026-09-22 — **pendiente de validación**
 

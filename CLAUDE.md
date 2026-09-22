@@ -162,9 +162,13 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      'app/src/main/java/org/jellyfin/androidtv/ui/playback/' 'playback/'
    ```
 
-   **Esta segunda debe salir vacía.** Si algún día no sale vacía, la APK no se
-   entrega sin que Edgar valide películas y series contra la APK de referencia
-   de M0.
+   **Esta segunda debe salir vacía**, con **una excepción registrada**: la
+   retirada de `media3-ffmpeg-decoder` de
+   `playback/media3/exoplayer/build.gradle.kts` (2026-09-22, ver arriba). No
+   hay ninguna más, y añadir otra exige la misma validación en pantalla.
+
+   Si aparece algo fuera de esa excepción, la APK no se entrega sin que Edgar
+   valide películas y series contra la APK de referencia de M0.
 
 **Razón:** el upstream está migrando su reproductor a Media3. Si el módulo no
 lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
@@ -226,15 +230,30 @@ servidor que el hardware no puede cumplir.
   Media3 es **solo de audio**; no hay renderer de video. Decodificar
   `mpeg2video` por FFmpeg habría exigido escribir un renderer propio. Queda
   escrito para que nadie lo reintroduzca: el respaldo de video es libVLC.
-- **PROHIBIDO usar nextlib o jellyfin-androidx-media** (GPL-3.0) en el módulo
-  `livetv`.
+- **PROHIBIDO usar nextlib o jellyfin-androidx-media** (GPL-3.0), y **ya
+  retirado del fork** el 2026-09-22.
 
-  **Atención (medido 2026-09-22):** el fork base **ya trae**
-  `org.jellyfin.media3:media3-ffmpeg-decoder` en `app/build.gradle.kts:161`,
-  y `playback/media3/exoplayer` también. No es algo que añadamos: viene de
-  upstream y sirve al VOD. Quitarlo choca con "el VOD queda intacto" (§1) y
-  obliga a tocar un archivo fuera de `livetv/`. **Decisión pendiente antes de
-  B7 (Play Store), no antes.**
+  El motivo que este documento daba antes — "incompatibles con la distribución
+  en Play" — **era incorrecto**: en Google Play sí se distribuyen apps
+  GPL-3.0; la tienda con ese conflicto es la de Apple. El motivo real es que
+  **este fork es GPL-2.0 sin cláusula "or later"**, y GPL-2.0 y GPL-3.0 se
+  consideran mutuamente incompatibles. Venía heredado del upstream.
+
+  Se retiró porque **no costaba nada**: la librería solo aportaba decoders de
+  **audio** (`flac alac pcm_* mp3 aac ac3 eac3 dca mlp truehd`, ninguno de
+  video), y de ellos únicamente DTS, TrueHD, MLP y ALAC dependían de ella.
+  Medido sobre la biblioteca de pruebas: 582 títulos, 1075 pistas, **100 %
+  AAC**. Cero títulos afectados.
+
+  Al quitarla hubo que recortar `supportedAudioCodecs` en `deviceProfile.kt`,
+  que declaraba DTS y TrueHD **incondicionalmente**, sin derivarlo de lo que
+  la caja puede. Dejar esa promesa habría dado películas sin sonido en vez de
+  transcodificación en el servidor.
+
+  Nota para quien reintroduzca el tema: esos decoders **no necesitan GPL**.
+  El build de Jellyfin no pasa `--enable-gpl`, así que su FFmpeg es LGPL; el
+  GPL-3.0 sale de la licencia de su repositorio envoltorio. Si algún día hace
+  falta DTS o TrueHD, la salida limpia es compilar la extensión LGPL propia.
 - **Prohibido nombrar marcas Dolby** en UI, ficha de Play o marketing.
 
 ### Render
