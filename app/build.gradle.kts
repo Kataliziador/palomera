@@ -18,6 +18,17 @@ android {
 		applicationId = namespace
 		versionName = project.getVersionName()
 		versionCode = getVersionCode(versionName!!)
+
+		// LiveTV — nada de esto se codifica en el módulo (CLAUDE.md regla 12).
+		// En B5 cada uno pasa a ser un valor por product flavor.
+		buildConfigField("boolean", "VOD_ENABLED", "true")
+		buildConfigField("String", "LIVETV_CONFIG_URL", "\"\"")
+		buildConfigField(
+			"String",
+			"LIVETV_BOOTSTRAP_CHANNEL_URL",
+			"\"http://192.168.11.250:8181/beisbol/mono.m3u8\"",
+		)
+		buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNEL_NAME", "\"Béisbol\"")
 	}
 
 	buildFeatures {
@@ -159,6 +170,9 @@ dependencies {
 	implementation(libs.androidx.media3.exoplayer.hls)
 	implementation(libs.androidx.media3.ui)
 	implementation(libs.jellyfin.androidx.media3.ffmpeg.decoder)
+
+	// LiveTV — el motor de canales en vivo
+	implementation(projects.livetv)
 
 	// Markdown
 	implementation(libs.bundles.markwon)

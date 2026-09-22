@@ -1,0 +1,104 @@
+package org.jellyfin.livetv.diagnostics
+
+import android.os.Build
+import org.jellyfin.livetv.LiveTuning
+import timber.log.Timber
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.ArrayDeque
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Logging estructurado del módulo, desde el commit #1 (CLAUDE.md regla 9).
+ *
+ * Dos destinos a la vez: Timber, para `adb logcat`, y un buffer circular en
+ * memoria que se exporta a archivo desde la app. El buffer es lo que importa:
+ * cuando un suscriptor reporta una falla, nadie va a tener un `adb` conectado.
+ *
+ * Cada entrada lleva el contexto que hace falta para diagnosticar sin la caja
+ * delante: canal, URL, códec, modelo, decoder activo y estado del buffer
+ * (CLAUDE.md regla 8).
+ */
+object LiveLog {
+	private const val TAG = "livetv"
+
+	data class Entry(
+		val timestamp: Long,
+		val level: Level,
+		val event: String,
+		val context: Map<String, Any?>,
+		val error: Throwable?,
+	)
+
+	enum class Level { DEBUG, INFO, WARN, ERROR }
+
+	private val ring = ArrayDeque<Entry>(LiveTuning.LOG_RING_CAPACITY)
+	private val lock = Any()
+
+	/** Contexto que acompaña a toda entrada mientras no cambie el canal. */
+	@Volatile
+	private var session: Map<String, Any?> = emptyMap()
+
+	fun startSession(channelId: String, url: String, videoCodec: String?, audioCodec: String?) {
+		session = mapOf(
+			"channel" to channelId,
+			"url" to url,
+			"videoCodec" to videoCodec,
+			"audioCodec" to audioCodec,
+			"device" to "${Build.MANUFACTURER}/${Build.MODEL}/${Build.DEVICE}",
+			"sdk" to Build.VERSION.SDK_INT,
+		)
+		info("session.start")
+	}
+
+	fun debug(event: String, vararg context: Pair<String, Any?>) = log(Level.DEBUG, event, context, null)
+	fun info(event: String, vararg context: Pair<String, Any?>) = log(Level.INFO, event, context, null)
+	fun warn(event: String, vararg context: Pair<String, Any?>) = log(Level.WARN, event, context, null)
+
+	/**
+	 * No existe el error silencioso (CLAUDE.md regla 8). Todo `catch` termina
+	 * aquí, con su causa y su contexto.
+	 */
+	fun error(event: String, error: Throwable?, vararg context: Pair<String, Any?>) =
+		log(Level.ERROR, event, context, error)
+
+	private fun log(level: Level, event: String, context: Array<out Pair<String, Any?>>, error: Throwable?) {
+		val merged = session + context.toMap()
+		val entry = Entry(System.currentTimeMillis(), level, event, merged, error)
+
+		synchronized(lock) {
+			if (ring.size >= LiveTuning.LOG_RING_CAPACITY) ring.removeFirst()
+			ring.addLast(entry)
+		}
+
+		val line = format(entry)
+		when (level) {
+			Level.DEBUG -> Timber.tag(TAG).d(line)
+			Level.INFO -> Timber.tag(TAG).i(line)
+			Level.WARN -> Timber.tag(TAG).w(line)
+			Level.ERROR -> Timber.tag(TAG).e(error, line)
+		}
+	}
+
+	private val stamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT)
+
+	private fun format(entry: Entry): String = buildString {
+		append(stamp.format(Date(entry.timestamp)))
+		append(' ').append(entry.level.name)
+		append(' ').append(entry.event)
+		entry.context.forEach { (k, v) -> append(' ').append(k).append('=').append(v) }
+		entry.error?.let { append(" error=").append(it::class.java.simpleName).append(':').append(it.message) }
+	}
+
+	fun snapshot(): List<Entry> = synchronized(lock) { ring.toList() }
+
+	/** Exporta el buffer a un archivo. Lo pide el menú de desarrollador (M1). */
+	fun exportTo(file: File): File {
+		file.bufferedWriter().use { out ->
+			snapshot().forEach { out.appendLine(format(it)) }
+		}
+		info("log.exported", "path" to file.absolutePath, "entries" to snapshot().size)
+		return file
+	}
+}

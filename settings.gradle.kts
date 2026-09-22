@@ -12,6 +12,9 @@ include(":playback:media3:exoplayer")
 include(":playback:media3:session")
 include(":preference")
 
+// Módulo LiveTV: motor de canales en vivo (ver CLAUDE.md §4)
+include(":livetv")
+
 pluginManagement {
 	repositories {
 		gradlePluginPortal()

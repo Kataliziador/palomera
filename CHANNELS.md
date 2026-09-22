@@ -305,10 +305,18 @@ eso `targetOffsetMs` va **por canal** en el `config.json`, no global.
 | MPEG-2 | `OMX.amlogic.mpeg2.decoder.awesome2` | **hardware** |
 | MP2 | `OMX.amlogic.audio.decoder.mp2` | **hardware, activo** |
 | AC-3 / E-AC-3 | `OMX.amlogic.audio.decoder.ac3` / `.eac3` | hardware |
-| AAC | `OMX.google.aac.decoder` | software |
+| AAC | `c2.android.aac.decoder` | software |
 
 El decoder MP2 está en `media_codecs_ext.xml` línea 146, dentro del bloque
-`<Decoders>` y fuera de comentario: está habilitado.
+`<Decoders>` y fuera de comentario: está habilitado. Deja de importar en cuanto
+el headend normalice el audio a AAC.
+
+**Confirmado en ejecución el 2026-09-22**, reproduciendo `beisbol` con el motor
+de M0: video por `OMX.amlogic.avc.decoder.awesome2` (hardware, 122 ms de
+inicialización) y audio por `c2.android.aac.decoder` (software, 191 ms). El
+AAC por software no preocupa: cuesta poca CPU y es el camino de toda caja
+Android. Este documento decía `OMX.google.aac.decoder`, el nombre anterior a
+Codec2; en Android 11 es `c2.android.*`.
 
 ### Desentrelazado
 

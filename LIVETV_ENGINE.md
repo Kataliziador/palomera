@@ -28,9 +28,24 @@ livetv/
   diagnostics/
     LiveStatsCollector.kt    AnalyticsListener + buffer circular
     DevMenu.kt               toggles y degradación forzada
-  ui/                        (Modo B)
   LiveTuning.kt              TODAS las constantes
 ```
+
+**La interfaz no está aquí.** Vive en `app/.../ui/livetv/`, reescrita desde
+cero sobre `JellyfinTheme` y `ui/base/`, porque la sección tiene que verse como
+el resto de la app y el sistema de diseño está dentro de `app` (`CLAUDE.md`
+§4). El módulo `livetv` **no depende de `app`**: la dependencia va en un solo
+sentido.
+
+```
+app/src/main/java/org/jellyfin/androidtv/ui/livetv/   ← reescrito (Modo B)
+    LiveTvFragment.kt        la sección: grupos, favoritos, número directo
+    LiveTvPlayerFragment.kt  pantalla de reproducción + overlays
+    LiveTvChannelCard.kt     tarjeta de canal, al estilo del resto
+```
+
+El límite entre los dos es la interfaz `LiveEngine`: la UI habla con ella y
+con nada más.
 
 ---
 

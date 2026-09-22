@@ -98,16 +98,40 @@ Modo A y pregunta.
 
 ## 4. Aislamiento del módulo
 
-1. Todo el código nuevo vive en el módulo Gradle `livetv`.
-2. **PROHIBIDO modificar** `app/src/main/java/org/jellyfin/androidtv/ui/playback/`
-   (`PlaybackController`, `VideoManager`, `CustomPlaybackOverlayFragment`,
-   `PlaybackManager`). Ese es el camino de películas y series.
-3. **PROHIBIDO construir sobre `playback/core`** (el playback rewrite del
+### El invariante
+
+**Películas y series se comportan exactamente como en el upstream.** Ese es el
+fin. Todo lo demás de esta sección son medios, y un medio que estorbe se
+cambia; el invariante no.
+
+No es "no toques estos archivos". Es "no cambies ese comportamiento". Tocar un
+archivo del camino de VOD está permitido si se demuestra que el VOD no cambia;
+no tocarlo pero alterar su comportamiento desde fuera está prohibido.
+
+### Las reglas
+
+1. **El motor vive en el módulo Gradle `livetv`.** Cascada, capacidades,
+   buffers, resiliencia, diagnóstico y cliente de configuración. El módulo
+   **no depende de `app`**. Es la parte difícil y volátil, y la que debe
+   sobrevivir intacta a los rebases del upstream.
+2. **La interfaz de LiveTV vive en `app/.../ui/livetv/`, reescrita desde
+   cero.** Usa `JellyfinTheme` y los componentes de `ui/base/`, porque la
+   sección tiene que verse como el resto de la app. El sistema de diseño no se
+   extrae a un módulo aparte: moverlo haría chocar cada cambio de upstream al
+   tema en cada rebase, que es justo el dolor que esta sección evita.
+3. **El camino de VOD no se modifica** — `PlaybackController`, `VideoManager`,
+   `CustomPlaybackOverlayFragment`, `PlaybackManager`. No porque el directorio
+   sea sagrado, sino porque es el camino de películas y series y el invariante
+   manda. Si alguna vez hiciera falta tocarlo, es Modo A con validación en
+   pantalla del VOD, no solo del canal.
+4. **PROHIBIDO construir sobre `playback/core`** (el playback rewrite del
    upstream): está incompleto y va a cambiar.
-4. **Un solo punto de integración:** un enrutador de una decisión. Si el ítem
-   es canal en vivo → `LiveEngine`; si no → por donde siempre iba. Máximo un
-   archivo existente tocado, idealmente menos de 10 líneas.
-5. **Selección de pistas propia, por identidad de pista del stream:**
+5. **La sección LiveTV de Jellyfin se reemplaza, no convive.** La fila del
+   inicio apunta a la sección nueva. El código viejo (`ui/livetv/`
+   `LiveTvGuideFragment`, `TvManager`, `GuideFilters`) se queda en el árbol
+   pero inalcanzable: borrarlo agrandaría el diff contra upstream sin ganar
+   nada. Grabación y DVR ya están fuera de alcance (§7).
+6. **Selección de pistas propia, por identidad de pista del stream:**
    idioma normalizado como clave primaria, PID como desempate estable dentro
    de una misma sesión. Nunca por índice de Jellyfin. Prohibido reusar
    `offsetStreamIndex` ni `getExoPlayerTrack`/`setExoPlayerTrack`.
@@ -118,13 +142,29 @@ Modo A y pregunta.
    nada; en `discoveryhd-70w` y `hbohd-70w` el español y el inglés se separan
    **solo por la etiqueta de idioma**. Esa etiqueta debe normalizarse
    aceptando `spa`, `esp`, `esl` y `es` como español (ver `CHANNELS.md`).
-6. Verificación obligatoria antes de cada commit:
+7. **Verificación obligatoria antes de cada commit.** El diff ya no sirve
+   como prueba única, porque ahora hay código nuevo legítimo fuera de
+   `livetv/`. Son dos comprobaciones:
 
    ```bash
-   git diff --stat <base>..HEAD -- ':!livetv/'
+   # a) nada tocado fuera del territorio permitido
+   git diff --stat upstream-base..HEAD -- \
+     ':!livetv/' ':!app/src/main/java/org/jellyfin/androidtv/ui/livetv/' \
+     ':!*/flavors/*' ':!*.md'
    ```
 
-   Solo deben aparecer el enrutador y los archivos de flavors.
+   Lo que aparezca aquí son los enganches de navegación, y se justifican uno a
+   uno en el commit.
+
+   ```bash
+   # b) el camino de VOD, intacto
+   git diff --stat upstream-base..HEAD -- \
+     'app/src/main/java/org/jellyfin/androidtv/ui/playback/' 'playback/'
+   ```
+
+   **Esta segunda debe salir vacía.** Si algún día no sale vacía, la APK no se
+   entrega sin que Edgar valide películas y series contra la APK de referencia
+   de M0.
 
 **Razón:** el upstream está migrando su reproductor a Media3. Si el módulo no
 lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.

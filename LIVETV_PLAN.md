@@ -217,10 +217,17 @@ configuración de fábrica y versión de esquema. **Dependencia:** M0.
 D-pad, último canal, favoritos, entrada directa por número y búsqueda. Una
 lista plana de 120 no es navegable con control remoto. **Dependencia:** B1.
 
-## B3 — Sección LiveTV con diseño propio
-La sección de canales en vivo es **nueva y con diseño propio**, separada de la
-navegación de películas y series de Jellyfin, que se conserva tal cual.
-**Dependencia:** B2.
+## B3 — Sección LiveTV, reescrita desde cero
+La sección de canales en vivo se **reescribe entera**, y **reemplaza** la
+sección LiveTV de Jellyfin: la fila del inicio apunta a la nueva y la vieja
+queda inalcanzable (`CLAUDE.md` §4, regla 5).
+
+**Lleva el mismo diseño que el resto de la app**, no uno propio: `JellyfinTheme`
+y los componentes de `ui/base/`, para que Inicio, Buscar y TV en vivo se vean
+como una sola aplicación. Por eso su código vive en `app/.../ui/livetv/` y no
+en el módulo.
+
+La navegación de películas y series se conserva tal cual. **Dependencia:** B2.
 
 ## B8 — EPG *(fase final, no ahora)*
 Consumo del XMLTV, guía por canal, programa actual y siguiente.

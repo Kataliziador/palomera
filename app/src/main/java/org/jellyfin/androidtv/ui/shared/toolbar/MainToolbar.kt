@@ -47,6 +47,7 @@ import org.koin.compose.koinInject
 enum class MainToolbarActiveButton {
 	User,
 	Home,
+	LiveTv,
 	Search,
 
 	None,
@@ -147,6 +148,15 @@ private fun MainToolbar(
 						},
 						colors = if (activeButton == MainToolbarActiveButton.Home) activeButtonColors else ButtonDefaults.colors(),
 						content = { Text(stringResource(R.string.lbl_home)) }
+					)
+					Button(
+						onClick = {
+							if (activeButton != MainToolbarActiveButton.LiveTv) {
+								navigationRepository.navigate(Destinations.liveTv)
+							}
+						},
+						colors = if (activeButton == MainToolbarActiveButton.LiveTv) activeButtonColors else ButtonDefaults.colors(),
+						content = { Text(stringResource(R.string.pref_live_tv_cat)) }
 					)
 					Button(
 						onClick = {

@@ -152,6 +152,58 @@ render o recuperación, es vía M. **Estado:** cerrada.
 
 ## Entradas
 
+### [M0] Andamiaje — 2026-09-22 — **pendiente de validación**
+
+**Síntoma:** no había código. Cinco documentos y un zip con esos documentos.
+
+**Cambio:**
+
+- Fork fijado en **v0.19.10** (`984181a`), tag `upstream-base`. Toolchain
+  anotado arriba. Plataforma `android-36` instalada.
+- **APK de referencia del upstream sin tocar**, compilada e instalada en la
+  caja antes de escribir nada. Es el *antes* contra el que se juzga el VOD.
+- Módulo `livetv`: `LiveEngine` como interfaz, `Media3LiveEngine`,
+  `LiveTuning` con todas las constantes, `LiveLog` con buffer circular
+  exportable, `ChannelProfile` y `LanguageNormalizer`.
+- Interfaz en `app/.../ui/livetv/`: `LiveTvFragment` y `LiveTvPlayerFragment`,
+  sobre `JellyfinTheme` y `ui/base/`.
+- Enganches: botón "TV en vivo" en la barra principal junto a Inicio y Buscar,
+  y la fila del inicio redirigida a la sección nueva. Reutiliza la cadena
+  `pref_live_tv_cat`, ya traducida: cero cadenas nuevas.
+
+**Prueba (automatizada, previa a la de Edgar):** en la caja Skyworth YDA,
+`beisbol` reproduce; después, una película del Jellyfin de pruebas arranca por
+`CustomPlaybackOverlayFragment` → `PlaybackController` → `VideoManager` en
+*direct stream*, decodificando por `OMX.amlogic.avc.decoder.awesome2`.
+
+**Resultado medido:**
+
+| | |
+|---|---|
+| Decoder de video | `OMX.amlogic.avc.decoder.awesome2` (**hardware**), init 49 ms |
+| Decoder de audio | `c2.android.aac.decoder` (software), init 59 ms |
+| `prepare` → primer frame | **~1.0 s** |
+| Live offset obtenido | 10 515 ms (se pidieron 8 000) |
+| Camino de VOD vs upstream | **diff vacío** |
+| Archivos existentes tocados | 5, 37 líneas, solo cableado |
+
+**Defecto encontrado y corregido en la misma fase:** el motor se construía dos
+veces y la primera instancia se liberaba de inmediato, porque el
+`DisposableEffect` dependía del `SurfaceView`, que llega en una recomposición
+posterior. Desperdiciaba ~100 ms en cada entrada a un canal, que se pagan
+directamente en el zapping. Corregido atando el motor al canal y entregando la
+superficie por el `update` del `AndroidView`.
+
+**Observación para M2:** el offset real quedó en 10.5 s sobre una ventana de
+18.59 s en `beisbol`. Por encima de la mitad de la ventana, que es el techo que
+fija `LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION`. En `beisbol` no molesta;
+en `hbohd`, con 13.88 s de ventana, sí. Refuerza el pendiente 17.
+
+**Estado:** **abierta** — falta que Edgar lo valide en pantalla. El criterio de
+cierre está en `LIVETV_PLAN.md` M0.
+
+---
+
 ### [Previo a M0] Auditoría de documentos contra el Flussonic real — 2026-09-22
 
 **Síntoma:** antes de escribir la primera línea de código se reverificaron los
