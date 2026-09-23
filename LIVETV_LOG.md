@@ -457,7 +457,7 @@ resuelven allí, sobre la estructura real y no sobre este andamiaje.
 
 ---
 
-### [M0] Andamiaje — 2026-09-22 — **pendiente de validación**
+### [M0] Andamiaje — 2026-09-22 → **cerrada 2026-09-23**
 
 **Síntoma:** no había código. Cinco documentos y un zip con esos documentos.
 
@@ -519,8 +519,61 @@ reintentos de carga, frames perdidos y `BEHIND_LIVE_WINDOW`.
 fija `LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION`. En `beisbol` no molesta;
 en `hbohd`, con 13.88 s de ventana, sí. Refuerza el pendiente 17.
 
-**Estado:** **abierta** — falta que Edgar lo valide en pantalla. El criterio de
-cierre está en `LIVETV_PLAN.md` M0.
+---
+
+#### Cierre — declarado por Edgar el 2026-09-23
+
+**Criterios de `LIVETV_PLAN.md` M0:**
+
+| Criterio | Resultado |
+|---|---|
+| El canal reproduce | imagen correcta, arranque rápido |
+| Películas y series como en la APK de referencia | verificado en pantalla |
+| Versiones fijadas y anotadas | v0.19.10 · Media3 1.8.0 · Gradle 9.1.0 · Kotlin 2.2.21 |
+| `git diff upstream-base..HEAD -- ':!livetv/'` | solo cableado, justificado abajo |
+
+**Huella sobre el upstream al cerrar:**
+
+```
+camino de VOD .......... 1 archivo, 1 línea   (la excepción GPL-3.0 registrada)
+cableado y navegación .. 7 archivos, 59 líneas
+módulo + interfaz ...... 10 archivos, 1064 líneas  (todo nuevo)
+```
+
+Los 7 archivos son: registro del módulo, campos de `BuildConfig`, dos destinos
+de navegación, el botón de la barra, la fila del inicio redirigida y el
+recorte de códecs del perfil. Ninguno altera el comportamiento del VOD.
+
+**Tres defectos encontrados durante la validación, corregidos y verificados:**
+
+1. **El motor se construía dos veces** y la primera instancia se liberaba de
+   inmediato, porque el efecto dependía del `SurfaceView`. ~100 ms
+   desperdiciados en cada entrada a un canal, que se pagan en el zapping.
+2. **El salvapantallas tapaba el canal a los 5 minutos.** El reproductor no
+   tomaba el bloqueo del `InteractionTrackerViewModel`. Verificado: 7 min 40 s
+   continuos sin salvapantallas, y en esa ventana cero errores, reintentos,
+   frames perdidos y `BEHIND_LIVE_WINDOW`.
+3. **El audio seguía sonando al salir al HOME.** La limpieza colgaba solo de la
+   composición; ahora la reproducción va atada al ciclo de vida.
+
+**Medido en la caja Skyworth YDA:**
+
+| | |
+|---|---|
+| Decoder de video | `OMX.amlogic.avc.decoder.awesome2` (hardware) |
+| Decoder de audio | `c2.android.aac.decoder` (plataforma) |
+| `prepare` → primer frame | **~1.0 s** (objetivo de arranque: < 4 s) |
+| Canales que reproducen | 5 de 6 |
+
+**Lo que queda abierto y no es de M0:**
+
+- **Estrellas HD no arranca** → **M4**. Único de los seis que falla; Discovery
+  y HBO, también 1080i satelitales, van bien.
+- **Desfase de audio creciente** → **fuera del cliente**. Demostrado del
+  sistema con tres pruebas independientes; la app no puede curarlo.
+- **Foco y desplazamiento de la fila de canales** → **B2**.
+
+**Estado:** **cerrada.**
 
 ---
 
