@@ -311,7 +311,72 @@ Si funciona el 1 o el 2, **el cliente puede curarlo solo** y esto pasa a ser un
 watchdog de audio en M7 más una reconexión periódica en M8. Del 3 en adelante,
 queda fuera del alcance de la app.
 
-**Estado:** causa acotada. Va a **M8**, con dependencia de M7 (watchdog).
+### Escalera de reinicio — resultado — 2026-09-23
+
+Ejecutada por Edgar **con el desfase presente**:
+
+| Paso | Resultado |
+|---|---|
+| 1. Salir del canal y volver a entrar | **sigue** — y también en otras apps, **incluida YouTube** |
+| 2. Cerrar la app del todo con ATRÁS | **sigue** — también en las demás apps |
+| 3. Apagar/suspender la caja con el mando | **se corrige** |
+
+**Dos conclusiones, y la primera es definitiva.**
+
+**El desfase es del sistema, no de ninguna app.** Que YouTube lo tenga al mismo
+tiempo lo confirma por tercera vía independiente, tras el archivo local y la
+prueba con VLC.
+
+**La app no puede curarlo.** Soltar el `AudioTrack` no basta; matar el proceso
+tampoco. Ya se había medido que al salir la salida entra en `Standby` a los 3 s,
+y el paso 2 demuestra que **el reposo no limpia el estado**: hace falta que la
+salida se **cierre**, no que se duerma. Eso ocurre al suspender el aparato o al
+reenchufar el HDMI, y ninguna de las dos cosas está al alcance de una app
+normal.
+
+**Consecuencia para el producto.** Esto deja de ser un asunto del módulo y pasa
+a ser una **limitación del dispositivo**. El objetivo de 48 h de uptime
+continuo (§10) **no es alcanzable en esta caja** sin intervención externa.
+
+**Lo que hay que averiguar antes de diseñar nada:** si la **ZTE ZXV10 B866V2**
+—la caja mayoritaria del primer cliente, mismo fabricante de SoC— tiene el
+mismo fallo. El archivo `sync-test.mp4` ya está hecho: basta copiarlo y
+reproducirlo. Si la ZTE sale limpia, es un modelo; si sale igual, afecta a todo
+el parque y condiciona el diseño desde ahora.
+
+**Mitigaciones a evaluar cuando se sepa eso**, ninguna bonita: apoyarse en que
+la caja se suspenda sola por inactividad, negociar firmware con el fabricante,
+o descartar el modelo. Compensar con un retardo fijo **no sirve**: el desfase
+crece con las horas.
+
+**Estado:** causa cerrada, responsabilidad fuera del cliente. Mitigación
+pendiente de la medición en la ZTE.
+
+---
+
+### El audio seguía sonando al salir al HOME — 2026-09-23
+
+**Síntoma, visto por Edgar:** con un canal sintonizado, salir al lanzador de la
+caja con HOME dejaba **el audio sonando**. Con ATRÁS sí cortaba.
+
+**Causa raíz:** la limpieza colgaba solo del `DisposableEffect`, que se dispara
+cuando el reproductor sale de la composición. Con ATRÁS el fragmento se
+destruye y limpia; con HOME **solo se detiene**, así que el motor seguía vivo
+sonando por encima del lanzador y consumiendo ancho de banda de un stream que
+nadie veía.
+
+**Cambio:** la reproducción se ata al **ciclo de vida**. `ON_STOP` detiene el
+motor; `ON_START` lo prepara y arranca. En vivo no se almacena en segundo
+plano: al volver se va al borde de emisión, no a lo que se perdió.
+
+**Verificado por instrumentos:** reproduciendo `Standby:no`; tras HOME,
+`engine.stop` y `Standby:yes`; tras ATRÁS, `Release` y `Standby:yes`.
+
+**Pendiente de mirar con el mando:** al volver a la app desde el lanzador, la
+navegación reabre en Inicio y no en el canal. Puede ser artefacto de relanzar
+por `adb` en vez de con el mando.
+
+**Estado:** cerrada.
 
 ---
 

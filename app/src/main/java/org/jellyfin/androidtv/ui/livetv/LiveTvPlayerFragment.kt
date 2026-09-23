@@ -20,6 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import org.jellyfin.androidtv.ui.ScreensaverLock
@@ -62,6 +65,8 @@ class LiveTvPlayerFragment : Fragment() {
 private fun LivePlayer(channelId: String?) {
 	val context = LocalContext.current
 
+	val lifecycleOwner = LocalLifecycleOwner.current
+
 	var state by remember { mutableStateOf("Conectando…") }
 	var detail by remember { mutableStateOf<String?>(null) }
 
@@ -100,7 +105,7 @@ private fun LivePlayer(channelId: String?) {
 	// de p50 < 2 s (CLAUDE.md §10).
 	val engine: LiveEngine = remember(channel.url) { Media3LiveEngine(context.applicationContext) }
 
-	DisposableEffect(engine) {
+	DisposableEffect(engine, lifecycleOwner) {
 		val listener = object : EngineListener {
 			override fun onReady() { state = "Listo" }
 			override fun onPlaying() { state = "En vivo"; detail = null }
@@ -120,10 +125,38 @@ private fun LivePlayer(channelId: String?) {
 
 		engine.addListener(listener)
 		engine.setAspectMode(AspectMode.FIT)
-		engine.prepare(channel, plan)
-		engine.play()
+
+		// La reproducción se ata al **ciclo de vida**, no solo a la composición.
+		// Con ATRÁS el reproductor sale de la composición y `onDispose` limpia,
+		// pero al pulsar HOME el fragmento solo se detiene: sin esto, el canal
+		// se seguía oyendo por encima del lanzador de la caja, gastando ancho
+		// de banda de un stream que nadie está viendo.
+		//
+		// `addObserver` sincroniza al observador hasta el estado actual, así que
+		// ON_START llega solo en la primera composición y arranca la
+		// reproducción. No hace falta prepararla aquí aparte.
+		val observer = LifecycleEventObserver { _, event ->
+			when (event) {
+				Lifecycle.Event.ON_START -> {
+					engine.prepare(channel, plan)
+					engine.play()
+				}
+
+				Lifecycle.Event.ON_STOP -> {
+					// En vivo no tiene sentido seguir almacenando en segundo
+					// plano: al volver se vuelve al borde de emisión, no a lo
+					// que se perdió.
+					engine.stop()
+					state = "Conectando…"
+				}
+
+				else -> Unit
+			}
+		}
+		lifecycleOwner.lifecycle.addObserver(observer)
 
 		onDispose {
+			lifecycleOwner.lifecycle.removeObserver(observer)
 			engine.removeListener(listener)
 			engine.release()
 		}
