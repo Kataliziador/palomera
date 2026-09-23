@@ -203,6 +203,62 @@ TrueHD, la salida limpia es compilar la extensión LGPL propia.
 
 ---
 
+### Desfase de audio que crece con las horas — 2026-09-23 — **abierta**
+
+**Síntoma, observado por Edgar:** con un canal corriendo **~3 horas**, el audio
+acabó **bastante** desfasado. **Desconectar y volver a conectar el cable HDMI
+lo corrigió**, y quedó sincronizado **en todos los canales**.
+
+**Por qué ese dato vale tanto.** Un ciclo de HDMI no reinicia la app, ni el
+decodificador, ni el stream. Lo que sí hace es tirar y recrear la **ruta de
+salida de audio**: Android reenumera el dispositivo, AudioFlinger rehace el
+stream y el HAL vuelve a declarar su latencia. De ahí salen tres conclusiones:
+
+1. **No es del stream ni del canal.** Es estado a nivel de caja, y por eso se
+   arregló en todos los canales a la vez.
+2. **No es el procesado de imagen de la tele.** Eso daría una latencia fija,
+   no algo que crece durante tres horas.
+3. **Crecer con el tiempo es la firma de una deriva de reloj** entre el DAC de
+   audio y el reloj del sistema.
+
+Encaja con lo observado antes: el desfase «ligero» del primer día y el
+«bastante» de las tres horas son probablemente el mismo fenómeno en distintas
+fases de acumulación. La caja llevaba **2 días y 10 horas encendida**.
+
+**Evidencia medida:**
+
+- `persist.sys.media.avsync = true` (sincronía AV de Amlogic activa).
+- Latencia del bucle de escritura del HAL: **260 ms** antes del ciclo HDMI,
+  **282 ms** después, con `min=-1383 ms` — ese pico negativo es la huella del
+  propio tirón de cable.
+- En el arranque de la reproducción, el HAL emite:
+  `E audio_virtual_buf: ms12 system input underrun happens … diff=53389474951`
+  — **53 segundos** entre los punteros de lectura y escritura del búfer
+  interno de MS12, el pipeline de audio de Amlogic. Ocurre **por debajo de
+  cualquier reproductor**.
+
+**Lo que esto le exige al proyecto.** El objetivo de **48 h de uptime continuo**
+(§10) es incompatible con un audio que se desfasa en tres horas. M8 ya preveía
+una reconexión programada antes del rollover de PTS (~26.5 h); este hallazgo
+dice que además hace falta **reiniciar la ruta de audio, y mucho más a menudo**.
+
+**Hipótesis a confirmar, y es barata:** si recrear el player desde la app
+(salir del canal con ATRÁS y volver a entrar) también limpia el desfase,
+entonces el cliente puede corregirlo solo y nadie tiene que tocar un cable.
+Si solo lo arregla el ciclo de HDMI, el estado vive más abajo que AudioTrack y
+la salida es otra.
+
+**Próxima prueba para Edgar:** la siguiente vez que aparezca el desfase,
+**antes de tocar el HDMI**, salir del canal y volver a entrar. Ese único dato
+decide si hay arreglo por software.
+
+**No se ha tocado nada.** Sincronía es Modo A, y la causa todavía no está
+confirmada. Medición de deriva en curso.
+
+**Estado:** abierta. Va a **M8**, con dependencia de M7 (watchdog).
+
+---
+
 ### Estrellas HD no arranca con Media3 — 2026-09-22 — **abierta**
 
 **Síntoma:** `test-sat77w-estrellashd-mp4` se queda en «Almacenando…»
