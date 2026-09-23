@@ -16,6 +16,7 @@ import org.jellyfin.androidtv.ui.itemdetail.FullDetailsFragment
 import org.jellyfin.androidtv.ui.itemdetail.ItemListFragment
 import org.jellyfin.androidtv.ui.itemdetail.MusicFavoritesListFragment
 import org.jellyfin.androidtv.ui.livetv.BootstrapChannels
+import org.jellyfin.androidtv.ui.livetv.LiveTvDevMenuFragment
 import org.jellyfin.androidtv.ui.livetv.LiveTvFragment
 import org.jellyfin.androidtv.ui.livetv.LiveTvGuideFragment
 import org.jellyfin.androidtv.ui.livetv.LiveTvPlayerFragment
@@ -120,6 +121,7 @@ object Destinations {
 	// Sección LiveTV propia: reemplaza la de Jellyfin (CLAUDE.md §4, regla 5).
 	// Se alimenta del servidor de configuración propio, no del servidor Jellyfin.
 	val liveTv = fragmentDestination<LiveTvFragment>()
+	val liveTvDevMenu = fragmentDestination<LiveTvDevMenuFragment>()
 	fun liveTvPlayer(channelId: String) = fragmentDestination<LiveTvPlayerFragment>(
 		BootstrapChannels.EXTRA_CHANNEL_ID to channelId,
 	)

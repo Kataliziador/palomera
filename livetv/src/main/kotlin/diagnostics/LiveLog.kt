@@ -1,6 +1,10 @@
 package org.jellyfin.livetv.diagnostics
 
+import android.content.ContentValues
+import android.content.Context
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import org.jellyfin.livetv.LiveTuning
 import timber.log.Timber
 import java.io.File
@@ -93,12 +97,46 @@ object LiveLog {
 
 	fun snapshot(): List<Entry> = synchronized(lock) { ring.toList() }
 
-	/** Exporta el buffer a un archivo. Lo pide el menú de desarrollador (M1). */
-	fun exportTo(file: File): File {
-		file.bufferedWriter().use { out ->
-			snapshot().forEach { out.appendLine(format(it)) }
+	/**
+	 * Exporta el buffer a **Descargas**, que es el único sitio del que alguien
+	 * puede sacarlo después.
+	 *
+	 * El destino importa más de lo que parece: escribir en
+	 * `getExternalFilesDir()` parece funcionar, pero en Android 10+ ese
+	 * directorio no es accesible ni por `adb pull` ni por un gestor de
+	 * archivos, así que el log quedaba encerrado en la caja y la función no
+	 * servía para nada. Se comprobó midiendo, no suponiendo.
+	 *
+	 * Devuelve una descripción legible de dónde quedó, para enseñarla al operador.
+	 */
+	fun export(context: Context): String {
+		// `.txt` y no `.log`: MediaStore obliga a que la extensión concuerde con
+		// el tipo MIME y, si no, añade la suya. El nombre que se le enseña al
+		// operador tiene que ser el real, o no encontrará el archivo.
+		val name = "livetv-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date()) + ".txt"
+		val body = snapshot().joinToString("\n") { format(it) }
+
+		val destino = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+			val values = ContentValues().apply {
+				put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+				put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+				put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+			}
+			val uri = context.contentResolver
+				.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+				?: error("MediaStore no devolvió URI para $name")
+			context.contentResolver.openOutputStream(uri)?.use { it.write(body.toByteArray()) }
+				?: error("No se pudo abrir $uri para escribir")
+			"Descargas/$name"
+		} else {
+			// API < 29: el directorio público es escribible directamente.
+			val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+			val file = File(dir, name)
+			file.writeText(body)
+			file.absolutePath
 		}
-		info("log.exported", "path" to file.absolutePath, "entries" to snapshot().size)
-		return file
+
+		info("log.exported", "destino" to destino, "entradas" to snapshot().size)
+		return destino
 	}
 }

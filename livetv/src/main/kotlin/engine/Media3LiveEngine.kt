@@ -12,11 +12,17 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.source.AudioTrackRef
 import org.jellyfin.livetv.source.ChannelProfile
@@ -37,6 +43,7 @@ import kotlin.math.pow
 @UnstableApi
 class Media3LiveEngine(
 	private val context: Context,
+	private val dev: DevOptions,
 ) : LiveEngine {
 
 	override val id: String = ENGINE_ID
@@ -47,13 +54,18 @@ class Media3LiveEngine(
 	private var plan: PlaybackPlan? = null
 
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
+	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
 
 	// Estado observado, para el overlay de stats
 	private var videoDecoder: String? = null
 	private var audioDecoder: String? = null
 	private var droppedFrames = 0
-	private var lastFrameAtMs = 0L
+	private var bytesLoaded = 0L
+	private var loadingSinceMs = 0L
+	private var lastPositionMs = C.TIME_UNSET
+	private var lastProgressAtMs = 0L
 	private var windowDurationMs = C.TIME_UNSET
+	private var activeTargetOffsetMs = 0L
 
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
@@ -70,44 +82,68 @@ class Media3LiveEngine(
 			"engine.prepare",
 			"engine" to id,
 			"videoPath" to plan.videoPath,
-			"targetOffsetMs" to plan.targetOffsetMs,
+			"targetOffsetMs" to (dev.targetOffsetOverrideMs ?: plan.targetOffsetMs),
 			"reason" to plan.reason,
+			"degradacion" to dev.describe(),
 		)
 
 		release()
+		bytesLoaded = 0
+		loadingSinceMs = System.currentTimeMillis()
+		lastPositionMs = C.TIME_UNSET
+		lastProgressAtMs = System.currentTimeMillis()
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
 			.setReadTimeoutMs(LiveTuning.READ_TIMEOUT_MS)
 			.setAllowCrossProtocolRedirects(true)
 
+		// En HLS los flags del extractor **no** se heredan de
+		// `DefaultMediaSourceFactory`: hay que pasarlos por aquí
+		// (LIVETV_ENGINE.md §5). Configurables en caliente desde el menú, que
+		// es lo que M4 necesita para resolver la contradicción en Amlogic.
+		var tsFlags = 0
+		if (dev.tsDetectAccessUnits) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
+		if (dev.tsAllowNonIdrKeyframes) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
+
 		val mediaSourceFactory = HlsMediaSource.Factory(httpFactory)
 			.setLoadErrorHandlingPolicy(LiveErrorPolicy())
+			.setExtractorFactory(DefaultHlsExtractorFactory(tsFlags, false))
 			// El playlist se reconstruye tras una caída de la fuente; que el
 			// parser no se detenga en el primer hueco.
 			.setAllowChunklessPreparation(false)
 
 		val loadControl = DefaultLoadControl.Builder()
 			.setBufferDurationsMs(
-				LiveTuning.MIN_BUFFER_MS,
-				LiveTuning.MAX_BUFFER_MS,
+				dev.minBufferMs,
+				dev.maxBufferMs,
 				LiveTuning.BUFFER_FOR_PLAYBACK_MS,
 				LiveTuning.BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
 			)
 			.setPrioritizeTimeOverSizeThresholds(true)
 			.build()
 
+		// El menú de degradación entra aquí: veta decoders por nombre y, si se
+		// pide, descarta los de hardware para ejercitar el camino de respaldo.
+		val renderersFactory = DefaultRenderersFactory(context)
+			.setEnableDecoderFallback(true)
+			.setMediaCodecSelector(DegradableCodecSelector())
+
+		val targetOffsetMs = dev.targetOffsetOverrideMs ?: plan.targetOffsetMs
+		activeTargetOffsetMs = targetOffsetMs
+
 		val mediaItem = MediaItem.Builder()
 			.setUri(channel.url)
 			.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
 			.setLiveConfiguration(
 				MediaItem.LiveConfiguration.Builder()
-					.setTargetOffsetMs(plan.targetOffsetMs)
+					.setTargetOffsetMs(targetOffsetMs)
 					.build()
 			)
 			.build()
 
-		player = ExoPlayer.Builder(context)
+		player = ExoPlayer.Builder(context, renderersFactory)
+			.setBandwidthMeter(bandwidthMeter)
 			.setLoadControl(loadControl)
 			.setMediaSourceFactory(mediaSourceFactory)
 			.build()
@@ -154,16 +190,36 @@ class Media3LiveEngine(
 
 	override fun stats(): EngineStats {
 		val exo = player
+
+		// El avance de la posición es la señal fiable de que sigue saliendo
+		// imagen. Los callbacks de frame de Media3 no dan un latido regular, y
+		// apoyarse en ellos producía un reloj que medía desde el arranque —
+		// exactamente el dato que el watchdog de M7 no puede permitirse falso.
+		val pos = exo?.currentPosition ?: C.TIME_UNSET
+		val ahora = System.currentTimeMillis()
+		if (pos != lastPositionMs) {
+			lastPositionMs = pos
+			lastProgressAtMs = ahora
+		}
+
+		val segundos = (ahora - loadingSinceMs).coerceAtLeast(1L) / 1000.0
+
 		return EngineStats(
 			engineId = id,
 			activeVideoDecoder = videoDecoder,
 			activeAudioDecoder = audioDecoder,
 			bufferedMs = exo?.totalBufferedDuration ?: 0,
-			bitrateBps = exo?.videoFormat?.bitrate?.toLong() ?: 0,
+			// El TS no declara bitrate en el `Format`, así que se informa la
+			// estimación de ancho de banda: además es el dato útil en vivo.
+			bitrateBps = if (bytesLoaded > 0) (bytesLoaded * 8 / segundos).toLong() else 0,
+			bandwidthBps = bandwidthMeter.bitrateEstimate,
 			droppedFrames = droppedFrames,
-			msSinceLastFrame = if (lastFrameAtMs == 0L) 0 else System.currentTimeMillis() - lastFrameAtMs,
+			msSinceProgress = ahora - lastProgressAtMs,
 			liveOffsetMs = exo?.currentLiveOffset?.takeIf { it != C.TIME_UNSET } ?: 0,
+			windowMs = windowDurationMs.takeIf { it != C.TIME_UNSET } ?: 0,
+			targetOffsetMs = activeTargetOffsetMs,
 			reason = plan?.reason,
+			degradation = dev.describe(),
 		)
 	}
 
@@ -286,8 +342,16 @@ class Media3LiveEngine(
 			output: Any,
 			renderTimeMs: Long,
 		) {
-			lastFrameAtMs = System.currentTimeMillis()
 			LiveLog.info("frames.first", "renderTimeMs" to renderTimeMs)
+		}
+
+		/** Bytes reales descargados: es de donde sale el bitrate del canal. */
+		override fun onLoadCompleted(
+			eventTime: AnalyticsListener.EventTime,
+			loadEventInfo: androidx.media3.exoplayer.source.LoadEventInfo,
+			mediaLoadData: androidx.media3.exoplayer.source.MediaLoadData,
+		) {
+			bytesLoaded += loadEventInfo.bytesLoaded
 		}
 	}
 
@@ -316,6 +380,53 @@ class Media3LiveEngine(
 				"cause" to loadErrorInfo.exception::class.java.simpleName,
 			)
 			return delay
+		}
+	}
+
+	/**
+	 * Selector de decoders que obedece al menú de degradación.
+	 *
+	 * Es la pieza que permite simular cajas peores. Sin ella, la caja de
+	 * pruebas —que trae MPEG-2 por hardware— nunca recorrería los pasos bajos
+	 * de la cascada, y esos pasos llegarían a producción sin probarse.
+	 */
+	private inner class DegradableCodecSelector : MediaCodecSelector {
+		override fun getDecoderInfos(
+			mimeType: String,
+			requiresSecureDecoder: Boolean,
+			requiresTunnelingDecoder: Boolean,
+		): List<androidx.media3.exoplayer.mediacodec.MediaCodecInfo> {
+			val all = MediaCodecSelector.DEFAULT
+				.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
+
+			val isVideo = mimeType.startsWith("video/")
+			val kept = all.filterNot { info ->
+				val vetado = dev.isVetoed(info.name)
+				val porSoftware = isVideo && dev.forceSoftwareVideo && info.hardwareAccelerated
+				vetado || porSoftware
+			}
+
+			if (kept.size != all.size) {
+				LiveLog.warn(
+					"codec.descartados",
+					"mime" to mimeType,
+					"antes" to all.map { it.name },
+					"despues" to kept.map { it.name },
+				)
+			}
+
+			if (kept.isEmpty() && all.isNotEmpty()) {
+				// Que se vea por qué el canal va a fallar, en vez de una
+				// pantalla negra sin explicación (CLAUDE.md regla 8).
+				LiveLog.error(
+					"codec.sinCandidatos",
+					null,
+					"mime" to mimeType,
+					"degradacion" to dev.describe(),
+				)
+			}
+
+			return kept
 		}
 	}
 

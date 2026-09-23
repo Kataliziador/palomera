@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,12 +25,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import org.jellyfin.androidtv.ui.ScreensaverLock
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.diagnostics.DevOptions
+import org.jellyfin.livetv.engine.EngineStats
 import org.jellyfin.livetv.engine.AspectMode
 import org.jellyfin.livetv.engine.DecodePath
 import org.jellyfin.livetv.engine.DeinterlaceMode
@@ -66,7 +71,14 @@ private fun LivePlayer(channelId: String?) {
 	val context = LocalContext.current
 
 	val lifecycleOwner = LocalLifecycleOwner.current
+	val dev = remember { DevOptions.of(context) }
 
+	// Cambiar una opción del menú rehace el plan sin salir del canal: eso es lo
+	// que significa «en caliente», y es lo que M4 necesita para barrer las
+	// cuatro combinaciones de flags sin recompilar.
+	val revision by dev.revision.collectAsState()
+
+	var stats by remember { mutableStateOf(EngineStats(engineId = "media3")) }
 	var state by remember { mutableStateOf("Conectando…") }
 	var detail by remember { mutableStateOf<String?>(null) }
 
@@ -103,7 +115,16 @@ private fun LivePlayer(channelId: String?) {
 	// ella se construye un ExoPlayer que se libera acto seguido. Además de
 	// desperdiciar ~100 ms, eso se paga en el zapping, que tiene objetivo duro
 	// de p50 < 2 s (CLAUDE.md §10).
-	val engine: LiveEngine = remember(channel.url) { Media3LiveEngine(context.applicationContext) }
+	val engine: LiveEngine = remember(channel.url, revision) {
+		Media3LiveEngine(context.applicationContext, dev)
+	}
+
+	LaunchedEffect(engine) {
+		while (true) {
+			stats = engine.stats()
+			delay(STATS_REFRESH_MS)
+		}
+	}
 
 	DisposableEffect(engine, lifecycleOwner) {
 		val listener = object : EngineListener {
@@ -193,5 +214,17 @@ private fun LivePlayer(channelId: String?) {
 				.align(Alignment.BottomStart)
 				.padding(24.dp),
 		)
+
+		if (dev.statsOverlayVisible) {
+			LiveTvStatsOverlay(
+				channel = channel,
+				stats = stats,
+				state = state,
+				modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
+			)
+		}
 	}
 }
+
+/** Medio segundo: suficiente para seguir un problema, sin coste apreciable. */
+private const val STATS_REFRESH_MS = 500L

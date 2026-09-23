@@ -152,6 +152,61 @@ render o recuperación, es vía M. **Estado:** cerrada.
 
 ## Entradas
 
+### [M1] Diagnóstico y degradación — 2026-09-23 — **pendiente de validación**
+
+**Objetivo:** poder ver qué pasa y poder simular cajas peores. Sin esto, M3 y
+M4 se desarrollan a ciegas contra la única caja que lo tiene todo por hardware.
+
+**Construido:**
+
+- `DeviceCapabilities` — enumera con `MediaCodecList(ALL_CODECS)`, cachea por
+  `Build.FINGERPRINT` e infiere hardware por prefijo por debajo de API 29.
+- `DevOptions` — menú de degradación persistido. **Todo arranca en el valor de
+  fábrica**: abrir el menú no cambia nada por sí solo.
+- `DegradableCodecSelector` — veta decoders por nombre y descarta los de
+  hardware bajo demanda. Es la pieza que ejercita los caminos de respaldo.
+- Flags de TS en caliente vía `DefaultHlsExtractorFactory` — lo que M4 necesita
+  para barrer las cuatro combinaciones sin recompilar.
+- Overlay de estadísticas con el **motivo** de la decisión, decoders activos,
+  buffer, bitrate, frames perdidos, live offset contra ventana DVR y
+  degradación activa.
+- Exportación del log a **Descargas**.
+
+**Hallazgos durante la construcción:**
+
+1. **`estrellassd` (MPEG-2 + MP2) reproduce**, con
+   `OMX.amlogic.mpeg2.decoder.awesome2` y `OMX.amlogic.audio.decoder.mp2`,
+   ambos por hardware. Era el sexto canal, hasta ahora sin probar. **Van 5 de
+   6**; solo falla `estrellashd`.
+2. **Esta caja no tiene decoder MPEG-2 por software.** Medido al forzar
+   software: `antes=[OMX.amlogic.mpeg2.decoder.awesome2] despues=[]`. Para
+   MPEG-2, el único camino alternativo es **libVLC**, lo que confirma que M6 no
+   es opcional en cajas sin ese decoder por hardware.
+3. **La exportación del log no servía.** Escribía en `getExternalFilesDir()`,
+   que en Android 10+ no es accesible ni por `adb pull` ni por un gestor de
+   archivos: el log quedaba encerrado en la caja. Rehecha contra `MediaStore`,
+   y verificada extrayéndola. Nótese que MediaStore impone que la extensión
+   concuerde con el tipo MIME.
+4. **Dos métricas mentían y se corrigieron.** «Tiempo desde el último frame»
+   se apoyaba en `onRenderedFirstFrame`, que dispara una sola vez, así que
+   medía desde el arranque; ahora se mide el **avance de la posición**, que es
+   la señal fiable de imagen congelada y la que M7 necesita. Y «bitrate»
+   informaba la estimación de ancho de banda —52 Mbps en una LAN— en vez del
+   bitrate del canal; ahora se miden los bytes realmente descargados (2893
+   kbps en `estrellassd`, coherente con `CHANNELS.md`) y el ancho de banda se
+   informa aparte.
+
+**Prueba de Edgar** (`LIVETV_PLAN.md` M1): el overlay muestra datos correctos;
+vetar un decoder desde el menú cambia visiblemente el comportamiento; el log se
+exporta.
+
+**Comprobado por instrumentos antes de entregar:** forzar software sobre
+`estrellassd` deja el video sin candidatos y sin frames, con
+`codec.sinCandidatos` en el registro; al restablecer, vuelve a reproducir por
+hardware.
+
+**Estado:** **abierta** — falta la validación en pantalla.
+
 ### Retirada de `media3-ffmpeg-decoder` (GPL-3.0) — 2026-09-22
 
 **Síntoma:** `CLAUDE.md` §6 prohibía `jellyfin-androidx-media` por GPL-3.0,

@@ -32,11 +32,20 @@ data class EngineStats(
 	val activeVideoDecoder: String? = null,
 	val activeAudioDecoder: String? = null,
 	val bufferedMs: Long = 0,
+	/** Bitrate real del canal, medido sobre los bytes descargados. */
 	val bitrateBps: Long = 0,
+	/** Estimación de ancho de banda de la red. Otra cosa distinta. */
+	val bandwidthBps: Long = 0,
 	val droppedFrames: Int = 0,
-	val msSinceLastFrame: Long = 0,
+	/** Tiempo sin que avance la posición: es lo que delata imagen congelada. */
+	val msSinceProgress: Long = 0,
 	val liveOffsetMs: Long = 0,
+	/** Ventana DVR medida del playlist. Es lo que acota el `targetOffsetMs`. */
+	val windowMs: Long = 0,
+	val targetOffsetMs: Long = 0,
 	val reason: String? = null,
+	/** Resumen de la degradación activa, o «de fábrica». */
+	val degradation: String? = null,
 )
 
 interface EngineListener {

@@ -71,6 +71,9 @@ class LiveTvFragment : Fragment() {
 					onChannelClick = { channel ->
 						navigationRepository.navigate(Destinations.liveTvPlayer(channel.id))
 					},
+					onDiagnosticsClick = {
+						navigationRepository.navigate(Destinations.liveTvDevMenu)
+					},
 				)
 			}
 		}
@@ -81,6 +84,7 @@ class LiveTvFragment : Fragment() {
 private fun ChannelRow(
 	channels: List<ChannelProfile>,
 	onChannelClick: (ChannelProfile) -> Unit,
+	onDiagnosticsClick: () -> Unit,
 ) {
 	// Foco inicial en el primer canal. Es la variante que Edgar validó con el
 	// control; las medidas automáticas por `adb` entran a la sección con un
@@ -105,6 +109,19 @@ private fun ChannelRow(
 		// número, que es donde el desplazamiento hay que resolverlo de verdad
 		// para ~120 canales.
 		LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+			// Entrada al menú de degradación. Vive junto a los canales porque es
+			// donde hace falta: se veta un decoder y se entra al canal a ver qué
+			// cambia, sin salir de la sección.
+			item {
+				Button(
+					onClick = onDiagnosticsClick,
+					modifier = Modifier.width(136.dp).height(92.dp),
+					contentPadding = PaddingValues(10.dp),
+				) {
+					Text(text = "Diagnóstico", fontWeight = FontWeight.Medium)
+				}
+			}
+
 			items(channels, key = { it.id }) { channel ->
 				ChannelCard(
 					channel = channel,
