@@ -255,7 +255,63 @@ decide si hay arreglo por software.
 **No se ha tocado nada.** Sincronía es Modo A, y la causa todavía no está
 confirmada. Medición de deriva en curso.
 
-**Estado:** abierta. Va a **M8**, con dependencia de M7 (watchdog).
+### Culpable identificado — 2026-09-23
+
+**Prueba 2, la decisiva (Edgar).** Se generó un archivo local con destello a
+pantalla completa y clic, verificado sincronizado en origen: destellos en
+1.000/2.000/3.000 s y clics en 1.00002/2.00002/3.00002 s — desviación constante
+de 0.02 ms y **cero deriva**. Se reprodujo **desde el almacenamiento local de
+la caja, con VLC**.
+
+**Resultado: salió desincronizado.** Un ciclo de HDMI lo corrigió, por segunda
+vez.
+
+Eso elimina de una sola prueba, y con certeza:
+
+| Sospechoso | Por qué queda descartado |
+|---|---|
+| Satélite, Astra, Flussonic | el archivo es local, no pasó por ahí |
+| La red | reproducción desde `/sdcard` |
+| El stream y su muxado | archivo generado y verificado aquí |
+| **El módulo `livetv` y Media3** | **se reprodujo con VLC, otro motor** |
+
+**Prueba 1, confirmación independiente.** Capturados 6 minutos de `mileniosd`
+y medido el avance de cada línea de tiempo:
+
+```
+video  10801 paquetes  span = 360.000 s   (10800 frames a 30 fps = 360.000 s)
+audio  16875 paquetes  span = 359.979 s   (16875 x 1024 / 48000 = 360.000 s)
+```
+
+Los 21 ms de diferencia son exactamente una trama AAC: efecto de borde del
+recorte, no deriva. **El stream no deriva.**
+
+**Conclusión: el culpable es la ruta de salida de audio de la caja.**
+
+Queda la tele como sospechoso residual, pero es poco verosímil: el retardo que
+añade un televisor al procesar imagen es **fijo**, y no lo borraría un
+reenchufe de cable. Lo que sí encaja es lo medido en el HAL —
+`ms12 system input underrun` con 53 s entre punteros del búfer interno de
+Amlogic — y que la cura sea precisamente destruir y recrear esa ruta.
+
+**La pregunta que queda abierta, y es la que decide el proyecto:** ¿hasta qué
+profundidad hay que reiniciar para limpiarlo? De eso depende que la app pueda
+curarlo sola o que sea una limitación de hardware que haya que documentar.
+
+**Escalera de prueba pendiente**, a ejecutar **con el desfase presente** y
+parando en el primer paso que funcione:
+
+1. Salir del canal y volver a entrar — la app suelta el `AudioTrack`
+2. Cerrar la app del todo y reabrirla — muere el proceso, se cierra el stream
+3. Suspender la caja y despertarla — normalmente cierra la salida HDMI
+4. Reiniciar la caja
+5. Ciclo de HDMI
+
+Si funciona el 1 o el 2, **el cliente puede curarlo solo** y esto pasa a ser un
+watchdog de audio en M7 más una reconexión periódica en M8. Del 3 en adelante,
+queda fuera del alcance de la app.
+
+**Estado:** causa acotada. Va a **M8**, con dependencia de M7 (watchdog).
 
 ---
 
