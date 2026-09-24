@@ -103,7 +103,15 @@ fun LiveTvStatsOverlay(
 			if (stats.windowMs > 0) "${stats.windowMs} ms" else "—",
 			warn = stats.windowMs > 0 && stats.targetOffsetMs > stats.windowMs / 2,
 		)
-		Line("target offset", "${stats.targetOffsetMs} ms")
+		// Si el real supera al pedido, es que el suelo de HLS manda sobre
+		// nosotros. Se resalta para que nadie lo dé por aplicado.
+		val offsetIgnorado = stats.liveOffsetMs > 0 &&
+			stats.liveOffsetMs - stats.targetOffsetMs > 2000
+		Line(
+			"target offset",
+			"${stats.targetOffsetMs} ms" + if (offsetIgnorado) "  (no se aplica)" else "",
+			warn = offsetIgnorado,
+		)
 
 		Spacer()
 

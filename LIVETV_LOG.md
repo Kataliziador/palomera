@@ -272,8 +272,33 @@ Consecuencias:
    correcta, pero **no es la restricción que manda**: manda el suelo, no el
    techo.
 
-**Estado:** diagnóstico cerrado. La implementación de M2 se decide con esto
-delante.
+**Implementado sobre ese diagnóstico:**
+
+1. **Umbral de playlist detenido de 3.5 a 10** (vía `DefaultHlsPlaylistTracker`).
+   Con 3.5 el error salta a los ~14 s y Flussonic tarda ~15 s en reconstruir el
+   playlist: el defecto de Media3 saltaba **justo antes** de que el servidor se
+   recuperase, convirtiendo un chubasco en un error de reproducción — lo que
+   `CLAUDE.md` §6 prohíbe. Con 10 el margen sube a ~40 s. **Con interruptor en
+   el menú para volver al 3.5 y comparar en pantalla.**
+2. **El desajuste de offset deja de ser invisible.** El motor avisa una vez por
+   sesión (`offset.noSeAplica pedidoMs=8000 realMs=10525 causa=...`) y el
+   overlay lo marca en ámbar: `target offset 8000 ms (no se aplica)`.
+3. **`LIVETV_ENGINE.md` §5 corregido.** Decía que el `targetOffsetMs` se
+   controla por canal desde el `config.json`; ahora dice la verdad, que hay un
+   suelo impuesto por HLS y que hace falta el pendiente 21 para controlarlo.
+
+**Nota de método:** el constructor de `DefaultHlsPlaylistTracker` se comprobó
+con `javap` sobre el `.aar` de Media3 1.8.0 en vez de suponerlo — el
+coeficiente es el quinto parámetro, después del `CmcdConfiguration`, y las dos
+suposiciones previas eran falsas.
+
+**Prueba de Edgar** (`LIVETV_PLAN.md` M2): 30 min de `estrellassd` (77W) y 30
+de `hbohd` (70W) sin cortes ni saltos. El criterio es **< 1 rebuffer por hora**.
+
+Conviene además probar el interruptor del umbral: con 3.5 y la red cortada unos
+15 s debería aparecer error; con 10 debería aguantar y recuperarse solo.
+
+**Estado:** **abierta** — falta la validación en pantalla.
 
 ### [M1] Diagnóstico y degradación — 2026-09-23 — **pendiente de validación**
 

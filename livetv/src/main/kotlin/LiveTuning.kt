@@ -37,6 +37,44 @@ object LiveTuning {
 	 */
 	const val TARGET_OFFSET_MAX_WINDOW_FRACTION = 0.5
 
+	// --- Playlist detenido ---------------------------------------------------
+
+	/**
+	 * Cuántas duraciones-objetivo espera Media3 antes de declarar el playlist
+	 * atascado y lanzar error.
+	 *
+	 * El valor de Media3 es **3.5**, que con `TARGETDURATION 4` da unos 14 s.
+	 * Está medido que cuando la fuente cae, Flussonic devuelve un playlist
+	 * **vacío** y tarda **~15 s** en reconstruirlo. Es decir: el umbral por
+	 * defecto salta justo antes de que el servidor se recupere, y convierte un
+	 * chubasco en un error de reproducción.
+	 *
+	 * Eso choca de frente con la regla de `CLAUDE.md` §6: prohibido cerrar el
+	 * player ante un error de red, porque un canal caído por lluvia es un
+	 * estado temporal. Con 10 el margen sube a ~40 s, que cubre de sobra la
+	 * reconstrucción del playlist.
+	 */
+	const val PLAYLIST_STUCK_COEFFICIENT = 10.0
+
+	/** El de Media3, para poder comparar desde el menú. */
+	const val PLAYLIST_STUCK_COEFFICIENT_MEDIA3 = 3.5
+
+	// --- Live offset: el suelo que impone HLS --------------------------------
+
+	/**
+	 * Sin `EXT-X-SERVER-CONTROL` en el playlist, la especificación HLS fija el
+	 * margen seguro en **3 × TARGETDURATION**, y Media3 no baja de ahí por
+	 * mucho que se le pida.
+	 *
+	 * Medido el 2026-09-24: pidiendo 8000 ms el offset se estabiliza en 12380,
+	 * y pidiendo 4000 se **aleja** hasta 11752. Con `TARGETDURATION 4` el suelo
+	 * son 12 s, que es exactamente lo observado.
+	 *
+	 * Se usa para avisar cuando lo pedido es inalcanzable, en vez de dejar que
+	 * alguien pierda un día preguntándose por qué el `config.json` no hace nada.
+	 */
+	const val HLS_HOLD_BACK_TARGET_DURATIONS = 3
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un

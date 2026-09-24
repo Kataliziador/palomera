@@ -66,6 +66,18 @@ class DevOptions(context: Context) {
 		get() = prefs.getBoolean(K_TS_NONIDR, false)
 		set(v) = put { putBoolean(K_TS_NONIDR, v) }
 
+	/**
+	 * Devuelve el umbral de playlist detenido al valor de Media3 (3.5), para
+	 * poder comparar en pantalla el comportamiento antiguo con el nuevo.
+	 */
+	var playlistStuckMedia3Default: Boolean
+		get() = prefs.getBoolean(K_STUCK_DEFAULT, false)
+		set(v) = put { putBoolean(K_STUCK_DEFAULT, v) }
+
+	val playlistStuckCoefficient: Double
+		get() = if (playlistStuckMedia3Default) LiveTuning.PLAYLIST_STUCK_COEFFICIENT_MEDIA3
+		else LiveTuning.PLAYLIST_STUCK_COEFFICIENT
+
 	// --- Sintonía en caliente ----------------------------------------------
 
 	/** `null` = el del canal. Sirve también para provocar BEHIND_LIVE_WINDOW a voluntad. */
@@ -96,6 +108,7 @@ class DevOptions(context: Context) {
 	/** ¿Hay algo que aleje el comportamiento del de fábrica? Se avisa en el overlay. */
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
+			playlistStuckMedia3Default ||
 			tsDetectAccessUnits || tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
 			maxBufferOverrideMs != null
@@ -104,6 +117,7 @@ class DevOptions(context: Context) {
 		if (vetoedDecoders.isNotEmpty()) add("vetados=${vetoedDecoders.size}")
 		if (forceSoftwareVideo) add("video=software")
 		forcedEngine?.let { add("motor=$it") }
+		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (tsDetectAccessUnits) add("AUD=on")
 		if (tsAllowNonIdrKeyframes) add("nonIDR=on")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
@@ -144,6 +158,7 @@ class DevOptions(context: Context) {
 		const val K_VETOED = "vetoedDecoders"
 		const val K_FORCE_SW = "forceSoftwareVideo"
 		const val K_FORCED_ENGINE = "forcedEngine"
+		const val K_STUCK_DEFAULT = "playlistStuckMedia3Default"
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"

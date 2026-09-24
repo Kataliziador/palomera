@@ -275,10 +275,25 @@ DefaultLoadControl.Builder()
 frecuente) y **8000 para los de TotalPlay**. Más colchón solo donde compra
 resiliencia.
 
-**Con una condición dura, y por poco se nos escapa.** Medida la ventana DVR
-real (`CHANNELS.md` §2.bis), los dos canales de 70W eran los más cortos —
-`hbohd` 13.88 s — justo los que llevan 12000. Eso dejaba **1.9 s** antes de
-`BEHIND_LIVE_WINDOW`: el colchón contra la lluvia era lo que rompía el canal.
+**Pero hay un suelo que no controlamos, y manda sobre lo pedido.** Medido el
+2026-09-24: pidiendo 8000 ms el offset real se estabiliza en **12380**, y
+pidiendo 4000 se **aleja** hasta 11752. La causa es que el playlist no emite
+`EXT-X-SERVER-CONTROL`, y sin esa etiqueta la especificación HLS fija el margen
+seguro en **3 × TARGETDURATION**. Media3 no baja de ahí.
+
+Consecuencia: **el `targetOffsetMs` por canal del `config.json` no se aplica**
+mientras el headend no emita un `HOLD-BACK` explícito (pendiente 21). El valor
+real lo decide el `TARGETDURATION` de cada canal — 3 o 4, o sea 9 o 12 s.
+
+No es catastrófico: para los satelitales este documento pedía 12000 ms por
+resiliencia ante lluvia, y 12380 es justo eso. Lo que no tenemos es el control.
+El motor **avisa en el log y en el overlay** cuando lo pedido no se aplica, en
+vez de dejar que parezca que sí.
+
+**Y además hay un techo.** Medida la ventana DVR real (`CHANNELS.md` §2.bis),
+los dos canales de 70W eran los más cortos — `hbohd` 13.88 s — justo los que
+llevan 12000. Eso dejaba **1.9 s** antes de `BEHIND_LIVE_WINDOW`: el colchón
+contra la lluvia era lo que rompía el canal.
 
 > **`targetOffsetMs` nunca por encima de la mitad de la ventana medida del
 > canal.** Con `segment_count 12` en Flussonic (~28 s de ventana), los 12000
@@ -292,9 +307,15 @@ caja verifica.
 
 ### Playlist detenido
 
-Por defecto, Media3 declara el playlist atascado a las 3.5 duraciones-objetivo
-(unos 10 s en estos canales) y lanza error. Para los satelitales hay que subir
-ese umbral, o capturar el error y seguir reintentando.
+Media3 declara el playlist atascado a las **3.5** duraciones-objetivo y lanza
+error. Con `TARGETDURATION 4` eso son ~14 s, y está medido que cuando la fuente
+cae **Flussonic tarda ~15 s en reconstruir el playlist**. El umbral por defecto
+salta justo antes de que el servidor se recupere: convierte un chubasco en un
+error de reproducción, que es lo que §6 de `CLAUDE.md` prohíbe.
+
+**Implementado en M2:** coeficiente **10** (unos 40 s de margen), vía
+`DefaultHlsPlaylistTracker`, con interruptor en el menú para volver al 3.5 de
+Media3 y poder comparar en pantalla.
 
 ### Errores y su respuesta
 

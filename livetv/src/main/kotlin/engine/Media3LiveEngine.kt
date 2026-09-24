@@ -16,6 +16,8 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.hls.playlist.DefaultHlsPlaylistTracker
+import androidx.media3.exoplayer.hls.playlist.HlsPlaylistTracker
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
@@ -89,6 +91,7 @@ class Media3LiveEngine(
 	private var selectedAudio: AudioTrackRef? = null
 	private var windowDurationMs = C.TIME_UNSET
 	private var activeTargetOffsetMs = 0L
+	private var offsetMismatchReported = false
 
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
@@ -100,6 +103,8 @@ class Media3LiveEngine(
 		this.channel = channel
 		this.plan = plan
 
+		val stuckCoefficient = dev.playlistStuckCoefficient
+
 		LiveLog.startSession(channel.id, channel.url, channel.videoCodec, channel.audioCodec)
 		LiveLog.info(
 			"engine.prepare",
@@ -107,6 +112,7 @@ class Media3LiveEngine(
 			"videoPath" to plan.videoPath,
 			"targetOffsetMs" to (dev.targetOffsetOverrideMs ?: plan.targetOffsetMs),
 			"reason" to plan.reason,
+			"playlistStuckCoef" to stuckCoefficient,
 			"degradacion" to dev.describe(),
 		)
 
@@ -116,6 +122,7 @@ class Media3LiveEngine(
 		loadingSinceMs = inicio
 		lastPositionMs = C.TIME_UNSET
 		lastProgressAtMs = inicio
+		offsetMismatchReported = false
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
 		msToFirstFrame = 0
@@ -143,9 +150,25 @@ class Media3LiveEngine(
 		if (dev.tsDetectAccessUnits) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
 		if (dev.tsAllowNonIdrKeyframes) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
 
+		// Umbral de playlist detenido. Con el valor de Media3 (3.5) el error
+		// salta a los ~14 s, justo antes de que Flussonic termine de
+		// reconstruir el playlist tras una caída de fuente (~15 s medidos).
+		// Es decir: el defecto convierte un chubasco en un error de
+		// reproducción, que es lo que CLAUDE.md §6 prohíbe.
 		val mediaSourceFactory = HlsMediaSource.Factory(httpFactory)
 			.setLoadErrorHandlingPolicy(LiveErrorPolicy())
 			.setExtractorFactory(DefaultHlsExtractorFactory(tsFlags, false))
+			.setPlaylistTrackerFactory(
+				HlsPlaylistTracker.Factory { dataSourceFactory, loadErrorPolicy, parserFactory, cmcd ->
+					DefaultHlsPlaylistTracker(
+						dataSourceFactory,
+						loadErrorPolicy,
+						parserFactory,
+						cmcd,
+						stuckCoefficient,
+					)
+				}
+			)
 			// El playlist se reconstruye tras una caída de la fuente; que el
 			// parser no se detenga en el primer hueco.
 			.setAllowChunklessPreparation(false)
@@ -368,17 +391,37 @@ class Media3LiveEngine(
 			if (durationMs == C.TIME_UNSET || durationMs <= 0) return
 			windowDurationMs = durationMs
 
-			// La ventana DVR es lo que gobierna el offset. Un offset mayor que la
-			// mitad de la ventana acaba en BEHIND_LIVE_WINDOW en cuanto hay un
-			// hipo de red. Medido el 2026-09-22 en hbohd-70w: ver CHANNELS.md §2.bis.
-			val target = plan?.targetOffsetMs ?: return
+			// El offset tiene un techo y un suelo, y el que manda es el suelo.
+			//
+			// Techo: más de la mitad de la ventana acaba en BEHIND_LIVE_WINDOW
+			// en cuanto hay un hipo de red (medido en hbohd, CHANNELS.md §2.bis).
+			//
+			// Suelo: sin `EXT-X-SERVER-CONTROL` la especificación HLS fija el
+			// margen seguro en 3 × TARGETDURATION y Media3 no baja de ahí. Lo
+			// pedido puede ser sencillamente inalcanzable, y callarlo haría que
+			// alguien perdiera un día preguntándose por qué el config.json no
+			// hace nada.
+			val target = activeTargetOffsetMs
 			val ceiling = (durationMs * LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION).toLong()
 			if (target > ceiling) {
 				LiveLog.warn(
-					"player.targetOffsetExceedsWindow",
-					"targetOffsetMs" to target,
-					"windowMs" to durationMs,
-					"ceilingMs" to ceiling,
+					"offset.superaLaVentana",
+					"pedidoMs" to target,
+					"ventanaMs" to durationMs,
+					"techoMs" to ceiling,
+				)
+			}
+
+			val real = player?.currentLiveOffset ?: C.TIME_UNSET
+			if (real != C.TIME_UNSET && !offsetMismatchReported &&
+				real - target > OFFSET_MISMATCH_TOLERANCE_MS
+			) {
+				offsetMismatchReported = true
+				LiveLog.warn(
+					"offset.noSeAplica",
+					"pedidoMs" to target,
+					"realMs" to real,
+					"causa" to "sin EXT-X-SERVER-CONTROL el suelo es 3xTARGETDURATION",
 				)
 			}
 		}
@@ -594,5 +637,7 @@ class Media3LiveEngine(
 		const val ENGINE_ID = "media3"
 		const val MAX_BACKOFF_EXPONENT = 4
 		const val FPS_WINDOW_MS = 2_000L
+		/** Por debajo de esto, la diferencia es ruido de convergencia. */
+		const val OFFSET_MISMATCH_TOLERANCE_MS = 2_000L
 	}
 }

@@ -128,6 +128,17 @@ private fun DevMenu() {
 			) { change { dev.forceSoftwareVideo = !dev.forceSoftwareVideo } }
 		}
 
+		item {
+			Row(
+				label = "Umbral de playlist detenido",
+				value = if (dev.playlistStuckMedia3Default) "3.5 (Media3)" else "10 (nuestro)",
+				changed = dev.playlistStuckMedia3Default,
+			) { change { dev.playlistStuckMedia3Default = !dev.playlistStuckMedia3Default } }
+		}
+		item {
+			Info("Con 3.5 el error salta a los ~14 s, antes de que Flussonic reconstruya el playlist (~15 s).")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(
