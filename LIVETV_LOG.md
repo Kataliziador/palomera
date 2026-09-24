@@ -214,11 +214,66 @@ un frame congelado.
 | 17 | ~~Subir `segment_count` de 6 a 12~~ | — | **cerrado 23-sep: hecho.** Ventana medida de 29–36 s en todos los canales. Antes:| ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
 | 18 | **Aplicar MP2 → AAC a los canales MP2 del lineup** | headend | empezando por `estrellassd-mp2v`. Gatea el cierre real de M3 |
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
+| 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 
 ---
 
 ## Entradas
+
+### [M2] Medición y diagnóstico de estabilidad — 2026-09-24
+
+**Medido, con la instrumentación de M1 y no con impresiones:**
+
+| | `estrellassd` (77W) | `beisbol` (línea base) | Objetivo |
+|---|---|---|---|
+| Duración | **1 h 33 min** | 43 min | — |
+| Rebuffers | 2 | 3 | — |
+| Por hora | **1.3** | 4.2 | < 1 |
+| Ratio | **0.035 %** | 0.264 % | < 0.3 % |
+| Reintentos de red | **0** | 0 | — |
+| Frames perdidos | 22 | 0 | — |
+| 1er frame | — | **451 ms** | < 4000 |
+
+**Los rebuffers no son inestabilidad continua.** A los 20 minutos `estrellassd`
+ya llevaba sus 2; en los **73 minutos siguientes, cero**. Se agolpan al
+arrancar y después el canal es sólido más de una hora.
+
+**Dos correcciones a alarmas propias.** El «15 % de ratio» que se reportó al
+construir el overlay estaba medido a los 30 s, con el denominador minúsculo;
+sostenido baja a 0.035 %. Y el offset **no crece indefinidamente** como se dijo:
+se estabiliza.
+
+**Hallazgo principal: `targetOffsetMs` no se aplica.**
+
+Comprobado con el menú de degradación de M1, que existe justo para esto:
+
+```
+pedido 8000 ms  → se estabiliza en 12380 ms
+pedido 4000 ms  → 10180 → 10429 → 11509 → 11751 → 11752   (se aleja del objetivo)
+```
+
+El playlist es `#EXT-X-VERSION:3` con `#EXT-X-TARGETDURATION:4` y **sin
+`EXT-X-SERVER-CONTROL`**. Sin esa etiqueta, la especificación HLS fija el
+margen seguro en **3 × TARGETDURATION = 12 s**, y Media3 no baja de ahí por
+mucho que se le pida. Los 12380 ms medidos son exactamente ese número.
+
+Consecuencias:
+
+1. **El `targetOffsetMs` por canal del `config.json` no va a funcionar como
+   está diseñado** (`LIVETV_ENGINE.md` §5 y §8). El offset real lo fija el
+   `TARGETDURATION` del playlist, que varía por canal (3 o 4 → 9 o 12 s).
+2. **No es necesariamente malo.** Para los satelitales el documento pedía
+   12000 ms por resiliencia ante lluvia, y 12380 es justo eso. El problema no
+   es el valor, es que **no lo controlamos**.
+3. **Para controlarlo hay que ir al headend:** que Flussonic emita
+   `EXT-X-SERVER-CONTROL` con un `HOLD-BACK` explícito. Nuevo pendiente.
+4. La regla de recortar el offset a la mitad de la ventana sigue siendo
+   correcta, pero **no es la restricción que manda**: manda el suelo, no el
+   techo.
+
+**Estado:** diagnóstico cerrado. La implementación de M2 se decide con esto
+delante.
 
 ### [M1] Diagnóstico y degradación — 2026-09-23 — **pendiente de validación**
 
