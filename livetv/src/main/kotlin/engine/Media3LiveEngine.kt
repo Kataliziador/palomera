@@ -26,6 +26,7 @@ import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.source.AudioTrackRef
 import org.jellyfin.livetv.source.ChannelProfile
+import org.jellyfin.livetv.source.LanguageNormalizer
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.min
 import kotlin.math.pow
@@ -64,6 +65,28 @@ class Media3LiveEngine(
 	private var loadingSinceMs = 0L
 	private var lastPositionMs = C.TIME_UNSET
 	private var lastProgressAtMs = 0L
+
+	// Métricas de los objetivos de CLAUDE.md §10
+	private var prepareAtMs = 0L
+	private var firstFrameAtMs = 0L
+	private var msToFirstFrame = 0L
+	private var rebufferCount = 0
+	private var bufferingSinceMs = 0L
+	private var bufferingTotalMs = 0L
+	private var loadRetries = 0
+
+	// Render, para M5
+	private var videoWidth = 0
+	private var videoHeight = 0
+	private var pixelAspectRatio = 1f
+	private var renderedFrames = 0L
+	private var fpsSampleAtMs = 0L
+	private var fpsSampleFrames = 0L
+	private var fpsActual = 0f
+
+	// Audio, para M3
+	private var audioTracks: List<AudioTrackRef> = emptyList()
+	private var selectedAudio: AudioTrackRef? = null
 	private var windowDurationMs = C.TIME_UNSET
 	private var activeTargetOffsetMs = 0L
 
@@ -88,10 +111,24 @@ class Media3LiveEngine(
 		)
 
 		release()
+		val inicio = System.currentTimeMillis()
 		bytesLoaded = 0
-		loadingSinceMs = System.currentTimeMillis()
+		loadingSinceMs = inicio
 		lastPositionMs = C.TIME_UNSET
-		lastProgressAtMs = System.currentTimeMillis()
+		lastProgressAtMs = inicio
+		prepareAtMs = inicio
+		firstFrameAtMs = 0
+		msToFirstFrame = 0
+		rebufferCount = 0
+		bufferingSinceMs = 0
+		bufferingTotalMs = 0
+		loadRetries = 0
+		renderedFrames = 0
+		fpsSampleAtMs = 0
+		fpsSampleFrames = 0
+		fpsActual = 0f
+		audioTracks = emptyList()
+		selectedAudio = null
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
@@ -150,6 +187,9 @@ class Media3LiveEngine(
 			.also { exo ->
 				exo.addListener(PlayerEvents())
 				exo.addAnalyticsListener(DecoderEvents())
+				// `onVideoFrameProcessingOffset` no da un latido fiable; este
+				// listener sí dispara una vez por frame presentado.
+				exo.setVideoFrameMetadataListener { _, _, _, _ -> renderedFrames++ }
 				surface?.let(exo::setVideoSurfaceView)
 				exo.setMediaItem(mediaItem)
 				exo.prepare()
@@ -220,7 +260,54 @@ class Media3LiveEngine(
 			targetOffsetMs = activeTargetOffsetMs,
 			reason = plan?.reason,
 			degradation = dev.describe(),
+
+			msToFirstFrame = msToFirstFrame,
+			rebufferCount = rebufferCount,
+			rebufferRatio = rebufferRatio(ahora),
+			sessionUptimeMs = if (prepareAtMs == 0L) 0 else ahora - prepareAtMs,
+			loadRetries = loadRetries,
+
+			videoWidth = videoWidth,
+			videoHeight = videoHeight,
+			pixelAspectRatio = pixelAspectRatio,
+			measuredFps = measuredFps(ahora),
+
+			audioTracks = audioTracks,
+			selectedAudio = selectedAudio,
 		)
+	}
+
+	/** Fracción del tiempo con imagen que se pasó almacenando. Objetivo: < 0.3 %. */
+	private fun rebufferRatio(ahora: Long): Float {
+		if (firstFrameAtMs == 0L) return 0f
+		val conImagen = (ahora - firstFrameAtMs).coerceAtLeast(1L)
+		val almacenando = bufferingTotalMs +
+			if (bufferingSinceMs > 0L) ahora - bufferingSinceMs else 0L
+		return (almacenando.toFloat() / conImagen).coerceIn(0f, 1f)
+	}
+
+	/**
+	 * fps instantáneo, sobre una ventana deslizante.
+	 *
+	 * La media acumulada desde el primer frame engaña: tras un rebuffer arrastra
+	 * el hueco para siempre y nunca vuelve al valor real. Con ventana corta se
+	 * ve lo que está pasando ahora, que es lo que sirve para juzgar si un canal
+	 * va a 29.97 o a 59.94 — la disputa abierta de `estrellashd`.
+	 */
+	private fun measuredFps(ahora: Long): Float {
+		if (firstFrameAtMs == 0L) return 0f
+		if (fpsSampleAtMs == 0L) {
+			fpsSampleAtMs = ahora
+			fpsSampleFrames = renderedFrames
+			return 0f
+		}
+		val transcurrido = ahora - fpsSampleAtMs
+		if (transcurrido >= FPS_WINDOW_MS) {
+			fpsActual = (renderedFrames - fpsSampleFrames) * 1000f / transcurrido
+			fpsSampleAtMs = ahora
+			fpsSampleFrames = renderedFrames
+		}
+		return fpsActual
 	}
 
 	private fun notify(block: (EngineListener) -> Unit) = listeners.forEach(block)
@@ -230,8 +317,25 @@ class Media3LiveEngine(
 	private inner class PlayerEvents : Player.Listener {
 		override fun onPlaybackStateChanged(state: Int) {
 			when (state) {
-				Player.STATE_READY -> { LiveLog.info("player.ready"); notify { it.onReady() } }
-				Player.STATE_BUFFERING -> { LiveLog.debug("player.buffering"); notify { it.onBuffering() } }
+				Player.STATE_READY -> {
+					if (bufferingSinceMs > 0L) {
+						bufferingTotalMs += System.currentTimeMillis() - bufferingSinceMs
+						bufferingSinceMs = 0L
+					}
+					LiveLog.info("player.ready")
+					notify { it.onReady() }
+				}
+				Player.STATE_BUFFERING -> {
+					// Solo cuenta como rebuffer si ya había imagen: el
+					// almacenamiento inicial es arranque, no interrupción.
+					if (firstFrameAtMs > 0L && bufferingSinceMs == 0L) {
+						bufferingSinceMs = System.currentTimeMillis()
+						rebufferCount++
+						LiveLog.warn("player.rebuffer", "numero" to rebufferCount)
+					}
+					LiveLog.debug("player.buffering")
+					notify { it.onBuffering() }
+				}
 				Player.STATE_ENDED -> LiveLog.warn("player.ended")
 				Player.STATE_IDLE -> LiveLog.debug("player.idle")
 			}
@@ -251,6 +355,9 @@ class Media3LiveEngine(
 				"height" to videoSize.height,
 				"sar" to videoSize.pixelWidthHeightRatio,
 			)
+			videoWidth = videoSize.width
+			videoHeight = videoSize.height
+			pixelAspectRatio = videoSize.pixelWidthHeightRatio
 			notify { it.onVideoSizeChanged(videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio) }
 		}
 
@@ -274,6 +381,52 @@ class Media3LiveEngine(
 					"ceilingMs" to ceiling,
 				)
 			}
+		}
+
+		/**
+		 * Inventario de pistas de audio.
+		 *
+		 * Además de servir a la selección por idioma de M3, hace **visible** el
+		 * audio intermitente de `estrellashd`: si la pista desaparece a mitad
+		 * de emisión, aquí se ve desaparecer en vez de deducirlo del silencio.
+		 */
+		override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+			val encontradas = mutableListOf<AudioTrackRef>()
+			var seleccionada: AudioTrackRef? = null
+
+			tracks.groups
+				.filter { it.type == C.TRACK_TYPE_AUDIO }
+				.forEach { group ->
+					for (i in 0 until group.length) {
+						val f = group.getTrackFormat(i)
+						// El `id` que expone Media3 en HLS es un índice de pista,
+						// no el PID del TS. Enseñarlo como PID sería inventarse
+						// un dato — y además el PID no identifica nada, porque
+						// Flussonic los renumera (CHANNELS.md §2.bis). Solo se
+						// acepta si cae en el rango válido de PID.
+						val posiblePid = f.id?.substringAfterLast('/')?.toIntOrNull()
+						val ref = AudioTrackRef(
+							language = LanguageNormalizer.normalize(f.language),
+							pid = posiblePid?.takeIf { it in 0x0010..0x1FFE } ?: -1,
+							channels = f.channelCount,
+							label = f.label ?: f.language,
+						)
+						encontradas += ref
+						if (group.isTrackSelected(i)) seleccionada = ref
+					}
+				}
+
+			if (encontradas.map { it.language } != audioTracks.map { it.language }) {
+				LiveLog.info(
+					"audio.pistas",
+					"cuantas" to encontradas.size,
+					"idiomas" to encontradas.mapNotNull { it.language },
+				)
+			}
+
+			audioTracks = encontradas
+			selectedAudio = seleccionada
+			notify { it.onAudioTracksChanged(encontradas) }
 		}
 
 		override fun onPlayerError(error: PlaybackException) {
@@ -342,8 +495,14 @@ class Media3LiveEngine(
 			output: Any,
 			renderTimeMs: Long,
 		) {
-			LiveLog.info("frames.first", "renderTimeMs" to renderTimeMs)
+			if (firstFrameAtMs == 0L) {
+				firstFrameAtMs = System.currentTimeMillis()
+				msToFirstFrame = firstFrameAtMs - prepareAtMs
+				LiveLog.info("frames.first", "msDesdePrepare" to msToFirstFrame)
+			}
 		}
+
+
 
 		/** Bytes reales descargados: es de donde sale el bitrate del canal. */
 		override fun onLoadCompleted(
@@ -373,6 +532,7 @@ class Media3LiveEngine(
 				LiveTuning.RETRY_BACKOFF_BASE_MS * 2.0.pow(attempt.toDouble()).toLong(),
 				LiveTuning.RETRY_BACKOFF_MAX_MS,
 			)
+			loadRetries++
 			LiveLog.warn(
 				"load.retry",
 				"attempt" to loadErrorInfo.errorCount,
@@ -433,5 +593,6 @@ class Media3LiveEngine(
 	private companion object {
 		const val ENGINE_ID = "media3"
 		const val MAX_BACKOFF_EXPONENT = 4
+		const val FPS_WINDOW_MS = 2_000L
 	}
 }

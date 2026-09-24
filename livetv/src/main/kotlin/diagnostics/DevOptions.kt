@@ -111,9 +111,17 @@ class DevOptions(context: Context) {
 		maxBufferOverrideMs?.let { add("maxBuf=${it}ms") }
 	}.joinToString(" ").ifEmpty { "de fábrica" }
 
+	/**
+	 * Devuelve la **degradación** a valores de fábrica.
+	 *
+	 * El overlay se conserva a propósito: es instrumentación, no degradación, y
+	 * apagarle al operador la vista justo cuando restablece para comparar sería
+	 * quitarle el instrumento en mitad de la medición.
+	 */
 	fun resetAll() {
-		prefs.edit().clear().apply()
-		LiveLog.info("dev.reset")
+		val overlay = statsOverlayVisible
+		prefs.edit().clear().putBoolean(K_OVERLAY, overlay).apply()
+		LiveLog.info("dev.reset", "overlayConservado" to overlay)
 		_revision.value++
 	}
 

@@ -222,6 +222,42 @@ hardware.
    2314 bytes, con `codec.sinCandidatos mime=video/mpeg2
    degradacion=video=software` dentro y sin pulsar nada.
 
+**Ampliación del overlay tras la validación de Edgar — 2026-09-24**
+
+Edgar preguntó qué más convendría ver. Se revisó qué le hace falta a las fases
+que vienen y aparecieron datos que **no son opcionales: son criterios de cierre
+que no se podían medir**.
+
+Añadidos: **ms hasta el primer frame** (zapping, §10), **rebuffers y su ratio**
+(el cierre de M2 es «rebuffers por hora < 1»), **resolución, SAR y aspecto
+resultante** (M5), **fps medido** (zanja la disputa de `estrellashd`),
+**pistas de audio y cuál está activa** (M3), **reintentos de carga** (delata
+lluvia antes de que se vea) y **tiempo en el canal** (maratón de 48 h).
+
+Tres correcciones de honestidad sobre datos que habrían engañado:
+
+- El **fps** se mide en ventana deslizante de 2 s, no como media acumulada:
+  una media arrastra el hueco de cada rebuffer para siempre y nunca vuelve al
+  valor real.
+- El **PID** ya no se inventa. El `id` que expone Media3 en HLS es un índice de
+  pista, y se estaba enseñando como PID: salía `pid=15` donde los PID medidos
+  son `0xdd`/`0xde`. Ahora solo se muestra si cae en el rango válido.
+- El **overlay sobrevive a «restablecer a fábrica»**: es instrumentación, no
+  degradación, y apagarlo justo cuando el operador restablece para comparar
+  sería quitarle el instrumento en mitad de la medición.
+
+**Verificado en la caja:** `estrellassd` reporta `544x480 · SAR 1.176 ·
+aspecto 1.333 (4:3)` — el anamórfico 20:17 resuelto exactamente — y **1400 ms
+hasta el primer frame**, por debajo del objetivo de zapping.
+
+**Tres hallazgos que el overlay sacó a la luz nada más existir:**
+
+| Hallazgo | Va a |
+|---|---|
+| ExoPlayer expone **1 de las 2 pistas de audio** de `discoveryhd` y `hbohd`, aunque el TS crudo lleva `0xdd` (spa) y `0xde` (eng) | **M3** |
+| `estrellassd`: **4 rebuffers y 15 % de ratio** en los primeros 30 s, contra un objetivo de 0.3 % | **M2** |
+| `estrellassd` (480i) mide **60.2 fps**. Puede ser el VPU desentrelazando a 59.94 —lo que respondería el pendiente 1— o el listener contando campos. **No se concluye con un solo número** | **M5** |
+
 **Estado:** **abierta** — falta la validación en pantalla.
 
 ### Retirada de `media3-ffmpeg-decoder` (GPL-3.0) — 2026-09-22
@@ -486,6 +522,19 @@ hardware no tolera.
 este canal falló (pendiente 14), que su pista de audio es intermitente
 (pendiente 11) y que sus fps están en disputa. Es el canal problemático del
 lineup y ahora hay un síntoma concreto.
+
+**Evidencia nueva del overlay de M1 (2026-09-24), y es la mejor que hay:**
+
+```
+resolución          —          ← nunca se reportó formato de video
+buffer              31584 ms   ← 31 s de datos almacenados sin problema
+1er frame           —          ← nunca llegó
+rebuffers           0
+```
+
+Almacena treinta segundos de datos y **nunca reporta un formato de video**. La
+red, el playlist y el demuxado funcionan; lo que no produce salida es el
+**decodificador**. Eso descarta la mitad del espacio de búsqueda.
 
 **Hipótesis principal, sin confirmar:** flags del extractor de TS
 (`FLAG_DETECT_ACCESS_UNITS`, `FLAG_ALLOW_NON_IDR_KEYFRAMES`) — que es

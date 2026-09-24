@@ -46,6 +46,33 @@ data class EngineStats(
 	val reason: String? = null,
 	/** Resumen de la degradación activa, o «de fábrica». */
 	val degradation: String? = null,
+
+	// --- Métricas de los objetivos de CLAUDE.md §10 ------------------------
+
+	/** `prepare` → primer frame. Es la medida de zapping (objetivo p50 < 2 s). */
+	val msToFirstFrame: Long = 0,
+	/** Rebuffers desde que arrancó la imagen (objetivo: < 1 por hora). */
+	val rebufferCount: Int = 0,
+	/** Fracción del tiempo de reproducción pasada almacenando (objetivo < 0.3 %). */
+	val rebufferRatio: Float = 0f,
+	/** Tiempo del canal en pantalla, para la maratón de 48 h. */
+	val sessionUptimeMs: Long = 0,
+	/** Reintentos de carga acumulados: delata lluvia antes de que se vea. */
+	val loadRetries: Int = 0,
+
+	// --- Render, para M5 ---------------------------------------------------
+
+	val videoWidth: Int = 0,
+	val videoHeight: Int = 0,
+	/** SAR. Ignorarlo deforma los dos canales anamórficos. */
+	val pixelAspectRatio: Float = 1f,
+	/** fps medido sobre los frames realmente renderizados, no el declarado. */
+	val measuredFps: Float = 0f,
+
+	// --- Audio, para M3 ----------------------------------------------------
+
+	val audioTracks: List<AudioTrackRef> = emptyList(),
+	val selectedAudio: AudioTrackRef? = null,
 )
 
 interface EngineListener {
