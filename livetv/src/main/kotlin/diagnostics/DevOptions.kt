@@ -78,6 +78,14 @@ class DevOptions(context: Context) {
 		get() = if (playlistStuckMedia3Default) LiveTuning.PLAYLIST_STUCK_COEFFICIENT_MEDIA3
 		else LiveTuning.PLAYLIST_STUCK_COEFFICIENT
 
+	/**
+	 * Desactiva la vuelta automática al borde de emisión, para poder comparar
+	 * en pantalla con el comportamiento anterior.
+	 */
+	var liveEdgeResyncDisabled: Boolean
+		get() = prefs.getBoolean(K_NO_RESYNC, false)
+		set(v) = put { putBoolean(K_NO_RESYNC, v) }
+
 	// --- Sintonía en caliente ----------------------------------------------
 
 	/** `null` = el del canal. Sirve también para provocar BEHIND_LIVE_WINDOW a voluntad. */
@@ -108,7 +116,7 @@ class DevOptions(context: Context) {
 	/** ¿Hay algo que aleje el comportamiento del de fábrica? Se avisa en el overlay. */
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
-			playlistStuckMedia3Default ||
+			playlistStuckMedia3Default || liveEdgeResyncDisabled ||
 			tsDetectAccessUnits || tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
 			maxBufferOverrideMs != null
@@ -118,6 +126,7 @@ class DevOptions(context: Context) {
 		if (forceSoftwareVideo) add("video=software")
 		forcedEngine?.let { add("motor=$it") }
 		if (playlistStuckMedia3Default) add("stuck=3.5")
+		if (liveEdgeResyncDisabled) add("sin resync")
 		if (tsDetectAccessUnits) add("AUD=on")
 		if (tsAllowNonIdrKeyframes) add("nonIDR=on")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
@@ -159,6 +168,7 @@ class DevOptions(context: Context) {
 		const val K_FORCE_SW = "forceSoftwareVideo"
 		const val K_FORCED_ENGINE = "forcedEngine"
 		const val K_STUCK_DEFAULT = "playlistStuckMedia3Default"
+		const val K_NO_RESYNC = "liveEdgeResyncDisabled"
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"

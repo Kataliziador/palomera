@@ -75,6 +75,27 @@ object LiveTuning {
 	 */
 	const val HLS_HOLD_BACK_TARGET_DURATIONS = 3
 
+	/**
+	 * Fracción de la ventana DVR por encima de la cual el motor vuelve al borde
+	 * de emisión.
+	 *
+	 * Medido el 2026-09-24: tras un corte de red de 15 s el reproductor se
+	 * recupera, pero retoma **donde estaba**, no donde está el directo. El
+	 * offset saltó de 10.5 s a **22.75 s** y **ahí se quedó**, dentro de una
+	 * ventana de ~28 s.
+	 *
+	 * O sea: la recuperación funciona **una vez**. Cada corte consume margen de
+	 * forma permanente, y el siguiente tira la posición fuera de la ventana. En
+	 * una tarde de lluvia con cortes repetidos, el canal acaba roto.
+	 *
+	 * Por eso no basta con reaccionar a `BEHIND_LIVE_WINDOW` cuando ya ocurrió
+	 * (`CLAUDE.md` §6): hay que volver al borde **antes** de llegar ahí.
+	 */
+	const val LIVE_EDGE_RESYNC_WINDOW_FRACTION = 0.5
+
+	/** Margen mínimo para no resincronizar por ruido en ventanas pequeñas. */
+	const val LIVE_EDGE_RESYNC_MIN_EXCESS_MS = 3_000L
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un

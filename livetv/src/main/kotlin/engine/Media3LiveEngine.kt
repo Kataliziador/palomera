@@ -413,6 +413,28 @@ class Media3LiveEngine(
 			}
 
 			val real = player?.currentLiveOffset ?: C.TIME_UNSET
+
+			// Vuelta al borde de emisión.
+			//
+			// Tras un corte, el reproductor retoma donde estaba y no donde está
+			// el directo, así que el offset crece y **no vuelve solo**. Cada
+			// corte se come margen hasta que la posición cae fuera de la
+			// ventana. Reaccionar a BEHIND_LIVE_WINDOW cuando ya pasó llega
+			// tarde: hay que volver antes de llegar ahí.
+			val limite = (durationMs * LiveTuning.LIVE_EDGE_RESYNC_WINDOW_FRACTION).toLong()
+			if (!dev.liveEdgeResyncDisabled && real != C.TIME_UNSET &&
+				real - limite > LiveTuning.LIVE_EDGE_RESYNC_MIN_EXCESS_MS
+			) {
+				LiveLog.warn(
+					"offset.vuelveAlBorde",
+					"offsetMs" to real,
+					"ventanaMs" to durationMs,
+					"limiteMs" to limite,
+				)
+				player?.seekToDefaultPosition()
+				return
+			}
+
 			if (real != C.TIME_UNSET && !offsetMismatchReported &&
 				real - target > OFFSET_MISMATCH_TOLERANCE_MS
 			) {

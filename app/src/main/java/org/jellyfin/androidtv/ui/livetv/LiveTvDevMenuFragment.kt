@@ -139,6 +139,17 @@ private fun DevMenu() {
 			Info("Con 3.5 el error salta a los ~14 s, antes de que Flussonic reconstruya el playlist (~15 s).")
 		}
 
+		item {
+			Row(
+				label = "Volver al borde de emisión al derivar",
+				value = if (dev.liveEdgeResyncDisabled) "desactivado" else "activo",
+				changed = dev.liveEdgeResyncDisabled,
+			) { change { dev.liveEdgeResyncDisabled = !dev.liveEdgeResyncDisabled } }
+		}
+		item {
+			Info("Sin esto, cada corte de red deja el canal más atrás hasta salirse de la ventana.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(

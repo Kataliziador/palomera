@@ -292,8 +292,44 @@ con `javap` sobre el `.aar` de Media3 1.8.0 en vez de suponerlo — el
 coeficiente es el quinto parámetro, después del `CmcdConfiguration`, y las dos
 suposiciones previas eran falsas.
 
+**La prueba de corte de Edgar destapó un fallo mayor que el que arreglaba.**
+
+Cortó la red ~15 s con el umbral nuevo y **el canal se recuperó solo**. Pero el
+registro contaba otra cosa:
+
+```
+antes del corte   live offset ~10 500 ms
+después           live offset  22 754 ms  → 22 754 → 22 754   (congelado)
+ventana DVR       ~28 500 ms
+```
+
+Durante el corte el directo siguió avanzando y, al volver, el reproductor
+retomó **donde estaba**, no donde está el directo. El offset pasó de 10.5 s a
+22.75 s dentro de una ventana de 28, y **no vuelve solo**.
+
+Es decir: **la recuperación funciona una vez.** Quedaban ~5 s de margen; otro
+corte de más de 6 s habría tirado la posición fuera de la ventana. En una tarde
+de lluvia con cortes repetidos, el canal acaba roto. Es justo el fallo que pasa
+por bueno en una prueba de 15 segundos.
+
+**Corregido:** el motor vuelve al borde de emisión cuando el offset supera la
+mitad de la ventana. Reaccionar a `BEHIND_LIVE_WINDOW` cuando ya ocurrió
+(`CLAUDE.md` §6) llega tarde; hay que volver **antes** de llegar ahí. Con
+interruptor en el menú para comparar.
+
+Verificado que **no se dispara sin motivo**: en operación normal el offset se
+queda en 12.7 s sobre una ventana de 33 s —el 38 %— y hubo **0** resyncs.
+
+**Lo que no pude verificar yo:** que el resync dispare durante un corte real. La
+caja está en `eth0`, que es por donde va el `adb`: cortarle la red me corta a
+mí. Esa prueba es de Edgar.
+
 **Prueba de Edgar** (`LIVETV_PLAN.md` M2): 30 min de `estrellassd` (77W) y 30
 de `hbohd` (70W) sin cortes ni saltos. El criterio es **< 1 rebuffer por hora**.
+
+Y la que de verdad cierra lo nuevo: **cortar la red dos veces seguidas**, unos
+15 s cada una. Antes, el offset se quedaba en ~22 s y el segundo corte habría
+roto el canal. Ahora debe volver a ~12 s tras cada uno.
 
 Conviene además probar el interruptor del umbral: con 3.5 y la red cortada unos
 15 s debería aparecer error; con 10 debería aguantar y recuperarse solo.
