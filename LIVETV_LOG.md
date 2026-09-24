@@ -143,7 +143,7 @@ render o recuperación, es vía M. **Estado:** cerrada.
 | 14 | Recapturar la muestra de `estrellashd-mp4` | M1 | su captura falló, no hay golden sample. **Ahora además resuelve una contradicción:** HLS da 60000/1001, el `.ts` crudo da 30000/1001 `tt`. Hasta aclararlo no se puede afirmar que sea el ejemplo de codificación por campos de 77W |
 | 15 | Instalar tsduck y tomar línea base de errores CC con buen clima | M7 | no está en los repos de Ubuntu, bajar el .deb |
 | 16 | Validar desentrelazado con los **dos tipos** de codificación | M5 | `discoveryhd-70w` por frames, `hbohd-70w` por campos. Estos dos bastan: cubren las cuatro combinaciones sin depender de `estrellashd`, que está en disputa (#14) |
-| 17 | **Subir `segment_count` de 6 a 12 en Flussonic** | headend | ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
+| 17 | ~~Subir `segment_count` de 6 a 12~~ | — | **cerrado 23-sep: hecho.** Ventana medida de 29–36 s en todos los canales. Antes:| ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
 | 18 | **Aplicar MP2 → AAC a los canales MP2 del lineup** | headend | empezando por `estrellassd-mp2v`. Gatea el cierre real de M3 |
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
