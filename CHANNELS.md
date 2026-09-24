@@ -9,6 +9,37 @@ y ventana DVR): ver §2.bis. Esa revisión corrigió varias cifras de aquí.
 
 ---
 
+## 0. Prioridad de estabilidad
+
+**Decidido por Edgar el 2026-09-24.** Cuando haya que elegir a qué canal
+dedicarle el esfuerzo, el orden es:
+
+```
+1º  77W        2º  70W        3º  el resto (TotalPlay)
+```
+
+Concuerda con la escala real del lineup: de los ~120 canales de producción **la
+mayoría son de 77W** (§3.bis). Un fallo en 77W afecta a más suscriptores que
+uno en TotalPlay.
+
+**Consecuencia incómoda:** los dos canales de 77W son hoy **los más rotos** del
+conjunto.
+
+| Canal 77W | Estado |
+|---|---|
+| `estrellashd-mp4` | **no arranca** — almacena 31 s sin reportar formato de video (M4) |
+| `estrellassd-mp2v` | reproduce, pero con **15 % de ratio de rebuffer** a los 30 s (M2) |
+
+De modo que la prioridad no es un matiz de planificación: dice que lo peor del
+lineup es justo lo que más pesa. Las pruebas de cierre de cada fase de motor se
+juzgan **primero sobre 77W**, y solo después sobre 70W y TotalPlay.
+
+TotalPlay sigue sirviendo como **línea base de diagnóstico** —es la señal sin
+particularidades, y comparar contra ella separa los fallos del motor de los del
+canal— pero **no es criterio de cierre**.
+
+---
+
 ## 1. Conjunto de referencia
 
 **El motor se desarrolla y afina contra los canales de satélite 77W y 70W,

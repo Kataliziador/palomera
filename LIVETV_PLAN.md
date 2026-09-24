@@ -68,10 +68,16 @@ MPEG-2 desde el menú cambia visiblemente el comportamiento; el log se exporta.
   la ventana DVR medida del playlist (ver `CHANNELS.md` §2.bis)
 - Umbral de playlist detenido ampliado en satelitales
 
-**Prueba de Edgar:** 30 minutos de `beisbol` y 30 de `hbohd-70w` sin cortes ni
-saltos. Se usa `hbohd` y no `discoveryhd` porque tiene la ventana DVR más
-corta (13.88 s): es el canal donde primero aparecería un
-`BEHIND_LIVE_WINDOW`.
+**Prueba de Edgar:** 30 minutos de **`estrellassd-mp2v` (77W)** y 30 de
+`hbohd-70w`, sin cortes ni saltos.
+
+El orden sale de la prioridad de estabilidad (`CHANNELS.md` §0): **77W primero,
+70W después, el resto al final**. `estrellassd` además es hoy el peor medido
+—15 % de ratio de rebuffer— así que es el que de verdad pone a prueba la fase.
+
+`beisbol` se sigue usando como **línea base de diagnóstico**, para separar lo
+que es del motor de lo que es del canal, pero **no cuenta como criterio de
+cierre**.
 
 **Cierre:** rebuffers por hora < 1 en canal sano.
 
