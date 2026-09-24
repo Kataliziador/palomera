@@ -40,9 +40,33 @@ object LiveLog {
 	private val ring = ArrayDeque<Entry>(LiveTuning.LOG_RING_CAPACITY)
 	private val lock = Any()
 
+	/**
+	 * Contexto para el volcado automático. Sin esto el log solo sale si alguien
+	 * pulsa un botón, que es inútil en la caja de un suscriptor a 2000 km —
+	 * justo donde hacen falta los datos.
+	 */
+	@Volatile
+	private var appContext: Context? = null
+
+	@Volatile
+	private var lastAutoExportMs = 0L
+
+	private const val AUTO_EXPORT_MIN_GAP_MS = 120_000L
+
 	/** Contexto que acompaña a toda entrada mientras no cambie el canal. */
 	@Volatile
 	private var session: Map<String, Any?> = emptyMap()
+
+	/**
+	 * Activa el volcado automático a Descargas en cuanto se registre un error.
+	 *
+	 * Con antirrebote: una ráfaga de errores durante una tormenta no puede
+	 * convertirse en cien archivos.
+	 */
+	fun enableAutoExport(context: Context) {
+		appContext = context.applicationContext
+		info("log.autoExport", "minimoEntreVolcados" to "${AUTO_EXPORT_MIN_GAP_MS / 1000}s")
+	}
 
 	fun startSession(channelId: String, url: String, videoCodec: String?, audioCodec: String?) {
 		session = mapOf(
@@ -81,8 +105,25 @@ object LiveLog {
 			Level.DEBUG -> Timber.tag(TAG).d(line)
 			Level.INFO -> Timber.tag(TAG).i(line)
 			Level.WARN -> Timber.tag(TAG).w(line)
-			Level.ERROR -> Timber.tag(TAG).e(error, line)
+			Level.ERROR -> {
+				Timber.tag(TAG).e(error, line)
+				maybeAutoExport()
+			}
 		}
+	}
+
+	private fun maybeAutoExport() {
+		val ctx = appContext ?: return
+		val ahora = System.currentTimeMillis()
+		if (ahora - lastAutoExportMs < AUTO_EXPORT_MIN_GAP_MS) return
+		lastAutoExportMs = ahora
+
+		// Fuera del hilo que registró el error: escribir en disco no puede
+		// bloquear la reproducción.
+		Thread {
+			runCatching { export(ctx, automatic = true) }
+				.onFailure { Timber.tag(TAG).e(it, "no se pudo volcar el log automáticamente") }
+		}.start()
 	}
 
 	private val stamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT)
@@ -109,11 +150,12 @@ object LiveLog {
 	 *
 	 * Devuelve una descripción legible de dónde quedó, para enseñarla al operador.
 	 */
-	fun export(context: Context): String {
+	fun export(context: Context, automatic: Boolean = false): String {
 		// `.txt` y no `.log`: MediaStore obliga a que la extensión concuerde con
 		// el tipo MIME y, si no, añade la suya. El nombre que se le enseña al
 		// operador tiene que ser el real, o no encontrará el archivo.
-		val name = "livetv-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date()) + ".txt"
+		val prefijo = if (automatic) "livetv-auto-" else "livetv-"
+		val name = prefijo + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date()) + ".txt"
 		val body = snapshot().joinToString("\n") { format(it) }
 
 		val destino = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -136,7 +178,25 @@ object LiveLog {
 			file.absolutePath
 		}
 
-		info("log.exported", "destino" to destino, "entradas" to snapshot().size)
+		// Con Timber directamente: pasar por `error()` volvería a disparar el
+		// volcado automático.
+		Timber.tag(TAG).i("log.exported destino=$destino automatico=$automatic entradas=${snapshot().size}")
 		return destino
+	}
+
+	/** Volcados ya presentes en Descargas, para enseñarlos en el menú. */
+	fun exportedFiles(context: Context): List<String> = runCatching {
+		context.contentResolver.query(
+			MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+			arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+			MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ?",
+			arrayOf("livetv-%"),
+			MediaStore.MediaColumns.DATE_ADDED + " DESC",
+		)?.use { c ->
+			generateSequence { if (c.moveToNext()) c.getString(0) else null }.toList()
+		}.orEmpty()
+	}.getOrElse {
+		Timber.tag(TAG).w(it, "no se pudo listar los volcados")
+		emptyList()
 	}
 }

@@ -205,6 +205,23 @@ exporta.
 `codec.sinCandidatos` en el registro; al restablecer, vuelve a reproducir por
 hardware.
 
+**Correcciones tras el primer intento de validación de Edgar:**
+
+5. **El menú era inusable con el mando.** La lista de 54 decoders quedaba en
+   medio, así que los controles útiles estaban a sesenta pulsaciones — con un
+   mando, lo que está a sesenta pulsaciones no existe. Reordenado: estado,
+   diagnóstico, degradación, flags, sintonía y restablecer **caben en la
+   primera pantalla**; la lista de decoders va al final y plegada.
+6. **La exportación pasa a ser automática.** Pedirle a un suscriptor que entre
+   a un menú y pulse un botón no es un plan de diagnóstico. El log se vuelca
+   **solo a Descargas en cuanto se registra un error**, con antirrebote de
+   120 s para que una tormenta no genere cien archivos, y en un hilo aparte
+   para no bloquear la reproducción. El botón manual se conserva.
+
+   Verificado provocando un error real: `livetv-auto-20260923-213946.txt`,
+   2314 bytes, con `codec.sinCandidatos mime=video/mpeg2
+   degradacion=video=software` dentro y sin pulsar nada.
+
 **Estado:** **abierta** — falta la validación en pantalla.
 
 ### Retirada de `media3-ffmpeg-decoder` (GPL-3.0) — 2026-09-22

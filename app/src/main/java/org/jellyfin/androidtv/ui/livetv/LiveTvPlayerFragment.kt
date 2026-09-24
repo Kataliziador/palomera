@@ -33,6 +33,7 @@ import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.diagnostics.DevOptions
+import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.engine.EngineStats
 import org.jellyfin.livetv.engine.AspectMode
 import org.jellyfin.livetv.engine.DecodePath
@@ -72,6 +73,10 @@ private fun LivePlayer(channelId: String?) {
 
 	val lifecycleOwner = LocalLifecycleOwner.current
 	val dev = remember { DevOptions.of(context) }
+
+	// El volcado automático se activa aquí porque es donde ocurren los errores.
+	// Es idempotente.
+	remember(context) { LiveLog.enableAutoExport(context); Unit }
 
 	// Cambiar una opción del menú rehace el plan sin salir del canal: eso es lo
 	// que significa «en caliente», y es lo que M4 necesita para barrer las

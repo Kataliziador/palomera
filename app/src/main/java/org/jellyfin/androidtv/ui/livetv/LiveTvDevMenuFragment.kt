@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -67,6 +68,7 @@ private fun DevMenu() {
 	// Fuerza el redibujado tras cada cambio: las opciones viven en preferencias,
 	// no en estado de Compose.
 	var tick by remember { mutableIntStateOf(0) }
+	var verDecoders by remember { mutableStateOf(false) }
 	fun change(block: () -> Unit) { block(); tick++ }
 
 	val videoDecoders = remember(tick) {
@@ -80,6 +82,9 @@ private fun DevMenu() {
 		modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp),
 		verticalArrangement = Arrangement.spacedBy(6.dp),
 	) {
+		// El orden importa: con un mando, lo que está a sesenta pulsaciones no
+		// existe. Primero lo que se usa, y la lista de 54 decoders al final y
+		// plegada.
 		item { Header("Estado") }
 		item {
 			Info(
@@ -89,24 +94,38 @@ private fun DevMenu() {
 		}
 		item { Info("degradación activa: ${dev.describe()}", warn = dev.isDegraded) }
 
-		item { Header("Decodificación") }
+		item { Header("Diagnóstico") }
+		item {
+			Row(
+				label = "Overlay de estadísticas en el reproductor",
+				value = if (dev.statsOverlayVisible) "visible" else "oculto",
+				changed = dev.statsOverlayVisible,
+			) { change { dev.statsOverlayVisible = !dev.statsOverlayVisible } }
+		}
+		item {
+			Row(label = "Volcar el log ahora a Descargas", value = "${LiveLog.snapshot().size} entradas") {
+				val destino = LiveLog.export(context)
+				Toast.makeText(context, destino, Toast.LENGTH_LONG).show()
+			}
+		}
+		item {
+			Info("Se vuelca por sí solo en cuanto ocurre un error, sin pulsar nada.")
+		}
+		item {
+			val volcados = remember(tick) { LiveLog.exportedFiles(context) }
+			Info(
+				if (volcados.isEmpty()) "en Descargas: todavía ninguno"
+				else "en Descargas: ${volcados.size} · último ${volcados.first()}"
+			)
+		}
+
+        item { Header("Degradación — simular cajas peores") }
 		item {
 			Row(
 				label = "Forzar video por software",
 				value = if (dev.forceSoftwareVideo) "SÍ" else "no",
 				changed = dev.forceSoftwareVideo,
 			) { change { dev.forceSoftwareVideo = !dev.forceSoftwareVideo } }
-		}
-
-		item { Info("Vetar decoders por nombre — el de MPEG-2 es el que ejercita el respaldo:") }
-		items(videoDecoders, key = { it.name }) { d ->
-			Row(
-				label = "${if (d.hardware) "HW" else "SW"}  ${d.name}",
-				value = if (dev.isVetoed(d.name)) "VETADO" else "activo",
-				changed = dev.isVetoed(d.name),
-			) {
-				change { if (dev.isVetoed(d.name)) dev.unveto(d.name) else dev.veto(d.name) }
-			}
 		}
 
 		item { Header("Flags del extractor TS  (fase M4)") }
@@ -135,7 +154,7 @@ private fun DevMenu() {
 			) { change { dev.targetOffsetOverrideMs = nextOffset(v) } }
 		}
 		item {
-			Info("Un offset por encima de la mitad de la ventana provoca BEHIND_LIVE_WINDOW a voluntad.")
+			Info("Por encima de la mitad de la ventana provoca BEHIND_LIVE_WINDOW a voluntad.")
 		}
 		item {
 			val v = dev.minBufferOverrideMs
@@ -144,23 +163,29 @@ private fun DevMenu() {
 			}
 		}
 
-		item { Header("Diagnóstico") }
+		item { Header("Restablecer") }
+		item {
+			Row(label = "Todo a valores de fábrica", value = "") { change { dev.resetAll() } }
+		}
+
+		item { Header("Vetar decoders por nombre") }
 		item {
 			Row(
-				label = "Overlay de estadísticas en el reproductor",
-				value = if (dev.statsOverlayVisible) "visible" else "oculto",
-				changed = dev.statsOverlayVisible,
-			) { change { dev.statsOverlayVisible = !dev.statsOverlayVisible } }
+				label = if (verDecoders) "Ocultar la lista" else "Mostrar los ${videoDecoders.size} decoders de video",
+				value = if (dev.vetoedDecoders.isEmpty()) "" else "${dev.vetoedDecoders.size} vetados",
+				changed = dev.vetoedDecoders.isNotEmpty(),
+			) { verDecoders = !verDecoders }
 		}
-		item {
-			Row(label = "Exportar el log a Descargas", value = "${LiveLog.snapshot().size} entradas") {
-				val destino = LiveLog.export(context)
-				Toast.makeText(context, destino, Toast.LENGTH_LONG).show()
-			}
-		}
-		item {
-			Row(label = "Restablecer todo a valores de fábrica", value = "") {
-				change { dev.resetAll() }
+		if (verDecoders) {
+			item { Info("El de MPEG-2 es el que ejercita el camino de respaldo.") }
+			items(videoDecoders, key = { it.name }) { d ->
+				Row(
+					label = "${if (d.hardware) "HW" else "SW"}  ${d.name}",
+					value = if (dev.isVetoed(d.name)) "VETADO" else "activo",
+					changed = dev.isVetoed(d.name),
+				) {
+					change { if (dev.isVetoed(d.name)) dev.unveto(d.name) else dev.veto(d.name) }
+				}
 			}
 		}
 	}
