@@ -123,6 +123,74 @@ render o recuperación, es vía M. **Estado:** cerrada.
 
 ---
 
+## Instrucciones de headend
+
+Los cuatro cambios pendientes, en orden de lo que desbloquean. Flussonic
+**Streamer 24.03**.
+
+Advertencia previa: **el video nunca se transcodifica** (`CLAUDE.md` §2). En
+cualquier pantalla de transcoder, el video va en **Copy**. Si se toca el video,
+se rompe el principio rector del proyecto.
+
+### 1. MP2 → AAC en `test-sat77w-estrellassd-mp2v` — gatea M3
+
+En la interfaz de Flussonic, en ese stream, sección **Transcoder**:
+video **Copy**, audio **AAC**, 128 kbps, 48 kHz.
+
+En fichero de configuración el equivalente es del estilo
+`transcoder vb=copy ab=128k acodec=aac;`, pero **la directiva exacta varía
+entre versiones y la interfaz es más segura**. No la doy por buena sin verla.
+
+*Verificación:* la hago yo desde aquí con `ffprobe` — el códec de audio debe
+pasar de `mp2` a `aac`. Avísame y lo compruebo en un minuto.
+
+### 2. Pasar `a093` por Flussonic — añade un canal de prueba
+
+Es el único SD H.264 satelital y probablemente viene entrelazado, así que
+aporta un caso que hoy no tenemos. Mismos ajustes que el resto:
+`segment_duration 2` y `segment_count 12`.
+
+*Verificación:* lo caracterizo y lo añado a `CHANNELS.md`.
+
+### 3. Bajar `source_timeout` a ~10 s — gatea el objetivo de recuperación de M7
+
+Medido: cuando la fuente cae, Flussonic tarda **~15 s** en reconstruir el
+playlist, y el cliente no puede recuperarse antes que él. Es lo que hace
+inalcanzable el objetivo de < 8 s de `CLAUDE.md` §10.
+
+```
+stream <nombre> {
+  source_timeout 10;
+}
+```
+
+*Verificación:* detengo un stream desde la interfaz y cronometro la
+reconstrucción, igual que se midió el 22-sep.
+
+### 4. Letrero de "sin señal" como fuente de respaldo — M7
+
+Evita que un rain fade largo deje la imagen congelada, que es lo que el
+suscriptor interpreta como «se rompió la tele».
+
+El archivo ya está hecho: **`/home/proyectos/apks-livetv/sin-senal.mp4`** —
+1280x720, H.264 + AAC, 10 s, fondo oscuro con «Sin señal / Restableciendo la
+transmisión». Cópialo al servidor y referéncialo:
+
+```
+stream <nombre> {
+  input ...;
+  backup /opt/flussonic/priv/sin-senal.mp4;
+}
+```
+
+Cuando haya marca por ISP (B5) se sustituye por uno con su logo; este sirve
+para todos mientras tanto.
+
+*Verificación:* corto la fuente y compruebo que aparece el letrero en vez de
+un frame congelado.
+
+---
+
 ## Pendientes conocidos
 
 | # | Tema | Vía / fase | Notas |
