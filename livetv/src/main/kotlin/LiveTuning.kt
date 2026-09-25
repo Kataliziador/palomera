@@ -96,6 +96,15 @@ object LiveTuning {
 	/** Margen mínimo para no resincronizar por ruido en ventanas pequeñas. */
 	const val LIVE_EDGE_RESYNC_MIN_EXCESS_MS = 3_000L
 
+	/**
+	 * Tiempo mínimo entre dos vueltas al borde.
+	 *
+	 * Un salto tarda en surtir efecto. Sin esta espera, la siguiente
+	 * actualización de playlist vuelve a leer el offset viejo y encadena
+	 * saltos: medido, un salto cada 9 s que impedía arrancar el canal.
+	 */
+	const val LIVE_EDGE_RESYNC_COOLDOWN_MS = 30_000L
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un

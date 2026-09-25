@@ -90,6 +90,13 @@ fun LiveTvStatsOverlay(
 		Line("bitrate canal", if (stats.bitrateBps > 0) "${stats.bitrateBps / 1000} kbps" else "—")
 		Line("ancho de banda", if (stats.bandwidthBps > 0) "${stats.bandwidthBps / 1000} kbps" else "—")
 		Line("frames perdidos", stats.droppedFrames.toString())
+		// Distinto de «perdidos»: estos llegan, pero fuera de tiempo. Es lo que
+		// se ve como tirón cuando todo lo demás marca cero.
+		Line(
+			"entregas tardías",
+			"${stats.frameGapCount}  (máx ${stats.maxFrameGapMs} ms)",
+			warn = stats.frameGapCount > 0,
+		)
 		// Si esto crece, la imagen está congelada aunque el player diga «En vivo».
 		Line("sin avanzar", "${stats.msSinceProgress} ms", warn = stats.msSinceProgress > 3000)
 

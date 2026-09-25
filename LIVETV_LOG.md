@@ -222,6 +222,94 @@ un frame congelado.
 
 ## Entradas
 
+### El decodificador de hardware de Amlogic se atasca con cierto contenido — 2026-09-25
+
+**Es el hallazgo más importante hasta ahora y reordena varias fases.**
+
+**Cómo empezó.** Edgar vio microcortes en HBO. Persiguiéndolo, HBO dejó de
+arrancar del todo — y con **la misma firma exacta que `estrellashd`**: almacena
+datos sin problema, inicializa los decoders, **nunca reporta formato de vídeo**,
+nunca entrega un frame, y **no registra ni un error**.
+
+**La prueba decisiva**, hecha con el menú de degradación de M1:
+
+| | Hardware (de fábrica) | Software forzado |
+|---|---|---|
+| Estado | «Almacenando…» para siempre | **«En vivo» en 730 ms** |
+| Decoder | `OMX.amlogic.avc.decoder.awesome2` | `OMX.google.h264.decoder` |
+| Resolución reportada | **—** | 1920x1080 |
+
+**El stream es perfectamente decodificable. Lo que falla es el decodificador de
+hardware.**
+
+El registro del propio decodificador lo confirma:
+
+```
+15:17:39  AmlogicVideoDecoder: setOutputBuf ... :15   ← reserva búferes
+          (silencio absoluto del decodificador de vídeo)
+15:17:43  c2.android.aac.decoder: procesando
+15:18:04  c2.android.aac.decoder: procesando          ← el audio sigue vivo
+```
+
+Coge sus búferes de salida y enmudece. El audio sigue decodificando, y como
+ExoPlayer no arranca hasta que **todos** los renderers tienen datos, el
+reproductor se queda esperando un vídeo que no llega.
+
+**Es dependiente del contenido, no del canal.** HBO funcionó **31 minutos
+seguidos** esta misma tarde y dejó de arrancar tras un cambio de programa. Los
+parámetros declarados no distinguen a los que fallan de los que van:
+
+```
+HBO-ahora-FALLA     Main, 2 B-frames, nivel 40, refs 1
+HBO-antes-OK        Main, 2 B-frames, nivel 40, refs 1
+Discovery-OK        Main, 2 B-frames, nivel 40, refs 1
+EstrellasHD-FALLA   High, 2 B-frames, nivel 40, refs 1
+```
+
+**El disparador no se ve leyendo la cabecera. Solo midiendo.**
+
+**Lo que esto reordena:**
+
+1. **`estrellashd` no es «un canal roto».** Es el mismo fallo de decodificador,
+   y **la hipótesis de los flags del extractor (M4) queda muy debilitada**: ya
+   se probó `FLAG_DETECT_ACCESS_UNITS` en HBO sin efecto alguno (fps 50.40 →
+   49.85).
+2. **No hay respaldo viable a 1080i en esta caja.** El software da **5.97 fps
+   con 711 frames perdidos**: sirve para diagnosticar, no para ver televisión.
+   **M6 (libVLC) pasa de opcional a crítico**, y aun así es dudoso que un
+   Cortex-A35 sostenga 1080i por software.
+3. **Riesgo de producto serio.** Si el decodificador se atasca con contenido
+   real y emitido, el suscriptor ve pantalla negra sin aviso. No es un canal de
+   pruebas raro: es HBO en emisión normal.
+
+**Sin resolver:** qué tiene ese contenido que atasca al decodificador. Las
+cabeceras no lo dicen.
+
+**De regalo, el pendiente 1 queda respondido.** `estrellassd` mide **59.91 fps
+sobre una fuente de 29.97**: el VPU de Amlogic **sí desentrelaza**, doblando la
+cadencia. Era la pregunta abierta desde el primer día.
+
+---
+
+### Bucle de resincronización — fallo propio, corregido — 2026-09-25
+
+Al perseguir lo de HBO apareció un fallo que **introduje yo** en M2. La vuelta
+al borde de emisión se disparaba **mientras el canal todavía almacenaba**: el
+salto reiniciaba el almacenamiento, el offset volvía a leer alto y disparaba
+otra vez. Un salto cada 9 s que impedía arrancar.
+
+**Y explica el `1er frame 240538 ms` de la prueba de 30 minutos, que descarté
+como artefacto.** No lo era: eran cuatro minutos de bucle. Me lo salté
+demasiado rápido.
+
+Corregido con tres guardas: solo con imagen ya en pantalla, solo en estado
+`READY`, y con 30 s de enfriamiento entre saltos.
+
+**Nueva instrumentación:** «entregas tardías», que mide **cuándo sale cada
+frame a pantalla** y no cuándo se decodifica. Es lo único que delata un tirón
+cuando el stream está limpio, el refresco es correcto y los contadores de
+rebuffer y frames perdidos están a cero.
+
 ### [M2] Medición y diagnóstico de estabilidad — 2026-09-24
 
 **Medido, con la instrumentación de M1 y no con impresiones:**

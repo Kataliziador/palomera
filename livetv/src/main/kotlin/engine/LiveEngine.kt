@@ -68,6 +68,9 @@ data class EngineStats(
 	val pixelAspectRatio: Float = 1f,
 	/** fps medido sobre los frames realmente renderizados, no el declarado. */
 	val measuredFps: Float = 0f,
+	/** Frames que salieron a pantalla tarde. No son frames perdidos: llegan, pero tarde. */
+	val frameGapCount: Int = 0,
+	val maxFrameGapMs: Long = 0,
 
 	// --- Audio, para M3 ----------------------------------------------------
 

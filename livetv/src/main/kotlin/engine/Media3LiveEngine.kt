@@ -85,6 +85,9 @@ class Media3LiveEngine(
 	private var fpsSampleAtMs = 0L
 	private var fpsSampleFrames = 0L
 	private var fpsActual = 0f
+	private var lastReleaseNs = 0L
+	private var maxReleaseGapMs = 0L
+	private var releaseGapCount = 0
 
 	// Audio, para M3
 	private var audioTracks: List<AudioTrackRef> = emptyList()
@@ -92,6 +95,8 @@ class Media3LiveEngine(
 	private var windowDurationMs = C.TIME_UNSET
 	private var activeTargetOffsetMs = 0L
 	private var offsetMismatchReported = false
+	private var lastResyncAtMs = 0L
+	private var resyncCount = 0
 
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
@@ -123,6 +128,8 @@ class Media3LiveEngine(
 		lastPositionMs = C.TIME_UNSET
 		lastProgressAtMs = inicio
 		offsetMismatchReported = false
+		lastResyncAtMs = 0
+		resyncCount = 0
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
 		msToFirstFrame = 0
@@ -134,6 +141,9 @@ class Media3LiveEngine(
 		fpsSampleAtMs = 0
 		fpsSampleFrames = 0
 		fpsActual = 0f
+		lastReleaseNs = 0
+		maxReleaseGapMs = 0
+		releaseGapCount = 0
 		audioTracks = emptyList()
 		selectedAudio = null
 
@@ -212,7 +222,10 @@ class Media3LiveEngine(
 				exo.addAnalyticsListener(DecoderEvents())
 				// `onVideoFrameProcessingOffset` no da un latido fiable; este
 				// listener sí dispara una vez por frame presentado.
-				exo.setVideoFrameMetadataListener { _, _, _, _ -> renderedFrames++ }
+				exo.setVideoFrameMetadataListener { presentationUs, releaseNs, _, _ ->
+					renderedFrames++
+					registrarEntregaDeFrame(presentationUs, releaseNs)
+				}
 				surface?.let(exo::setVideoSurfaceView)
 				exo.setMediaItem(mediaItem)
 				exo.prepare()
@@ -294,10 +307,41 @@ class Media3LiveEngine(
 			videoHeight = videoHeight,
 			pixelAspectRatio = pixelAspectRatio,
 			measuredFps = measuredFps(ahora),
+			frameGapCount = releaseGapCount,
+			maxFrameGapMs = maxReleaseGapMs,
 
 			audioTracks = audioTracks,
 			selectedAudio = selectedAudio,
 		)
+	}
+
+	/**
+	 * Mide **cuándo sale cada frame a pantalla**, no cuándo se decodifica.
+	 *
+	 * Es lo único que delata un tirón cuando el stream está limpio, el refresco
+	 * es el correcto y los contadores de rebuffer y frames perdidos están a
+	 * cero — que es exactamente el caso de `hbohd`. Un hueco de entrega no es
+	 * un frame perdido: el frame llega, pero tarde.
+	 */
+	private fun registrarEntregaDeFrame(presentationUs: Long, releaseNs: Long) {
+		val anterior = lastReleaseNs
+		lastReleaseNs = releaseNs
+		if (anterior == 0L) return
+
+		val huecoMs = (releaseNs - anterior) / 1_000_000
+		if (huecoMs > maxReleaseGapMs) maxReleaseGapMs = huecoMs
+
+		// 50 ms es el intervalo legítimo más largo de una cadencia 3:2. Por
+		// encima del doble, es un tirón de verdad.
+		if (huecoMs > FRAME_GAP_WARN_MS) {
+			releaseGapCount++
+			LiveLog.warn(
+				"frames.entregaTardia",
+				"huecoMs" to huecoMs,
+				"presentacionS" to "%.2f".format(presentationUs / 1_000_000.0),
+				"total" to releaseGapCount,
+			)
+		}
 	}
 
 	/** Fracción del tiempo con imagen que se pasó almacenando. Objetivo: < 0.3 %. */
@@ -421,15 +465,35 @@ class Media3LiveEngine(
 			// corte se come margen hasta que la posición cae fuera de la
 			// ventana. Reaccionar a BEHIND_LIVE_WINDOW cuando ya pasó llega
 			// tarde: hay que volver antes de llegar ahí.
+			// Tres guardas, y las tres se ganaron a base de romper algo:
+			//
+			// 1. **Solo con imagen ya en pantalla.** Durante el arranque el
+			//    offset lee alto, dispara un salto, el salto reinicia el
+			//    almacenamiento y el offset vuelve a leer alto: un bucle que
+			//    impide arrancar. Costó que `hbohd` tardara cuatro minutos en
+			//    dar el primer frame.
+			// 2. **Solo reproduciendo.** Saltar mientras se almacena no
+			//    adelanta nada y reinicia el trabajo hecho.
+			// 3. **Con enfriamiento.** Un salto tarda en surtir efecto; medir
+			//    otra vez antes de que se note lleva a encadenar saltos.
+			val ahoraMs = System.currentTimeMillis()
+			val puedeResincronizar = !dev.liveEdgeResyncDisabled &&
+				firstFrameAtMs > 0L &&
+				player?.playbackState == Player.STATE_READY &&
+				ahoraMs - lastResyncAtMs > LiveTuning.LIVE_EDGE_RESYNC_COOLDOWN_MS
+
 			val limite = (durationMs * LiveTuning.LIVE_EDGE_RESYNC_WINDOW_FRACTION).toLong()
-			if (!dev.liveEdgeResyncDisabled && real != C.TIME_UNSET &&
+			if (puedeResincronizar && real != C.TIME_UNSET &&
 				real - limite > LiveTuning.LIVE_EDGE_RESYNC_MIN_EXCESS_MS
 			) {
+				lastResyncAtMs = ahoraMs
+				resyncCount++
 				LiveLog.warn(
 					"offset.vuelveAlBorde",
 					"offsetMs" to real,
 					"ventanaMs" to durationMs,
 					"limiteMs" to limite,
+					"numero" to resyncCount,
 				)
 				player?.seekToDefaultPosition()
 				return
@@ -661,5 +725,7 @@ class Media3LiveEngine(
 		const val FPS_WINDOW_MS = 2_000L
 		/** Por debajo de esto, la diferencia es ruido de convergencia. */
 		const val OFFSET_MISMATCH_TOLERANCE_MS = 2_000L
+		/** El doble del intervalo legítimo más largo de una cadencia 3:2. */
+		const val FRAME_GAP_WARN_MS = 100L
 	}
 }
