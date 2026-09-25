@@ -64,7 +64,7 @@ sí varía por canal y gobierna el `targetOffsetMs`.
 | `test-sat77w-estrellashd-mp4` | **77W** | h264 High | 1440x1080 | **4:3** | **1080i (tt)** | aac **intermitente**, `esl` | 1.07 s | 2.7–3.0 s | 17.13 s |
 | `test-sat77w-estrellassd-mp2v` | **77W** | **mpeg2video** | 544x480 | **20:17** | **480i (tt)** | **mp2** (`esl`) → AAC | 1.50 s | 2.3–3.4 s | 16.92 s |
 | `test-sat70w-discoveryhd-mp4` | **70W** | h264 Main@4.0 | 1920x1080 | 1:1 | **1080i (tt)** | aac ×2 (`spa`, `eng`) | 1.07 s | 2.0–2.5 s | 14.71 s |
-| `test-sat70w-hbohd-mp4` | **70W** | h264 | 1920x1080 | 1:1 | **1080i (bb)** | aac ×2 (`spa`, `eng`) | ? | 2.3–2.8 s | 13.88 s |
+| `test-sat70w-hbohd-mp4` | **70W** | h264 Main@4.0 | 1920x1080 | 1:1 | **1080i (`tt`)** · **cine 23.976 con cadencia 3:2** | aac ×2 (`spa`, `eng`) | ? | 2.3–2.8 s | 30.0 s |
 
 El `→ AAC` del canal mp2v es el cambio de headend pendiente, no el estado
 actual. Hasta que se aplique, ese canal sigue entregando MP2.
@@ -230,6 +230,50 @@ Consecuencias de diseño:
   por número, no precarga.
 - El `config.json` con 120 canales pesa unas decenas de kB: sin problema.
 
+## 3.quater `hbohd-70w` transporta cine, no vídeo
+
+**Medido el 2026-09-25, y corrige dos errores de este documento.**
+
+Edgar vio microcortes periódicos en HBO y en ningún otro canal. Los contadores
+del motor no veían nada: **cero rebuffers, cero frames perdidos**. La causa
+estaba en la fuente.
+
+Distribución de intervalos entre cuadros, capturas de 30 s:
+
+```
+hbohd        358 intervalos de 50 ms  +  357 de 33 ms   (alternando)
+discoveryhd  894 intervalos de 33 ms                    (uniforme)
+```
+
+50 ms son **3** tiempos de campo y 33 ms son **2**: es una **cadencia 3:2**. El
+promedio da 41.7 ms por cuadro, o sea **23.976 fps**. HBO transporta **cine a
+24 fps** dentro de un contenedor de 29.97; `discoveryhd` lleva vídeo nativo
+uniforme. Los dos declaran exactamente los mismos parámetros —Main@4.0,
+1920x1080, `tt`, `r_frame_rate` 59.94, `avg_frame_rate` 29.97—, así que **la
+diferencia no se ve en la cabecera, solo midiendo**.
+
+**Dos correcciones a la tabla maestra:**
+
+1. Decía **`bb`**; el stream dice **`tt`**. HBO deja de ser el único canal con
+   orden de campo invertido, lo que **deshace la justificación del pendiente
+   16** («cubrir las cuatro combinaciones con `discoveryhd` y `hbohd`»).
+2. Decía **59.94 por campos**; son **23.976 con cadencia 3:2**. Los 59.94 son
+   campos por segundo, no cuadros.
+
+**Lo que queda sin explicar.** La cadencia 3:2 produce un tirón característico,
+pero de periodo ~83 ms, no de 2 segundos como describe Edgar. Puede que esté
+percibiendo la cadencia como pausas periódicas, o puede haber un segundo
+efecto encima. **No se da por cerrado con lo medido hasta ahora.**
+
+**Descartado:** `FLAG_DETECT_ACCESS_UNITS`. Con el flag en ON el fps medido
+pasó de 50.40 a 49.85, es decir, nada. No es un problema de detección de
+unidades de acceso.
+
+**Va a M5**, que es la fase de render y cadencia. No es de M2 ni del cliente:
+el stream llega así.
+
+---
+
 ## 3.ter Tipos de codificación entrelazada
 
 No basta con saber que un canal es entrelazado. Hay dos codificaciones
@@ -240,7 +284,7 @@ distintas y los decoders las tratan diferente:
 | `discoveryhd-70w` | tt | 29.97 | **por frames** (dos campos en una imagen) |
 | `estrellassd-mp2v` | tt | 29.97 | **por frames** |
 | `estrellashd-mp4` | tt | **en disputa** | **a reverificar** — ver nota |
-| `hbohd-70w` | bb | 59.94 | **por campos** |
+| `hbohd-70w` | **tt** | **23.976** | **cine con cadencia 3:2** — ver §3.quater |
 
 El comportamiento de MediaCodec con contenido codificado por campos es más
 irregular. **La prueba visual debe cubrir los dos tipos**, no solo los dos
