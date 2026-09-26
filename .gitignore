@@ -10,3 +10,8 @@ captures/
 
 # Documentos y artefactos locales del fork LiveTV
 jellyfinv3.zip
+
+# Material de terceros con licencia comercial. NUNCA debe entrar al repositorio:
+# es GPL-2.0 y va a ser público (B7), y redistribuir código de CodeCanyon
+# violaría ambas licencias a la vez.
+streambox-iptv/
