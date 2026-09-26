@@ -393,11 +393,42 @@ AAC por software no preocupa: cuesta poca CPU y es el camino de toda caja
 Android. Este documento decía `OMX.google.aac.decoder`, el nombre anterior a
 Codec2; en Android 11 es `c2.android.*`.
 
-### Desentrelazado
+### Pantalla: un solo modo
 
-`/sys/class/deinterlace/di0` existe: el driver DI de Amlogic está cargado.
-**No confirma** que se aplique en el camino MediaCodec que usa Media3.
-**Pendiente: validación visual.**
+`dumpsys display` en la caja conectada al televisor de pruebas (Samsung, 2020)
+reporta **un único modo**: `1920x1080 @ 59.94006 Hz`, `modes [{id=1, ...}]`.
+
+Dos consecuencias que no son ajustables desde el cliente:
+
+- **Nadie puede dejar el televisor en otra frecuencia.** El cambio automático de
+  frecuencia por contenido no tiene a qué cambiar, ni el nuestro ni el del VOD
+  del upstream.
+- **El cine 23.976 de `hbohd` siempre se convierte de cadencia** contra 59.94
+  Hz. Es la raíz del pendiente 22, y no tiene solución en el reproductor.
+
+### Desentrelazado: **sí**, medido por contraste — 2026-09-26
+
+`/sys/class/deinterlace/di0` existe (driver DI de Amlogic cargado), y ahora hay
+medición del camino MediaCodec real. Ritmo de presentación en el compositor
+(`dumpsys SurfaceFlinger --latency`) con el motor **de fábrica**:
+
+| Canal | Contenido | Presentación | Relación |
+|---|---|---|---|
+| `beisbol` | 720p **progresivo** 29.97 | 29.97 / 29.73 / 28.83 | **1:1** |
+| `estrellassd-mp2v` | 480**i** 29.97 MPEG-2 | 59.94 / 59.94 / 59.94 | **2×** |
+| `hbohd-mp4` | 1080**i**, cine 23.976 | 45.69 / 52.09 / 46.05 | 2× irregular |
+
+Lo progresivo sale 1:1 y lo entrelazado al **ritmo de campo**. Un decodificador
+que no desentrelazara daría un cuadro por cuadro codificado en los tres casos.
+
+Falta solo juzgar **la calidad** del desentrelazado en pantalla, que es de M5 y
+de Edgar.
+
+**Aviso sobre las mediciones de ritmo:** las lecturas de ~15 fps en
+`estrellassd` que estuvieron en circulación el 26-sep salieron de sesiones con
+interruptores del menú de degradación pegados. Cinco sintonías frescas de
+fábrica dan 57–60. Antes de anotar un ritmo, comprobar que el overlay diga
+`degradación de fábrica`.
 
 ### Advertencia
 

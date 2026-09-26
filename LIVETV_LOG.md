@@ -195,7 +195,7 @@ un frame congelado.
 
 | # | Tema | Vía / fase | Notas |
 |---|---|---|---|
-| 1 | **Validación visual del desentrelazado** en la caja de pruebas | M5 | decide si aplica el nivel 1 y si libVLC entra desde el principio |
+| 1 | ~~¿Desentrelaza el VPU?~~ | — | **cerrado 26-sep con evidencia por contraste:** el único canal progresivo del conjunto (Béisbol, 720p) presenta **1:1** a 29.97, y los dos entrelazados presentan **al doble** (Estrellas SD 480i → 59.94, HBO HD 1080i → 45–52). Un decodificador que no desentrelazara daría un cuadro por cuadro codificado en los tres casos. Queda aparte la **validación visual** de la calidad del desentrelazado, que sigue siendo de M5 y de Edgar |
 | 2 | ~~Confirmar ABI de la caja~~ | — | **cerrado 22-sep: `armeabi-v7a,armeabi`. Solo 32 bits, sin `arm64-v8a`.** Confirma lo que sugería `/proc/cpuinfo`. `armeabi-v7a` es obligatorio en el AAB o la caja de pruebas no instala; `arm64-v8a` también, porque Play lo exige a toda app con código nativo |
 | 3 | ~~Decidir si el audio MP2 se convierte a AAC~~ | — | **cerrado 22-sep: sí, y elevado a política.** Ver entrada abajo |
 | 4 | Inventario de códecs de la ZTE B866V2 | M1 | la caja mayoritaria del cliente, aún sin medir |
@@ -217,12 +217,149 @@ un frame congelado.
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
+| 23 | **`tunneled` deja a `estrellassd` sin un solo fotograma** | **M5** | medido 26-sep: decodificador `mpeg2` elegido, `fps —`, el compositor no ve nada. Es la pantalla negra silenciosa de `CLAUDE.md` §6. Estabiliza `hbohd` (H.264) y mata al MPEG-2: si entra, entra **por canal y por decodificador**, nunca global |
 
 ---
 
 ## Entradas
 
-### Cámara lenta en `estrellassd` — el decodificador MPEG-2 presenta a la mitad — 2026-09-26
+### La degradación pegada invalidó dos conclusiones — 2026-09-26
+
+**Edgar preguntó si alguna configuración nuestra se queda pegada y afecta a
+otras apps.** La respuesta tiene dos mitades opuestas, y la segunda obliga a
+corregir dos entradas de esta bitácora.
+
+#### Nada nuestro sale del sandbox
+
+Auditoría del módulo y verificación en la caja:
+
+| Vector | Resultado |
+|---|---|
+| Permisos de `livetv/` | **solo `INTERNET`** |
+| `Settings.Global` / `Settings.System` | **0** entradas nuestras |
+| `Settings.Secure` | **1**: `media_button_receiver` → `playback.media3.session.AndroidMediaService`. La escribe la plataforma al publicar una `MediaSession`, es del camino de VOD del upstream, y solo enruta las teclas de medios |
+| Propiedades del sistema (`getprop`) | **0** |
+| Cambio de modo de pantalla / `setFrameRate` | **imposible en esta caja**: `dumpsys display` reporta **un único modo**, 1920x1080 @ 59.94006 Hz |
+| `AudioManager`, sesión de audio, foco | el módulo no los toca |
+| Servicios declarados | `AuthenticatorService` y `LibraryDreamService`, ambos del upstream. El salvapantallas activo del sistema es `dreamx/.service.Backdrop` de Google, no el nuestro |
+| Huella en disco | 780 KB en 28 volcados automáticos en `Descargas` |
+| Carga de la caja | 5–6 con 4 núcleos A35 y 862 MB de 2 GB disponibles, con Netflix, Tubi, Mplay, `launcherx`, `gms` y otra app de IPTV residentes. **Es su estado normal, no residuo de las pruebas** |
+
+Que la caja tenga **un solo modo de pantalla** cierra además una puerta: nadie
+puede dejar el display en otra frecuencia, y el cine 23.976 de `hbohd`
+**siempre** va a necesitar conversión de cadencia contra 59.94 Hz. No es
+ajustable desde el cliente.
+
+#### Lo que sí estaba pegado: nuestro propio menú
+
+Al arrancar hoy con la caja recién reiniciada, el overlay decía:
+
+```
+degradación   video=software  stuck=3.5  sin resync  tunneled
+```
+
+Cuatro interruptores del menú de degradación **sobrevivieron al cierre de la
+app y al reinicio de la caja**, porque viven en `SharedPreferences`. Con el
+overlay oculto no hay ninguna señal de ello. Y la combinación
+`video=software` + `tunneled` es incompatible — el decodificador por software
+no puede entregar en modo túnel — así que el canal **no entregó un solo
+fotograma**.
+
+**Esto no afecta a otras apps. Afecta a nuestras mediciones, que es peor,**
+porque se publican como hechos.
+
+#### Consecuencia: `estrellassd` no presenta a la mitad
+
+Tras devolver todo a fábrica y medir con el mismo procedimiento:
+
+| Sintonía | SurfaceFlinger (3 lecturas) | Overlay | Frames perdidos |
+|---|---|---|---|
+| 1 | 58.55 · 59.75 · 59.46 | 55.98 | 20 |
+| 2 | 59.94 · 58.54 · 57.22 | 59.58 | 0 |
+| 3 | 59.94 · 59.94 · 59.94 | 60.12 | 22 |
+| 4 | 59.94 · 58.54 · 57.22 | 60.29 | 1 |
+| 5 | 59.94 · 59.94 · 59.94 | 59.82 | 18 |
+
+**Cinco sintonías frescas, cinco veces el ritmo completo.** Y el barrido por
+canal, también de fábrica:
+
+| Canal | Contenido | Presentación | Lectura |
+|---|---|---|---|
+| Béisbol | 720p **progresivo** 29.97 | 29.97 / 29.73 / 28.83 | **1:1** |
+| Estrellas SD | 480**i** 29.97 MPEG-2 | 59.94 / 59.94 / 59.94 | **2×** |
+| HBO HD | 1080**i** con cine 23.976 | 45.69 / 52.09 / 46.05 | 2× irregular |
+| Estrellas HD | 1080i H.264 | sin fotogramas | necesita el flag nonIDR |
+
+El patrón es limpio: **lo progresivo se presenta 1:1 y lo entrelazado al doble
+del ritmo de cuadro, es decir al ritmo de campo.**
+
+#### Dos correcciones
+
+1. **«El decodificador MPEG-2 presenta a la mitad» no se sostiene.** La entrada
+   de hoy con ese título midió 14.99 fps y 66.7 ms en `estrellassd`; hoy el
+   mismo canal, con el mismo decodificador `OMX.amlogic.mpeg2.decoder.awesome2`
+   y de fábrica, mide 59.94 en ocho mediciones seguidas. La lectura de 14.99 no
+   es reproducible. Aquella entrada afirmaba haber descartado la degradación
+   «con las preferencias borradas», y el volcado de hoy demuestra que **no
+   estaban borradas**.
+
+2. **Queda sin premisa la nota «libVLC no sortea el problema del decodificador
+   MPEG-2».** Se apoyaba en que VLC medía 14.98 en el mismo canal. Medido hoy en
+   arranque limpio, antes de que nuestra app se ejecutara siquiera: **59.94 fps,
+   16.7 ms**. No había nada que sortear en esa medición. Lo que libVLC aporta
+   —decodificador MPEG-2 propio y desentrelazador por software— sigue siendo
+   válido para cajas que no traigan decodificador MPEG-2, que es el alcance que
+   `CLAUDE.md` §6 le da; pero **no** está justificado por esta medición.
+
+#### Pendiente 1, respondido con evidencia
+
+**¿Desentrelaza el VPU? Sí.** La prueba no es una lectura suelta sino el
+contraste: el único canal progresivo del conjunto presenta 1:1, y los dos
+entrelazados presentan al doble. Un decodificador que no desentrelazara
+entregaría un cuadro por cuadro codificado en los tres casos.
+
+#### Lo que se arregló para que no vuelva a pasar
+
+El aviso de degradación ya no vive solo dentro del menú:
+
+- En la lista de canales, una línea amarilla cuando hay algo fuera de fábrica.
+- En el reproductor, la misma línea **cuando el overlay está oculto** — con el
+  overlay visible ya aparecía.
+
+Ambos se apagan solos al restablecer. Es interfaz de la sección (Modo B) y no
+toca el motor.
+
+#### Pendiente nuevo
+
+`hbohd` de fábrica presenta **irregular**: 41.31 fps en el overlay, 45.69 /
+52.09 / 46.05 en el compositor y **38 entregas tardías** con 0 rebuffers. Es el
+cine 23.976 contra un panel de 59.94 Hz de modo único (pendiente 22), y sigue
+siendo el caso real que la reproducción tunneled estabiliza.
+
+#### Y la prueba cruzada, que era la pregunta literal
+
+| Momento | VLC en el mismo canal |
+|---|---|
+| Arranque limpio, antes de que nuestra app se ejecutara | **59.94 fps / 16.7 ms** |
+| Justo después de una sesión nuestra **con tunneled activo** | **59.94 · 59.94 · 59.94** |
+
+**Nuestra app no le deja nada al de al lado.** Lo que sí salió de esa prueba es
+un hallazgo propio: **con `tunneled` activo, `estrellassd` no entrega un solo
+fotograma.** El decodificador elegido sigue siendo
+`OMX.amlogic.mpeg2.decoder.awesome2`, el overlay marca `fps —` y el compositor
+no ve nada. Es exactamente la «pantalla negra silenciosa» que `CLAUDE.md` §6
+anticipa, y significa que **la reproducción tunneled no puede activarse de
+forma global**: ayuda a `hbohd` (H.264) y mata al canal MPEG-2. Si entra, entra
+por canal y por decodificador.
+
+### Cámara lenta en `estrellassd` — el decodificador MPEG-2 presenta a la mitad — 2026-09-26 — **SUPERADA**
+
+> **No sostener nada de esta entrada.** La sesión que la produjo llevaba cuatro
+> interruptores de degradación pegados de pruebas anteriores, y la afirmación de
+> haber medido «con las preferencias borradas» era falsa sin saberlo. De fábrica
+> el canal mide 59.94 fps en ocho lecturas. Ver «La degradación pegada invalidó
+> dos conclusiones», arriba. Se conserva porque el error, y cómo se detectó,
+> valen más que la conclusión.
 
 **Edgar vio dos canales «como en cámara lenta»: `estrellassd` y `hbohd`.**
 Conecta con el dato que se había marcado como raro el mismo día: 14.93 fps

@@ -16,8 +16,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
@@ -33,6 +37,7 @@ import org.jellyfin.androidtv.ui.navigation.Destinations
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
+import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.source.ChannelProfile
 import org.koin.android.ext.android.inject
 
@@ -93,12 +98,29 @@ private fun ChannelRow(
 	val firstChannel = remember { FocusRequester() }
 	LaunchedEffect(firstChannel) { firstChannel.requestFocus() }
 
+	// Se observa `revision` para que el aviso aparezca y desaparezca al volver
+	// del menú de degradación, sin recrear la pantalla.
+	val context = LocalContext.current
+	val dev = remember { DevOptions.of(context) }
+	val revision by dev.revision.collectAsState()
+	val degradada = remember(revision) { dev.isDegraded }
+	val degradacion = remember(revision) { dev.describe() }
+
 	Column(
 		modifier = Modifier
 			.padding(horizontal = 48.dp, vertical = 24.dp)
 			.focusGroup()
 	) {
 		Text(text = stringResource(R.string.pref_live_tv_cat), fontWeight = FontWeight.Bold)
+
+		// La degradación persiste en `SharedPreferences`: sobrevive al cierre de
+		// la app y al reinicio de la caja. Se avisa aquí, antes de sintonizar,
+		// porque una sesión con toggles pegados se mide como si fuera de fábrica
+		// y eso ya costó dos conclusiones falsas (LIVETV_LOG, 2026-09-26).
+		if (degradada) {
+			Spacer(modifier = Modifier.height(8.dp))
+			Text(text = "degradación activa: $degradacion", color = Color.Yellow)
+		}
 
 		Spacer(modifier = Modifier.height(16.dp))
 

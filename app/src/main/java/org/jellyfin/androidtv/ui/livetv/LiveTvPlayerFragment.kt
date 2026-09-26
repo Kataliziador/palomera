@@ -227,6 +227,18 @@ private fun LivePlayer(channelId: String?) {
 				state = state,
 				modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
 			)
+		} else if (dev.isDegraded) {
+			// La degradación vive en `SharedPreferences` y sobrevive al cierre de
+			// la app y al reinicio de la caja. Con el overlay oculto no había
+			// forma de enterarse, y el 2026-09-26 eso costó dos conclusiones
+			// falsas: se midió una sesión con `video=software` y `tunneled`
+			// pegados como si fuera de fábrica. El aviso es el que impide
+			// repetirlo, y solo aparece cuando algo se aparta de fábrica.
+			Text(
+				text = "degradación: ${dev.describe()}",
+				color = Color.Yellow,
+				modifier = Modifier.align(Alignment.TopEnd).padding(24.dp),
+			)
 		}
 	}
 }
