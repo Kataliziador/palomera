@@ -86,6 +86,23 @@ class DevOptions(context: Context) {
 		get() = prefs.getBoolean(K_NO_RESYNC, false)
 		set(v) = put { putBoolean(K_NO_RESYNC, v) }
 
+	/**
+	 * Reproducción **tunneled**: el decodificador entrega directamente al
+	 * hardware de pantalla y el SoC gestiona sincronía, desentrelazado y
+	 * cadencia en su propio pipeline.
+	 *
+	 * Es el camino que usan las apps nativas de TV en cajas Amlogic, y el
+	 * decodificador lo declara (`<Feature name="tunneled-playback"/>`).
+	 * Explicaría por qué otros reproductores manejan bien el cine con cadencia
+	 * 3:2 que a nosotros nos da tirones.
+	 *
+	 * **Apagado por defecto** (`CLAUDE.md` §6): su fallo produce pantalla negra
+	 * silenciosa, así que se valida antes de activarlo por override remoto.
+	 */
+	var tunnelingEnabled: Boolean
+		get() = prefs.getBoolean(K_TUNNELING, false)
+		set(v) = put { putBoolean(K_TUNNELING, v) }
+
 	// --- Sintonía en caliente ----------------------------------------------
 
 	/** `null` = el del canal. Sirve también para provocar BEHIND_LIVE_WINDOW a voluntad. */
@@ -116,7 +133,7 @@ class DevOptions(context: Context) {
 	/** ¿Hay algo que aleje el comportamiento del de fábrica? Se avisa en el overlay. */
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
-			playlistStuckMedia3Default || liveEdgeResyncDisabled ||
+			playlistStuckMedia3Default || liveEdgeResyncDisabled || tunnelingEnabled ||
 			tsDetectAccessUnits || tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
 			maxBufferOverrideMs != null
@@ -127,6 +144,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
+		if (tunnelingEnabled) add("tunneled")
 		if (tsDetectAccessUnits) add("AUD=on")
 		if (tsAllowNonIdrKeyframes) add("nonIDR=on")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
@@ -169,6 +187,7 @@ class DevOptions(context: Context) {
 		const val K_FORCED_ENGINE = "forcedEngine"
 		const val K_STUCK_DEFAULT = "playlistStuckMedia3Default"
 		const val K_NO_RESYNC = "liveEdgeResyncDisabled"
+		const val K_TUNNELING = "tunnelingEnabled"
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"

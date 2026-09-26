@@ -150,6 +150,17 @@ private fun DevMenu() {
 			Info("Sin esto, cada corte de red deja el canal más atrás hasta salirse de la ventana.")
 		}
 
+		item {
+			Row(
+				label = "Reproducción tunneled",
+				value = if (dev.tunnelingEnabled) "ACTIVA" else "apagada",
+				changed = dev.tunnelingEnabled,
+			) { change { dev.tunnelingEnabled = !dev.tunnelingEnabled } }
+		}
+		item {
+			Info("El camino que usan las apps nativas de TV. Su fallo da pantalla negra sin aviso.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(

@@ -222,6 +222,59 @@ un frame congelado.
 
 ## Entradas
 
+### Reproducción tunneled — la pregunta de Edgar que reabrió el caso — 2026-09-26
+
+**Edgar preguntó: «si este canal va bien en otros reproductores, ¿por qué aquí
+no?»** La pregunta era correcta y desmontaba la conclusión previa. Si otros
+pueden, «no hay solución en el cliente» estaba mal: solo significaba que no se
+había encontrado **el camino que ellos usan**.
+
+**Lo estaba en nuestros propios documentos.** El decodificador declara:
+
+```xml
+<Feature name="adaptive-playback" />
+<Feature name="tunneled-playback" />
+<Feature name="low-latency" />
+```
+
+En modo **tunneled** el decodificador entrega directamente al hardware de
+pantalla y el SoC gestiona sincronía, desentrelazado y cadencia en su propio
+pipeline — que es para lo que Amlogic lo diseñó. Es el camino de las apps
+nativas de TV. **El motor no lo usaba**, y `CLAUDE.md` §6 ya lo tenía anotado
+como algo a activar tras validar.
+
+**Implementado** como interruptor en el menú, apagado por defecto (§6: su fallo
+produce pantalla negra silenciosa). Se pide por el selector de pistas con
+`setTunnelingEnabled`.
+
+**Medido con HBO puro, hardware + tunneled:**
+
+```
+decoder video     OMX.amlogic.avc.decoder.awesome2
+1er frame         1346 ms
+rebuffers         0
+frames perdidos   0
+fps medido        —
+entregas tardías  —
+```
+
+**Las dos métricas vacías no son un fallo: son la firma del tunneled.** Los
+frames van del decodificador a la pantalla sin pasar por la app, así que
+`setVideoFrameMetadataListener` no dispara.
+
+**Contrapartida seria:** en tunneled **el diagnóstico se queda ciego**
+precisamente en las métricas que costó construir — fps medido y entregas
+tardías, que son las que midieron este fallo. Si el tunneled se adopta, hay que
+aceptar que el overlay pierde sus dos señales más finas, o encontrar otra vía
+para obtenerlas.
+
+**Error de método propio:** la primera medición salió contaminada porque quedó
+activo el forzado por software de un experimento anterior. La degradación
+mostrada en el overlay (`video=software tunneled`) fue lo que lo delató — que
+es exactamente para lo que se puso ahí.
+
+**Pendiente:** validación en pantalla. Ninguna medición puede decidir esto.
+
 ### Qué atasca al decodificador de Amlogic — análisis del transcodificado — 2026-09-26
 
 **Idea de Edgar:** transcodificar HBO en Flussonic hace desaparecer los

@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.hls.playlist.DefaultHlsPlaylistTracker
 import androidx.media3.exoplayer.hls.playlist.HlsPlaylistTracker
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -118,6 +119,7 @@ class Media3LiveEngine(
 			"targetOffsetMs" to (dev.targetOffsetOverrideMs ?: plan.targetOffsetMs),
 			"reason" to plan.reason,
 			"playlistStuckCoef" to stuckCoefficient,
+			"tunneled" to dev.tunnelingEnabled,
 			"degradacion" to dev.describe(),
 		)
 
@@ -212,8 +214,16 @@ class Media3LiveEngine(
 			)
 			.build()
 
+		// La reproducción tunneled se pide por el selector de pistas: solo se
+		// elegirán decoders capaces de entregar directamente al hardware de
+		// pantalla.
+		val trackSelector = DefaultTrackSelector(context).apply {
+			setParameters(buildUponParameters().setTunnelingEnabled(dev.tunnelingEnabled))
+		}
+
 		player = ExoPlayer.Builder(context, renderersFactory)
 			.setBandwidthMeter(bandwidthMeter)
+			.setTrackSelector(trackSelector)
 			.setLoadControl(loadControl)
 			.setMediaSourceFactory(mediaSourceFactory)
 			.build()
