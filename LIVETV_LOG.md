@@ -268,6 +268,60 @@ contrario») y pasan a tener una respuesta medida para un canal concreto. El
 flag **no** debe activarse globalmente sin comprobar qué hace en los otros
 cinco: es exactamente el tipo de ajuste que arregla un canal y rompe otro.
 
+---
+
+### Estrellas HD resuelto — eran **dos** causas — 2026-09-26
+
+**Edgar aportó el dato que faltaba:** ese canal, aunque es de satélite, le
+llegaba **por IP desde otro servidor con el enlace degradado**. Lo movió a un
+servidor con mejor conexión.
+
+Eso obligó a repetirlo todo, porque **las mediciones de inestabilidad estaban
+contaminadas**: un enlace con pérdida destruye frames, y eso podía explicar
+tanto los rebuffers como la ausencia de IDR.
+
+**Verificado en el stream que no era el enlace.** Análisis de unidades NAL:
+
+```
+277  Coded slice of a non-IDR picture
+  0  Coded slice of an IDR picture     ← ninguna, en absoluto
+  4  Recovery Point (SEI)
+```
+
+**El canal no emite IDRs**, punto. Usa I-frames con punto de recuperación, que
+es lo habitual en emisión para permitir empalmes. No es un daño del transporte:
+es su codificación de origen.
+
+**Con el enlace nuevo y el flag activo:**
+
+```
+En vivo · 1440x1080 · SAR 1.333 → 16:9
+fps medido        29.86   (nominal 29.97)
+frames perdidos   0
+rebuffers         0
+ratio             0.000 %
+1er frame         2135 ms
+```
+
+**Control, con el enlace nuevo y SIN el flag:** sigue en «Almacenando…» con
+`resolución —`. El flag es necesario **independientemente del enlace**.
+
+**Las dos causas quedan separadas limpiamente:**
+
+| Causa | Síntoma | Solución |
+|---|---|---|
+| Sin IDRs en el stream | nunca decodifica | `FLAG_ALLOW_NON_IDR_KEYFRAMES` |
+| Enlace IP degradado | 33 rebuffers, 29 % de ratio | servidor con mejor conexión (Edgar) |
+
+**Estrellas HD queda resuelto.** Van **6 de 6 canales**, por primera vez desde
+que empezó el proyecto.
+
+**Lección de método:** durante días se midió ese canal sin saber que su
+transporte estaba degradado, y se construyeron hipótesis sobre datos sucios —
+incluida la de que el decodificador de Amlogic «no podía» con él. Conviene
+preguntar por la salud del transporte **antes** de atribuir un fallo al
+cliente.
+
 ### Análisis comparativo de un reproductor IPTV comercial — 2026-09-26
 
 Edgar aportó **StreamBox Mobile Pro** (CodeCanyon, v13.0, Java, 227 archivos).
