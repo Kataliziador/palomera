@@ -274,6 +274,48 @@ el stream llega así.
 
 ---
 
+## 3.quinquies `estrellashd-mp4` es cine progresivo, no 1080i — 2026-09-26
+
+Medido sobre 12 s capturados del canal en vivo:
+
+| Dato | Valor |
+|---|---|
+| Imágenes | 286 en 11.912 s → **24.010 fps** (23.976 nominal) |
+| `interlaced_frame` | **0 en las 286**: todas progresivas |
+| `repeat_pict` | alterna `1,0,1,0,…` sin una sola excepción |
+| `top_field_first` | alterna 143 / 143 |
+| Campos que pide el flujo | 2+3+2+3… = **715 en 11.912 s → 60.02 campos/s** |
+| SAR / DAR | 4:3 → **16:9** (anamórfico, sin cambio) |
+| `field_order` declarado | `bb` |
+
+Es **telecine suave**: el codificador manda 24 imágenes progresivas por segundo
+y marca con `repeat_first_field` cuáles deben mostrarse durante tres campos en
+vez de dos. El decodificador reconstruye 59.94 campos/s. Nada está entrelazado
+en origen.
+
+**Consecuencia para el motor.** Un reproductor que ignore `repeat_first_field`
+saca **2 campos por imagen = 48 fps**, y 48 no divide a 59.94: el compositor
+muestra unas imágenes un refresco y otras dos, con un batido de ~1 s. Se ve
+como tirón irregular. Medido en VLC sobre esta misma caja: **47.99 fps reales**
+sostenidos, con el patrón de pausas correspondiente. No es falta de CPU —VLC
+usa el decodificador por hardware y consume 1.1 de 4 núcleos.
+
+La salida correcta en un panel de 59.94 Hz es la cadencia 3:2: cada imagen
+alternando **3 y 2 refrescos**, es decir intervalos de 50 y 33 ms. Es
+exactamente la firma que ya se midió en `hbohd-70w` (358 intervalos de 50 ms
+alternando con 357 de 33 ms).
+
+**Dos canales de seis transportan cine a 23.976**, no uno. Lo que los distingue
+es cómo llega el pulldown: en `hbohd` la cadencia viene aplicada en los campos,
+en `estrellashd` viene solo señalizada. El motor tiene que tratar los dos.
+
+**Aviso de método.** El ritmo de presentación **no** se mide promediando los
+intervalos que devuelve `dumpsys SurfaceFlinger --latency`: ese búfer guarda
+128 entradas y conserva restos antiguos que envenenan la media. Hay que contar
+fotogramas **nuevos** muestreando más rápido de lo que el búfer da la vuelta
+(~2 s a 60 fps). Con el método malo este canal daba «46–52 fps irregulares»;
+con el bueno da 47.99 estables.
+
 ## 3.ter Tipos de codificación entrelazada
 
 No basta con saber que un canal es entrelazado. Hay dos codificaciones
@@ -283,7 +325,7 @@ distintas y los decoders las tratan diferente:
 |---|---|---|---|
 | `discoveryhd-70w` | tt | 29.97 | **por frames** (dos campos en una imagen) |
 | `estrellassd-mp2v` | tt | 29.97 | **por frames** |
-| `estrellashd-mp4` | tt | **en disputa** | **a reverificar** — ver nota |
+| `estrellashd-mp4` | **bb** | **23.976** | **cine progresivo con 3:2 señalizado** — ver §3.quinquies |
 | `hbohd-70w` | **tt** | **23.976** | **cine con cadencia 3:2** — ver §3.quater |
 
 El comportamiento de MediaCodec con contenido codificado por campos es más
@@ -292,12 +334,10 @@ irregular. **La prueba visual debe cubrir los dos tipos**, no solo los dos
 combinaciones. Esos dos bastan, y es una suerte, porque el tercero está en
 duda.
 
-**Nota sobre `estrellashd-mp4` (22-sep): la evidencia se contradice.** Medido
-sobre HLS da 60000/1001; medido sobre el segmento `.ts` crudo da 30000/1001
-con `field_order=tt`. Una de las dos lecturas es un artefacto de muestra corta.
-Hasta resolverlo **no se puede afirmar que este canal sea el ejemplo de
-codificación por campos de 77W**. Se resuelve junto con el pendiente #14
-(recapturar su golden sample, cuya captura falló).
+**La contradicción de `estrellashd-mp4` queda resuelta (26-sep).** Ni 60000/1001
+ni 30000/1001: los dos eran valores nominales del contenedor. Ver
+§3.quinquies — el canal es cine a 23.976 **progresivo** con pulldown 3:2
+señalizado, y con él cae el pendiente #14.
 
 `mileniosd` va a **30.00 fps exactos**, no 29.97: TotalPlay lo recodifica. En
 una pantalla a 59.94 Hz eso produce un tirón sutil cada ~33 s. No es un fallo

@@ -208,7 +208,7 @@ un frame congelado.
 | 11 | **`estrellashd-mp4`: pista de audio intermitente** | headend + M7 | desaparece y vuelve; revisar errores PES en Astra |
 | 12 | Sobrevivir a cambios en el número de pistas a mitad de stream | M7 | ExoPlayer lo tolera mal; caso real en `estrellashd-mp4` |
 | 13 | Aceptar `spa`, `esp`, `esl` y `es` como español | **M3** (subió de B4) | `estrellashd` y `estrellassd` usan `esl`. Con los PIDs normalizados por Flussonic, el idioma es la **única** clave de selección de audio: es motor, no interfaz |
-| 14 | Recapturar la muestra de `estrellashd-mp4` | M1 | su captura falló, no hay golden sample. **Ahora además resuelve una contradicción:** HLS da 60000/1001, el `.ts` crudo da 30000/1001 `tt`. Hasta aclararlo no se puede afirmar que sea el ejemplo de codificación por campos de 77W |
+| 14 | ~~Recapturar la muestra de `estrellashd-mp4`~~ | — | **cerrado 26-sep: la contradicción era falsa.** 60000/1001 y 30000/1001 eran los dos valores nominales del contenedor. Medido sobre 12 s del canal en vivo: 286 imágenes **progresivas** en 11.912 s (23.976 fps) con `repeat_pict` alternando 1,0,1,0 sin excepción → **cine con pulldown 3:2 señalizado**. Ver `CHANNELS.md` §3.quinquies |
 | 15 | Instalar tsduck y tomar línea base de errores CC con buen clima | M7 | no está en los repos de Ubuntu, bajar el .deb |
 | 22 | **`hbohd` transporta cine 23.976 con cadencia 3:2** | **M5** | microcortes que Edgar ve y los contadores no. Medido: 358 intervalos de 50 ms alternando con 357 de 33 ms, frente a 894 uniformes de 33 en `discoveryhd`. Descartado `FLAG_DETECT_ACCESS_UNITS`. Ver `CHANNELS.md` §3.quater |
 | 16 | Validar desentrelazado con los **dos tipos** de codificación | M5 | **revisar:** se justificaba en que `hbohd` era `bb`, y medido es `tt`. Ya no hay canal con orden invertido en el conjunto | `discoveryhd-70w` por frames, `hbohd-70w` por campos. Estos dos bastan: cubren las cuatro combinaciones sin depender de `estrellashd`, que está en disputa (#14) |
@@ -222,6 +222,54 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### `estrellashd` también es cine: 23.976 progresivo con 3:2 señalizado — 2026-09-26
+
+Edgar vio el canal «extraño» en VLC y preguntó por qué el ritmo salía
+irregular. La respuesta no estaba en el reproductor.
+
+**Primero, un error de método propio.** El ritmo de presentación se venía
+midiendo promediando los intervalos de `dumpsys SurfaceFlinger --latency`. Ese
+búfer guarda 128 entradas y **conserva restos antiguos**: en una lectura el
+intervalo más viejo era de 400 s y crecía 5 s por lectura. La media salía
+contaminada. Contando fotogramas **nuevos**, con muestreo más rápido que el
+giro del búfer (~2 s a 60 fps), VLC da **47.99 fps sostenidos** en este canal,
+no «46–52 irregulares».
+
+Quedan afectadas por el método malo las cifras de `hbohd` de fábrica publicadas
+hoy (45.69 / 52.09 / 46.05). Las de `estrellassd` y `beisbol` **no**: su media
+salía exactamente 16.7 y 33.4 ms, lo que solo es posible sin valores atípicos.
+
+**Y la causa, medida sobre 12 s del canal en vivo:**
+
+| Dato | Valor |
+|---|---|
+| Imágenes | 286 en 11.912 s → **24.010 fps** |
+| `interlaced_frame` | **0 en las 286** |
+| `repeat_pict` | `1,0,1,0,…` sin una sola excepción |
+| Campos pedidos | 715 → **60.02 campos/s** |
+
+Es **telecine suave**: 24 imágenes progresivas por segundo con
+`repeat_first_field` marcando cuáles duran tres campos. Un reproductor que
+ignore ese marcador saca 2 campos por imagen = **48 fps**, y 48 no divide a
+59.94: unas imágenes duran un refresco y otras dos, con un batido de ~1 s. Eso
+es lo que Edgar está viendo. No es falta de CPU: VLC decodifica por hardware y
+consume 1.1 de 4 núcleos, con 258 % de los 400 % ociosos.
+
+**Consecuencias:**
+
+1. **Pendiente 14 cerrado.** La contradicción 60000/1001 vs 30000/1001 era
+   falsa: los dos eran valores nominales del contenedor.
+2. **`estrellashd` deja de ser «1080i por campos»** en los documentos. No está
+   entrelazado en origen.
+3. **Dos canales de seis transportan cine a 23.976**, no uno. En `hbohd` la
+   cadencia viene aplicada en los campos; en `estrellashd` viene solo
+   señalizada. El motor tiene que tratar los dos casos.
+4. La salida correcta en un panel de 59.94 Hz es la cadencia 3:2 —intervalos
+   alternando 50 y 33 ms—, que es justo la firma ya medida en `hbohd`. Es
+   decir: **lo que en `hbohd` se anotó como defecto es el comportamiento
+   correcto**, y habrá que separar cuánto de lo que Edgar ve ahí es el tirón
+   propio del cine 24p en 60 Hz y cuánto es un fallo de verdad.
 
 ### La degradación pegada invalidó dos conclusiones — 2026-09-26
 
