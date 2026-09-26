@@ -61,7 +61,7 @@ sí varía por canal y gobierna el `targetOffsetMs`.
 |---|---|---|---|---|---|---|---|---|---|
 | `beisbol` | TotalPlay | h264 | 1280x720 | 1:1 | progresivo | aac (`spa`) | 1.40 s | 2.80 s | 18.59 s |
 | `mileniosd` | TotalPlay | h264 | 1024x576 | 1:1 | progresivo | aac (`spa`) | 1.40 s | 2.80 s | 16.80 s |
-| `test-sat77w-estrellashd-mp4` | **77W** | h264 High | 1440x1080 | **4:3** | **1080i (tt)** | aac **intermitente**, `esl` | 1.07 s | 2.7–3.0 s | 17.13 s |
+| `test-sat77w-estrellashd-mp4` | **77W** | h264 High | 1440x1080 | **4:3** | **cine 23.976 + 3:2** | aac **intermitente**, `esl` | 1.07 s | 2.7–3.0 s | 17.13 s |
 | `test-sat77w-estrellassd-mp2v` | **77W** | **mpeg2video** | 544x480 | **20:17** | **480i (tt)** | **mp2** (`esl`) → AAC | 1.50 s | 2.3–3.4 s | 16.92 s |
 | `test-sat70w-discoveryhd-mp4` | **70W** | h264 Main@4.0 | 1920x1080 | 1:1 | **1080i (tt)** | aac ×2 (`spa`, `eng`) | 1.07 s | 2.0–2.5 s | 14.71 s |
 | `test-sat70w-hbohd-mp4` | **70W** | h264 Main@4.0 | 1920x1080 | 1:1 | **1080i (`tt`)** · **cine 23.976 con cadencia 3:2** | aac ×2 (`spa`, `eng`) | ? | 2.3–2.8 s | 30.0 s |
@@ -260,10 +260,18 @@ diferencia no se ve en la cabecera, solo midiendo**.
 2. Decía **59.94 por campos**; son **23.976 con cadencia 3:2**. Los 59.94 son
    campos por segundo, no cuadros.
 
+**Corrección del 26-sep:** aquí se dio por hecho que la cadencia venía
+**aplicada** en los campos. Medido sobre el flujo, no: 285 de 286 imágenes son
+**progresivas** y `repeat_pict` alterna `0,1,0,1` sin excepción. Es **telecine
+suave**, igual que `estrellashd` y `estrellassd`. Lo que se midió como
+alternancia 50/33 ms es el decodificador **aplicando bien** la cadencia
+señalizada.
+
 **Lo que queda sin explicar.** La cadencia 3:2 produce un tirón característico,
-pero de periodo ~83 ms, no de 2 segundos como describe Edgar. Puede que esté
-percibiendo la cadencia como pausas periódicas, o puede haber un segundo
-efecto encima. **No se da por cerrado con lo medido hasta ahora.**
+pero de periodo ~83 ms, no de 2 segundos como describe Edgar. Y si el
+decodificador la está aplicando correctamente, ese tirón es **inherente al cine
+24p en un panel de 59.94 Hz de modo único**, no un fallo. Hay que separar las
+dos cosas en pantalla antes de seguir persiguiéndolo. **No se da por cerrado.**
 
 **Descartado:** `FLAG_DETECT_ACCESS_UNITS`. Con el flag en ON el fps medido
 pasó de 50.40 a 49.85, es decir, nada. No es un problema de detección de
@@ -274,7 +282,37 @@ el stream llega así.
 
 ---
 
-## 3.quinquies `estrellashd-mp4` es cine progresivo, no 1080i — 2026-09-26
+## 3.quinquies **Tres de seis canales transportan cine, y solo uno es entrelazado de verdad** — 2026-09-26
+
+Medido sobre 12 s capturados de cada canal en vivo, el mismo día y con el mismo
+procedimiento. **Esta tabla sustituye a lo que este documento decía sobre
+entrelazado**, que era incorrecto en tres canales:
+
+| Canal | Imágenes/s reales | `interlaced_frame` | `repeat_pict` | Qué es |
+|---|---|---|---|---|
+| `beisbol` | 29.845 | 0 en 361 | 0 en 361 | **vídeo progresivo**, sin pulldown |
+| `mileniosd` | 29.937 | 0 en 361 | 0 en 361 | **vídeo progresivo**, sin pulldown |
+| `discoveryhd-70w` | 29.431 | **1 en 357** | 0 en 357 | **el único entrelazado real** (1080i `tt`) |
+| `estrellashd-mp4` | 24.010 | 0 en 286 | `1,0,1,0…` | **cine 23.976 + 3:2 señalizado** |
+| `hbohd-70w` | 23.386 | 0 en 285 de 286 | `0,1,0,1…` | **cine 23.976 + 3:2 señalizado** |
+| `estrellassd-mp2v` | 23.894 | 0 en 289 | `1,0,1,0…` | **cine 23.976 + 3:2 señalizado**, en MPEG-2 |
+
+Los tres canales de cine usan **telecine suave**: mandan imágenes progresivas a
+23.976/s y marcan con `repeat_first_field` cuáles deben durar tres campos en
+vez de dos. Los seis piden entre 58.4 y 59.9 campos/s, que es lo que el panel
+espera.
+
+**Lo que esto cambia en el plan:** el trabajo de render no es principalmente
+desentrelazar —solo un canal lo necesita— sino **respetar la cadencia del
+pulldown**. Un reproductor que ignore `repeat_first_field` saca 48 fps en tres
+de los seis canales, y 48 no divide a 59.94.
+
+**Ojo con el contenido.** Un canal generalista alterna cine y vídeo a lo largo
+del día: `estrellashd` midió 29.91 fps en el barrido del 26-sep por la mañana y
+24.01 esa misma tarde. **La propiedad es del programa que esté al aire, no del
+canal.** El motor no puede fijarla por configuración; tiene que seguirla.
+
+### El caso de `estrellashd-mp4` en detalle
 
 Medido sobre 12 s capturados del canal en vivo:
 

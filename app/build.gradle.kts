@@ -33,7 +33,7 @@ android {
 			"beisbol|Béisbol|$livetvBase/beisbol/mono.m3u8|h264|aac",
 			"discoveryhd|Discovery HD|$livetvBase/test-sat70w-discoveryhd-mp4/mono.m3u8|h264|aac",
 			"hbohd|HBO HD|$livetvBase/test-sat70w-hbohd-mp4/mono.m3u8|h264|aac",
-			"estrellassd|Estrellas SD|$livetvBase/test-sat77w-estrellassd-mp2v/mono.m3u8|mpeg2video|mp2",
+			"estrellassd|Estrellas SD|$livetvBase/test-sat77w-estrellassd-mp2v/mono.m3u8|mpeg2video|aac",
 			"mileniosd|Milenio SD|$livetvBase/mileniosd/mono.m3u8|h264|aac",
 		).joinToString(";")
 		buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNELS", "\"$livetvBootstrapChannels\"")

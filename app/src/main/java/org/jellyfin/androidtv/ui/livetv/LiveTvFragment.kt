@@ -13,22 +13,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
+import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
@@ -98,6 +102,9 @@ private fun ChannelRow(
 	val firstChannel = remember { FocusRequester() }
 	LaunchedEffect(firstChannel) { firstChannel.requestFocus() }
 
+	val listState = rememberLazyListState()
+	val scope = rememberCoroutineScope()
+
 	// Se observa `revision` para que el aviso aparezca y desaparezca al volver
 	// del menú de degradación, sin recrear la pantalla.
 	val context = LocalContext.current
@@ -124,35 +131,42 @@ private fun ChannelRow(
 
 		Spacer(modifier = Modifier.height(16.dp))
 
-		// Las tarjetas se dimensionan para que los seis canales de prueba quepan
-		// sin desplazamiento. La fila **no** desplaza el foco más allá de lo
-		// visible, y pelearse con eso aquí no tiene sentido: esta lista es
-		// andamiaje de M0 y B2 la reescribe con grupos, favoritos y entrada por
-		// número, que es donde el desplazamiento hay que resolverlo de verdad
-		// para ~120 canales.
-		LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+		// Siete tarjetas de 136 dp no caben en los 864 dp útiles de un panel
+		// 1080p a densidad 320: la última queda fuera de pantalla y el foco no
+		// llegaba a ella. Dejó de ser estético cuando bloqueó la medición de
+		// `mileniosd`. La fila desplaza a la tarjeta enfocada, que es la
+		// solución de una línea; los grupos, favoritos y la entrada por número
+		// para ~120 canales siguen siendo de B2.
+		LazyRow(
+			state = listState,
+			horizontalArrangement = Arrangement.spacedBy(12.dp),
+		) {
 			// Entrada al menú de degradación. Vive junto a los canales porque es
 			// donde hace falta: se veta un decoder y se entra al canal a ver qué
 			// cambia, sin salir de la sección.
 			item {
 				Button(
 					onClick = onDiagnosticsClick,
-					modifier = Modifier.width(136.dp).height(92.dp),
+					modifier = Modifier
+						.width(136.dp)
+						.height(92.dp)
+						.onFocusChanged { if (it.isFocused) scope.launch { listState.animateScrollToItem(0) } },
 					contentPadding = PaddingValues(10.dp),
 				) {
 					Text(text = "Diagnóstico", fontWeight = FontWeight.Medium)
 				}
 			}
 
-			items(channels, key = { it.id }) { channel ->
+			itemsIndexed(channels, key = { _, it -> it.id }) { index, channel ->
 				ChannelCard(
 					channel = channel,
 					onClick = { onChannelClick(channel) },
-					modifier = if (channel == channels.firstOrNull()) {
-						Modifier.focusRequester(firstChannel)
-					} else {
-						Modifier
-					},
+					// +1 por la tarjeta de diagnóstico, que ocupa el índice 0.
+					modifier = Modifier
+						.onFocusChanged { if (it.isFocused) scope.launch { listState.animateScrollToItem(index + 1) } }
+						.then(
+							if (index == 0) Modifier.focusRequester(firstChannel) else Modifier
+						),
 				)
 			}
 		}
