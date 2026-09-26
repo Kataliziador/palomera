@@ -222,6 +222,56 @@ un frame congelado.
 
 ## Entradas
 
+### Análisis comparativo de un reproductor IPTV comercial — 2026-09-26
+
+Edgar aportó **StreamBox Mobile Pro** (CodeCanyon, v13.0, Java, 227 archivos).
+Se analizó **para comparar técnicas y valores, nunca para copiar código**: su
+licencia prohíbe redistribuir y este repositorio es GPL-2.0 y será público, así
+que copiar de ahí violaría ambas licencias a la vez. El zip quedó excluido por
+`.gitignore` — no estaba, y cualquier `git add -A` lo habría commiteado.
+
+**Su motor es más simple que el nuestro.** No usa tunneling, ni
+`LoadErrorHandlingPolicy` propia, ni configura `targetOffsetMs`. Reintenta
+**5 veces con 600 ms** y se rinde — nuestra política de reintentos
+efectivamente infinitos con backoff es mejor para el rain fade que exige
+`CLAUDE.md` §6.
+
+**Tres cosas que sí merece la pena probar:**
+
+| Ajuste | Ellos | Nosotros |
+|---|---|---|
+| `setTsExtractorTimestampSearchBytes` | **3000 paquetes** (~564 kB) | por defecto (600, ~113 kB) |
+| `FLAG_DETECT_ACCESS_UNITS` | **ON** | off |
+| `FLAG_ALLOW_NON_IDR_KEYFRAMES` | **ON** | off |
+| `bufferForPlaybackMs` | **1 000** | 2 000 |
+| min / max buffer | 40 000 / 150 000 | 15 000 / 30 000 |
+| Media3 | 1.9.1 | 1.8.0 |
+
+1. **`setTsExtractorTimestampSearchBytes` es la pista más prometedora.** Buscan
+   timestamps **cinco veces más lejos** que el valor por defecto. Si el
+   extractor no encuentra referencias temporales dentro de su ventana, nunca
+   establece el formato de vídeo — y **ése es exactamente el síntoma de
+   `estrellashd`**: almacena datos, inicializa decoders y deja `resolución` en
+   «—» para siempre. Merece probarse antes que cualquier otra cosa.
+2. **Los dos flags de TS activados** son justo la «experiencia de campo» que
+   cita el pendiente 5, ahora con una fuente concreta. Va a M4.
+3. **`bufferForPlaybackMs` a la mitad** arrancaría antes; afecta directamente
+   al zapping.
+
+**Y una decisión de producto que conviene copiar como idea:** ofrecen al
+usuario final un **interruptor de decodificación hardware/software**. Es una
+salida pragmática para los canales donde el decodificador se atasca, sin
+depender de un override remoto.
+
+**Matiz sobre su configuración:** su modo «hardware» usa
+`EXTENSION_RENDERER_MODE_PREFER`, que **prefiere** los renderers de extensión
+sobre los de plataforma — lo contrario de lo que su propio comentario dice
+(«try hardware first»). No es un modelo a seguir; `CLAUDE.md` §6 ya razonaba
+mejor con `ON`.
+
+**Lo que no aporta:** el tunneling que resolvió lo de HBO no lo usan. Ese
+hallazgo es nuestro.
+
 ### Reproducción tunneled — la pregunta de Edgar que reabrió el caso — 2026-09-26
 
 **Edgar preguntó: «si este canal va bien en otros reproductores, ¿por qué aquí
