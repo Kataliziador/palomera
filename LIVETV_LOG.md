@@ -269,6 +269,22 @@ fps. El flag no tiene nada que ver.
 
 **Va a M5.** Es render y desentrelazado, no red ni extractor.
 
+**¿Lo sortearía libVLC? Medido: no.** Reproduciendo el mismo canal en VLC
+sobre la misma caja, el compositor del sistema da **14.98 fps con intervalo de
+66.7 ms** — idéntico a nuestros 14.99. El fallo ocurre **por debajo de ambos
+reproductores**: es el decodificador MPEG-2 de hardware de Amlogic.
+
+Eso acota el valor real de libVLC (fase M6): **no** es que sea mejor motor,
+sino que **trae su propio decodificador MPEG-2 por software y su propio
+desentrelazador**, que es justo lo que esta caja no tiene — se midió que su
+único decodificador MPEG-2 es el de hardware. Coincide exactamente con el
+alcance que `CLAUDE.md` §6 ya le daba: «MPEG-2 sin decoder en la caja, y
+desentrelazado por software de SD».
+
+**Prueba pendiente que decide si M6 merece la pena:** forzar decodificación por
+software **en VLC** sobre este canal. Si entonces da 29.97, libVLC resuelve el
+caso y M6 está justificado. Si sigue en 15, no lo resuelve nadie en el cliente.
+
 ### Barrido de los 6 canales con `FLAG_ALLOW_NON_IDR_KEYFRAMES` — 2026-09-26
 
 El flag arregla `estrellashd`, pero era el tipo de ajuste que puede romper
