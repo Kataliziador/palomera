@@ -103,6 +103,20 @@ class DevOptions(context: Context) {
 		get() = prefs.getBoolean(K_TUNNELING, false)
 		set(v) = put { putBoolean(K_TUNNELING, v) }
 
+	/**
+	 * Amplía la ventana de búsqueda de timestamps del extractor TS.
+	 *
+	 * Es la hipótesis para `estrellashd`: si el extractor no halla referencias
+	 * temporales, nunca establece el formato de vídeo.
+	 */
+	var wideTimestampSearch: Boolean
+		get() = prefs.getBoolean(K_WIDE_SEARCH, false)
+		set(v) = put { putBoolean(K_WIDE_SEARCH, v) }
+
+	val timestampSearchPackets: Int
+		get() = if (wideTimestampSearch) LiveTuning.TS_TIMESTAMP_SEARCH_PACKETS
+		else LiveTuning.TS_TIMESTAMP_SEARCH_PACKETS_MEDIA3
+
 	// --- Sintonía en caliente ----------------------------------------------
 
 	/** `null` = el del canal. Sirve también para provocar BEHIND_LIVE_WINDOW a voluntad. */
@@ -134,6 +148,7 @@ class DevOptions(context: Context) {
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
 			playlistStuckMedia3Default || liveEdgeResyncDisabled || tunnelingEnabled ||
+			wideTimestampSearch ||
 			tsDetectAccessUnits || tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
 			maxBufferOverrideMs != null
@@ -145,6 +160,7 @@ class DevOptions(context: Context) {
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (tunnelingEnabled) add("tunneled")
+		if (wideTimestampSearch) add("búsqueda amplia")
 		if (tsDetectAccessUnits) add("AUD=on")
 		if (tsAllowNonIdrKeyframes) add("nonIDR=on")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
@@ -188,6 +204,7 @@ class DevOptions(context: Context) {
 		const val K_STUCK_DEFAULT = "playlistStuckMedia3Default"
 		const val K_NO_RESYNC = "liveEdgeResyncDisabled"
 		const val K_TUNNELING = "tunnelingEnabled"
+		const val K_WIDE_SEARCH = "wideTimestampSearch"
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"

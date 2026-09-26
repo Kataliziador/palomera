@@ -161,6 +161,17 @@ private fun DevMenu() {
 			Info("El camino que usan las apps nativas de TV. Su fallo da pantalla negra sin aviso.")
 		}
 
+		item {
+			Row(
+				label = "Búsqueda amplia de timestamps TS",
+				value = "${dev.timestampSearchPackets} paquetes",
+				changed = dev.wideTimestampSearch,
+			) { change { dev.wideTimestampSearch = !dev.wideTimestampSearch } }
+		}
+		item {
+			Info("Si el extractor no halla referencias temporales, nunca reporta formato de vídeo.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(

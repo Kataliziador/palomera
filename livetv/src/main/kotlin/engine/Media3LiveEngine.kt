@@ -120,6 +120,7 @@ class Media3LiveEngine(
 			"reason" to plan.reason,
 			"playlistStuckCoef" to stuckCoefficient,
 			"tunneled" to dev.tunnelingEnabled,
+			"tsSearchPaquetes" to dev.timestampSearchPackets,
 			"degradacion" to dev.describe(),
 		)
 
@@ -169,7 +170,13 @@ class Media3LiveEngine(
 		// reproducción, que es lo que CLAUDE.md §6 prohíbe.
 		val mediaSourceFactory = HlsMediaSource.Factory(httpFactory)
 			.setLoadErrorHandlingPolicy(LiveErrorPolicy())
-			.setExtractorFactory(DefaultHlsExtractorFactory(tsFlags, false))
+			.setExtractorFactory(
+				if (dev.wideTimestampSearch) {
+					WideSearchHlsExtractorFactory(tsFlags, dev.timestampSearchPackets)
+				} else {
+					DefaultHlsExtractorFactory(tsFlags, false)
+				}
+			)
 			.setPlaylistTrackerFactory(
 				HlsPlaylistTracker.Factory { dataSourceFactory, loadErrorPolicy, parserFactory, cmcd ->
 					DefaultHlsPlaylistTracker(

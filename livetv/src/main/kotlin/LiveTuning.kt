@@ -59,6 +59,25 @@ object LiveTuning {
 	/** El de Media3, para poder comparar desde el menú. */
 	const val PLAYLIST_STUCK_COEFFICIENT_MEDIA3 = 3.5
 
+	// --- Extractor TS --------------------------------------------------------
+
+	/**
+	 * Cuántos paquetes TS busca el extractor antes de rendirse al establecer
+	 * las referencias temporales.
+	 *
+	 * Media3 usa **600** (~113 kB). Si no encuentra timestamps en esa ventana,
+	 * nunca establece el formato de vídeo — y ése es exactamente el síntoma de
+	 * `estrellashd`, que almacena datos e inicializa decoders sin reportar
+	 * nunca una resolución.
+	 *
+	 * **3000** (~564 kB) es el valor que usa un reproductor IPTV comercial
+	 * analizado el 2026-09-26. Se tomó el número, no el código.
+	 */
+	const val TS_TIMESTAMP_SEARCH_PACKETS = 3_000
+
+	/** El de Media3, para poder comparar desde el menú. */
+	const val TS_TIMESTAMP_SEARCH_PACKETS_MEDIA3 = 600
+
 	// --- Live offset: el suelo que impone HLS --------------------------------
 
 	/**

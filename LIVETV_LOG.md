@@ -222,6 +222,52 @@ un frame congelado.
 
 ## Entradas
 
+### Estrellas HD decodifica por primera vez — `FLAG_ALLOW_NON_IDR_KEYFRAMES` — 2026-09-26
+
+**El fallo más antiguo del proyecto tiene causa.** `estrellashd` no arrancaba
+desde el primer día: almacenaba datos, inicializaba los decoders y **nunca
+reportaba un formato de vídeo**.
+
+**La causa es que sus segmentos no empiezan en un IDR.** Por defecto ExoPlayer
+espera un IDR y descarta todo lo anterior, así que nunca establecía el formato.
+Con `FLAG_ALLOW_NON_IDR_KEYFRAMES` acepta I-frames con punto de recuperación y
+arranca.
+
+**Aislado a un solo flag.** Se activaron primero los dos que usa el reproductor
+comercial más la búsqueda amplia; luego se fueron quitando uno a uno.
+`FLAG_ALLOW_NON_IDR_KEYFRAMES` **por sí solo** basta:
+
+```
+resolución    1440x1080
+SAR           1.333          ← el anamórfico 4:3 que CHANNELS.md documentaba
+aspecto       1.778 (16:9)   ← correcto
+1er frame     1381 ms
+```
+
+**Descartado en la misma sesión:** `setTsExtractorTimestampSearchBytes`
+ampliado a 3000 paquetes **no** lo arregla. Se implementó
+`WideSearchHlsExtractorFactory`, se verificó que la factory se invocaba
+(`extractor.ventanaAmpliada`) y el canal seguía sin reportar formato. La
+hipótesis era razonable y era falsa. `FLAG_DETECT_ACCESS_UNITS` tampoco aporta
+nada por sí mismo.
+
+**Pero no está resuelto, solo diagnosticado.** Con el flag, el canal
+reproduce con **33 rebuffers en 1:44 y un ratio del 29 %**, frente a un
+objetivo del 0.3 %. Pasa de «nunca decodifica» a «decodifica mal».
+
+Lo más probable es que arrancar fuera de un IDR deje referencias incompletas
+hasta el siguiente refresco real, y eso se traduzca en artefactos y
+reinicios. Queda por comprobar si combinarlo con **tunneled** lo estabiliza:
+**esa prueba no se ha hecho** — un intento salió inválido porque el
+interruptor no llegó a activarse, y el dato se descartó en vez de darlo por
+bueno.
+
+**Lo que esto cambia:** el pendiente 5 y la fase **M4** dejan de ser una
+sospecha («la medición dice OFF/OFF, la experiencia de campo sugiere lo
+contrario») y pasan a tener una respuesta medida para un canal concreto. El
+flag **no** debe activarse globalmente sin comprobar qué hace en los otros
+cinco: es exactamente el tipo de ajuste que arregla un canal y rompe otro.
+
 ### Análisis comparativo de un reproductor IPTV comercial — 2026-09-26
 
 Edgar aportó **StreamBox Mobile Pro** (CodeCanyon, v13.0, Java, 227 archivos).
