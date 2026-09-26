@@ -217,11 +217,87 @@ un frame congelado.
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
-| 23 | **`tunneled` deja a `estrellassd` sin un solo fotograma** | **M5** | medido 26-sep: decodificador `mpeg2` elegido, `fps —`, el compositor no ve nada. Es la pantalla negra silenciosa de `CLAUDE.md` §6. Estabiliza `hbohd` (H.264) y mata al MPEG-2: si entra, entra **por canal y por decodificador**, nunca global |
+| 23 | **`tunneled` deja sin imagen a los canales probados** | **M5** | medido 26-sep en **dos de dos**: `estrellassd` (MPEG-2) y `estrellashd` (H.264) dan **0 fps** con tunneled activo. Es la pantalla negra silenciosa de `CLAUDE.md` §6. No puede activarse sin validar canal por canal en pantalla |
+| 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
 
 ---
 
 ## Entradas
+
+### Barrido completo de los seis canales, con fuente y pantalla pareadas — 2026-09-26
+
+Bloque autónomo. `nonIDR=on` y todo lo demás de fábrica. Ritmo medido por
+conteo incremental, no por promedio.
+
+| Canal | Decoder | Resolución → aspecto | Ritmo real | Zapping | Rebuffers | Frames perdidos |
+|---|---|---|---|---|---|---|
+| Estrellas HD | avc | 1440x1080 → **16:9** | 48.09 / 47.66 | 1627 ms | 0 | 0 |
+| Béisbol | avc | 1280x720 → 16:9 | 29.95 / 30.00 | 1048 ms | 0 | 0 |
+| Discovery HD | avc | 1920x1080 → 16:9 | 59.96 / 59.99 | 1080 ms | 0 | 0 |
+| HBO HD | avc | 1920x1080 → 16:9 | 59.86 / 59.86 | 1094 ms | 0 | 0 |
+| Estrellas SD | **mpeg2** | 544x480 → **4:3** | 59.94 / 59.92 | 1444 ms | 0 | 0 |
+| Milenio SD | avc | 1024x576 → 16:9 | 29.98 / 30.01 | 1033 ms | 0 | 0 |
+
+**Los seis reproducen. Cero rebuffers y cero frames perdidos en los seis**, y
+el zapping entre 1.03 y 1.63 s, por debajo del objetivo p50 de 2 s.
+`mileniosd` se mide **por primera vez**: lo desbloqueó el arreglo del
+desplazamiento de la fila.
+
+Las cadencias salen donde deben: `beisbol` y `mileniosd` (progresivos 29.97)
+presentan cada imagen **dos refrescos** —377 y 383 intervalos de 33.4 ms—, y
+`discoveryhd`, `hbohd` y `estrellassd` presentan **un refresco** por campo.
+
+#### El decodificador AVC de Amlogic ignora el pulldown de H.264
+
+Medido con fuente y pantalla **en el mismo instante**, que es la única forma
+válida: un canal generalista alterna cine y vídeo a lo largo del día.
+
+| Canal | Fuente en ese momento | Pantalla | Desviación |
+|---|---|---|---|
+| **Estrellas HD** | **cine** 23.35 img/s → 58.29 campos/s | 48.07 | **−17.5 %** |
+| Estrellas SD | **cine** 23.99 img/s → 60.02 campos/s | 59.90 | **−0.2 %** |
+| HBO HD | entrelazado 29.59 → 59.19 | 59.96 | +1.3 % |
+| Discovery HD | entrelazado 29.57 → 59.15 | 59.96 | +1.4 % |
+
+**Los dos canales de cine se comportan al revés, y lo que los separa es el
+códec.** `estrellassd` es MPEG-2 y sale perfecto; `estrellashd` es H.264 y sale
+a 48 fps, que es exactamente **2 campos por imagen**: el pulldown ignorado.
+
+La explicación encaja con el formato: en MPEG-2 el pulldown viaja en
+`repeat_first_field`, un campo de la cabecera de imagen que el decodificador
+lee siempre. En H.264 viaja en **SEI `pic_timing` / `pic_struct`**, que es
+opcional y este decodificador no honra.
+
+Confirmado en tres mediciones independientes de `estrellashd` con cine al aire:
+**48.09, 47.71 y 47.47 fps**, entre −17.5 % y −19.7 % del ideal.
+
+**Consecuencia:** 48 fps contra un panel de 59.94 Hz de modo único produce un
+batido de ~1 s. Es lo que Edgar describió como «se ve extraño» en VLC —que mide
+**47.99** en el mismo canal—, y afecta igual a los dos motores. **No es un
+fallo del cliente ni se arregla en el cliente**: está por debajo de Media3 y de
+libVLC, en el decodificador de la caja.
+
+#### Tunneled **no** lo arregla: deja el canal sin imagen
+
+Se probó porque en modo tunneled la cadencia la lleva el hardware de
+presentación. Resultado: `estrellashd` con tunneled da **0 fps, ni un solo
+fotograma**, igual que `estrellassd`. Son ya **dos canales de dos probados** en
+los que tunneled produce pantalla negra silenciosa. Refuerza el pendiente 23 y
+lo sube de aviso a prohibición práctica: no puede activarse sin validar canal
+por canal en pantalla.
+
+#### Lo que hace falta de Edgar
+
+1. **Visto bueno a `FLAG_ALLOW_NON_IDR_KEYFRAMES` por defecto.** Sin él
+   `estrellashd` no arranca; con él no perjudica a ninguno de los seis.
+2. **Juzgar el tirón de `estrellashd` con cine al aire.** Es el único defecto
+   visual que queda y no tiene arreglo en el cliente. La decisión es si se
+   acepta o si el canal se trata en el headend.
+3. **Validar con el mando** que la fila llega hasta Milenio SD. La
+   automatización entra con un toque y no recorre el mismo camino de foco, así
+   que esto no lo puedo comprobar yo.
+4. **Comprobar los aspectos**: `estrellashd` a 16:9 y `estrellassd` a 4:3, que
+   son los dos anamórficos.
 
 ### `estrellashd` también es cine: 23.976 progresivo con 3:2 señalizado — 2026-09-26
 
@@ -1495,7 +1571,7 @@ mirar la pantalla.**
 
 ---
 
-### Defecto de foco en la fila de canales — 2026-09-22 — **abierta**
+### Defecto de foco en la fila de canales — 2026-09-22 — **corregido 26-sep, pendiente de validar con el mando**
 
 Con el control, el foco no siempre entra en la fila de canales al abrir la
 sección: se queda en la barra principal. Cuatro intentos de arreglo fallaron
