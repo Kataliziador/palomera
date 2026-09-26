@@ -222,6 +222,53 @@ un frame congelado.
 
 ## Entradas
 
+### Cámara lenta en `estrellassd` — el decodificador MPEG-2 presenta a la mitad — 2026-09-26
+
+**Edgar vio dos canales «como en cámara lenta»: `estrellassd` y `hbohd`.**
+Conecta con el dato que se había marcado como raro el mismo día: 14.93 fps
+donde el contenido es 29.97.
+
+**Medido con dos instrumentos independientes:**
+
+| Canal | SurfaceFlinger | Overlay | Decoder | Aspecto visual |
+|---|---|---|---|---|
+| Béisbol | **29.73** | 29.38 | `avc` | correcto |
+| Discovery HD | **29.97** | 29.94 | `avc` | correcto |
+| **Estrellas SD** | **14.99** | 14.96 | **`mpeg2`** | cámara lenta |
+
+El intervalo medido en `estrellassd` es de **66.7 ms**, exactamente **4
+refrescos** de un panel a 59.94 Hz, cuando deberían ser 2. Cada fotograma se
+presenta el doble de tiempo.
+
+**El stream está bien:** 599 cuadros en 20 s = 29.95 fps, `field_order=tt`,
+`avg_frame_rate` 29.97. No es la fuente.
+
+**Y la línea de tiempo va a tiempo real:** el live offset se mantiene en
+11 186 → 11 191 ms a lo largo de 100 s. No se está quedando atrás; presenta la
+mitad de los cuadros a velocidad correcta.
+
+**Descartado el flag.** Se sospechó de `FLAG_ALLOW_NON_IDR_KEYFRAMES`, pero con
+las preferencias borradas y el motor **de fábrica** el canal sigue en 14.96
+fps. El flag no tiene nada que ver.
+
+**Lo que distingue a este canal es el decodificador:** es el único que usa
+`OMX.amlogic.mpeg2.decoder.awesome2`. Los dos que van bien usan el de H.264.
+`hbohd` es un caso aparte, con su cadencia 3:2.
+
+**Dos cosas que corregir de lo dicho antes:**
+
+1. Se declaró **respondido el pendiente 1** («¿desentrelaza el VPU?») a partir
+   de una lectura de **59.91 fps** en este mismo canal. Hoy el mismo canal mide
+   **14.99** con dos instrumentos. **Las dos lecturas no se pueden reconciliar**
+   y no debió cerrarse un pendiente abierto desde el primer día con una sola
+   medición. **Se reabre.**
+2. El barrido de los seis canales concluyó que «el flag no rompe nada» mirando
+   rebuffers y frames perdidos, que salían a cero. **El fps ya mostraba 14.93 y
+   se anotó como “dato que no cuadra” sin perseguirlo.** La señal estaba y no
+   se siguió.
+
+**Va a M5.** Es render y desentrelazado, no red ni extractor.
+
 ### Barrido de los 6 canales con `FLAG_ALLOW_NON_IDR_KEYFRAMES` — 2026-09-26
 
 El flag arregla `estrellashd`, pero era el tipo de ajuste que puede romper
