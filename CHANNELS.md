@@ -252,11 +252,11 @@ uniforme. Los dos declaran exactamente los mismos parámetros —Main@4.0,
 1920x1080, `tt`, `r_frame_rate` 59.94, `avg_frame_rate` 29.97—, así que **la
 diferencia no se ve en la cabecera, solo midiendo**.
 
-**Dos correcciones a la tabla maestra:**
+**Sobre la tabla maestra:**
 
-1. Decía **`bb`**; el stream dice **`tt`**. HBO deja de ser el único canal con
-   orden de campo invertido, lo que **deshace la justificación del pendiente
-   16** («cubrir las cuatro combinaciones con `discoveryhd` y `hbohd`»).
+1. El orden de campo **no es estable en este canal**. Una captura dio `tt` y
+   otra, horas después, `bb`. El documento no estaba mal: **varía con el
+   contenido**. Anotar propiedades fijas para este canal es el error.
 2. Decía **59.94 por campos**; son **23.976 con cadencia 3:2**. Los 59.94 son
    campos por segundo, no cuadros.
 

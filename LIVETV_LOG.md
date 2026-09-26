@@ -283,8 +283,41 @@ codificación. Que el disparador concreto sea el PAFF es una **correlación
 fuerte sobre cinco streams**, no un aislamiento causal: haría falta construir
 un stream de prueba que solo varíe eso.
 
-**Pendiente de confirmar:** volver a poner el canal puro y verificar que el
-fallo regresa, para cerrar la comparación.
+**Confirmado al quitar el transcode — 2026-09-26.** Mismo canal, mismo
+decodificador, misma caja, en cuestión de minutos:
+
+| | Transcodificado | Puro |
+|---|---|---|
+| fps medido | **23.86** (= el contenido) | **49.85** |
+| frames perdidos | 0 | 25 |
+| **entregas tardías** | 2 (máx 250 ms) | **34 (máx 2268 ms)** |
+| rebuffers | 1 | 2 |
+| 1er frame | 1087 ms | 1524 ms |
+
+**Las «entregas tardías» son la medida del síntoma de Edgar.** Un hueco máximo
+de **2.3 segundos** entre frames presentados es, literalmente, la pausa cada
+dos segundos que describió. La métrica se añadió el día anterior precisamente
+porque los contadores de rebuffer y frames perdidos no veían nada, y ha
+resultado ser la que mide este fallo.
+
+El stream puro de esta captura: **955 imágenes de cuadro + 1 de campo**,
+cadencia 3:2 perfecta (478 de 33 ms, 477 de 50 ms), 956 cuadros en 40.05 s =
+23.87 fps. **Una sola imagen de campo entre 956** basta.
+
+El motor rinde **49.85 fps sobre contenido de 23.87**: el VPU desentrelaza la
+cadencia hacia ~60 fps y **no la sostiene**, quedándose en 50 y dando tirones.
+Con el transcodificado entrega 23.86, exactamente el contenido, sin nada que
+desentrelazar.
+
+**Corrección a una corrección.** El día anterior se «corrigió» `CHANNELS.md`
+porque decía `bb` y se midió `tt`. Esta captura vuelve a dar **`bb`**: el orden
+de campo **varía con el contenido**. El documento no estaba mal — capturó otro
+momento. La lección es que en este canal las propiedades no son estables, y
+anotarlas como fijas es el error.
+
+**Severidad variable.** Ayer el canal **no arrancaba**; hoy arranca con
+tirones. El mismo canal, el mismo decodificador: lo que cambia es el contenido
+emitido.
 
 ### El decodificador de hardware de Amlogic se atasca con cierto contenido — 2026-09-25
 
