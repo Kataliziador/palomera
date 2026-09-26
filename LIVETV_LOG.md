@@ -256,6 +256,23 @@ ignore ese marcador saca 2 campos por imagen = **48 fps**, y 48 no divide a
 es lo que Edgar está viendo. No es falta de CPU: VLC decodifica por hardware y
 consume 1.1 de 4 núcleos, con 258 % de los 400 % ociosos.
 
+**Comparación en el mismo canal, con el método bueno y a los pocos minutos uno
+de otro:**
+
+| Reproductor | fps reales | Cadencia |
+|---|---|---|
+| **Nuestro motor** (con `nonIDR`) | **59.90** | 709 intervalos de 1 refresco, 13 de 2 |
+| VLC | **47.99** | 48 contra 59.94 → batido de ~1 s |
+
+Nuestro overlay, que es un instrumento independiente del compositor, dice 59.79
+en la misma ventana: los dos coinciden. La primera ventana dio 56.99 porque
+incluía el arranque.
+
+**Nuestro motor reconstruye los 59.94 campos/s que el flujo pide; VLC no.** En
+este canal el nuestro es claramente mejor, al revés de lo que sugería la
+impresión visual. Además: SAR 1.333 resuelto a 16:9, 0 frames perdidos, 1
+rebuffer y 892 ms de zapping.
+
 **Consecuencias:**
 
 1. **Pendiente 14 cerrado.** La contradicción 60000/1001 vs 30000/1001 era
