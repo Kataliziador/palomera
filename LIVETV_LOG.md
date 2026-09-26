@@ -336,6 +336,26 @@ toca el motor.
 cine 23.976 contra un panel de 59.94 Hz de modo único (pendiente 22), y sigue
 siendo el caso real que la reproducción tunneled estabiliza.
 
+#### El flag `nonIDR` queda limpio de la cámara lenta
+
+Quedaba un hueco: en el barrido el único interruptor activo era `nonIDR=on` y
+ya medía 14.93 fps. Tres sintonías frescas con **ese flag y nada más**:
+
+| Sintonía | SurfaceFlinger | Overlay | Frames perdidos |
+|---|---|---|---|
+| 1 | 59.94 · 59.94 · 59.94 | 60.29 | 161 |
+| 2 | 59.94 · 60.42 · 53.19 | 59.35 | 0 |
+| 3 | 59.94 · 60.13 · 59.94 | 59.85 | 0 |
+
+**El flag no tiene nada que ver con el ritmo de presentación**, que es lo que
+decía el análisis del código: `FLAG_ALLOW_NON_IDR_KEYFRAMES` solo se consume al
+construir el lector de H.264, y `estrellassd` es MPEG-2, así que sobre este
+canal no puede hacer nada. Ahora está medido además de razonado.
+
+Con esto son **once sesiones del mismo día a ritmo completo** (ocho de fábrica,
+tres con el flag). El 14.93 del barrido sigue sin explicación mecánica, pero no
+es del flag y no es reproducible.
+
 #### Y la prueba cruzada, que era la pregunta literal
 
 | Momento | VLC en el mismo canal |
