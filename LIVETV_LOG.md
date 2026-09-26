@@ -273,7 +273,51 @@ activo el forzado por software de un experimento anterior. La degradación
 mostrada en el overlay (`video=software tunneled`) fue lo que lo delató — que
 es exactamente para lo que se puso ahí.
 
-**Pendiente:** validación en pantalla. Ninguna medición puede decidir esto.
+**Validado en pantalla por Edgar:** con tunneled, **los microcortes de HBO
+desaparecen**. Ése es el dato fiable de que el tunneled produce buena imagen.
+
+**Barrido de los cinco canales con tunneled:**
+
+| Canal | Resultado |
+|---|---|
+| Estrellas HD (77W) | ✗ **sigue sin arrancar** |
+| Estrellas SD (77W) | ✓ 1416 ms |
+| Discovery HD (70W) | ✓ |
+| HBO HD (70W) | ✓ (falló 1 vez de 9) |
+| Béisbol | ✓ |
+
+**Que Estrellas HD siga fallando confirma que son dos fallos distintos.** El
+tunneled no toca su causa: High profile con transformada 8x8 sobre entrelazado.
+
+**Repetibilidad de HBO: 8 de 8, dos veces** — antes y después de reiniciar la
+caja.
+
+**Pero la medición tiene un límite serio que hay que dejar escrito.** En
+tunneled los frames no pasan por la app, y eso rompe tres cosas:
+
+1. `fps medido` y `entregas tardías` quedan **siempre a cero**. Son las dos
+   métricas que sirvieron para medir este mismo fallo.
+2. `onRenderedFirstFrame` llega **tarde y de forma errática** — se midieron
+   28 413 ms y 35 365 ms en canales que estaban reproduciendo con normalidad.
+   **El tiempo de zapping no es medible en tunneled con la instrumentación
+   actual**, y ése es el criterio de M8.
+3. El estado «En vivo» viene de `onIsPlayingChanged`, **no de que haya
+   imagen**. En tunneled los dos se separan, así que el «8 de 8» mide que el
+   reproductor se declara reproduciendo, no que se vea algo.
+
+**Corrección a una conclusión propia.** Antes del reinicio los tiempos crecían
+de forma monótona (1.6 → 8.0 s) y se interpretó como degradación acumulativa.
+Tras reiniciar **no se reprodujo**: salieron erráticos (2.1, 1.6, 28.4, 2.8,
+3.8, 2.4). La interpretación era incorrecta.
+
+**Dato de contexto medido:** la caja se estabiliza en **carga ~5.5 y ~200 MB
+libres de 2 GB** recién reiniciada y sin reproducir nada. No era residuo de las
+pruebas: es su estado normal. Durante la sesión larga llegó a 99 MB libres con
+441 MB en swap, así que las pruebas **sí** añaden presión sobre una base ya
+justa.
+
+**Pendiente antes de adoptar el tunneled:** recuperar la medición de zapping y
+de presencia de imagen por otra vía, o M8 se queda sin criterio.
 
 ### Qué atasca al decodificador de Amlogic — análisis del transcodificado — 2026-09-26
 
