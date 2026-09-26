@@ -222,6 +222,45 @@ un frame congelado.
 
 ## Entradas
 
+### Barrido de los 6 canales con `FLAG_ALLOW_NON_IDR_KEYFRAMES` — 2026-09-26
+
+El flag arregla `estrellashd`, pero era el tipo de ajuste que puede romper
+otro canal. Barrido con el flag activo y **tunneled apagado**:
+
+| Canal | Resolución | Aspecto | fps | Frames perd. | Rebuffers | Ratio | 1er frame |
+|---|---|---|---|---|---|---|---|
+| Estrellas HD (77W) | 1440x1080 | 16:9 | 29.91 | 0 | **0** | 0.000 % | 2241 ms |
+| Estrellas SD (77W) | 544x480 | **4:3** | 14.93 | 0 | **0** | 0.000 % | 2120 ms |
+| Discovery HD (70W) | 1920x1080 | 16:9 | 29.82 | 0 | **0** | 0.000 % | 2088 ms |
+| **HBO HD (70W)** | 1920x1080 | 16:9 | 27.42 | **45** | **11** | **12.76 %** | 2077 ms |
+| Béisbol | 1280x720 | 16:9 | 29.78 | 0 | 0 | 0.000 % | 2048 ms |
+| Milenio SD | — | — | — | — | — | — | **no probado** |
+
+**El flag no rompe nada.** Cuatro de cinco salen con cero rebuffers y cero
+frames perdidos. Los aspectos son correctos en todos, incluido el anamórfico
+20:17 de `estrellassd` resuelto a 4:3.
+
+**Recomendación: activarlo por defecto.** Arregla un canal, no perjudica a
+ninguno, y es lo que hace el reproductor comercial analizado. Queda pendiente
+el visto bueno de Edgar, que es quien cambia un valor por defecto de Modo A.
+
+**HBO necesita las dos cosas.** Con el flag solo se queda en 12.76 % de ratio;
+es con **tunneled** cuando se estabiliza. Son problemas distintos: el flag
+resuelve que no arranque, el tunneled resuelve la cadencia 3:2.
+
+**Milenio SD no se pudo medir.** El D-pad no alcanza la última tarjeta de la
+fila — es el defecto de foco anotado para **B2**, que ya no es solo estética:
+**bloquea una medición**. Sube de prioridad.
+
+**Dato que no cuadra y queda señalado:** `estrellassd` midió **14.93 fps**
+donde antes dio **59.91** sobre la misma fuente de 29.97. Puede ser artefacto
+de la ventana deslizante de 2 s, o que el VPU cambie de modo de desentrelazado.
+No se da por bueno ninguno de los dos valores hasta entenderlo.
+
+**Zapping:** el primer frame sale entre **2048 y 2241 ms** en los cinco. El
+objetivo de §10 es p50 < 2 s, así que se queda **justo por encima**. Medido
+con tunneled apagado; con tunneled la métrica no es fiable.
+
 ### Estrellas HD decodifica por primera vez — `FLAG_ALLOW_NON_IDR_KEYFRAMES` — 2026-09-26
 
 **El fallo más antiguo del proyecto tiene causa.** `estrellashd` no arrancaba
