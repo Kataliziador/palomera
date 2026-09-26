@@ -222,6 +222,70 @@ un frame congelado.
 
 ## Entradas
 
+### Qué atasca al decodificador de Amlogic — análisis del transcodificado — 2026-09-26
+
+**Idea de Edgar:** transcodificar HBO en Flussonic hace desaparecer los
+microcortes. Se analizó el transcodificado a fondo y se comparó contra las
+capturas del canal puro guardadas de días anteriores.
+
+**El dato que lo cambia todo:** el transcodificado se reproduce **con el mismo
+decodificador de hardware** que se atascaba —
+`OMX.amlogic.avc.decoder.awesome2`— en 1087 ms, a 23.86 fps, con 0 frames
+perdidos. **El decodificador sí puede. Lo que lo atasca es cómo viene
+codificado el contenido.**
+
+**Comparación de los parámetros de secuencia (SPS):**
+
+| | Transcodificado ✓ | HBO puro ✗ | Discovery ✓ | Estrellas HD ✗ |
+|---|---|---|---|---|
+| `profile_idc` | 77 Main | 77 Main | 77 Main | **100 High** |
+| `level_idc` | **31** | 40 | 40 | 40 |
+| `frame_mbs_only_flag` | **1** | 0 | 0 | 0 |
+| `transform_8x8_mode_flag` | — | — | — | **1** |
+| `pic_struct_present_flag` | **0** | 1 | 1 | 1 |
+| `max_dec_frame_buffering` | **4 explícito** | ausente | ausente | ausente |
+
+Los SPS de los **tres streams puros son idénticos entre sí** salvo Estrellas HD.
+La cabecera no distingue a HBO-que-falla de Discovery-que-va.
+
+**Donde sí está la diferencia: la estructura de imagen.**
+
+| Stream | Imágenes de cuadro | Imágenes de campo | Resultado |
+|---|---|---|---|
+| HBO puro, **falla** | 488 | **3** | ✗ **mezclado** |
+| HBO puro, funcionaba | 717 | 0 | ✓ uniforme |
+| Discovery | 0 | 897 | ✓ uniforme |
+| Transcodificado | 960 | 0 | ✓ uniforme |
+
+**Los que funcionan son uniformes; el que falla mezcla.** Tres imágenes de campo
+entre 488 de cuadro bastan para atascarlo. Eso es **PAFF**, permitido por
+`frame_mbs_only_flag = 0`, y explica por qué HBO funcionó 31 minutos seguidos y
+dejó de arrancar tras un cambio de programa: cambió el patrón de codificación,
+no el canal.
+
+**Estrellas HD es un caso distinto.** Es **uniforme** (61 imágenes de campo) y
+aun así falla. Su rasgo único es **High profile con `transform_8x8_mode_flag`
+sobre contenido entrelazado**: es el único canal que no es Main.
+
+**Dos disparadores, no uno:**
+
+1. **PAFF** — alternar imágenes de cuadro y de campo dentro del stream (HBO)
+2. **High profile con transformada 8x8 + entrelazado** (Estrellas HD)
+
+**Y aparte, la explicación de los microcortes.** El HBO puro transporta cine
+23.976 mediante cadencia 3:2 dentro de un contenedor de 29.97. El
+transcodificado hace **telecine inverso** y entrega 23.976 progresivo nativo
+—medido, 23.86 fps en el motor—, así que no queda cadencia que malinterpretar.
+
+**Nivel de certeza.** Está **probado** que el mismo decodificador reproduce el
+transcodificado y no el puro, y están **medidas** las diferencias de
+codificación. Que el disparador concreto sea el PAFF es una **correlación
+fuerte sobre cinco streams**, no un aislamiento causal: haría falta construir
+un stream de prueba que solo varíe eso.
+
+**Pendiente de confirmar:** volver a poner el canal puro y verificar que el
+fallo regresa, para cerrar la comparación.
+
 ### El decodificador de hardware de Amlogic se atasca con cierto contenido — 2026-09-25
 
 **Es el hallazgo más importante hasta ahora y reordena varias fases.**
