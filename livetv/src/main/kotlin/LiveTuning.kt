@@ -136,5 +136,20 @@ object LiveTuning {
 
 	// --- Diagnóstico --------------------------------------------------------
 	/** Entradas del buffer circular de log, exportable a archivo desde la app. */
-	const val LOG_RING_CAPACITY = 2_000
+	/**
+	 * Capacidad del buffer circular del log.
+	 *
+	 * Con el latido a 2 s son ~1 800 líneas por hora: 20 000 cubren una
+	 * observación larga sin perder el principio, que es justo lo que hace
+	 * falta cuando alguien dice «lo vi a los cuarenta minutos».
+	 */
+	const val LOG_RING_CAPACITY = 20_000
+
+	/**
+	 * Cada cuánto escribe el latido de diagnóstico.
+	 *
+	 * Dos segundos es lo bastante fino para situar un corte y lo bastante
+	 * grueso para no pesar: una línea por latido en un hilo de fondo.
+	 */
+	const val HEARTBEAT_INTERVAL_MS = 2_000L
 }

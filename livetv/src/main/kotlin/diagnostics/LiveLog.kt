@@ -127,12 +127,51 @@ object LiveLog {
 	}
 
 	private val stamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT)
+	private val stampCompleto = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
 
+	/**
+	 * Cabecera del volcado.
+	 *
+	 * Sin ella el archivo empieza en seco y no se sabe de qué caja ni de qué
+	 * canal es, ni qué tramo de reloj cubre — que es lo primero que hace falta
+	 * cuando alguien dice «lo vi a las nueve y cuarto».
+	 */
+	private fun encabezado(entradas: List<Entry>, automatic: Boolean): String = buildString {
+		val ahora = System.currentTimeMillis()
+		append("# volcado ").append(if (automatic) "automático" else "manual")
+		append(" · ").append(stampCompleto.format(Date(ahora))).append('\n')
+		append("# entradas: ").append(entradas.size)
+			.append(" de ").append(LiveTuning.LOG_RING_CAPACITY).append('\n')
+
+		val primera = entradas.firstOrNull()?.timestamp
+		val ultima = entradas.lastOrNull()?.timestamp
+		if (primera != null && ultima != null) {
+			append("# tramo: ").append(stampCompleto.format(Date(primera)))
+				.append(" → ").append(stampCompleto.format(Date(ultima)))
+				.append("  (").append((ultima - primera) / 60_000).append(" min)").append('\n')
+			if (entradas.size >= LiveTuning.LOG_RING_CAPACITY) {
+				append("# AVISO: el buffer se llenó, falta lo anterior a esa hora\n")
+			}
+		}
+
+		session.forEach { (k, v) -> append("# ").append(k).append(": ").append(v).append('\n') }
+		append("#\n")
+		append("# las líneas omiten los datos de sesión de arriba para no repetirlos\n")
+		append("#\n")
+	}
+
+	/**
+	 * Una línea por entrada, **sin** los datos de sesión: ya están en la
+	 * cabecera, y repetirlos en cada latido multiplicaría el archivo por cinco
+	 * sin añadir nada.
+	 */
 	private fun format(entry: Entry): String = buildString {
 		append(stamp.format(Date(entry.timestamp)))
 		append(' ').append(entry.level.name)
 		append(' ').append(entry.event)
-		entry.context.forEach { (k, v) -> append(' ').append(k).append('=').append(v) }
+		entry.context.forEach { (k, v) ->
+			if (k !in session) append(' ').append(k).append('=').append(v)
+		}
 		entry.error?.let { append(" error=").append(it::class.java.simpleName).append(':').append(it.message) }
 	}
 
@@ -156,7 +195,8 @@ object LiveLog {
 		// operador tiene que ser el real, o no encontrará el archivo.
 		val prefijo = if (automatic) "livetv-auto-" else "livetv-"
 		val name = prefijo + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date()) + ".txt"
-		val body = snapshot().joinToString("\n") { format(it) }
+		val entradas = snapshot()
+		val body = encabezado(entradas, automatic) + entradas.joinToString("\n") { format(it) }
 
 		val destino = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
 			val values = ContentValues().apply {

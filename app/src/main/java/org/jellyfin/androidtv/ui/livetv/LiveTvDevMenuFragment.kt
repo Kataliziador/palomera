@@ -97,10 +97,10 @@ private fun DevMenu() {
 		item { Header("Diagnóstico") }
 		item {
 			Row(
-				label = "Overlay de estadísticas en el reproductor",
-				value = if (dev.statsOverlayVisible) "visible" else "oculto",
-				changed = dev.statsOverlayVisible,
-			) { change { dev.statsOverlayVisible = !dev.statsOverlayVisible } }
+				label = "Overlay  (oculto → compacto → completo)",
+				value = dev.describeOverlay(),
+				changed = dev.overlayMode != DevOptions.OVERLAY_OCULTO,
+			) { change { dev.siguienteOverlay() } }
 		}
 		item {
 			Row(label = "Volcar el log ahora a Descargas", value = "${LiveLog.snapshot().size} entradas") {

@@ -1,0 +1,112 @@
+package org.jellyfin.androidtv.ui.livetv
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
+import org.jellyfin.androidtv.ui.base.Text
+import org.jellyfin.livetv.engine.EngineStats
+import org.jellyfin.livetv.source.ChannelProfile
+
+/**
+ * Overlay compacto: dos líneas para mirar el canal, no para auditarlo.
+ *
+ * Lleva lo que Edgar pidió poder ver **mientras** ve televisión: qué
+ * decodificadores están activos y qué le cuesta a la caja. Lo demás vive en el
+ * overlay completo, que ocupa un tercio de la pantalla y estorba para juzgar
+ * imagen.
+ *
+ * La segunda línea se pone ámbar sola cuando hay algo que mirar, para que no
+ * haya que leerla: si está gris, no está pasando nada.
+ */
+@Composable
+fun LiveTvCompactOverlay(
+	channel: ChannelProfile,
+	stats: EngineStats,
+	modifier: Modifier = Modifier,
+) {
+	val alarma = stats.rebufferCount > 0 ||
+		stats.msSinceProgress > 3000 ||
+		stats.cpuPercent > 85f ||
+		stats.droppedFrames > 0
+
+	Column(
+		modifier = modifier
+			.clip(RoundedCornerShape(6.dp))
+			.background(Color.Black.copy(alpha = 0.55f))
+			.padding(horizontal = 10.dp, vertical = 6.dp)
+	) {
+		Linea(
+			buildString {
+				append(channel.id)
+				append("  v:").append(corto(stats.activeVideoDecoder))
+				append("  a:").append(corto(stats.activeAudioDecoder))
+				if (stats.videoWidth > 0) {
+					append("  ").append(stats.videoWidth).append('x').append(stats.videoHeight)
+					append('→').append(aspectoCorto(stats))
+				}
+				if (stats.measuredFps > 0f) append("  %.1ffps".format(stats.measuredFps))
+			},
+			Color(0xFFE0E0E0),
+		)
+
+		Linea(
+			buildString {
+				append("cpu ").append("%.0f%%".format(stats.cpuPercent))
+				stats.loadAvg1?.let { append("  carga ").append("%.1f".format(it)) }
+				if (stats.ramAvailableMb > 0) append("  ram ").append(stats.ramAvailableMb).append('M')
+				append("  buf ").append("%.1fs".format(stats.bufferedMs / 1000.0))
+				append("  dir ").append("%.1fs".format(stats.liveOffsetMs / 1000.0))
+				append("  tard ").append(stats.frameGapCount)
+				if (stats.maxFrameGapMs > 0) append('/').append(stats.maxFrameGapMs).append("ms")
+				append("  perd ").append(stats.droppedFrames)
+				append("  reb ").append(stats.rebufferCount)
+				if (stats.loadRetries > 0) append("  ret ").append(stats.loadRetries)
+			},
+			if (alarma) Color(0xFFFFB300) else Color(0xFF9E9E9E),
+		)
+	}
+}
+
+/**
+ * `OMX.amlogic.avc.decoder.awesome2` → `amlogic.avc`.
+ *
+ * El nombre completo no cabe en una línea y su parte informativa son dos
+ * palabras: quién lo fabrica y qué códec decodifica.
+ */
+private fun corto(nombre: String?): String {
+	if (nombre.isNullOrBlank()) return "—"
+	val partes = nombre
+		.removePrefix("OMX.")
+		.removePrefix("c2.")
+		.removeSuffix(".awesome2")
+		.removeSuffix(".decoder")
+		.split('.')
+		.filter { it.isNotBlank() && it != "decoder" }
+	return if (partes.size >= 2) "${partes[0]}.${partes[1]}" else partes.joinToString(".")
+}
+
+private fun aspectoCorto(stats: EngineStats): String {
+	if (stats.videoWidth <= 0 || stats.videoHeight <= 0) return "?"
+	val ratio = (stats.videoWidth * stats.pixelAspectRatio) / stats.videoHeight
+	return when {
+		kotlin.math.abs(ratio - 16f / 9f) < 0.02f -> "16:9"
+		kotlin.math.abs(ratio - 4f / 3f) < 0.02f -> "4:3"
+		else -> "%.2f".format(ratio)
+	}
+}
+
+@Composable
+private fun Linea(texto: String, color: Color) = Text(
+	text = texto,
+	color = color,
+	fontFamily = FontFamily.Monospace,
+	fontSize = 12.sp,
+)

@@ -220,14 +220,22 @@ private fun LivePlayer(channelId: String?) {
 				.padding(24.dp),
 		)
 
-		if (dev.statsOverlayVisible) {
-			LiveTvStatsOverlay(
+		when (dev.overlayMode) {
+			DevOptions.OVERLAY_COMPACTO -> LiveTvCompactOverlay(
+				channel = channel,
+				stats = stats,
+				modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
+			)
+
+			DevOptions.OVERLAY_COMPLETO -> LiveTvStatsOverlay(
 				channel = channel,
 				stats = stats,
 				state = state,
 				modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
 			)
-		} else if (dev.isDegraded) {
+		}
+
+		if (dev.overlayMode == DevOptions.OVERLAY_OCULTO && dev.isDegraded) {
 			// La degradación vive en `SharedPreferences` y sobrevive al cierre de
 			// la app y al reinicio de la caja. Con el overlay oculto no había
 			// forma de enterarse, y el 2026-09-26 eso costó dos conclusiones

@@ -138,9 +138,26 @@ class DevOptions(context: Context) {
 
 	// --- Overlay ------------------------------------------------------------
 
-	var statsOverlayVisible: Boolean
-		get() = prefs.getBoolean(K_OVERLAY, false)
-		set(v) = put { putBoolean(K_OVERLAY, v) }
+	/**
+	 * Overlay de estadísticas: 0 oculto, 1 compacto, 2 completo.
+	 *
+	 * El compacto existe porque el completo ocupa un tercio de la pantalla y
+	 * estorba justo cuando hay que juzgar imagen. Dos líneas bastan para ver
+	 * decodificadores y coste en la caja mientras se mira el canal.
+	 */
+	var overlayMode: Int
+		get() = prefs.getInt(K_OVERLAY_MODE, OVERLAY_OCULTO)
+		set(v) = put { putInt(K_OVERLAY_MODE, v.coerceIn(OVERLAY_OCULTO, OVERLAY_COMPLETO)) }
+
+	fun siguienteOverlay() {
+		overlayMode = if (overlayMode >= OVERLAY_COMPLETO) OVERLAY_OCULTO else overlayMode + 1
+	}
+
+	fun describeOverlay(): String = when (overlayMode) {
+		OVERLAY_COMPACTO -> "compacto"
+		OVERLAY_COMPLETO -> "completo"
+		else -> "oculto"
+	}
 
 	// --- Estado -------------------------------------------------------------
 
@@ -176,9 +193,9 @@ class DevOptions(context: Context) {
 	 * quitarle el instrumento en mitad de la medición.
 	 */
 	fun resetAll() {
-		val overlay = statsOverlayVisible
-		prefs.edit().clear().putBoolean(K_OVERLAY, overlay).apply()
-		LiveLog.info("dev.reset", "overlayConservado" to overlay)
+		val overlay = overlayMode
+		prefs.edit().clear().putInt(K_OVERLAY_MODE, overlay).apply()
+		LiveLog.info("dev.reset", "overlayConservado" to describeOverlay())
 		_revision.value++
 	}
 
@@ -210,6 +227,10 @@ class DevOptions(context: Context) {
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"
 		const val K_MIN_BUFFER = "minBufferOverrideMs"
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"
-		const val K_OVERLAY = "statsOverlayVisible"
+		const val K_OVERLAY_MODE = "overlayMode"
+
+		const val OVERLAY_OCULTO = 0
+		const val OVERLAY_COMPACTO = 1
+		const val OVERLAY_COMPLETO = 2
 	}
 }

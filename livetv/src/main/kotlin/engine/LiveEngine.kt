@@ -72,6 +72,20 @@ data class EngineStats(
 	val frameGapCount: Int = 0,
 	val maxFrameGapMs: Long = 0,
 
+	// --- Lo que le cuesta a la caja ---------------------------------------
+	//
+	// Un microcorte tiene dos familias de causa que en pantalla se parecen: el
+	// stream llega mal, o la caja no da abasto. Sin estos tres números no se
+	// distinguen.
+
+	/** CPU de nuestro proceso como porcentaje de la caja entera. */
+	val cpuPercent: Float = 0f,
+	/** Carga media del sistema a 1 minuto, o `null` si el kernel no la expone. */
+	val loadAvg1: Float? = null,
+	val ramAvailableMb: Int = 0,
+	val ramTotalMb: Int = 0,
+	val cores: Int = 0,
+
 	// --- Audio, para M3 ----------------------------------------------------
 
 	val audioTracks: List<AudioTrackRef> = emptyList(),

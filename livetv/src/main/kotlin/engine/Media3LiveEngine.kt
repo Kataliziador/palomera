@@ -1,6 +1,9 @@
 package org.jellyfin.livetv.engine
 
 import android.content.Context
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import android.view.SurfaceView
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -25,6 +28,7 @@ import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.diagnostics.DeviceLoad
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.source.AudioTrackRef
@@ -59,6 +63,27 @@ class Media3LiveEngine(
 
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
 	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
+
+	// --- Latido de diagnóstico ---------------------------------------------
+	//
+	// El log registra bien lo que se anuncia solo: rebuffers, errores, huecos
+	// de entrega. Un tramo sano no deja rastro, y entonces «vi un corte a los
+	// doce minutos» no se puede situar en nada. El latido escribe una línea
+	// cada dos segundos para que exista esa línea de tiempo.
+	//
+	// El estado del player se lee en su propio hilo —ExoPlayer no es seguro
+	// fuera de él— y el muestreo de `/proc` se hace aparte, para no pagarlo en
+	// el hilo que suelta los frames.
+
+	private val carga = DeviceLoad(context)
+	private val latido = Handler(Looper.getMainLooper())
+	private var muestreo: HandlerThread? = null
+	private var muestreoHandler: Handler? = null
+
+	@Volatile private var ultimaCarga: DeviceLoad.Muestra? = null
+	private var latidos = 0L
+	private var framesEnElLatidoAnterior = 0L
+	private var huecosEnElLatidoAnterior = 0
 
 	// Estado observado, para el overlay de stats
 	private var videoDecoder: String? = null
@@ -252,6 +277,7 @@ class Media3LiveEngine(
 	override fun play() {
 		player?.playWhenReady = true
 		LiveLog.debug("engine.play")
+		arrancarLatido()
 	}
 
 	override fun stop() {
@@ -260,12 +286,105 @@ class Media3LiveEngine(
 	}
 
 	override fun release() {
+		pararLatido()
 		player?.release()
 		player = null
 		videoDecoder = null
 		audioDecoder = null
 		droppedFrames = 0
 		windowDurationMs = C.TIME_UNSET
+	}
+
+	// --- Latido -------------------------------------------------------------
+
+	private fun arrancarLatido() {
+		if (muestreo != null) return
+
+		muestreo = HandlerThread("livetv-carga").also { hilo ->
+			hilo.start()
+			muestreoHandler = Handler(hilo.looper).also { h ->
+				h.post(object : Runnable {
+					override fun run() {
+						ultimaCarga = carga.sample()
+						h.postDelayed(this, LiveTuning.HEARTBEAT_INTERVAL_MS)
+					}
+				})
+			}
+		}
+
+		latido.postDelayed(object : Runnable {
+			override fun run() {
+				if (player == null) return
+				escribirLatido()
+				latido.postDelayed(this, LiveTuning.HEARTBEAT_INTERVAL_MS)
+			}
+		}, LiveTuning.HEARTBEAT_INTERVAL_MS)
+	}
+
+	private fun pararLatido() {
+		latido.removeCallbacksAndMessages(null)
+		muestreoHandler?.removeCallbacksAndMessages(null)
+		muestreo?.quitSafely()
+		muestreo = null
+		muestreoHandler = null
+		ultimaCarga = null
+		latidos = 0
+		framesEnElLatidoAnterior = 0
+		huecosEnElLatidoAnterior = 0
+	}
+
+	/**
+	 * Una línea cada dos segundos con lo que hace falta para situar un corte
+	 * que el propio motor no vio: si la posición avanzó, cuánto buffer queda,
+	 * cuántos frames salieron en el intervalo y qué le costó a la caja.
+	 */
+	private fun escribirLatido() {
+		val exo = player ?: return
+		val s = stats()
+		latidos++
+
+		val framesAhora = renderedFrames
+		val entregados = framesAhora - framesEnElLatidoAnterior
+		framesEnElLatidoAnterior = framesAhora
+
+		val huecosAhora = releaseGapCount
+		val huecosNuevos = huecosAhora - huecosEnElLatidoAnterior
+		huecosEnElLatidoAnterior = huecosAhora
+
+		val c = ultimaCarga
+		// La carga del sistema solo se anota donde el kernel la deja leer: en
+		// Android 11 `/proc/loadavg` da EACCES, y repetir `carga1=null` en cada
+		// una de las 20 000 líneas del anillo solo estorba al leerlo.
+		val extra = c?.loadAvg1?.let { arrayOf("carga1" to "%.2f".format(it) as Any?) } ?: emptyArray()
+		LiveLog.debug(
+			"latido",
+			"n" to latidos,
+			"estado" to estadoLegible(exo.playbackState),
+			"reproduciendo" to exo.isPlaying,
+			"posS" to "%.1f".format(exo.currentPosition / 1000.0),
+			"sinAvanzarMs" to s.msSinceProgress,
+			"bufferS" to "%.1f".format(s.bufferedMs / 1000.0),
+			"directoS" to "%.1f".format(s.liveOffsetMs / 1000.0),
+			"frames" to entregados,
+			"fps" to "%.1f".format(s.measuredFps),
+			"huecosNuevos" to huecosNuevos,
+			"huecoMaxMs" to s.maxFrameGapMs,
+			"perdidos" to s.droppedFrames,
+			"rebuffers" to s.rebufferCount,
+			"reintentos" to s.loadRetries,
+			"cpu" to c?.let { "%.0f%%".format(it.cpuPercent) },
+			*extra,
+			"ramLibreMb" to c?.ramAvailableMb,
+			"anchoBandaKbps" to s.bandwidthBps / 1000,
+		)
+	}
+
+	private fun estadoLegible(state: Int): String = when (state) {
+		Player.STATE_IDLE -> "idle"
+		Player.STATE_BUFFERING -> "almacenando"
+		Player.STATE_READY -> "listo"
+		Player.STATE_ENDED -> "terminado"
+		else -> "?$state"
 	}
 
 	override fun selectAudioTrack(track: AudioTrackRef) {
@@ -326,6 +445,12 @@ class Media3LiveEngine(
 			measuredFps = measuredFps(ahora),
 			frameGapCount = releaseGapCount,
 			maxFrameGapMs = maxReleaseGapMs,
+
+			cpuPercent = ultimaCarga?.cpuPercent ?: 0f,
+			loadAvg1 = ultimaCarga?.loadAvg1,
+			ramAvailableMb = ultimaCarga?.ramAvailableMb ?: 0,
+			ramTotalMb = ultimaCarga?.ramTotalMb ?: 0,
+			cores = ultimaCarga?.cores ?: 0,
 
 			audioTracks = audioTracks,
 			selectedAudio = selectedAudio,
@@ -625,6 +750,30 @@ class Media3LiveEngine(
 		) {
 			audioDecoder = decoderName
 			LiveLog.info("decoder.audio", "name" to decoderName, "initMs" to initializationDurationMs)
+		}
+
+		/**
+		 * El formato cambia **a mitad de canal** en el conjunto real: un canal
+		 * generalista alterna cine a 23.976 con pulldown y vídeo a 29.97, y con
+		 * ello cambia la cadencia de presentación sin que cambie la resolución.
+		 * `onVideoSizeChanged` no lo ve. Sin esta línea, un tirón que empieza
+		 * al cambiar de programa parece salido de la nada.
+		 */
+		override fun onVideoInputFormatChanged(
+			eventTime: AnalyticsListener.EventTime,
+			format: androidx.media3.common.Format,
+			decoderReuseEvaluation: androidx.media3.exoplayer.DecoderReuseEvaluation?,
+		) {
+			LiveLog.info(
+				"video.formato",
+				"codec" to format.sampleMimeType,
+				"ancho" to format.width,
+				"alto" to format.height,
+				"fpsDeclarado" to format.frameRate,
+				"sar" to format.pixelWidthHeightRatio,
+				"bitrate" to format.bitrate,
+				"reuso" to decoderReuseEvaluation?.result,
+			)
 		}
 
 		override fun onDroppedVideoFrames(
