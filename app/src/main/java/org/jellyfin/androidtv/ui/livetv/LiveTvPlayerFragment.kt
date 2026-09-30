@@ -87,7 +87,9 @@ private fun LivePlayer(channelId: String?) {
 	var state by remember { mutableStateOf("Conectando…") }
 	var detail by remember { mutableStateOf<String?>(null) }
 
-	val channel = remember(channelId) { BootstrapChannels.byId(channelId) }
+	// Por el catálogo y no por la lista de arranque: la pantalla y el
+	// reproductor tienen que resolver el mismo id al mismo canal.
+	val channel = remember(channelId) { LiveTvCatalog.of(context).byId(channelId) }
 
 	if (channel == null) {
 		// Con la lista de BuildConfig no debería ocurrir, pero callarlo sería
