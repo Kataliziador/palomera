@@ -15,6 +15,12 @@ import java.io.File
  * no da abasto. Sin esta medida no se distinguen, y perseguir la equivocada
  * cuesta días — ya pasó.
  *
+ * **Que `/proc` esté cerrado no es un error de reproducción.** Se registra como
+ * aviso, no como error: en Android 11 `/proc/loadavg` da EACCES siempre, y
+ * marcarlo como error disparaba el volcado automático **en cada arranque de
+ * canal** — 55 archivos en Descargas en un día, todos por una capacidad que
+ * esta plataforma simplemente no ofrece.
+ *
  * **Se muestrea fuera del hilo del reproductor.** Leer `/proc` es una lectura
  * de disco virtual: barata, pero no gratis, y el hilo que suelta los frames no
  * puede pagarla.
@@ -29,7 +35,7 @@ class DeviceLoad(context: Context) {
 
 	/** Tics de reloj por segundo del kernel. Normalmente 100. */
 	private val hz = runCatching { Os.sysconf(OsConstants._SC_CLK_TCK) }
-		.onFailure { LiveLog.error("carga.sysconf", it) }
+		.onFailure { LiveLog.warn("carga.sysconf", "causa" to it.message) }
 		.getOrDefault(100L)
 		.coerceAtLeast(1L)
 
@@ -92,7 +98,7 @@ class DeviceLoad(context: Context) {
 		val texto = runCatching { File("/proc/${Process.myPid()}/stat").readText() }
 			.getOrElse {
 				procStatCerrado = true
-				LiveLog.error("carga.procStatIlegible", it)
+				LiveLog.warn("carga.procStatIlegible", "causa" to it.message)
 				return null
 			}
 
@@ -105,7 +111,7 @@ class DeviceLoad(context: Context) {
 		val stime = cola.getOrNull(12)?.toLongOrNull()
 		if (utime == null || stime == null) {
 			procStatCerrado = true
-			LiveLog.error("carga.procStatInesperado", null, "campos" to cola.size)
+			LiveLog.warn("carga.procStatInesperado", "campos" to cola.size)
 			return null
 		}
 		return utime + stime
@@ -116,7 +122,7 @@ class DeviceLoad(context: Context) {
 		return runCatching { File("/proc/loadavg").readText().substringBefore(' ').toFloat() }
 			.getOrElse {
 				loadAvgCerrado = true
-				LiveLog.error("carga.loadavgIlegible", it)
+				LiveLog.warn("carga.loadavgIlegible", "causa" to it.message)
 				null
 			}
 	}
