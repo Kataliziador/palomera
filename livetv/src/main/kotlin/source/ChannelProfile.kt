@@ -10,6 +10,18 @@ data class ChannelProfile(
 	val id: String,
 	val name: String,
 	val url: String,
+
+	/**
+	 * Número de canal para marcarlo con el mando.
+	 *
+	 * Con ~120 canales nadie navega con flechas: teclea el número. Sin esto la
+	 * lista es inusable en un mando de verdad, por bien que se vea.
+	 */
+	val number: Int? = null,
+
+	/** Posición dentro de su grupo. A igualdad, manda el número. */
+	val order: Int? = null,
+
 	val group: String? = null,
 	val logoUrl: String? = null,
 

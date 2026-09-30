@@ -34,6 +34,11 @@ dependencies {
 	implementation(libs.androidx.media3.exoplayer.hls)
 	implementation(libs.androidx.media3.datasource.okhttp)
 
+	// JSON del servidor de configuración. Se navega el árbol a mano, sin el
+	// plugin de serialización: el parser necesita descartar canal por canal con
+	// su motivo, y la generación de código lo pondría difícil.
+	implementation(libs.kotlinx.serialization.json)
+
 	// Logging
 	implementation(libs.timber)
 

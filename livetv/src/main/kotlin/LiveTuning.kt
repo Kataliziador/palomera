@@ -152,4 +152,21 @@ object LiveTuning {
 	 * grueso para no pesar: una línea por latido en un hilo de fondo.
 	 */
 	const val HEARTBEAT_INTERVAL_MS = 2_000L
+
+	// --- Servidor de configuración ------------------------------------------
+
+	/**
+	 * Más corto que el de vídeo a propósito: si el servidor de configuración no
+	 * responde, hay una caché en disco que sirve al instante. Hacer esperar al
+	 * suscriptor por una lista que ya tenemos sería absurdo.
+	 */
+	const val CONFIG_CONNECT_TIMEOUT_MS = 5_000
+	const val CONFIG_READ_TIMEOUT_MS = 10_000
+
+	/**
+	 * Un `config.json` de 120 canales ronda los 40 kB. Si llega algo mucho
+	 * mayor, la URL no apunta a lo que creemos —una página de error, un portal
+	 * cautivo— y no se lee en memoria.
+	 */
+	const val CONFIG_MAX_BYTES = 2 * 1024 * 1024
 }
