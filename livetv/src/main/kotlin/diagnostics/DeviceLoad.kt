@@ -36,9 +36,17 @@ class DeviceLoad(context: Context) {
 	private var lastTicks = -1L
 	private var lastSampleAtMs = 0L
 
-	/** Se avisa una sola vez: un `/proc` cerrado no cambia a mitad de sesión. */
-	private var avisadoProcStat = false
-	private var avisadoLoadAvg = false
+	/**
+	 * Un `/proc` cerrado no se abre a mitad de sesión: al primer fallo se deja
+	 * de intentar.
+	 *
+	 * No basta con avisar una vez. En Android 11 `/proc/loadavg` da EACCES, y
+	 * seguir pidiéndolo cada dos segundos generaba una denegación de SELinux
+	 * por latido en el registro de auditoría del kernel — ruido en toda la
+	 * caja, no solo en nuestro log.
+	 */
+	private var procStatCerrado = false
+	private var loadAvgCerrado = false
 
 	data class Muestra(
 		/** CPU de **nuestro proceso** como porcentaje de la caja entera. */
@@ -80,12 +88,11 @@ class DeviceLoad(context: Context) {
 
 	/** `utime` + `stime` de `/proc/self/stat`, campos 14 y 15 tras el nombre. */
 	private fun leerTicksDeProceso(): Long? {
+		if (procStatCerrado) return null
 		val texto = runCatching { File("/proc/${Process.myPid()}/stat").readText() }
 			.getOrElse {
-				if (!avisadoProcStat) {
-					avisadoProcStat = true
-					LiveLog.error("carga.procStatIlegible", it)
-				}
+				procStatCerrado = true
+				LiveLog.error("carga.procStatIlegible", it)
 				return null
 			}
 
@@ -97,22 +104,20 @@ class DeviceLoad(context: Context) {
 		val utime = cola.getOrNull(11)?.toLongOrNull()
 		val stime = cola.getOrNull(12)?.toLongOrNull()
 		if (utime == null || stime == null) {
-			if (!avisadoProcStat) {
-				avisadoProcStat = true
-				LiveLog.error("carga.procStatInesperado", null, "campos" to cola.size)
-			}
+			procStatCerrado = true
+			LiveLog.error("carga.procStatInesperado", null, "campos" to cola.size)
 			return null
 		}
 		return utime + stime
 	}
 
-	private fun leerLoadAvg(): Float? =
-		runCatching { File("/proc/loadavg").readText().substringBefore(' ').toFloat() }
+	private fun leerLoadAvg(): Float? {
+		if (loadAvgCerrado) return null
+		return runCatching { File("/proc/loadavg").readText().substringBefore(' ').toFloat() }
 			.getOrElse {
-				if (!avisadoLoadAvg) {
-					avisadoLoadAvg = true
-					LiveLog.error("carga.loadavgIlegible", it)
-				}
+				loadAvgCerrado = true
+				LiveLog.error("carga.loadavgIlegible", it)
 				null
 			}
+	}
 }
