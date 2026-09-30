@@ -178,6 +178,25 @@ object LiveLog {
 	fun snapshot(): List<Entry> = synchronized(lock) { ring.toList() }
 
 	/**
+	 * Vacía el anillo para que la siguiente observación empiece en limpio.
+	 *
+	 * El anillo solo moría con el proceso, así que cambiar de canal sin cerrar
+	 * la app mezclaba sesiones en el mismo volcado. Al empezar a mirar un canal
+	 * concreto, lo que estorba es justo lo de antes.
+	 *
+	 * Deja una entrada de marca: un archivo que empieza sin ninguna línea no se
+	 * distingue de uno que falló al escribirse.
+	 */
+	fun clear() {
+		val cuantas = synchronized(lock) {
+			val n = ring.size
+			ring.clear()
+			n
+		}
+		info("log.limpiado", "entradasDescartadas" to cuantas)
+	}
+
+	/**
 	 * Exporta el buffer a **Descargas**, que es el único sitio del que alguien
 	 * puede sacarlo después.
 	 *

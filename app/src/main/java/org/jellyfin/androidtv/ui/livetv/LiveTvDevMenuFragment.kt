@@ -103,6 +103,15 @@ private fun DevMenu() {
 			) { change { dev.siguienteOverlay() } }
 		}
 		item {
+			// Antes de volcar, para que el archivo contenga solo la observación
+			// que interesa y no lo que se acumuló cambiando de canal.
+			Row(label = "Limpiar el log y empezar de cero", value = "${LiveLog.snapshot().size} entradas") {
+				// Por `change` para que el contador de las dos filas se rehaga.
+				change { LiveLog.clear() }
+				Toast.makeText(context, "Log limpio", Toast.LENGTH_SHORT).show()
+			}
+		}
+		item {
 			Row(label = "Volcar el log ahora a Descargas", value = "${LiveLog.snapshot().size} entradas") {
 				val destino = LiveLog.export(context)
 				Toast.makeText(context, destino, Toast.LENGTH_LONG).show()

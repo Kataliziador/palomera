@@ -217,12 +217,94 @@ un frame congelado.
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
-| 23 | **`tunneled` deja sin imagen a los canales probados** | **M5** | medido 26-sep en **dos de dos**: `estrellassd` (MPEG-2) y `estrellashd` (H.264) dan **0 fps** con tunneled activo. Es la pantalla negra silenciosa de `CLAUDE.md` §6. No puede activarse sin validar canal por canal en pantalla |
+| 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
 
 ---
 
 ## Entradas
+
+### `tunneled` arregla los microcortes de HBO, y mis instrumentos son ciegos en ese modo — 2026-09-30
+
+Primera observación con el latido de diagnóstico ya instalado, y sirvió para lo
+que se construyó.
+
+#### El microcorte de HBO, medido por fin
+
+Edgar miró `hbohd` 59 s de fábrica. El log lo capturó con hora:
+
+```
+10:13:18.503  frames.entregaTardia huecoMs=333
+10:13:20.091  frames.entregaTardia huecoMs=333
+10:13:21.676  frames.entregaTardia huecoMs=333
+…21 veces en 31 s
+```
+
+**Un fotograma llega 333 ms tarde cada 1.585 s, con regularidad de metrónomo.**
+Coincide con lo que Edgar describe desde el 24-sep: «cada 2 segundos se queda
+pausado y luego continúa».
+
+Queda descartado todo lo de fuera:
+
+| Sospechoso | Medido |
+|---|---|
+| Red | buffer 9–13 s, offset clavado en 11.1 s, **0 rebuffers, 0 reintentos**, posición siempre avanzando |
+| Frames perdidos | **0** en toda la observación |
+| El flujo de origen | cadencia 3:2 de manual: 238 intervalos de 50 ms y 237 de 33 ms, **sin un solo salto de PTS** |
+| Fotogramas clave | GOP de 1.168 s contra tropiezos cada 1.585 s: **no coinciden** |
+
+El tropiezo **se fabrica dentro de la caja**, entre el decodificador y la
+pantalla. Y encaja con el 27-sep, cuando `hbohd` emitía vídeo entrelazado y
+salió limpio (59.86 fps, 3 tardías en 12 s): lo que cambia es el contenido.
+Este decodificador AVC maneja mal el telecine de H.264.
+
+#### Y un hallazgo nuevo al sintonizar
+
+Tras el primer fotograma, la imagen se quedó **8.5 s congelada** mientras el
+audio y el reloj seguían:
+
+```
+10:13:05.757  frames=1   buffer 11.4s  posición avanzando
+10:13:07.764  frames=0   buffer 11.9s  posición avanzando
+10:13:09.769  frames=0   buffer  9.9s  posición avanzando
+10:13:11.778  frames=0   buffer 12.6s  posición avanzando
+10:13:13.786  frames=10  ← arranca
+```
+
+Pendiente de que Edgar confirme si se ve en pantalla.
+
+#### Tunneled lo arregla — y aquí viene la corrección
+
+Edgar activó tunneled y **los microcortes desaparecieron**. Es la segunda vez
+que lo observa; la primera fue el 26-sep, sin instrumento con que medirlo.
+
+**Mi medición no lo corrobora, y no puede.** Los 27 latidos de esa sesión dicen
+`frames=0 fps=0.0`: en tunneled el decodificador escribe directo al hardware de
+pantalla y ExoPlayer nunca suelta los fotogramas, así que
+`setVideoFrameMetadataListener` no dispara. Un contador ciego no cuenta
+tropiezos. Los «0 huecos» no prueban nada.
+
+**Y eso invalida el pendiente 23, que yo mismo escribí.** Concluí que tunneled
+dejaba `estrellassd` y `estrellashd` «sin un solo fotograma, pantalla negra
+silenciosa» a partir de esos mismos dos instrumentos —el contador del overlay y
+`SurfaceFlinger --latency`—, **que son ciegos igual**. Edgar miró `estrellassd`
+con tunneled activo: **se ve bien**. La pantalla negra no existía.
+
+Es la tercera vez en esta bitácora que una conclusión sale de un instrumento
+que no podía ver lo que yo le pedía. Regla que queda escrita: **antes de
+afirmar que algo no ocurre, comprobar que el instrumento podría verlo si
+ocurriera.**
+
+#### Lo que sí está medido de tunneled
+
+| | Sin tunneled | Con tunneled |
+|---|---|---|
+| Primer fotograma (zapping) | 1 421 ms | **3 909 ms** |
+| Arranque | limpio | `ERROR_CODE_FAILED_RUNTIME_CHECK`, se recupera solo |
+
+El zapping se triplica y no cumple ni el objetivo (2 s) ni el aceptable (3 s).
+Pero **3.7 de esos 3.9 s transcurren entre el error y la recuperación**: el
+coste puede no ser inherente a tunneled sino a cómo lo pedimos. Va a M5.
 
 ### Barrido completo de los seis canales, con fuente y pantalla pareadas — 2026-09-26
 
