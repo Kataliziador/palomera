@@ -98,9 +98,20 @@ class Media3LiveEngine(
 	// contraria para uno de siete horas. Lo que faltaba era distinguir por
 	// duración, y eso necesita un reloj: el latido.
 
+	/**
+	 * Generación del latido.
+	 *
+	 * El escalón 3 del vigilante reconstruye el reproductor **desde dentro del
+	 * propio latido**: al volver, el `Runnable` viejo se re-encolaba además del
+	 * nuevo que arranca `play()`, y cada reconstrucción añadía otra copia.
+	 * Medido el 01-oct: los latidos salían por duplicado en el log.
+	 */
+	private var generacionLatido = 0
+
 	private var atascadoDesdeMs = 0L
 	private var ultimoEscalonMs = 0L
 	private var escalon = 0
+	private var ciclosSinExito = 0
 	private var recuperaciones = 0
 
 	// Estado observado, para el overlay de stats
@@ -317,12 +328,14 @@ class Media3LiveEngine(
 
 	private fun arrancarLatido() {
 		if (muestreo != null) return
+		val generacion = ++generacionLatido
 
 		muestreo = HandlerThread("livetv-carga").also { hilo ->
 			hilo.start()
 			muestreoHandler = Handler(hilo.looper).also { h ->
 				h.post(object : Runnable {
 					override fun run() {
+						if (generacionLatido != generacion) return
 						ultimaCarga = carga.sample()
 						h.postDelayed(this, LiveTuning.HEARTBEAT_INTERVAL_MS)
 					}
@@ -332,14 +345,18 @@ class Media3LiveEngine(
 
 		latido.postDelayed(object : Runnable {
 			override fun run() {
-				if (player == null) return
+				// Solo el latido de la generación vigente se re-encola. Sin
+				// esto, reconstruir desde dentro del latido lo duplica.
+				if (generacionLatido != generacion || player == null) return
 				escribirLatido()
+				if (generacionLatido != generacion) return
 				latido.postDelayed(this, LiveTuning.HEARTBEAT_INTERVAL_MS)
 			}
 		}, LiveTuning.HEARTBEAT_INTERVAL_MS)
 	}
 
 	private fun pararLatido() {
+		generacionLatido++
 		latido.removeCallbacksAndMessages(null)
 		muestreoHandler?.removeCallbacksAndMessages(null)
 		muestreo?.quitSafely()
@@ -415,9 +432,16 @@ class Media3LiveEngine(
 		val atascado = s.msSinceProgress > LiveTuning.WATCHDOG_STALL_MS &&
 			exo.playbackState != Player.STATE_IDLE
 
+		// Y recuperado **no** es «la posición cambió»: al reconstruir, la
+		// posición vuelve a cero y eso lee como avance. Medido el 01-oct: el
+		// vigilante cantaba victoria con el buffer a cero y sin reproducir.
+		// Recuperado es estar reproduciendo y con datos delante.
+		val recuperado = exo.isPlaying && s.bufferedMs > 0 &&
+			s.msSinceProgress <= LiveTuning.WATCHDOG_STALL_MS
+
 		val ahora = System.currentTimeMillis()
 
-		if (!atascado) {
+		if (recuperado) {
 			if (atascadoDesdeMs != 0L) {
 				LiveLog.info(
 					"vigilante.recuperado",
@@ -427,8 +451,11 @@ class Media3LiveEngine(
 			}
 			atascadoDesdeMs = 0L
 			escalon = 0
+			ciclosSinExito = 0
 			return
 		}
+
+		if (!atascado) return
 
 		if (atascadoDesdeMs == 0L) {
 			atascadoDesdeMs = ahora
@@ -441,10 +468,18 @@ class Media3LiveEngine(
 			)
 		}
 
-		if (ahora - ultimoEscalonMs < LiveTuning.WATCHDOG_STEP_COOLDOWN_MS) return
+		// La espera crece mientras no haya una recuperación de verdad. Saltar
+		// al borde cada doce segundos con la fuente muerta no adelanta nada:
+		// no hay a dónde saltar, y cada intento cuesta trabajo a la caja y
+		// peticiones al servidor. Se topa a tres veces la base para que, en
+		// cuanto la señal vuelva, el rescate siga llegando pronto.
+		val espera = LiveTuning.WATCHDOG_STEP_COOLDOWN_MS *
+			(1 + ciclosSinExito.coerceAtMost(2))
+		if (ahora - ultimoEscalonMs < espera) return
 		ultimoEscalonMs = ahora
 		escalon++
 		recuperaciones++
+		if (escalon % 3 == 0) ciclosSinExito++
 
 		// Tres escalones y vuelta a empezar. Reconstruir el reproductor es lo
 		// más caro y lo que más tarda en verse, así que es el último.
