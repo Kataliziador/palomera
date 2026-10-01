@@ -25,14 +25,39 @@ seis canales tras la normalización del headend.
 | `test-sat77w-estrellashd-mp4` | h264 1440x1080 SAR 4:3 | `sin-senal-h264-1440.mp4` |
 | `beisbol` | h264 1280x720 | `sin-senal-h264-720.mp4` |
 | `mileniosd` | h264 1024x576 | `sin-senal-h264-576.mp4` |
-| `test-sat77w-estrellassd-mp2v` | **mpeg2video** 544x480 SAR 20:17 | **`sin-senal-mpeg2-sd.ts`** |
+| `test-sat77w-estrellassd-mp2v` | **mpeg2video** 544x480 SAR 20:17 | **`sin-senal-mpeg2-sd.mp4`** |
 
 Si solo quieres mantener dos archivos, el mínimo que **no** rompe nada es uno
 por códec: el de 1080 para los cinco de H.264 y el de MPEG-2 para
 `estrellassd`. Se verá un cambio de resolución al entrar el letrero, que es
 inofensivo.
 
-## Cómo se usan
+## Cómo se usan — **el paso que falta en la documentación de Flussonic**
+
+`vod/` **no es una carpeta: es el nombre de una ubicación VOD** que hay que
+declarar aparte. Sin ese bloque, `backup vod/...` no apunta a nada y la
+configuración no entra. Es el motivo más probable de que el `backup` «no se
+deje configurar».
+
+**1. Copia los letreros al servidor**, por ejemplo a `/storage`:
+
+```bash
+scp headend/letreros/sin-senal-*.mp4 root@<tu-flussonic>:/storage/
+```
+
+**2. Declara la ubicación VOD** en `/etc/flussonic/flussonic.conf`, **una sola
+vez** para todo el servidor:
+
+```
+vod vod {
+  storage /storage;
+}
+```
+
+Con eso, `vod/sin-senal-h264-1080.mp4` resuelve a
+`/storage/sin-senal-h264-1080.mp4`.
+
+**3. Añade el `backup` a cada canal**, apuntando al letrero de su códec:
 
 ```
 stream test-sat77w-estrellassd-mp2v {
@@ -40,9 +65,31 @@ stream test-sat77w-estrellassd-mp2v {
   segment_duration 2;
   segment_count 20;
   source_timeout 10;
-  backup vod/sin-senal-mpeg2-sd.ts video_timeout=5 audio_timeout=10 timeout=20;
+  backup vod/sin-senal-mpeg2-sd.mp4 video_timeout=5 audio_timeout=10 timeout=20;
+}
+
+stream test-sat70w-hbohd-mp4 {
+  input <tu fuente>;
+  segment_duration 2;
+  segment_count 20;
+  source_timeout 10;
+  backup vod/sin-senal-h264-1080.mp4 video_timeout=5 audio_timeout=10 timeout=20;
 }
 ```
+
+**4. Recarga** y comprueba que el canal sigue en línea:
+
+```bash
+service flussonic reload
+```
+
+### Si el MP4 con MPEG-2 no entra
+
+MPEG-2 dentro de MP4 es legal y `ffprobe` lo lee bien, pero es una combinación
+poco común. Si Flussonic la rechaza, está también
+`sin-senal-mpeg2-sd.ts`: la documentación de failover dice que acepta MP4
+**y** MPEG-TS. Prueba el `.mp4` primero, que es lo que tu instalación parece
+preferir.
 
 ## Detalles de la codificación, y por qué
 
@@ -52,7 +99,9 @@ stream test-sat77w-estrellassd-mp2v {
   ocupa sitio.
 - **Silencio, no tono**: un pitido a las tres de la mañana sería peor que el
   fallo que intenta avisar.
-- **MPEG-TS y no MPEG-PS** para el de MPEG-2: el contenedor PS no admite AAC.
+- **MP4 también para el de MPEG-2.** El contenedor MPEG-PS queda descartado
+  porque no admite AAC; MP4 sí admite vídeo MPEG-2, aunque sea poco habitual.
+  Se deja además la versión `.ts` por si acaso.
 - **El SAR se conserva** en los dos canales anamórficos, para que el letrero no
   salga deformado donde la imagen no lo estaba.
 

@@ -56,7 +56,16 @@ ffmpeg -hide_banner -loglevel error \
   -y "$SALIDA/sin-senal-h264-576.mp4"
 
 # --- MPEG-2 SD anamórfico (estrellassd) ---
-# En MPEG-TS y no en MPEG-PS: el contenedor PS no admite AAC.
+# En MP4: MPEG-2 cabe en MP4 sin problema, y Flussonic lo toma como VOD igual
+# que cualquier otro. El contenedor MPEG-PS queda descartado porque no admite
+# AAC, y el .ts se deja como alternativa por si el MP4 con MPEG-2 no entrara.
+ffmpeg -hide_banner -loglevel error \
+  -f lavfi -i "color=c=0x101418:s=544x480:r=30000/1001:d=10" $comun_audio \
+  -vf "drawtext=text='$TEXTO':fontcolor=0xDDDDDD:fontsize=36:x=(w-tw)/2:y=(h-th)/2,setsar=20/17" \
+  -c:v mpeg2video -pix_fmt yuv420p -g 15 -b:v 2500k \
+  -c:a aac -b:a 128k -ar 48000 -ac 2 -shortest -t 10 \
+  -f mp4 -y "$SALIDA/sin-senal-mpeg2-sd.mp4"
+
 ffmpeg -hide_banner -loglevel error \
   -f lavfi -i "color=c=0x101418:s=544x480:r=30000/1001:d=10" $comun_audio \
   -vf "drawtext=text='$TEXTO':fontcolor=0xDDDDDD:fontsize=36:x=(w-tw)/2:y=(h-th)/2,setsar=20/17" \
