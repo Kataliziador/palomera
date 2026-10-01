@@ -74,13 +74,16 @@ class LiveTvPlayerFragment : Fragment() {
 		savedInstanceState: Bundle?,
 	) = content {
 		JellyfinTheme {
-			LivePlayer(channelId = arguments?.getString(BootstrapChannels.EXTRA_CHANNEL_ID))
+			LivePlayer(
+				channelId = arguments?.getString(BootstrapChannels.EXTRA_CHANNEL_ID),
+				alSalir = { requireActivity().onBackPressedDispatcher.onBackPressed() },
+			)
 		}
 	}
 }
 
 @Composable
-private fun LivePlayer(channelId: String?) {
+private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	val context = LocalContext.current
 
 	val lifecycleOwner = LocalLifecycleOwner.current
@@ -98,6 +101,10 @@ private fun LivePlayer(channelId: String?) {
 	var stats by remember { mutableStateOf(EngineStats(engineId = "media3")) }
 	var state by remember { mutableStateOf("Conectando…") }
 	var detail by remember { mutableStateOf<String?>(null) }
+
+	// Declarado aquí y no con el resto de los controles: el oyente del motor,
+	// que es quien las escribe, se registra antes.
+	var lineasSubtitulo by remember { mutableStateOf<List<String>>(emptyList()) }
 
 	// --- Zapeo con el mando ------------------------------------------------
 	//
@@ -169,6 +176,8 @@ private fun LivePlayer(channelId: String?) {
 			override fun onReady() { state = "Listo" }
 			override fun onPlaying() { state = "En vivo"; detail = null }
 			override fun onBuffering() { state = "Almacenando…" }
+
+			override fun onCues(lineas: List<String>) { lineasSubtitulo = lineas }
 
 			override fun onRecoverableError(event: String, error: Throwable?) {
 				// Nunca se cierra el player: es un estado temporal (CLAUDE.md §6).
@@ -255,6 +264,34 @@ private fun LivePlayer(channelId: String?) {
 	val favoritos = remember { LiveTvFavorites.of(context) }
 	val favoritosIds by favoritos.ids.collectAsState()
 
+	// --- Controles ----------------------------------------------------------
+	//
+	// `enControles` = el foco está en la fila, no en el canal. Se entra con ▶ y
+	// se sale con ATRÁS, para no quitarle ▲▼ al zapeo, que es el gesto más
+	// usado de todos.
+	var enControles by remember { mutableStateOf(false) }
+	var controlSeleccionado by remember { mutableIntStateOf(0) }
+	var menuAbierto by remember { mutableStateOf<String?>(null) }
+	var opcionSeleccionada by remember { mutableIntStateOf(0) }
+
+	var aspecto by remember { mutableStateOf(AspectMode.FIT) }
+	var subtitulosActivos by remember { mutableStateOf(false) }
+	var apagarEnMin by remember { mutableIntStateOf(0) }
+	var reinicios by remember { mutableIntStateOf(0) }
+
+	// Temporizador de apagado. Detiene la reproducción y devuelve a la lista:
+	// apagar la caja no está en nuestra mano, y dejar el canal sonando toda la
+	// noche es justo lo que se quería evitar.
+	LaunchedEffect(apagarEnMin, reinicios) {
+		if (apagarEnMin <= 0) return@LaunchedEffect
+		delay(apagarEnMin * 60_000L)
+		apagarEnMin = 0
+		LiveLog.info("temporizador.cumplido")
+		// Mismo camino que ATRÁS: apagar la caja no está en nuestra mano, y
+		// dejar el canal sonando toda la noche es lo que se quería evitar.
+		alSalir()
+	}
+
 	LaunchedEffect(pulsacion, enVivo) {
 		barraVisible = true
 		if (!enVivo) return@LaunchedEffect
@@ -271,6 +308,86 @@ private fun LivePlayer(channelId: String?) {
 		return lista[((if (i < 0) 0 else i) + paso + lista.size) % lista.size]
 	}
 
+	// --- Qué controles hay, y qué hace cada uno -----------------------------
+	//
+	// Un control sin nada que ofrecer se enseña apagado, no se esconde: que el
+	// botón de subtítulos desaparezca en unos canales y aparezca en otros se
+	// lee como un fallo, y verlo en gris dice la verdad.
+	val controles = remember(stats, aspecto, subtitulosActivos, favoritosIds, apagarEnMin, enPantalla) {
+		listOf(
+			Control(
+				id = "audio",
+				etiqueta = "Audio",
+				valor = idiomaCorto(stats) ?: "—",
+				disponible = stats.audioTracks.size > 1,
+			),
+			Control(
+				id = "subtitulos",
+				etiqueta = "Subtítulos",
+				valor = if (subtitulosActivos) "sí" else "no",
+				activo = subtitulosActivos,
+				disponible = stats.subtitleTracks.isNotEmpty(),
+			),
+			Control(
+				id = "imagen",
+				etiqueta = "Imagen",
+				valor = AspectoDeVideo.nombre(aspecto),
+				activo = aspecto != AspectMode.FIT,
+			),
+			Control(
+				id = "favorito",
+				etiqueta = "Favorito",
+				activo = (enPantalla ?: channel).id in favoritosIds,
+			),
+			Control(
+				id = "resintonizar",
+				etiqueta = "Volver a sintonizar",
+			),
+			Control(
+				id = "apagado",
+				etiqueta = "Apagar en",
+				valor = if (apagarEnMin > 0) "${apagarEnMin} min" else "no",
+				activo = apagarEnMin > 0,
+			),
+		)
+	}
+
+	fun activarControl(control: Control) {
+		if (!control.disponible) return
+		when (control.id) {
+			"favorito" -> favoritos.toggle((enPantalla ?: channel).id)
+
+			"resintonizar" -> {
+				LiveLog.info("control.resintonizar", "canal" to channel.id)
+				engine.stop()
+				engine.prepare(channel, plan)
+				engine.play()
+				reinicios++
+			}
+
+			// Los de varias opciones abren su lista; los de una sola acción no.
+			else -> { menuAbierto = control.id; opcionSeleccionada = 0 }
+		}
+	}
+
+	fun aplicarOpcion(menu: String, indice: Int) {
+		when (menu) {
+			"audio" -> stats.audioTracks.getOrNull(indice)?.let { engine.selectAudioTrack(it) }
+
+			"subtitulos" -> {
+				// La primera opción es siempre «desactivados».
+				val pista = if (indice == 0) null else stats.subtitleTracks.getOrNull(indice - 1)
+				engine.selectSubtitleTrack(pista)
+				subtitulosActivos = pista != null
+				if (pista == null) lineasSubtitulo = emptyList()
+			}
+
+			"imagen" -> AspectoDeVideo.modos.getOrNull(indice)?.let { aspecto = it }
+
+			"apagado" -> apagarEnMin = MINUTOS_DE_APAGADO.getOrElse(indice) { 0 }
+		}
+	}
+
 	val foco = remember { FocusRequester() }
 	LaunchedEffect(foco) { runCatching { foco.requestFocus() } }
 
@@ -282,10 +399,51 @@ private fun LivePlayer(channelId: String?) {
 			.focusable()
 			.onKeyEvent { evento ->
 				if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
+				pulsacion++
+
+				// Un menú abierto se queda con las teclas: ▲▼ recorren sus
+				// opciones en vez de cambiar de canal.
+				val menu = menuAbierto
+				if (menu != null) {
+					val n = opcionesDe(menu, stats, aspecto, subtitulosActivos).size
+					return@onKeyEvent when (evento.key) {
+						Key.DirectionUp -> { opcionSeleccionada = (opcionSeleccionada - 1 + n) % n; true }
+						Key.DirectionDown -> { opcionSeleccionada = (opcionSeleccionada + 1) % n; true }
+						Key.DirectionCenter, Key.Enter -> {
+							aplicarOpcion(menu, opcionSeleccionada)
+							menuAbierto = null
+							true
+						}
+						Key.Back, Key.Escape -> { menuAbierto = null; true }
+						else -> false
+					}
+				}
+
+				if (enControles) {
+					val lista = controles
+					return@onKeyEvent when (evento.key) {
+						Key.DirectionLeft -> {
+							// Salir por la izquierda devuelve al canal: es el
+							// gesto inverso de como se entró.
+							if (controlSeleccionado == 0) enControles = false
+							else controlSeleccionado--
+							true
+						}
+						Key.DirectionRight -> {
+							if (controlSeleccionado < lista.lastIndex) controlSeleccionado++
+							true
+						}
+						Key.DirectionCenter, Key.Enter -> { activarControl(lista[controlSeleccionado]); true }
+						Key.Back, Key.Escape -> { enControles = false; true }
+						else -> false
+					}
+				}
+
 				when (evento.key) {
-					Key.DirectionUp -> { vecino(-1)?.let { enPantalla = it }; pulsacion++; true }
-					Key.DirectionDown -> { vecino(1)?.let { enPantalla = it }; pulsacion++; true }
-					Key.DirectionCenter, Key.Enter, Key.Info -> { pulsacion++; true }
+					Key.DirectionUp -> { vecino(-1)?.let { enPantalla = it }; true }
+					Key.DirectionDown -> { vecino(1)?.let { enPantalla = it }; true }
+					Key.DirectionRight -> { enControles = true; controlSeleccionado = 0; true }
+					Key.DirectionCenter, Key.Enter, Key.Info -> true
 					// Todo lo demás se deja pasar: ATRÁS tiene que seguir
 					// saliendo del canal.
 					else -> false
@@ -298,7 +456,10 @@ private fun LivePlayer(channelId: String?) {
 			factory = { ctx -> SurfaceView(ctx) },
 			// La superficie se entrega cuando existe; `prepare` no la necesita
 			// de antemano y Media3 la acepta en caliente.
-			update = { view -> engine.attach(view) },
+			update = { view ->
+				engine.attach(view)
+				AspectoDeVideo.aplicar(view, aspecto, stats)
+			},
 		)
 
 		if (barraVisible) {
@@ -318,9 +479,32 @@ private fun LivePlayer(channelId: String?) {
 				// la lista de arranque no trae `hd` y etiquetaba HBO como SD.
 				altaDefinicion = mostrado.hd || stats.videoHeight >= 720,
 				enVivo = enVivo && !sintonizando,
+				controles = if (barraVisible) controles else emptyList(),
+				controlSeleccionado = if (enControles) controlSeleccionado else -1,
 				modifier = Modifier.align(Alignment.BottomCenter),
 			)
 		}
+
+		menuAbierto?.let { menu ->
+			LiveTvOpciones(
+				titulo = tituloDeMenu(menu),
+				opciones = opcionesDe(menu, stats, aspecto, subtitulosActivos),
+				seleccionada = opcionSeleccionada,
+				// Justo encima de la fila de controles, no en el centro: es
+				// donde está mirando quien acaba de pulsar OK, y así no tapa
+				// el nombre del canal ni el programa.
+				modifier = Modifier
+					.align(Alignment.BottomStart)
+					.padding(start = 56.dp, bottom = 150.dp),
+			)
+		}
+
+		LiveTvSubtitulos(
+			lineas = lineasSubtitulo,
+			modifier = Modifier
+				.align(Alignment.BottomCenter)
+				.padding(bottom = if (barraVisible) 300.dp else 72.dp),
+		)
 
 
 		// Lo que el abonado ve mientras el vigilante trabaja.
@@ -391,6 +575,31 @@ private const val ZAP_SETTLE_MS = 450L
 
 /** Lo que dura la barra en pantalla cuando el canal va bien. */
 private const val CHANNEL_BAR_VISIBLE_MS = 6_000L
+
+/** Opciones del temporizador. El 0 apaga el temporizador, no la tele. */
+private val MINUTOS_DE_APAGADO = listOf(0, 30, 60, 90, 120)
+
+private fun tituloDeMenu(menu: String): String = when (menu) {
+	"audio" -> "Idioma del audio"
+	"subtitulos" -> "Subtítulos"
+	"imagen" -> "Ajuste de imagen"
+	"apagado" -> "Apagar en"
+	else -> menu
+}
+
+private fun opcionesDe(
+	menu: String,
+	stats: EngineStats,
+	aspecto: AspectMode,
+	subtitulosActivos: Boolean,
+): List<String> = when (menu) {
+	"audio" -> stats.audioTracks.map { it.label ?: it.language ?: "Pista" }
+	"subtitulos" -> listOf("Desactivados") +
+		stats.subtitleTracks.map { it.label ?: it.language ?: "Subtítulos" }
+	"imagen" -> AspectoDeVideo.modos.map { AspectoDeVideo.nombre(it) }
+	"apagado" -> MINUTOS_DE_APAGADO.map { if (it == 0) "No apagar" else "$it minutos" }
+	else -> emptyList()
+}
 
 /** Cada cuánto se refresca el reloj y el progreso mientras la barra se ve. */
 private const val BAR_CLOCK_REFRESH_MS = 1_000L

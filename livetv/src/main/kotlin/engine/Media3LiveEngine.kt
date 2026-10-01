@@ -57,6 +57,7 @@ class Media3LiveEngine(
 	override val id: String = ENGINE_ID
 
 	private var player: ExoPlayer? = null
+	private var trackSelector: DefaultTrackSelector? = null
 	private var surface: SurfaceView? = null
 	private var channel: ChannelProfile? = null
 	private var plan: PlaybackPlan? = null
@@ -147,6 +148,19 @@ class Media3LiveEngine(
 	// Audio, para M3
 	private var audioTracks: List<AudioTrackRef> = emptyList()
 	private var selectedAudio: AudioTrackRef? = null
+
+	/**
+	 * De la identidad de pista al grupo real de Media3.
+	 *
+	 * La clave es el idioma normalizado, con el PID de desempate (CLAUDE.md
+	 * regla 6): nunca un índice, porque el índice cambia entre sesiones y
+	 * entre segmentos, y seleccionar por índice acaba poniendo inglés donde el
+	 * abonado pidió español.
+	 */
+	private var gruposDeAudio: Map<String, Pair<androidx.media3.common.TrackGroup, Int>> = emptyMap()
+	private var subtitleTracks: List<AudioTrackRef> = emptyList()
+	private var gruposDeSubtitulo: Map<String, Pair<androidx.media3.common.TrackGroup, Int>> = emptyMap()
+	private var selectedSubtitle: AudioTrackRef? = null
 	private var windowDurationMs = C.TIME_UNSET
 	private var activeTargetOffsetMs = 0L
 	private var offsetMismatchReported = false
@@ -228,7 +242,12 @@ class Media3LiveEngine(
 				if (dev.wideTimestampSearch) {
 					WideSearchHlsExtractorFactory(tsFlags, dev.timestampSearchPackets)
 				} else {
-					DefaultHlsExtractorFactory(tsFlags, false)
+					// `true`: los subtítulos de este lineup van **incrustados en
+					// el vídeo** como CEA-608 y el flujo no los declara. Sin
+					// esto Media3 no los expone y el canal parece no tenerlos.
+					// Medido el 01-oct en `estrellashd`: 22 entradas con
+					// diálogo real en 40 s.
+					DefaultHlsExtractorFactory(tsFlags, true)
 				}
 			)
 			.setPlaylistTrackerFactory(
@@ -278,13 +297,14 @@ class Media3LiveEngine(
 		// La reproducción tunneled se pide por el selector de pistas: solo se
 		// elegirán decoders capaces de entregar directamente al hardware de
 		// pantalla.
-		val trackSelector = DefaultTrackSelector(context).apply {
+		val selector = DefaultTrackSelector(context).apply {
 			setParameters(buildUponParameters().setTunnelingEnabled(dev.tunnelingEnabled))
 		}
+		trackSelector = selector
 
 		player = ExoPlayer.Builder(context, renderersFactory)
 			.setBandwidthMeter(bandwidthMeter)
-			.setTrackSelector(trackSelector)
+			.setTrackSelector(selector)
 			.setLoadControl(loadControl)
 			.setMediaSourceFactory(mediaSourceFactory)
 			.build()
@@ -318,6 +338,11 @@ class Media3LiveEngine(
 		pararLatido()
 		player?.release()
 		player = null
+		trackSelector = null
+		gruposDeAudio = emptyMap()
+		gruposDeSubtitulo = emptyMap()
+		subtitleTracks = emptyList()
+		selectedSubtitle = null
 		videoDecoder = null
 		audioDecoder = null
 		droppedFrames = 0
@@ -532,10 +557,76 @@ class Media3LiveEngine(
 		else -> "?$state"
 	}
 
+	/**
+	 * Cambia la pista de audio **sin cortar el vídeo**.
+	 *
+	 * Se hace con una anulación sobre el grupo de audio y nada más: el
+	 * renderizador de vídeo ni se entera, que es justo lo que `CLAUDE.md` §3
+	 * pide del lado de motor de este botón.
+	 *
+	 * La pista se busca por **identidad** —idioma normalizado, PID de
+	 * desempate— y nunca por índice (regla 6).
+	 */
 	override fun selectAudioTrack(track: AudioTrackRef) {
-		// M3. La selección va por idioma normalizado, no por PID (CHANNELS.md §2.bis).
-		LiveLog.warn("engine.selectAudioTrack.notImplemented", "language" to track.language, "pid" to track.pid)
+		aplicarPista(track, gruposDeAudio, C.TRACK_TYPE_AUDIO, "audio")
 	}
+
+	override fun selectSubtitleTrack(track: AudioTrackRef?) {
+		val selector = trackSelector ?: return
+		if (track == null) {
+			selector.setParameters(
+				selector.buildUponParameters()
+					.clearOverridesOfType(C.TRACK_TYPE_TEXT)
+					.setIgnoredTextSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+					.setPreferredTextLanguage(null)
+			)
+			selectedSubtitle = null
+			LiveLog.info("subtitulos.apagados")
+			return
+		}
+		aplicarPista(track, gruposDeSubtitulo, C.TRACK_TYPE_TEXT, "subtitulo")
+	}
+
+	private fun aplicarPista(
+		track: AudioTrackRef,
+		mapa: Map<String, Pair<androidx.media3.common.TrackGroup, Int>>,
+		tipo: Int,
+		que: String,
+	) {
+		val selector = trackSelector
+		if (selector == null) {
+			LiveLog.warn("pista.sinSelector", "que" to que)
+			return
+		}
+		val destino = mapa[claveDePista(track)]
+		if (destino == null) {
+			// No se calla: pedir una pista que no está es un síntoma de que la
+			// identidad con que la guardamos no sobrevivió al cambio de
+			// segmento, y eso hay que verlo (CLAUDE.md regla 8).
+			LiveLog.warn(
+				"pista.noEncontrada",
+				"que" to que,
+				"idioma" to track.language,
+				"disponibles" to mapa.keys,
+			)
+			return
+		}
+
+		selector.setParameters(
+			selector.buildUponParameters()
+				.setOverrideForType(
+					androidx.media3.common.TrackSelectionOverride(destino.first, destino.second)
+				)
+				.setTrackTypeDisabled(tipo, false)
+		)
+		LiveLog.info("pista.seleccionada", "que" to que, "idioma" to track.language)
+	}
+
+	/** Idioma normalizado + PID de desempate. Nunca el índice. */
+	private fun claveDePista(ref: AudioTrackRef): String =
+		"${ref.language ?: "?"}#${ref.pid}"
+
+
 
 	override fun setAspectMode(mode: AspectMode) {
 		// M5: el modo de ajuste lo aplica la vista, no el player.
@@ -602,6 +693,8 @@ class Media3LiveEngine(
 
 			audioTracks = audioTracks,
 			selectedAudio = selectedAudio,
+			subtitleTracks = subtitleTracks,
+			selectedSubtitle = selectedSubtitle,
 		)
 	}
 
@@ -696,6 +789,11 @@ class Media3LiveEngine(
 				Player.STATE_ENDED -> LiveLog.warn("player.ended")
 				Player.STATE_IDLE -> LiveLog.debug("player.idle")
 			}
+		}
+
+		override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) {
+			val lineas = cueGroup.cues.mapNotNull { it.text?.toString()?.trim() }.filter { it.isNotEmpty() }
+			notify { it.onCues(lineas) }
 		}
 
 		override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -812,6 +910,7 @@ class Media3LiveEngine(
 		override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
 			val encontradas = mutableListOf<AudioTrackRef>()
 			var seleccionada: AudioTrackRef? = null
+			val mapaAudio = mutableMapOf<String, Pair<androidx.media3.common.TrackGroup, Int>>()
 
 			tracks.groups
 				.filter { it.type == C.TRACK_TYPE_AUDIO }
@@ -831,9 +930,42 @@ class Media3LiveEngine(
 							label = f.label ?: f.language,
 						)
 						encontradas += ref
+						mapaAudio[claveDePista(ref)] = group.mediaTrackGroup to i
 						if (group.isTrackSelected(i)) seleccionada = ref
 					}
 				}
+
+			// Subtítulos. En este lineup van incrustados en el vídeo como
+			// CEA-608 y Media3 los expone como pistas de texto una vez se le
+			// pide que los busque (medido el 01-oct en `estrellashd`: 22
+			// entradas con diálogo real en 40 s).
+			val textos = mutableListOf<AudioTrackRef>()
+			val mapaTexto = mutableMapOf<String, Pair<androidx.media3.common.TrackGroup, Int>>()
+			var textoSeleccionado: AudioTrackRef? = null
+
+			tracks.groups
+				.filter { it.type == C.TRACK_TYPE_TEXT }
+				.forEach { group ->
+					for (i in 0 until group.length) {
+						val f = group.getTrackFormat(i)
+						val ref = AudioTrackRef(
+							language = LanguageNormalizer.normalize(f.language),
+							pid = -1,
+							channels = 0,
+							label = f.label ?: f.language ?: "Subtítulos",
+						)
+						textos += ref
+						mapaTexto[claveDePista(ref)] = group.mediaTrackGroup to i
+						if (group.isTrackSelected(i)) textoSeleccionado = ref
+					}
+				}
+
+			if (textos.size != subtitleTracks.size) {
+				LiveLog.info("subtitulos.pistas", "cuantas" to textos.size)
+			}
+			subtitleTracks = textos
+			gruposDeSubtitulo = mapaTexto
+			selectedSubtitle = textoSeleccionado
 
 			if (encontradas.map { it.language } != audioTracks.map { it.language }) {
 				LiveLog.info(
@@ -844,6 +976,7 @@ class Media3LiveEngine(
 			}
 
 			audioTracks = encontradas
+			gruposDeAudio = mapaAudio
 			selectedAudio = seleccionada
 			notify { it.onAudioTracksChanged(encontradas) }
 		}

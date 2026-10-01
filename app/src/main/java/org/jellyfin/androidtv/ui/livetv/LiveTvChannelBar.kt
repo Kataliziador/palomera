@@ -63,6 +63,9 @@ fun LiveTvChannelBar(
 	/** Alta definición **medida**, no la que declare el `config.json`. */
 	altaDefinicion: Boolean,
 	enVivo: Boolean,
+	controles: List<Control> = emptyList(),
+	/** −1 = el foco está en el canal, no en la fila. */
+	controlSeleccionado: Int = -1,
 	modifier: Modifier = Modifier,
 ) {
 	Column(
@@ -111,9 +114,23 @@ fun LiveTvChannelBar(
 
 		Spacer(modifier = Modifier.height(22.dp))
 
-		Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
-			Pista("▲ ▼", "cambiar de canal")
-			Pista("OK", "ver esta barra")
+		if (controles.isEmpty()) {
+			Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
+				Pista("▲ ▼", "cambiar de canal")
+				Pista("OK", "ver esta barra")
+			}
+		} else {
+			LiveTvControles(controles = controles, seleccionado = controlSeleccionado)
+			Spacer(modifier = Modifier.height(12.dp))
+			Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
+				if (controlSeleccionado < 0) {
+					Pista("▲ ▼", "cambiar de canal")
+					Pista("▶", "controles")
+				} else {
+					Pista("◀ ▶", "elegir")
+					Pista("OK", "abrir")
+				}
+			}
 		}
 	}
 }

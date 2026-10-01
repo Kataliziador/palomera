@@ -97,6 +97,14 @@ data class EngineStats(
 
 	val audioTracks: List<AudioTrackRef> = emptyList(),
 	val selectedAudio: AudioTrackRef? = null,
+
+	// --- Subtítulos --------------------------------------------------------
+	//
+	// En este lineup van **incrustados en el vídeo** como CEA-608, no como
+	// pista aparte: solo aparecen si se le pide al extractor que los busque.
+
+	val subtitleTracks: List<AudioTrackRef> = emptyList(),
+	val selectedSubtitle: AudioTrackRef? = null,
 )
 
 interface EngineListener {
@@ -115,6 +123,15 @@ interface EngineListener {
 	fun onFatalError(event: String, error: Throwable?) {}
 
 	fun onAudioTracksChanged(tracks: List<AudioTrackRef>) {}
+
+	/**
+	 * Las líneas de subtítulo que deben verse **ahora**.
+	 *
+	 * Llega por aviso y no por sondeo: los subtítulos cambian cada pocos
+	 * segundos y leerlos cada medio segundo los dejaría llegar tarde o
+	 * duplicados.
+	 */
+	fun onCues(lineas: List<String>) {}
 	fun onVideoSizeChanged(width: Int, height: Int, pixelWidthHeightRatio: Float) {}
 }
 
@@ -137,6 +154,9 @@ interface LiveEngine {
 
 	/** Por identidad de pista, nunca por PID ni por índice. Ver [AudioTrackRef]. */
 	fun selectAudioTrack(track: AudioTrackRef)
+
+	/** `null` apaga los subtítulos. Misma regla de identidad que el audio. */
+	fun selectSubtitleTrack(track: AudioTrackRef?)
 
 	fun setAspectMode(mode: AspectMode)
 	fun addListener(listener: EngineListener)

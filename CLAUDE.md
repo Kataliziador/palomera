@@ -321,7 +321,12 @@ el destino raíz de la navegación.
 
 - ABR, DRM, transcodificación en cliente
 - Transcodificación de **video** en el headend
-- Subtítulos y closed captions (decisión del cliente: no se emiten)
+- Subtítulos **de pista aparte**. Los *closed captions* **sí entran** desde el
+  01-oct: `estrellashd` los emite incrustados en el vídeo como CEA-608 y con
+  texto real —medido: 22 entradas con diálogo en 40 s—, así que «no se emiten»
+  era falso para ese canal. Se exponen pidiéndole al extractor HLS que los
+  busque (`exposeCea608WhenMissingDeclarations`) y se eligen desde los
+  controles de la barra. De los seis canales, **solo ese los trae**
 - Grabación, DVR y catch-up en la app (el servidor lo soporta, la app aún no)
 - Autenticación de suscriptor (versión futura)
 - Filtros de imagen, post-procesado, "mejoras" de video
