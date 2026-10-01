@@ -201,7 +201,7 @@ un frame congelado.
 | 4 | Inventario de códecs de la ZTE B866V2 | M1 | la caja mayoritaria del cliente, aún sin medir |
 | 5 | Flags de extractor en Amlogic | M4 | la medición dice OFF/OFF, la experiencia de campo sugiere lo contrario |
 | 6 | Bajar `source_timeout` de Flussonic a ~10 s | headend | con HTTP, Astra mantiene la conexión abierta sin datos |
-| 7 | Letrero de "sin señal" como fuente de respaldo en Flussonic | headend | evita que un rain fade largo congele la imagen |
+| 7 | ~~Letrero de «sin señal» como fuente de respaldo~~ | — | **cerrado 01-oct: funcionando.** Edgar corta la señal y entra el letrero. La trampa que costó el rato: en `backup <ubicación>/<archivo>`, el prefijo es el **nombre de la ubicación VOD**, no una carpeta, y hay que declararla aparte (`vod fallback { storage … }`). Un nombre que no casa da `enoent`. Ver `headend/letreros/README.md` |
 | 8 | Confirmar si `a095` es el mismo canal que `discoveryhd-70w` | M1 | mismos datos técnicos |
 | 9 | Pasar `a093` (SD H.264 70W) por Flussonic | headend | único SD H.264 satelital, probablemente entrelazado |
 | 10 | ~~Caracterizar `test-sat70w-hbohd-mp4`~~ | M1 | **cerrado**: h264 1080i `bb`, AAC |
@@ -223,6 +223,43 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### El letrero de «sin señal» ya entra — 2026-10-01
+
+Cierra el pendiente 7, abierto desde el 22 de septiembre, y quita la causa más
+probable del congelamiento de anoche.
+
+**Lo que costó el rato fue un detalle de sintaxis que la documentación de
+Flussonic no explica.** En `backup vod/archivo.mp4`, el `vod/` **no es una
+carpeta**: es el nombre de una ubicación VOD que se declara aparte. La de Edgar
+se llama `fallback`, así que la línea correcta era
+`backup fallback/h264.mp4`, y cualquier otro prefijo devuelve `enoent`.
+
+De paso, dos diagnósticos míos que la evidencia corrigió:
+
+1. Dije que su configuración «no se estaba aplicando», a partir de que el
+   playlist seguía con 12 segmentos y `TARGETDURATION 4`. El `enoent` demostró
+   lo contrario: el `backup` estaba aplicado y disparaba al cortar la señal.
+   Lo que no había cambiado eran los parámetros de segmentación, que es otra
+   cosa.
+2. Generé el letrero de MPEG-2 en MPEG-TS porque el contenedor MPEG-PS no
+   admite AAC, y su instalación parecía aceptar solo MP4. **MPEG-2 cabe en
+   MP4**, verificado con `ffprobe`; el rodeo no hacía falta.
+
+**Lo que esto cambia para el motor.** Con el letrero, el playlist **nunca deja
+de avanzar**: cuando la fuente calla, Flussonic publica el letrero y sigue
+emitiendo segmentos. El cliente no se descuelga, no sale de la ventana y no
+acaba pidiendo segmentos borrados — que es exactamente la cadena que dejó la
+imagen muerta siete horas el 30-sep.
+
+**No sustituye al vigilante del motor.** Un corte de WiFi largo deja al cliente
+descolgado igual, y ahí el headend no puede hacer nada. Sigue pendiente la
+decisión de Edgar sobre si ese vigilante va activo por defecto.
+
+**Lo siguiente que hay que probar, y es corto:** entrar y salir del letrero es
+un **cambio de formato a mitad de emisión**. Hay que confirmar que el cliente
+sobrevive a la transición en los dos sentidos, porque es justo el tipo de
+cambio con el que este decodificador se ha mostrado frágil.
 
 ### `tunneled` arregla los microcortes de HBO, y mis instrumentos son ciegos en ese modo — 2026-09-30
 
