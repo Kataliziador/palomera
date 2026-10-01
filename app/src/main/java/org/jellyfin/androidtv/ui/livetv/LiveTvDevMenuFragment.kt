@@ -162,8 +162,8 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Reproducción tunneled",
-				value = if (dev.tunnelingEnabled) "ACTIVA" else "apagada",
-				changed = dev.tunnelingEnabled,
+				value = if (dev.tunnelingEnabled) "ACTIVA (fábrica)" else "APAGADA",
+				changed = !dev.tunnelingEnabled,
 			) { change { dev.tunnelingEnabled = !dev.tunnelingEnabled } }
 		}
 		item {

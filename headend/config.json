@@ -85,9 +85,9 @@
 
   "deviceOverrides": [
     {
-      "match": { "manufacturer": "SkyworthDigital", "model": "4K Google TV Box" },
-      "tunneling": true,
-      "tsAllowNonIdrKeyframes": true
+      "_comentario": "El modelo es de EXCLUSIÓN: tunneled viene activo de fábrica en todas las cajas. Aquí se apaga en los modelos que no deban usarlo, tras comprobarlo en pantalla. Dejar la lista vacía significa que todas lo usan.",
+      "match": { "manufacturer": "EjemploFabricante", "model": "Modelo Que No Lo Soporta" },
+      "tunneling": false
     }
   ]
 }

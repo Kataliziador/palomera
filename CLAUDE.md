@@ -262,8 +262,27 @@ servidor que el hardware no puede cumplir.
   son anamórficos — `estrellashd-mp4` (4:3) y `estrellassd-mp2v` (20:17) — e
   ignorarlo deforma la imagen. Los otros cuatro son 1:1.
 - Modos de ajuste manual: Fit / Fill / Zoom / 4:3 / 16:9.
-- **Tunneled playback desactivado por defecto.** Su fallo produce pantalla
-  negra silenciosa; se activa por override remoto tras validar.
+- **Tunneled playback activado por defecto** (01-oct, decisión de Edgar, que
+  invierte la regla anterior). Es lo único medido que elimina los microcortes
+  del cine en H.264: el decodificador AVC de Amlogic ignora el pulldown 3:2 y
+  da 2 campos a cada imagen en vez de 3 y 2 alternos, lo que deja al
+  reproductor 333 ms corto cada 1.6 s —el audio sigue, el vídeo se para—.
+  Validado en pantalla dos veces y sin penalización de zapping (1.1 a 1.5 s en
+  arranque limpio).
+
+  **El riesgo sigue vigente y se asume:** su fallo produce pantalla negra
+  silenciosa, y es la función más dependiente del fabricante de toda la pila.
+  Una caja que lo implemente mal arranca sin imagen.
+
+  **La exclusión va por `deviceOverrides` del `config.json`**, no por
+  recompilación: `"tunneling": false` para los modelos que no deban usarlo. El
+  modelo por defecto es de exclusión, no de inclusión.
+
+  **Consecuencia para el diagnóstico:** en modo tunneled el decodificador
+  escribe directo al hardware de pantalla, así que el contador de fotogramas y
+  `SurfaceFlinger --latency` **no ven nada**. Se pierden fps, huecos de entrega
+  y entregas tardías. Antes de concluir que algo no ocurre en ese modo, hay que
+  comprobar que el instrumento podría verlo si ocurriera.
 
 ### Red
 - `connectTimeoutMs = 8000`, `readTimeoutMs ≥ 30000`.

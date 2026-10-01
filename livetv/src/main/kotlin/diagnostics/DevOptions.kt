@@ -123,8 +123,18 @@ class DevOptions(context: Context) {
 	 * **Apagado por defecto** (`CLAUDE.md` §6): su fallo produce pantalla negra
 	 * silenciosa, así que se valida antes de activarlo por override remoto.
 	 */
+	/**
+	 * **Activo de fábrica desde el 01-oct**, por decisión de Edgar.
+	 *
+	 * Es lo único medido que quita los microcortes del cine en H.264. Validado
+	 * en pantalla dos veces, sin penalización de zapping.
+	 *
+	 * El modelo es de **exclusión**: se excluye por `deviceOverrides` del
+	 * `config.json` a los modelos que no deban usarlo, no al revés. Ver
+	 * `CLAUDE.md` §6.
+	 */
 	var tunnelingEnabled: Boolean
-		get() = prefs.getBoolean(K_TUNNELING, false)
+		get() = prefs.getBoolean(K_TUNNELING, true)
 		set(v) = put { putBoolean(K_TUNNELING, v) }
 
 	/**
@@ -188,7 +198,7 @@ class DevOptions(context: Context) {
 	/** ¿Hay algo que aleje el comportamiento del de fábrica? Se avisa en el overlay. */
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
-			playlistStuckMedia3Default || liveEdgeResyncDisabled || tunnelingEnabled ||
+			playlistStuckMedia3Default || liveEdgeResyncDisabled || !tunnelingEnabled ||
 			wideTimestampSearch || watchdogDisabled ||
 			tsDetectAccessUnits || !tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
@@ -200,7 +210,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
-		if (tunnelingEnabled) add("tunneled")
+		if (!tunnelingEnabled) add("tunneled=OFF")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (tsDetectAccessUnits) add("AUD=on")
 		if (!tsAllowNonIdrKeyframes) add("nonIDR=OFF")

@@ -224,6 +224,57 @@ un frame congelado.
 
 ## Entradas
 
+### Tunneled pasa a ser el valor de fábrica — 2026-10-01
+
+Decisión de Edgar, y **invierte una decisión cerrada de `CLAUDE.md` §6**, que
+decía «desactivado por defecto, se activa por override remoto tras validar».
+El documento queda actualizado.
+
+**Por qué.** Es lo único medido que elimina los microcortes del cine en H.264,
+y hoy se agotaron las alternativas:
+
+| Vía probada hoy | Resultado |
+|---|---|
+| `targetOffsetMs` a 12000, para que el control de velocidad deje de corregir | **254 de 256 tropiezos siguen midiendo exactamente 333 ms** |
+| `FLAG_DETECT_ACCESS_UNITS` (probado el 25-sep) | el fps pasó de 50.40 a 49.85: nada |
+| libVLC (medido el 26-sep) | 47.99 contra nuestros 48.07: tampoco |
+| Forzar vídeo por software | no se llegó a probar: Edgar cortó, y con razón — su mejor resultado posible era confirmar un diagnóstico, no dar una solución usable |
+
+**Y la causa quedó cerrada con aritmética.** El dato que faltaba lo dio Edgar:
+*«el audio no se detiene pero el vídeo sí»*. Eso descarta red, buffer y reloj, y
+lo encierra en el camino de vídeo:
+
+```
+en 1.585 s de cine hay 38 imágenes
+el flujo pide          95 campos  (cadencia 3:2)
+el decodificador da    76 campos  (2 fijos por imagen)
+faltan                 19 campos = 317 ms   →   medido 333 ms (20 refrescos)
+```
+
+El decodificador AVC de Amlogic ignora el `repeat_first_field` y se queda corto
+un tercio de segundo cada ciclo; ExoPlayer, que sí respeta los tiempos
+correctos, **tiene que esperar**. El reloj lo lleva el audio, y por eso el audio
+nunca se detiene.
+
+**Es la misma causa que los 48 fps de `estrellashd`**: un solo defecto del
+decodificador, dos síntomas distintos según cómo reaccione el reproductor.
+
+**El modelo es de exclusión, no de inclusión.** Tunneled viene activo en todas
+las cajas; los modelos que no deban usarlo se apagan por `deviceOverrides` del
+`config.json` con `"tunneling": false`. Edgar asume el riesgo conocido: su
+fallo da pantalla negra silenciosa y es la función más dependiente del
+fabricante de toda la pila.
+
+**Un detalle operativo que apareció al fijarlo:** un valor de fábrica nuevo
+**no pisa una preferencia ya escrita**. La caja tenía `tunneled=false` guardado
+de cuando Edgar lo apagó a mano, así que hizo falta restablecer para que el
+nuevo defecto entrara. Lo mismo valdrá en campo para cualquier caja donde
+alguien haya tocado el menú.
+
+**Verificado con todo de fábrica, sin tocar un interruptor:** `tunneled=true`,
+`degradacion=de fábrica`, HBO a 1920x1080→16:9, **0 entregas tardías, 0 frames
+perdidos, 0 rebuffers**, primer fotograma en 1813 ms.
+
 ### El letrero de «sin señal» ya entra — 2026-10-01
 
 Cierra el pendiente 7, abierto desde el 22 de septiembre, y quita la causa más
