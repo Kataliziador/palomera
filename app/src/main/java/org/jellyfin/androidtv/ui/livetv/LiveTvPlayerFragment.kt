@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -240,6 +241,20 @@ private fun LivePlayer(channelId: String?) {
 	var pulsacion by remember { mutableIntStateOf(0) }
 	val enVivo = state == "En vivo"
 
+	// El reloj y el progreso tienen que avanzar mientras la barra está puesta,
+	// o se verían bien en una captura y mal en pantalla. Solo corre mientras se
+	// ve: un temporizador latiendo bajo una barra escondida no pinta nada.
+	var ahoraMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+	LaunchedEffect(barraVisible) {
+		while (barraVisible) {
+			ahoraMs = System.currentTimeMillis()
+			delay(BAR_CLOCK_REFRESH_MS)
+		}
+	}
+
+	val favoritos = remember { LiveTvFavorites.of(context) }
+	val favoritosIds by favoritos.ids.collectAsState()
+
 	LaunchedEffect(pulsacion, enVivo) {
 		barraVisible = true
 		if (!enVivo) return@LaunchedEffect
@@ -287,11 +302,22 @@ private fun LivePlayer(channelId: String?) {
 		)
 
 		if (barraVisible) {
+			val mostrado = enPantalla ?: channel
+			val sintonizando = mostrado.id != channel.id
 			LiveTvChannelBar(
-				channel = enPantalla ?: channel,
-				state = if (enPantalla?.id != channel.id) "Sintonizando…" else state,
+				channel = mostrado,
+				state = if (sintonizando) "Sintonizando…" else state,
 				detail = detail,
-				resolution = stats.videoWidth.takeIf { it > 0 }?.let { "${it}x${stats.videoHeight}" },
+				// Andamiaje: programación inventada para poder juzgar el
+				// diseño. Se sustituye en cuanto haya una fuente real.
+				epg = remember(mostrado.id, ahoraMs / 30_000) { DummyEpg.para(mostrado, ahoraMs) },
+				ahoraMs = ahoraMs,
+				favorito = mostrado.id in favoritosIds,
+				idiomaAudio = idiomaCorto(stats),
+				// La resolución medida manda sobre lo que declare el perfil:
+				// la lista de arranque no trae `hd` y etiquetaba HBO como SD.
+				altaDefinicion = mostrado.hd || stats.videoHeight >= 720,
+				enVivo = enVivo && !sintonizando,
 				modifier = Modifier.align(Alignment.BottomCenter),
 			)
 		}
@@ -364,6 +390,25 @@ private const val STATS_REFRESH_MS = 500L
 private const val ZAP_SETTLE_MS = 450L
 
 /** Lo que dura la barra en pantalla cuando el canal va bien. */
-private const val CHANNEL_BAR_VISIBLE_MS = 4_000L
+private const val CHANNEL_BAR_VISIBLE_MS = 6_000L
+
+/** Cada cuánto se refresca el reloj y el progreso mientras la barra se ve. */
+private const val BAR_CLOCK_REFRESH_MS = 1_000L
+
+/**
+ * «spa» → «ES». Lo que lee el abonado, no el código ISO.
+ *
+ * Sale de la pista que suena, no de la lista: en `discoveryhd` y `hbohd` hay
+ * español e inglés, y lo que importa es en cuál estás.
+ */
+private fun idiomaCorto(stats: EngineStats): String? {
+	val lang = stats.selectedAudio?.language ?: stats.audioTracks.firstOrNull()?.language
+	return when (lang?.lowercase()) {
+		null -> null
+		"spa", "esp", "esl", "es" -> "ES"
+		"eng", "en" -> "EN"
+		else -> lang.take(2).uppercase()
+	}
+}
 
 
