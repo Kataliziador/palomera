@@ -247,20 +247,6 @@ private fun LivePlayer(channelId: String?) {
 		barraVisible = false
 	}
 
-	// Marcado por número, igual que en la lista: con ~120 canales nadie llega
-	// al 87 con la flecha.
-	var digitos by remember { mutableStateOf("") }
-	val marcado = remember(digitos, canales) {
-		digitos.toIntOrNull()?.let { n -> canales.channels.firstOrNull { it.number == n } }
-	}
-	LaunchedEffect(digitos) {
-		if (digitos.isEmpty()) return@LaunchedEffect
-		delay(NUMBER_ENTRY_TIMEOUT_MS)
-		val destino = marcado
-		digitos = ""
-		if (destino != null) { enPantalla = destino; pulsacion++ }
-	}
-
 	fun vecino(paso: Int): ChannelProfile? {
 		val lista = canales.channels
         if (lista.isEmpty()) return null
@@ -285,17 +271,9 @@ private fun LivePlayer(channelId: String?) {
 					Key.DirectionUp -> { vecino(-1)?.let { enPantalla = it }; pulsacion++; true }
 					Key.DirectionDown -> { vecino(1)?.let { enPantalla = it }; pulsacion++; true }
 					Key.DirectionCenter, Key.Enter, Key.Info -> { pulsacion++; true }
-					else -> {
-						val d = digitoDePlayer(evento.key)
-						if (d != null) {
-							if (digitos.length < 4) digitos += d
-							true
-						} else {
-							// Todo lo demás se deja pasar: ATRÁS tiene que
-							// seguir saliendo del canal.
-							false
-						}
-					}
+					// Todo lo demás se deja pasar: ATRÁS tiene que seguir
+					// saliendo del canal.
+					else -> false
 				}
 			}
 	) {
@@ -318,13 +296,6 @@ private fun LivePlayer(channelId: String?) {
 			)
 		}
 
-		if (digitos.isNotEmpty()) {
-			NumberEntryOverlay(
-				digits = digitos,
-				resolved = marcado?.name,
-				modifier = Modifier.align(Alignment.Center),
-			)
-		}
 
 		// Lo que el abonado ve mientras el vigilante trabaja.
 		//
@@ -395,19 +366,4 @@ private const val ZAP_SETTLE_MS = 450L
 /** Lo que dura la barra en pantalla cuando el canal va bien. */
 private const val CHANNEL_BAR_VISIBLE_MS = 4_000L
 
-/** Segundo y medio: da tiempo a marcar tres cifras sin hacer esperar. */
-private const val NUMBER_ENTRY_TIMEOUT_MS = 1_500L
 
-private fun digitoDePlayer(key: Key): Char? = when (key) {
-	Key.Zero, Key.NumPad0 -> '0'
-	Key.One, Key.NumPad1 -> '1'
-	Key.Two, Key.NumPad2 -> '2'
-	Key.Three, Key.NumPad3 -> '3'
-	Key.Four, Key.NumPad4 -> '4'
-	Key.Five, Key.NumPad5 -> '5'
-	Key.Six, Key.NumPad6 -> '6'
-	Key.Seven, Key.NumPad7 -> '7'
-	Key.Eight, Key.NumPad8 -> '8'
-	Key.Nine, Key.NumPad9 -> '9'
-	else -> null
-}

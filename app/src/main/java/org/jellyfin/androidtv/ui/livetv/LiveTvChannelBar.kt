@@ -103,7 +103,6 @@ fun LiveTvChannelBar(
 		// tecla hace algo, hay que decirlo en pantalla la primera vez.
 		Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
 			Pista("▲ ▼", "cambiar de canal")
-			Pista("0-9", "ir al número")
 			Pista("OK", "ver esta barra")
 		}
 	}
