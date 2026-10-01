@@ -222,7 +222,7 @@ private fun DevMenu() {
 		}
 		item {
 			val v = dev.minBufferOverrideMs
-			Row(label = "minBufferMs", value = v?.let { "$it ms" } ?: "15000 (fábrica)", changed = v != null) {
+			Row(label = "minBufferMs", value = v?.let { "$it ms" } ?: "5000 (fábrica)", changed = v != null) {
 				change { dev.minBufferOverrideMs = nextBuffer(v) }
 			}
 		}

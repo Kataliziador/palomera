@@ -9,7 +9,32 @@ package org.jellyfin.livetv
  */
 object LiveTuning {
 	// --- Buffer -------------------------------------------------------------
-	const val MIN_BUFFER_MS = 15_000
+
+	/**
+	 * **5 000 y no 15 000** (01-oct, con el visto bueno de Edgar).
+	 *
+	 * Los 15 000 son el valor que Media3 trae pensado para vídeo bajo demanda,
+	 * donde el archivo entero está disponible. En directo **no cabe**: el
+	 * cliente va entre 8 y 12 s por detrás del borde de emisión, así que nunca
+	 * hay quince segundos de contenido publicado por delante de su posición.
+	 * Pedirlo deja al reproductor viviendo en «me falta buffer», y cada bajada
+	 * normal lo mete en estado de almacenamiento.
+	 *
+	 * Medido en `hbohd` el 01-oct, con el buffer oscilando entre 3.6 y 9.9 s:
+	 *
+	 * |                      | 15 000 | 5 000 |
+	 * |---|---|---|
+	 * | Rebuffers por minuto | 1.8    | 0.45  |
+	 * | Ratio de rebuffer    | 0.72 % | 0.23 % |
+	 *
+	 * El ratio pasa de incumplir el objetivo de `CLAUDE.md` §10 a cumplirlo.
+	 *
+	 * **Lo que no era:** un defecto visible. Edgar no veía nada con ninguno de
+	 * los dos valores —duraban 240 ms de media— y los contaba solo el log. Lo
+	 * que se gana es una métrica limpia: el día que haya un rebuffer de verdad
+	 * no quedará enterrado entre decenas de falsos.
+	 */
+	const val MIN_BUFFER_MS = 5_000
 	const val MAX_BUFFER_MS = 30_000
 	const val BUFFER_FOR_PLAYBACK_MS = 2_000
 	const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 4_000
