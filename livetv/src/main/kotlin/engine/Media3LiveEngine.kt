@@ -908,6 +908,28 @@ class Media3LiveEngine(
 		 * de emisión, aquí se ve desaparecer en vez de deducirlo del silencio.
 		 */
 		override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+			// Diagnóstico: qué grupos entrega Media3 de verdad, antes de que
+			// nuestro filtrado toque nada.
+			LiveLog.debug(
+				"tracks.crudo",
+				"grupos" to tracks.groups.size,
+				"detalle" to tracks.groups.joinToString(" | ") { g ->
+					val tipo = when (g.type) {
+						C.TRACK_TYPE_AUDIO -> "audio"
+						C.TRACK_TYPE_VIDEO -> "video"
+						C.TRACK_TYPE_TEXT -> "texto"
+						else -> "t${g.type}"
+					}
+					val pistas = (0 until g.length).joinToString(",") { i ->
+						val f = g.getTrackFormat(i)
+						"${f.language ?: "?"}/${f.sampleMimeType?.substringAfterLast('/')}" +
+							(if (g.isTrackSupported(i)) "" else "!nosoportada") +
+							(if (g.isTrackSelected(i)) "*" else "")
+					}
+					"$tipo[$pistas]"
+				},
+			)
+
 			val encontradas = mutableListOf<AudioTrackRef>()
 			var seleccionada: AudioTrackRef? = null
 			val mapaAudio = mutableMapOf<String, Pair<androidx.media3.common.TrackGroup, Int>>()

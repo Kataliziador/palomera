@@ -224,6 +224,44 @@ un frame congelado.
 
 ## Entradas
 
+### `mono.m3u8` sí entrega las dos pistas de audio — 2026-10-01
+
+Edgar vio dos audios en Flussonic y ninguno en la app, y yo diagnostiqué que el
+endpoint `mono.m3u8` solo exponía el primero. **Era falso.** Lo medí leyendo el
+log en un momento en que HBO llevaba una sola pista.
+
+**La comparación, con los tres endpoints del mismo canal:**
+
+| | mono.m3u8 | index.m3u8 |
+|---|---|---|
+| Pistas de audio | `spa, spa, eng` | `spa, spa, eng` |
+| Primer fotograma | 2424 y 2457 ms | 2606 ms |
+| Conexiones al servidor | 3–4 | 4 |
+| Rebuffers en 110 s | 0 y 1 | 0 |
+
+**No hay razón para cambiar de endpoint.** `mono.m3u8` entrega lo mismo, y la
+decisión de `CLAUDE.md` §6 se queda como está.
+
+**Lo que de verdad pasa:** el segundo audio **va y viene con el programa**. A
+las 17:32 HBO emitía una sola pista; a las 18:08, tres —y las tres aparecen
+antes incluso del primer fotograma—. Un canal de cine añade y quita el audio
+original según lo que esté dando, y eso explica que Edgar lo viera en el
+servidor y no en la app: miraba en momentos distintos.
+
+**Consecuencia para la interfaz, y no es menor:** el control de audio tiene que
+poder **aparecer y desaparecer a mitad de canal**. Ya lo hace —se recalcula con
+las estadísticas— pero conviene saber que ese es el comportamiento correcto y
+no un parpadeo.
+
+**Verificado de punta a punta:** con tres pistas presentes, el control se
+habilita y el cambio funciona — `pista.seleccionada que=audio idioma=eng`, sin
+cortar el vídeo.
+
+**Y un defecto encontrado de paso:** con siete canales, la fila **no se
+desplaza con el gesto táctil** y el séptimo quedaba inalcanzable. Con el mando
+debería ir, porque el desplazamiento lo dispara el foco, pero **está sin
+comprobar con el control**. Queda anotado.
+
 ### Tunneled pasa a ser el valor de fábrica — 2026-10-01
 
 Decisión de Edgar, y **invierte una decisión cerrada de `CLAUDE.md` §6**, que
