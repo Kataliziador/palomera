@@ -181,6 +181,17 @@ private fun DevMenu() {
 			Info("Si el extractor no halla referencias temporales, nunca reporta formato de vídeo.")
 		}
 
+		item {
+			Row(
+				label = "Vigilante de recuperación",
+				value = if (dev.watchdogDisabled) "APAGADO" else "activo (fábrica)",
+				changed = dev.watchdogDisabled,
+			) { change { dev.watchdogDisabled = !dev.watchdogDisabled } }
+		}
+		item {
+			Info("Apagarlo reproduce el fallo del 30-sep: congelado indefinidamente con el buffer lleno.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(
@@ -192,8 +203,8 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "FLAG_ALLOW_NON_IDR_KEYFRAMES",
-				value = if (dev.tsAllowNonIdrKeyframes) "ON" else "off",
-				changed = dev.tsAllowNonIdrKeyframes,
+				value = if (dev.tsAllowNonIdrKeyframes) "ON (fábrica)" else "APAGADO",
+				changed = !dev.tsAllowNonIdrKeyframes,
 			) { change { dev.tsAllowNonIdrKeyframes = !dev.tsAllowNonIdrKeyframes } }
 		}
 

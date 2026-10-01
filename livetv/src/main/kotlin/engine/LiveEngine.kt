@@ -72,6 +72,13 @@ data class EngineStats(
 	val frameGapCount: Int = 0,
 	val maxFrameGapMs: Long = 0,
 
+	// --- Recuperación ------------------------------------------------------
+
+	/** El vigilante está intentando rescatar la reproducción ahora mismo. */
+	val recovering: Boolean = false,
+	/** Escalones de recuperación acumulados en la sesión. */
+	val recoveryAttempts: Int = 0,
+
 	// --- Lo que le cuesta a la caja ---------------------------------------
 	//
 	// Un microcorte tiene dos familias de causa que en pantalla se parecen: el

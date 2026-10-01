@@ -153,6 +153,26 @@ object LiveTuning {
 	 */
 	const val HEARTBEAT_INTERVAL_MS = 2_000L
 
+	// --- Vigilante de recuperación ------------------------------------------
+
+	/**
+	 * Cuánto se tolera almacenando sin que avance la posición antes de actuar.
+	 *
+	 * Diez segundos porque los rebuffers legítimos medidos se recuperan en
+	 * dos: con este margen no se interrumpe ninguno sano. Por debajo, el
+	 * remedio sería peor que la enfermedad — un salto innecesario reinicia el
+	 * almacenamiento y alarga el corte que venía a cortar.
+	 */
+	const val WATCHDOG_STALL_MS = 10_000L
+
+	/**
+	 * Espera entre escalones de recuperación.
+	 *
+	 * Un salto al borde tarda en surtir efecto; medir antes de que se note
+	 * lleva a encadenar intentos y a no dejar que ninguno funcione.
+	 */
+	const val WATCHDOG_STEP_COOLDOWN_MS = 12_000L
+
 	// --- Servidor de configuración ------------------------------------------
 
 	/**

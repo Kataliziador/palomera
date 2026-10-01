@@ -85,6 +85,24 @@ class Media3LiveEngine(
 	private var framesEnElLatidoAnterior = 0L
 	private var huecosEnElLatidoAnterior = 0
 
+	// --- Vigilante de recuperación -----------------------------------------
+	//
+	// El 30-sep la fuente calló 40 s. El cliente se bebió su buffer, quedó 45 s
+	// atrás, y a partir de ahí pidió segmentos que el servidor ya había
+	// borrado: 404 eternos y siete horas y cuarto de imagen congelada **con el
+	// buffer lleno**. La vuelta al borde de emisión, que existe justo para
+	// esto, no llegó a dispararse ni una vez porque está condicionada a
+	// `STATE_READY` — y el reproductor nunca salió de `STATE_BUFFERING`.
+	//
+	// Esa guarda es correcta para un rebuffer de dos segundos y exactamente
+	// contraria para uno de siete horas. Lo que faltaba era distinguir por
+	// duración, y eso necesita un reloj: el latido.
+
+	private var atascadoDesdeMs = 0L
+	private var ultimoEscalonMs = 0L
+	private var escalon = 0
+	private var recuperaciones = 0
+
 	// Estado observado, para el overlay de stats
 	private var videoDecoder: String? = null
 	private var audioDecoder: String? = null
@@ -351,6 +369,8 @@ class Media3LiveEngine(
 		val huecosNuevos = huecosAhora - huecosEnElLatidoAnterior
 		huecosEnElLatidoAnterior = huecosAhora
 
+		vigilar(exo, s)
+
 		val c = ultimaCarga
 		// La carga del sistema solo se anota donde el kernel la deja leer: en
 		// Android 11 `/proc/loadavg` da EACCES, y repetir `carga1=null` en cada
@@ -377,6 +397,96 @@ class Media3LiveEngine(
 			"ramLibreMb" to c?.ramAvailableMb,
 			"anchoBandaKbps" to s.bandwidthBps / 1000,
 		)
+	}
+
+	/**
+	 * Decide si hay que rescatar la reproducción, y con qué dureza.
+	 *
+	 * Sube de escalón solo si el anterior no sirvió, y **no se rinde nunca**:
+	 * un canal caído por lluvia vuelve solo cuando vuelve la señal, sin que el
+	 * abonado toque nada (CLAUDE.md §6).
+	 */
+	private fun vigilar(exo: ExoPlayer, s: EngineStats) {
+		if (dev.watchdogDisabled) return
+
+		// Atascado = no avanza la posición. Vale tanto si está almacenando como
+		// si dice estar reproduciendo: el 30-sep decía `reproduciendo=true` con
+		// la imagen muerta, así que el estado del player no basta por sí solo.
+		val atascado = s.msSinceProgress > LiveTuning.WATCHDOG_STALL_MS &&
+			exo.playbackState != Player.STATE_IDLE
+
+		val ahora = System.currentTimeMillis()
+
+		if (!atascado) {
+			if (atascadoDesdeMs != 0L) {
+				LiveLog.info(
+					"vigilante.recuperado",
+					"segundosAtascado" to (ahora - atascadoDesdeMs) / 1000,
+					"escalonAlcanzado" to escalon,
+				)
+			}
+			atascadoDesdeMs = 0L
+			escalon = 0
+			return
+		}
+
+		if (atascadoDesdeMs == 0L) {
+			atascadoDesdeMs = ahora
+            LiveLog.warn(
+				"vigilante.atascado",
+				"estado" to estadoLegible(exo.playbackState),
+				"bufferS" to "%.1f".format(s.bufferedMs / 1000.0),
+				"directoS" to "%.1f".format(s.liveOffsetMs / 1000.0),
+				"sinAvanzarMs" to s.msSinceProgress,
+			)
+		}
+
+		if (ahora - ultimoEscalonMs < LiveTuning.WATCHDOG_STEP_COOLDOWN_MS) return
+		ultimoEscalonMs = ahora
+		escalon++
+		recuperaciones++
+
+		// Tres escalones y vuelta a empezar. Reconstruir el reproductor es lo
+		// más caro y lo que más tarda en verse, así que es el último.
+		when (((escalon - 1) % 3) + 1) {
+			1 -> {
+				LiveLog.warn("vigilante.saltaAlBorde", "intento" to escalon)
+				runCatching { exo.seekToDefaultPosition() }
+					.onFailure { LiveLog.error("vigilante.saltoFallido", it) }
+			}
+
+			2 -> {
+				LiveLog.warn("vigilante.rehacePreparacion", "intento" to escalon)
+				// Relee el playlist desde cero: garantiza caer dentro de la
+				// ventana actual, que es de lo que el salto no puede fiarse si
+				// la posición quedó fuera de ella.
+				runCatching {
+					exo.seekToDefaultPosition()
+					exo.prepare()
+				}.onFailure { LiveLog.error("vigilante.preparacionFallida", it) }
+			}
+
+			else -> {
+				LiveLog.warn("vigilante.reconstruye", "intento" to escalon)
+				val canal = channel
+				val plan = plan
+				if (canal == null || plan == null) {
+					LiveLog.error("vigilante.sinCanal", null, "intento" to escalon)
+					return
+				}
+				runCatching {
+					pararLatido()
+					player?.release()
+					player = null
+					prepare(canal, plan)
+					play()
+				}.onFailure { LiveLog.error("vigilante.reconstruccionFallida", it) }
+			}
+		}
+
+		listeners.forEach {
+			it.onRecoverableError("vigilante.escalon$escalon", null)
+		}
 	}
 
 	private fun estadoLegible(state: Int): String = when (state) {
@@ -445,6 +555,9 @@ class Media3LiveEngine(
 			measuredFps = measuredFps(ahora),
 			frameGapCount = releaseGapCount,
 			maxFrameGapMs = maxReleaseGapMs,
+
+			recovering = atascadoDesdeMs != 0L,
+			recoveryAttempts = recuperaciones,
 
 			cpuPercent = ultimaCarga?.cpuPercent ?: 0f,
 			loadAvg1 = ultimaCarga?.loadAvg1,

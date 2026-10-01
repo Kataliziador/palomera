@@ -62,9 +62,33 @@ class DevOptions(context: Context) {
 		get() = prefs.getBoolean(K_TS_AUD, false)
 		set(v) = put { putBoolean(K_TS_AUD, v) }
 
+	/**
+	 * **Activo de fábrica desde el 01-oct**, con el visto bueno de Edgar.
+	 *
+	 * `estrellashd` no emite ni un solo fotograma IDR —medido el 26-sep: 277
+	 * slices no-IDR, 0 IDR, 4 Recovery Point— y sin este flag el canal no
+	 * arranca. Barrido sobre los seis canales el 26-sep y A/B de tres sintonías
+	 * el mismo día: no perjudica a ninguno, porque el flag solo lo consume el
+	 * lector de H.264 cuando no halla IDR.
+	 *
+	 * Que esté apagado es ahora la desviación, no al revés: dejarlo así rompe
+	 * un canal y además impide que el vigilante lo recupere tras un corte, ya
+	 * que no hay IDR donde reengancharse.
+	 */
 	var tsAllowNonIdrKeyframes: Boolean
-		get() = prefs.getBoolean(K_TS_NONIDR, false)
+		get() = prefs.getBoolean(K_TS_NONIDR, true)
 		set(v) = put { putBoolean(K_TS_NONIDR, v) }
+
+	/**
+	 * Vigilante de recuperación. **Activo de fábrica.**
+	 *
+	 * El interruptor existe para poder reproducir el comportamiento anterior,
+	 * que era quedarse congelado indefinidamente: el 30-sep fueron siete horas
+	 * y cuarto de imagen muerta con el buffer lleno.
+	 */
+	var watchdogDisabled: Boolean
+		get() = prefs.getBoolean(K_WATCHDOG_OFF, false)
+		set(v) = put { putBoolean(K_WATCHDOG_OFF, v) }
 
 	/**
 	 * Devuelve el umbral de playlist detenido al valor de Media3 (3.5), para
@@ -165,8 +189,8 @@ class DevOptions(context: Context) {
 	val isDegraded: Boolean
 		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
 			playlistStuckMedia3Default || liveEdgeResyncDisabled || tunnelingEnabled ||
-			wideTimestampSearch ||
-			tsDetectAccessUnits || tsAllowNonIdrKeyframes ||
+			wideTimestampSearch || watchdogDisabled ||
+			tsDetectAccessUnits || !tsAllowNonIdrKeyframes ||
 			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
 			maxBufferOverrideMs != null
 
@@ -179,7 +203,8 @@ class DevOptions(context: Context) {
 		if (tunnelingEnabled) add("tunneled")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (tsDetectAccessUnits) add("AUD=on")
-		if (tsAllowNonIdrKeyframes) add("nonIDR=on")
+		if (!tsAllowNonIdrKeyframes) add("nonIDR=OFF")
+		if (watchdogDisabled) add("sin vigilante")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
 		minBufferOverrideMs?.let { add("minBuf=${it}ms") }
 		maxBufferOverrideMs?.let { add("maxBuf=${it}ms") }
@@ -224,6 +249,7 @@ class DevOptions(context: Context) {
 		const val K_WIDE_SEARCH = "wideTimestampSearch"
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
+		const val K_WATCHDOG_OFF = "watchdogDisabled"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"
 		const val K_MIN_BUFFER = "minBufferOverrideMs"
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"

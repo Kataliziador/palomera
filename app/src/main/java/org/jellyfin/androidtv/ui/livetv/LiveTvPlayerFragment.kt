@@ -18,9 +18,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -221,6 +225,30 @@ private fun LivePlayer(channelId: String?) {
 				.align(Alignment.BottomStart)
 				.padding(24.dp),
 		)
+
+		// Lo que el abonado ve mientras el vigilante trabaja.
+		//
+		// Es el sustituto del letrero del headend, y es mejor sitio para él:
+		// no depende de Flussonic, no puede romper el flujo, no hay que
+		// mantenerlo en 120 canales y lleva la marca de cada ISP. El letrero
+		// en el servidor convirtió un corte temporal en un canal detenido
+		// (LIVETV_LOG, 01-oct); esto no puede hacer eso.
+		if (stats.recovering) {
+			Column(
+				modifier = Modifier
+					.align(Alignment.Center)
+					.background(Color.Black.copy(alpha = 0.78f), RoundedCornerShape(10.dp))
+					.padding(horizontal = 36.dp, vertical = 24.dp),
+				horizontalAlignment = Alignment.CenterHorizontally,
+			) {
+				Text(text = "Sin señal", color = Color.White, fontSize = 30.sp)
+				Text(
+					text = "Reconectando…",
+					color = Color(0xFFBDBDBD),
+					fontSize = 15.sp,
+				)
+			}
+		}
 
 		when (dev.overlayMode) {
 			DevOptions.OVERLAY_COMPACTO -> LiveTvCompactOverlay(
