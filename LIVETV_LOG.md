@@ -218,11 +218,12 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
+| 34 | **`mono.m3u8` solo expone una pista de audio a Media3** | **M / §6** | el segmento trae dos PIDs y la app ve una; `index.m3u8` ve las tres. Cuesta ~180 ms de primer fotograma y una conexión. Decisión de Edgar: es §6 cerrada y es Modo A |
 | 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
 | 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
 | ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
-| 29 | **`audioDefault` se interpreta pero no se aplica** | B4 | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
+| 29 | **`audioDefault` se aplica, pendiente de validación** | **M** | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
@@ -232,6 +233,100 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [M] `audioDefault` se aplica — y de paso, `mono.m3u8` oculta las otras pistas — 2026-10-02 — **pendiente de validación**
+
+Modo A. Detrás del interruptor «Idioma de audio del config.json» del menú, **de
+fábrica apagado**, que es el comportamiento anterior.
+
+#### No se delega en Media3, y la razón es medible
+
+Lo obvio era `setPreferredAudioLanguages("spa")` y dejar que Media3 case. **No
+habría funcionado donde más falta hace:** `estrellashd` y `estrellassd` etiquetan
+el español como `esl`, que no es un código ISO. Media3 no lo casa con `spa` y la
+preferencia se quedaría muda justo en los canales donde el dato existe.
+
+La normalización es nuestra (`LanguageNormalizer`, que acepta `spa esp esl es
+spanish castellano`), así que la comparación también. Verificado:
+
+```
+tracks.crudo … audio[esl/mp4a-latm*]
+audio.pistas cuantas=1 idiomas=[spa]
+audio.porDefectoYaActivo canal=estrellashd idioma=spa
+```
+
+La pista cruda es `esl`, se reconoce como `spa` y **no se conmuta nada**, que es
+lo correcto. Con el emparejamiento de Media3 esto habría fallado en silencio.
+
+#### Y conmuta de verdad
+
+Con `discoveryhd` pidiendo `eng`:
+
+```
+audio.pistas cuantas=3 idiomas=[spa, spa, eng]
+audio.porDefectoAplicado canal=discoveryhd pedido=eng antes=spa
+tracks.crudo … audio[es] | audio[es] | audio[en*]     ← el asterisco se movió
+```
+
+#### Dos defectos de mi propio diseño, encontrados al probar
+
+**Me rendía demasiado pronto.** Marcaba «resuelto» aunque la pista pedida no
+estuviera, así que si el segundo audio llegaba un segundo después —y en un canal
+de cine **aparece y desaparece con el programa**, medido el 01-oct— ya no se
+volvía a intentar. Ahora se reintenta en cada cambio de pistas; lo que se da una
+sola vez es el aviso.
+
+**Y podía pelearse con el abonado.** Si alguien se pasaba a inglés a mano y el
+canal cambiaba de pistas, se lo devolvíamos a español. Ahora `selectAudioTrack`
+cierra la puerta: quien elige, manda.
+
+---
+
+### `mono.m3u8` solo expone **una** pista de audio a Media3 — 2026-10-02
+
+Esto salió al intentar validar lo anterior, y es más grande.
+
+**El segmento tiene dos PIDs de audio.** Medido sobre un segmento descargado de
+`discoveryhd`:
+
+```
+id=0xdd  aac  TAG:language=spa
+id=0xde  aac  TAG:language=eng
+id=0xd3  h264
+```
+
+**Y la app ve una sola pista**, consistentemente, durante 50 s de observación:
+`audio.pistas cuantas=1 idiomas=[spa]`. No es el audio intermitente del 01-oct:
+el stream las tiene **ahora** y ffprobe las ve.
+
+**El mismo canal por `index.m3u8` las ve todas:**
+
+| endpoint | lo que ve la app |
+|---|---|
+| `mono.m3u8` | `cuantas=1 idiomas=[spa]` |
+| `index.m3u8` | `cuantas=3 idiomas=[spa, spa, eng]` |
+
+La diferencia está en cómo se declaran: `index.m3u8` las publica como
+`EXT-X-MEDIA` separadas, con su propia URI, y Media3 las trata como renditions.
+En `mono.m3u8` van multiplexadas en el mismo TS y el extractor solo expone una.
+
+**Corrige la entrada del 01-oct.** Aquella decía «`mono.m3u8` sí entrega las dos
+pistas» con una tabla que daba `spa, spa, eng` en ambas columnas. Esa columna
+estaba mal: `spa, spa, eng` es exactamente lo que da `index.m3u8` hoy, y
+`mono.m3u8` da una. El endpoint nunca se comparó bien.
+
+**Afecta a una decisión cerrada de `CLAUDE.md` §6**, que fija `mono.m3u8`
+«media playlist directo, no el master». El motivo era simplicidad y evitar ABR;
+el costo, que se desconoció, es **quedarse sin el segundo audio en HBO y
+Discovery**, que es una función de producto.
+
+**Usar `index.m3u8` no reintroduce ABR:** el master de estos canales declara un
+solo `EXT-X-STREAM-INF`, o sea una sola calidad. Lo medido el 01-oct da ~180 ms
+más de primer fotograma y una conexión más.
+
+**No se cambia nada sin Edgar.** Es §6 y es Modo A. Pendiente #34.
+
+**Estado:** abierta — falta la validación en pantalla.
 
 ### [B] El contrato crece: aviso, canal por defecto, alias, no disponible — 2026-10-02
 

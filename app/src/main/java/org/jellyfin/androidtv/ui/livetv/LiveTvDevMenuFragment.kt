@@ -193,6 +193,17 @@ private fun DevMenu() {
 			Info("Apagarlo reproduce el fallo del 30-sep: congelado indefinidamente con el buffer lleno.")
 		}
 
+		item {
+			Row(
+				label = "Idioma de audio del config.json",
+				value = if (dev.audioDefaultEnabled) "SE APLICA" else "no se aplica (fábrica)",
+				changed = dev.audioDefaultEnabled,
+			) { change { dev.audioDefaultEnabled = !dev.audioDefaultEnabled } }
+		}
+		item {
+			Info("Encendido, al sintonizar se elige la pista que pide audioDefault. Se nota en HBO y Discovery, que traen español e inglés.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(

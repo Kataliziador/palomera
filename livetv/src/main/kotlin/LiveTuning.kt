@@ -229,6 +229,16 @@ object LiveTuning {
 	 * todos los sites a la vez que la APK, así que se cambia **antes** del
 	 * primer despliegue o no se cambia.
 	 */
+	/**
+	 * Aplicar `audioDefault` del `config.json` al sintonizar.
+	 *
+	 * **De fábrica apagado**, que es el comportamiento anterior: arranca la
+	 * pista que elija Media3. Se enciende desde el menú para validarlo en
+	 * pantalla (`CLAUDE.md` §3), y el valor de fábrica se invierte cuando Edgar
+	 * lo apruebe.
+	 */
+	const val AUDIO_DEFAULT_ENABLED = false
+
 	const val CHANNEL_SERVICE_PORT = 8097
 
 	/** Ruta del `config.json` dentro del servicio de canales. */

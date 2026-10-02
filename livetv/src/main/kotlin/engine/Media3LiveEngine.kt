@@ -66,6 +66,19 @@ class Media3LiveEngine(
 	/** El aviso de audio sin normalizar se da una vez por sintonía, no por evento. */
 	private var audioYaRevisado = false
 
+	/**
+	 * El idioma por defecto se aplica **una vez por sintonía**.
+	 *
+	 * Si se reaplicara en cada `onTracksChanged`, a quien cambiara el audio a
+	 * inglés a mano se lo devolveríamos a español en cuanto el canal cambiara
+	 * de pistas —que en este lineup pasa al cambiar de programa—. Elegir por él
+	 * una vez es ayuda; hacerlo dos es pelearse con él.
+	 */
+	private var audioPorDefectoAplicado = false
+
+	/** El aviso de «no está la pista pedida» se da una vez, el intento no. */
+	private var audioPorDefectoAvisado = false
+
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
 	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
 
@@ -222,6 +235,8 @@ class Media3LiveEngine(
 		audioTracks = emptyList()
 		selectedAudio = null
 		audioYaRevisado = false
+		audioPorDefectoAplicado = false
+		audioPorDefectoAvisado = false
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
@@ -572,6 +587,10 @@ class Media3LiveEngine(
 	 * desempate— y nunca por índice (regla 6).
 	 */
 	override fun selectAudioTrack(track: AudioTrackRef) {
+		// Quien elige, manda. A partir de aquí el idioma por defecto no vuelve
+		// a tocar nada en esta sintonía: si alguien se pasó a inglés a mano, no
+		// se le devuelve a español porque el canal cambie de programa.
+		audioPorDefectoAplicado = true
 		aplicarPista(track, gruposDeAudio, C.TRACK_TYPE_AUDIO, "audio")
 	}
 
@@ -1013,6 +1032,7 @@ class Media3LiveEngine(
 			gruposDeAudio = mapaAudio
 			selectedAudio = seleccionada
 			revisarNormalizacionDeAudio(mimeAudio)
+			aplicarAudioPorDefecto(encontradas, seleccionada)
 			notify { it.onAudioTracksChanged(encontradas) }
 		}
 
@@ -1161,6 +1181,60 @@ class Media3LiveEngine(
 	 * pruebas —que trae MPEG-2 por hardware— nunca recorrería los pasos bajos
 	 * de la cascada, y esos pasos llegarían a producción sin probarse.
 	 */
+	/**
+	 * Selecciona la pista de audio que pide el `config.json`.
+	 *
+	 * **No se delega en el emparejamiento de idioma de Media3**, y la razón es
+	 * concreta: `estrellashd` y `estrellassd` etiquetan el español como `esl`,
+	 * que no es un código ISO. Media3 no lo casaría con `spa` y la preferencia
+	 * se quedaría sin efecto justo en los canales donde el dato existe. La
+	 * normalización es nuestra (`LanguageNormalizer`), así que la comparación
+	 * también tiene que serlo.
+	 *
+	 * **No toca nada si ya suena lo pedido**, que es el caso de cuatro de los
+	 * seis canales —una sola pista— y evita una conmutación inútil al arrancar.
+	 */
+	private fun aplicarAudioPorDefecto(pistas: List<AudioTrackRef>, actual: AudioTrackRef?) {
+		if (audioPorDefectoAplicado) return
+		if (!dev.audioDefaultEnabled) return
+
+		val pedido = LanguageNormalizer.normalize(channel?.audioDefault) ?: return
+		if (pistas.isEmpty()) return
+
+		if (LanguageNormalizer.normalize(actual?.language) == pedido) {
+			audioPorDefectoAplicado = true
+			LiveLog.debug("audio.porDefectoYaActivo", "canal" to channel?.id, "idioma" to pedido)
+			return
+		}
+
+		val destino = pistas.firstOrNull { LanguageNormalizer.normalize(it.language) == pedido }
+		if (destino == null) {
+			// **No se da por resuelto.** El segundo audio de un canal de cine
+			// aparece y desaparece con el programa (medido el 01-oct), así que
+			// rendirse en el primer `onTracksChanged` sería rendirse justo
+			// cuando todavía no había llegado. Se reintenta en cada cambio de
+			// pistas; lo que se da una sola vez es el aviso.
+			if (!audioPorDefectoAvisado) {
+				audioPorDefectoAvisado = true
+				LiveLog.info(
+					"audio.porDefectoNoDisponible",
+					"canal" to channel?.id,
+					"pedido" to pedido,
+					"hay" to pistas.mapNotNull { LanguageNormalizer.normalize(it.language) },
+				)
+			}
+			return
+		}
+
+		LiveLog.info(
+			"audio.porDefectoAplicado",
+			"canal" to channel?.id,
+			"pedido" to pedido,
+			"antes" to LanguageNormalizer.normalize(actual?.language),
+		)
+		selectAudioTrack(destino)
+	}
+
 	/**
 	 * Avisa cuando el audio de un canal **no llegó normalizado a AAC**.
 	 *

@@ -172,6 +172,16 @@ class DevOptions(context: Context) {
 	 * que era quedarse congelado indefinidamente: el 30-sep fueron siete horas
 	 * y cuarto de imagen muerta con el buffer lleno.
 	 */
+	/**
+	 * Aplica el idioma de audio que pide el `config.json` al sintonizar.
+	 *
+	 * **Apagado de fábrica**: el comportamiento anterior es que arranque la
+	 * pista que elija Media3. Se enciende aquí para validarlo en pantalla.
+	 */
+	var audioDefaultEnabled: Boolean
+		get() = prefs.getBoolean(K_AUDIO_DEFAULT, LiveTuning.AUDIO_DEFAULT_ENABLED)
+		set(v) = put { putBoolean(K_AUDIO_DEFAULT, v) }
+
 	var watchdogDisabled: Boolean
 		get() = prefs.getBoolean(K_WATCHDOG_OFF, false)
 		set(v) = put { putBoolean(K_WATCHDOG_OFF, v) }
@@ -319,6 +329,7 @@ class DevOptions(context: Context) {
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
+		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (prefs.contains(K_TS_AUD)) add("AUD=${if (tsDetectAccessUnits) "on" else "off"}")
 		if (prefs.contains(K_TS_NONIDR)) add("nonIDR=${if (tsAllowNonIdrKeyframes) "ON" else "OFF"}")
@@ -369,6 +380,7 @@ class DevOptions(context: Context) {
 		const val K_TS_AUD = "tsDetectAccessUnits"
 		const val K_TS_NONIDR = "tsAllowNonIdrKeyframes"
 		const val K_WATCHDOG_OFF = "watchdogDisabled"
+		const val K_AUDIO_DEFAULT = "audioDefaultEnabled"
 		const val K_TARGET_OFFSET = "targetOffsetOverrideMs"
 		const val K_MIN_BUFFER = "minBufferOverrideMs"
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"
@@ -378,7 +390,7 @@ class DevOptions(context: Context) {
 		private val CLAVES_DEL_MENU = listOf(
 			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_CONFIG_URL, K_STUCK_DEFAULT, K_NO_RESYNC,
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
-			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER,
+			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 		)
 
 		const val OVERLAY_OCULTO = 0
