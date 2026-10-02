@@ -308,6 +308,34 @@ Consulta al registro antes de derivar por convención (`REGISTRY_SCHEMA.md`).
 y que una caja entre sin tocar la app; quitarlo y que se cierre con su mensaje
 al caducar. Y con el registro apagado, una caja ya autorizada sigue entrando.
 
+### Lo que pide el proyecto del autorizador
+
+Entregado el 02-oct en `/home/proyectos/autorizador/docs/PETICION_APK.md`. El
+contrato no cambia; esto es lo que `INTEGRACION_REGISTRO.md` §7 dejaba abierto.
+
+- `REGISTRY_URL` en `BuildConfig`: **dominio, no IP** —mudar el servidor tiene
+  que ser un registro DNS, no una APK—, HTTPS sin puerto, y el código compone
+  `+ "/v1/resolve"`. Más el override del menú para apuntar a un registro de
+  pruebas.
+- Tiempos de ~10 s: si no contesta, la app ya sabe degradarse y esperar más solo
+  retrasa la entrada a TV en vivo.
+- **Confianza en ISRG Root X1/X2 incluida en la app, solo para el registro.**
+  `minSdk` es **21** y Android no trae esa raíz hasta la 7.1.1, así que una caja
+  de Android 5.0–7.1.0 **nunca conseguiría autorización** — y no daría error
+  visible: simplemente no entraría nunca a TV en vivo, que es el reporte más
+  caro de diagnosticar. `network_security_config.xml` no vale: Android lo ignora
+  por debajo de API 24, justo donde está el problema. Tiene que ser un
+  `X509TrustManager` que confíe en **el sistema o en las incluidas**, nunca uno
+  que acepte todo.
+- Lo mismo para el cliente OkHttp de Coil, o la autorización funcionaría y el
+  logo de la marca no.
+
+**Añadido desde este lado, que allí no podían ver:** `ConfigRepository` usa
+`HttpURLConnection`, así que **el mismo fallo alcanza al `config.json`** si un
+site lo sirve por HTTPS con Let's Encrypt. En la LAN lo normal será `http`, pero
+un ISP que publique su Jellyfin hacia fuera se lleva el problema entero. El
+arreglo debe cubrir las dos conexiones, no solo la del registro.
+
 ## B6 — Telemetría
 **Dos capas que no se mezclan** (`CLAUDE.md` §8):
 

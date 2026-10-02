@@ -219,6 +219,7 @@ un frame congelado.
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
+| 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. Alcanza también al `config.json` si un site lo sirve por HTTPS. Pedido en `autorizador/docs/PETICION_APK.md` |
 | 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
 | 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
@@ -233,6 +234,62 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [B] Sin lista de arranque en producción, y una petición del autorizador — 2026-10-02
+
+#### Los seis canales de desarrollo no pueden viajar en la APK de un abonado
+
+Recordatorio de Edgar: los canales los sirve el miniservicio del site; la lista
+pegada es solo para estas pruebas. Al mirarlo, el último recurso estaba mal.
+
+`LIVETV_BOOTSTRAP_CHANNELS` se compilaba en **todas** las variantes, con las
+URLs del Flussonic de desarrollo. En la caja de un abonado cuyo site no
+responde, eso son **seis canales fantasma** —con nombres de otro headend y URLs
+muertas— justo en el momento en que todo falla. Es peor que no enseñar nada,
+porque parece que la app funciona.
+
+Ahora la lista existe **solo en depuración**. Verificado sobre los dex de las
+dos variantes:
+
+```
+depuración: 22 dex, URLs de desarrollo = 2
+release:     6 dex, URLs de desarrollo = 0
+```
+
+> Nota de método: la primera comprobación miró **un solo** `classes.dex` y el
+> APK es multidex. Daba el resultado correcto por casualidad. Se rehízo sobre
+> `classes*.dex`.
+
+Y el estado vacío deja de decir «No hay canales que mostrar» cuando lo que pasó
+es que no se pudo hablar con el servidor: **son dos situaciones distintas** y la
+primera manda a buscar donde no es.
+
+#### Petición del proyecto del autorizador
+
+`/home/proyectos/autorizador/docs/PETICION_APK.md`, para B9. El contrato no
+cambia. Lo sustancioso:
+
+**`minSdk` es 21 y el certificado del registro lo emite Let's Encrypt.** Android
+no trae ISRG Root X1 hasta la 7.1.1, así que una caja de 5.0–7.1.0 **nunca
+conseguiría autorización**. Y no fallaría de forma visible: simplemente no
+entraría nunca a TV en vivo, mientras otras cajas del mismo ISP sí. Verificado
+que `minSdk = 21` en `libs.versions.toml`.
+
+El arreglo pedido es un `X509TrustManager` que confíe en **el sistema o en las
+raíces incluidas**, solo para esa conexión. Bien razonado: `network_security_config.xml`
+no sirve porque Android lo ignora por debajo de API 24 —justo donde está el
+problema— y un `TrustManager` que acepte todo abriría la puerta a que cualquiera
+en la red del ISP se haga pasar por el registro.
+
+**Lo que añadí desde este lado:** `ConfigRepository` usa `HttpURLConnection`,
+así que **el mismo fallo alcanza al `config.json`** si un site lo sirve por
+HTTPS con Let's Encrypt. Desde el autorizador no podían verlo. El arreglo tiene
+que cubrir las dos conexiones.
+
+**No se implementa todavía:** B9 no existe. Queda anotado en el plan para que se
+haga con él y no después.
+
+**Estado:** cerrada la parte de la lista de arranque; la petición, registrada.
 
 ### [M] El endpoint pasa a `index.m3u8` — 2026-10-02 — **pendiente de validación**
 

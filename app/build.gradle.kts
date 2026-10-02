@@ -88,6 +88,13 @@ android {
 
 			buildConfigField("boolean", "DEVELOPMENT", "false")
 
+			// **Sin lista de arranque en producción.** Los seis canales del
+			// `defaultConfig` apuntan al Flussonic de desarrollo: en la caja de
+			// un abonado serían seis canales fantasma, con nombres de otro
+			// headend y URLs muertas, justo cuando su site no responde. Es
+			// peor que no enseñar nada, porque parece que la app funciona.
+			buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNELS", "\"\"")
+
 			signingConfig = signingConfigs.findByName("release")
 		}
 

@@ -198,7 +198,19 @@ private fun ChannelRow(
 			Spacer(modifier = Modifier.height(16.dp))
 
 			if (secciones.isEmpty()) {
-				Text(text = "No hay canales que mostrar.", color = Color(0xFF9E9E9E))
+				// Sin canales hay dos situaciones distintas y conviene no
+				// confundirlas: el servidor contestó una lista vacía —raro,
+				// pero suyo— o no se pudo hablar con él. Lo segundo es lo que
+				// va a pasar en un site mal configurado, y decir «no hay
+				// canales» ahí manda a buscar donde no es.
+				Text(
+					text = when (catalog.origin) {
+						ConfigOrigin.NINGUNO ->
+							"No se pudo cargar la lista de canales de este servidor."
+						else -> "No hay canales que mostrar."
+					},
+					color = Color(0xFF9E9E9E),
+				)
 			} else {
 				LiveTvChannelGrid(
 					sections = secciones,
