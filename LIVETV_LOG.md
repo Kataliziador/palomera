@@ -230,6 +230,55 @@ un frame congelado.
 
 ## Entradas
 
+### Tres proyectos en sintonía, y el mecanismo para que siga pasando — 2026-10-02
+
+Al montar el autorizador quedaron tres repositorios que dependen de un contrato
+que vive en uno de ellos. Eso se desincroniza solo si no se diseña para no
+hacerlo.
+
+**Los contratos los escribe este proyecto**, porque es quien decide qué sabe
+leer. Los otros dos llevan una **copia** con el commit del que salió y el comando
+para comprobar si se quedaron atrás:
+
+```bash
+git -C /home/proyectos/jellyfin-livetv-v1 log --oneline -1 -- CONFIG_SCHEMA.md
+```
+
+**Y la regla que lo sostiene, en `CLAUDE.md` §1:** si cambia un contrato, o
+cambia el comportamiento que describen los `INTEGRACION_*.md` —tiempos de espera,
+escalera de respaldo, qué se descarta, qué se mide— se actualiza el documento de
+integración **en el mismo commit**. Un documento de integración desfasado es peor
+que no tenerlo: se cree.
+
+#### Por qué los contratos no bastaban
+
+`CONFIG_SCHEMA.md` dice **qué** emitir. No dice que la app espera 5 s y 10 s y no
+reintenta —así que generar el `config.json` a demanda es mala idea—, ni que un
+canal descartado **no se ve en pantalla**, solo en el log, ni que una lista vieja
+gana a ninguna, ni que `logoUrl` y `audioDefault` se leen y no se usan todavía.
+
+Eso es lo que llevan los dos documentos nuevos, uno por consumidor:
+
+- `INTEGRACION_CANALES.md` — cuándo pregunta, la escalera de respaldo, qué se
+  descarta en silencio y qué tira el documento entero, qué mide la app y prefiere
+  sobre lo declarado, lo que no va a hacer nunca, y el procedimiento completo
+  para probar contra una caja con las líneas de log que son el veredicto.
+- `INTEGRACION_REGISTRO.md` — lo mismo para el autorizador, con un apartado
+  dedicado a la normalización del host, que es donde se rompe esta integración:
+  falla **para unos clientes y no para otros**, que es el síntoma más caro de
+  diagnosticar. Las doce pruebas de `ServiceUrlTest` son su especificación
+  ejecutable y se piden como pruebas del otro lado.
+
+#### Un cabo que el autorizador no puede resolver solo
+
+**Su dirección va compilada en la APK.** La app tiene que saber a quién preguntar
+antes de preguntar nada, así que no puede venir del registro. Cambiarla después
+del primer despliegue exige una versión para todos los ISPs a la vez. Quedó como
+hallazgo abierto en ese proyecto: elegir el dominio antes de producción, y uno
+que no ate a un proveedor.
+
+**Estado:** cerrada. Sin tocar código.
+
 ### El registro de sites: lo que compra no es lo que parece — 2026-10-02
 
 Edgar propuso un autorizador en la nube: la APK pregunta si el host que escribió

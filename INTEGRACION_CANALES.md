@@ -1,0 +1,211 @@
+# INTEGRACION_CANALES.md
+
+**Para quien desarrolla el servicio de canales** (`/home/proyectos/servidor-canales`).
+
+`CONFIG_SCHEMA.md` dice **qué** emitir. Este documento dice **cómo se comporta
+la APK de verdad** cuando lo recibe: cuándo pregunta, qué hace con cada cosa,
+cómo se degrada y qué no va a hacer nunca.
+
+Leerlo antes de implementar algo que toque la salida.
+
+---
+
+## 1. Si el contrato cambió
+
+```bash
+git -C /home/proyectos/jellyfin-livetv-v1 log --oneline -1 -- CONFIG_SCHEMA.md
+```
+
+Si no coincide con el commit de la cabecera de tu `docs/CONTRATO.md`, cambió.
+Mira el diff antes de copiar:
+
+```bash
+git -C /home/proyectos/jellyfin-livetv-v1 log -p <tu-commit>..HEAD -- CONFIG_SCHEMA.md
+```
+
+**Los cambios de contrato son siempre compatibles hacia atrás**: campos nuevos,
+nunca significados distintos para campos existentes. Si alguna vez hace falta lo
+segundo, sube `version` y se avisa aquí.
+
+---
+
+## 2. Cuándo pregunta la APK, y cuántas veces
+
+**Una vez por entrada a la sección de canales**, no por arranque ni por canal.
+La app recuerda de qué URL cargó y no repite mientras no cambie.
+
+- Tiempo de espera: **5 s para conectar, 10 s para leer**. Un servicio que tarde
+  más se trata como caído.
+- **No hay reintentos.** Si falla, se usa la caché y se vuelve a intentar la
+  próxima vez que alguien entre a la sección.
+- Límite de **2 MB**, sobre la longitud declarada. **Declara `Content-Length`**:
+  una respuesta troceada se salta la comprobación.
+- No se envía ninguna cabecera especial. No hay autenticación (v1).
+
+**Consecuencia para el diseño:** generar el `config.json` **a demanda** es mala
+idea. Si tardas 12 s en consultar Flussonic, la app ya se rindió. Genera por tu
+cuenta, sirve un archivo ya hecho.
+
+---
+
+## 3. La escalera de respaldo
+
+La app nunca se queda sin lista. Por orden:
+
+```
+1. Registro de sites (channelsUrl)   → si dice dónde estás
+2. Derivar: host de Jellyfin, :8097  → la convención
+3. Caché de ese servidor             → lo último bueno que bajó
+4. Lista de arranque del BuildConfig → los seis canales de desarrollo
+```
+
+Dos cosas que esto implica y conviene tener presentes:
+
+- **Una lista vieja gana a ninguna.** Si tu servicio responde con un documento
+  roto, la app **conserva** la caché y sigue con ella. No se "limpia".
+- **Si la app acaba en el escalón 4, está enseñando canales de desarrollo**, con
+  URLs del Flussonic de pruebas. Sale en el log como `catalogo.desdeArranque`.
+  Si lo ves en un site de cliente, algo va muy mal.
+
+La caché se guarda **por servidor** (`config-<uuid>.json`). Una caja que cambie
+de site no hereda la lista de la anterior.
+
+---
+
+## 4. Qué hace la app con cada cosa, de verdad
+
+### Lo que descarta en silencio y lo que tira entero
+
+| Situación | Qué pasa |
+|---|---|
+| Falta `version` | **se rechaza el documento entero**, se conserva la caché |
+| No hay ni un canal utilizable | **se rechaza el documento entero** |
+| Un canal sin `id`, `name` o `url` | se descarta ese canal, el resto sigue |
+| URL que no empieza por `http`/`https` | se descarta ese canal |
+| `id` repetido | se descarta el segundo |
+| Grupo no declarado | el canal queda suelto, bajo «Otros» |
+| `version` mayor de la que entiende | **se usa igual**, ignorando lo que no reconoce |
+| Campo desconocido | se ignora en silencio |
+
+**Que un canal se descarte no es visible en pantalla.** Solo en el log
+(`config.canalDescartado indice=N motivo=…`). Un lineup con tres canales mal
+formados se ve como un lineup de tres canales menos, sin más.
+
+### El orden de la guía
+
+`number`, luego `order`, luego el nombre. Un canal sin `number` va después de
+todos los que sí lo traen.
+
+«Favoritos» no se declara: la app lo construye con lo que marque el abonado y va
+siempre primero. Un canal favorito aparece **dos veces**, arriba y en su grupo.
+
+### Lo que la app mide y prefiere sobre lo que digas
+
+- **La insignia HD** es `hd || alturaMedida >= 720`. Tu campo ayuda antes de
+  abrir el canal; después manda la medición.
+- **El códec** es una pista. Si el stream lo desmiente, manda el stream, la app
+  rehace su plan de decodificación y registra `plan.codecDiscrepante`. **Emítelo
+  igual**: la cascada decide antes de abrir el stream.
+- **El aspecto** sale del SAR del stream, nunca del `config.json`.
+
+---
+
+## 5. Lo que se interpreta pero todavía no se usa
+
+Emítelo de todas formas: el día que se implemente, los sites ya lo traerán y no
+habrá que volver a pasar por ellos.
+
+| Campo | Estado | Pendiente |
+|---|---|---|
+| `logoUrl` | se lee, **no se dibuja** | #28 |
+| `audioDefault` | se lee, **no se aplica** | #29 |
+
+**`audioDefault` es el que más se nota.** Hoy un canal con español e inglés
+arranca con la pista que elija Media3, no con la que digas. Está pendiente.
+
+---
+
+## 6. Lo que la APK no va a hacer
+
+No lo pidas ni lo diseñes esperándolo:
+
+- **No transcodifica nada.** Ni vídeo ni audio. Si llega en un códec que la caja
+  no decodifica, no suena.
+- **No lleva decoders de MP2, MP3 ni AC-3**, y no los va a llevar. Por eso la
+  regla del AAC no es una preferencia.
+- **No hace ABR.** Una sola calidad por canal: emite una URL, no un master.
+- **No lee el master `video.m3u8`.** El endpoint es `mono.m3u8`, media playlist
+  directo.
+- **No ejecuta nada que venga del servidor.** Ni código, ni plantillas, ni hojas
+  de estilo. Texto, números, listas e imágenes.
+- **No graba, no hace catch-up, no tiene DVR.**
+- **No consulta a Jellyfin para nada** relacionado con canales.
+
+---
+
+## 7. Cómo se prueba contra una caja
+
+### Apuntar una caja a tu máquina
+
+```bash
+D=192.168.20.132:5555
+adb connect $D
+
+cat > /tmp/livetv.dev.xml <<'XML'
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="configUrlOverride">http://TU_IP:8097/config.json</string>
+    <int name="overlayMode" value="1" />
+</map>
+XML
+
+adb -s $D shell am force-stop org.jellyfin.androidtv.debug
+adb -s $D push /tmp/livetv.dev.xml /data/local/tmp/d.xml
+adb -s $D shell run-as org.jellyfin.androidtv.debug sh -c \
+  "'cat /data/local/tmp/d.xml > /data/data/org.jellyfin.androidtv.debug/shared_prefs/livetv.dev.xml'"
+```
+
+`overlayMode 1` enciende el overlay compacto, que enseña decodificadores y
+códecs en pantalla. Quitar el override es borrar ese archivo.
+
+El override **usa su propia clave de caché**, así que apuntar una caja a tu
+portátil no le envenena la caché del site real.
+
+### El veredicto está en el log
+
+```bash
+adb -s $D logcat -v time | grep -i livetv
+```
+
+| Línea | Qué significa |
+|---|---|
+| `catalogo.destino url=… procedencia=…` | de dónde está leyendo |
+| `config.interpretada version=1 canales=6 grupos=4` | **lo entendió** |
+| `config.desdeRed canales=6` | lo bajó de ti, no de su caché |
+| `catalogo.listo origen=RED` | lo está enseñando |
+| `config.canalDescartado indice=N motivo=…` | un canal mal formado |
+| `config.grupoDesconocido canal=X grupo=Y` | grupo no declarado |
+| `config.malformada` | no se pudo interpretar; se quedó con la caché |
+| `config.desdeCache antiguedadHoras=N` | **no te llegó a leer** |
+| `audio.noNormalizado canal=X observado=…` | **se coló un canal sin AAC** |
+
+**Si no aparece `config.interpretada`, tu documento no sirve**, por bien que se
+vea en un navegador.
+
+### Sin caja
+
+El parser tiene pruebas y el esquema es estable, así que casi todo se caza
+validando el JSON contra el contrato en tus propias pruebas. La caja es para
+confirmar, no para iterar.
+
+---
+
+## 8. Si el contrato se te queda corto
+
+No lo amplíes por tu cuenta: la app ignoraría el campo nuevo y acabaríais con
+dos contratos.
+
+Pídelo en el proyecto de la APK, con el caso de uso concreto. Lo que se añade
+fácil: campos nuevos opcionales, `extras` para texto que solo se muestra. Lo que
+cuesta: cualquier cosa que necesite comportamiento nuevo en la app, que es una
+versión — una, para todos los ISPs.

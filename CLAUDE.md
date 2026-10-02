@@ -44,6 +44,31 @@ Documentos hermanos:
   APK. Lo que el miniservicio tiene que emitir.
 - `REGISTRY_SCHEMA.md` — contrato entre el registro de sites y la APK. Qué
   autoriza, qué liga y qué pasa cuando no contesta.
+- `INTEGRACION_CANALES.md` — cómo se comporta esta app, para quien escribe el
+  servicio de canales.
+- `INTEGRACION_REGISTRO.md` — lo mismo, para quien escribe el autorizador.
+
+### Tres proyectos, y este escribe los contratos
+
+| Proyecto | Ruta | Qué hace |
+|---|---|---|
+| APK | aquí | la app. **Escribe los contratos y los documentos de integración** |
+| Servicio de canales | `/home/proyectos/servidor-canales` | uno por ISP, en su site: lista, EPG y marca |
+| Autorizador | `/home/proyectos/autorizador` | uno en total, en internet: autoriza y liga |
+
+Los otros dos llevan una **copia** del contrato que les toca, con el commit del
+que salió. Comprueban si se quedaron atrás mirando el log de este repositorio.
+
+**Regla de sincronía:** si cambia `CONFIG_SCHEMA.md` o `REGISTRY_SCHEMA.md`, o
+cambia el comportamiento que describen los `INTEGRACION_*.md` —tiempos de
+espera, escalera de respaldo, qué se descarta, qué se mide— **se actualiza el
+`INTEGRACION_*.md` correspondiente en el mismo commit**. Ahí es donde el otro
+proyecto va a mirar, y un documento de integración desfasado es peor que no
+tenerlo: se cree.
+
+**Los contratos solo crecen hacia atrás compatible:** campos nuevos, nunca
+significados distintos para campos existentes. Si hiciera falta lo segundo, se
+sube `version` y se dice en el documento de integración.
 - `CHANNELS.md` — datos medidos de cada canal. Fuente de verdad, no adivines.
 - `LIVETV_ENGINE.md` — especificación del motor: cascada, capacidades, sintonía.
 - `LIVETV_PLAN.md` — fases de trabajo y criterios de cierre.
