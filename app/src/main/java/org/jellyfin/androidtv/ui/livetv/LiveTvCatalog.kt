@@ -8,13 +8,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.BuildConfig
+import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.livetv.config.ChannelGroup
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
+import org.jellyfin.livetv.config.ServiceUrl
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.diagnostics.ServerDeviceSettings
 import org.jellyfin.livetv.source.ChannelProfile
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Lo que la sección enseña: canales, grupos y de dónde salieron.
@@ -42,10 +46,11 @@ data class LiveCatalog(
  * y el reproductor tienen que ver exactamente los mismos canales, o abrir un
  * canal desde la lista llevaría a otro.
  */
-class LiveTvCatalog private constructor(context: Context) {
+class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 
-	private val repository = ConfigRepository(context, BuildConfig.LIVETV_CONFIG_URL)
+	private val repository = ConfigRepository(context)
 	private val dev = DevOptions.of(context)
+	private val servidores by inject<ServerRepository>()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
 	private val _state = MutableStateFlow(
@@ -57,20 +62,56 @@ class LiveTvCatalog private constructor(context: Context) {
 	)
 	val state: StateFlow<LiveCatalog> get() = _state
 
-	/** Para no repetir la descarga cada vez que se entra a la sección. */
+	/**
+	 * La última URL servida, para no repetir la descarga en cada entrada a la
+	 * sección **pero sí** rehacerla si la caja cambia de servidor.
+	 */
 	@Volatile
-	private var yaCargado = false
+	private var urlCargada: String? = null
 
 	fun refreshOnce() {
-		if (yaCargado) return
-		yaCargado = true
+		val (url, _) = destino()
+		if (urlCargada != null && urlCargada == url) return
 		refresh()
+	}
+
+	/**
+	 * A qué servidor de canales toca mirar, y bajo qué clave guardarlo.
+	 *
+	 * La URL **se deriva del host de Jellyfin** (`CLAUDE.md` §6): el servicio
+	 * de canales vive en la misma máquina, en su propio puerto. El menú puede
+	 * sustituirla para apuntar a un servidor de pruebas, y el `BuildConfig`
+	 * queda como último recurso para builds de desarrollo sin sesión.
+	 *
+	 * La clave de caché es el **identificador** del servidor, no su dirección,
+	 * para que un ISP que cambie de dominio no pierda su lista.
+	 */
+	private fun destino(): Pair<String?, String> {
+		val servidor = servidores.currentServer.value
+		val derivada = ServiceUrl.configDesdeServidor(servidor?.address)
+		val url = dev.configUrlOverride
+			?: derivada
+			?: BuildConfig.LIVETV_CONFIG_URL.takeIf { it.isNotBlank() }
+		val clave = servidor?.id?.toString() ?: "sin-servidor"
+		return url to clave
 	}
 
 	fun refresh() {
 		scope.launch {
 			_state.value = _state.value.copy(loading = true)
-			val resultado = repository.load()
+			val (url, clave) = destino()
+			urlCargada = url
+			LiveLog.info(
+				"catalogo.destino",
+				"url" to url,
+				"servidor" to clave,
+				"procedencia" to when {
+					dev.configUrlOverride != null -> "menú"
+					ServiceUrl.configDesdeServidor(servidores.currentServer.value?.address) != null -> "derivada de Jellyfin"
+					else -> "BuildConfig"
+				},
+			)
+			val resultado = repository.load(url, clave)
 			val config = resultado.config
 
 			// Los ajustes por modelo de caja se aplican **antes** de enseñar la

@@ -218,6 +218,7 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
+| 27 | **El inicio sigue consultando la LiveTV vieja de Jellyfin** | B | `GET /LiveTv/Programs/Recommended` al entrar. La sección vieja debe quedar inalcanzable (§4.5) y esa llamada contradice el invariante: gasta red, puede fallar en un Jellyfin sin TV y sugiere que la sección sigue viva |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -225,6 +226,70 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [B1] La URL de canales se deriva del host de Jellyfin — 2026-10-02
+
+Primer paso real de la arquitectura por site. Hasta hoy la URL venía de
+`BuildConfig.LIVETV_CONFIG_URL`, que está **vacía**: la caja llevaba días
+viviendo de una caché que no podía refrescar, y por eso estuvo horas con
+tunneled apagado sin que nadie lo notara.
+
+**La convención es el puerto, no una ruta.** Un puerto solo lo ocupa un
+proceso, así que el servicio de canales no puede escuchar en el de Jellyfin. Se
+eligió el puerto propio sobre una ruta tras proxy porque funciona haya nginx o
+no, y montar proxy en cada site es trabajo que no hace falta. Queda en
+`LiveTuning.CHANNEL_SERVICE_PORT = 8097`.
+
+**Lo que se descarta de la dirección y por qué.** Ruta, consulta, ancla y
+credenciales: Jellyfin puede estar en `https://tv.isp.mx/jellyfin` y el
+servicio sigue en `https://tv.isp.mx:8097`, misma máquina y otro proceso. El
+esquema **se conserva** —asumir `http` mataría la sección en un site con TLS, y
+asumir `https` en todos los demás— y una dirección sin esquema se rechaza en vez
+de adivinarse.
+
+Doce pruebas sobre `ServiceUrl`, que existen por cómo falla esto: un error aquí
+no se ve, porque la app cae a la caché o a la lista de arranque y **parece que
+funciona**, enseñando los canales de prueba en vez del lineup del ISP.
+
+**La caché pasa a ser por servidor**, `config-<uuid del servidor>.json`. Con la
+URL derivada, una caja que cambie de site heredaría la lista anterior: canales
+que ya no existen, apuntando a un Flussonic que no es el suyo. La clave es el
+identificador del servidor y no su dirección, para que un ISP que cambie de
+dominio no pierda su lista.
+
+**Override desde el menú** (`configUrlOverride`) para apuntar una caja a un
+servidor de pruebas sin tocar su Jellyfin. **Degrada**, a propósito: una caja
+mirando otro lineup no mide lo que parece.
+
+**Verificado en la caja, los tres caminos:**
+
+```
+# derivado, sin servicio levantado → respaldo
+catalogo.destino url=http://192.168.20.249:8097/config.json procedencia=derivada de Jellyfin
+config.descargaFallida … ConnectException
+catalogo.desdeArranque canales=6
+
+# override a un servidor de prueba → red
+catalogo.destino url=http://192.168.11.102:8097/config.json procedencia=menú
+config.desdeRed canales=6 · catalogo.listo origen=RED grupos=4
+engine.prepare … degradacion=config=manual
+
+# derivado otra vez, ya con caché del site → caché
+config.desdeCache canales=6 antiguedadHoras=0 · catalogo.listo origen=CACHE
+```
+
+Y el archivo en disco: `config-6c4a5bb5-b704-4a82-b1d0-54b3ab58aaca.json`.
+
+**Pendiente menor:** cada servidor que una caja vea deja su archivo de caché
+(2.6 KB). Acotado y sin consecuencia en producción —una caja ve un site— pero
+una caja de pruebas los acumula.
+
+**Visto de paso, sin tocar:** el inicio sigue pidiendo
+`/LiveTv/Programs/Recommended` al Jellyfin, o sea la sección LiveTV **vieja**
+del upstream sigue consultándose aunque sea inalcanzable (regla §4.5). No es
+regresión de este bloque. Pendiente #27.
+
+**Estado:** cerrada.
 
 ### Un servidor por site: la arquitectura cambia de forma — 2026-10-02
 

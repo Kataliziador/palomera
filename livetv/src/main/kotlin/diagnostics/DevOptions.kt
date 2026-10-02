@@ -120,6 +120,17 @@ class DevOptions(context: Context) {
 		get() = tresCapas(K_FORCE_SW, delServidor?.forceSoftwareVideo, LiveTuning.FORCE_SOFTWARE_VIDEO_DEFAULT)
 		set(v) = put { putBoolean(K_FORCE_SW, v) }
 
+	/**
+	 * Sustituye la URL del `config.json` derivada del host de Jellyfin.
+	 *
+	 * Existe para poder apuntar una caja a un servidor de canales de pruebas
+	 * sin tocar su Jellyfin. **Degrada**, y a propósito: una caja que mira a
+	 * otro lineup no está midiendo lo que parece.
+	 */
+	var configUrlOverride: String?
+		get() = prefs.getString(K_CONFIG_URL, null)?.takeIf { it.isNotBlank() }
+		set(v) = put { if (v.isNullOrBlank()) remove(K_CONFIG_URL) else putString(K_CONFIG_URL, v) }
+
 	/** `null` = cascada automática. Si no, `"media3"` o `"libvlc"`. */
 	var forcedEngine: String?
 		get() = prefs.getString(K_FORCED_ENGINE, null)
@@ -304,6 +315,7 @@ class DevOptions(context: Context) {
 		if (vetoedDecoders.isNotEmpty()) add("vetados=${vetoedDecoders.size}")
 		if (prefs.contains(K_FORCE_SW) && forceSoftwareVideo) add("video=software")
 		forcedEngine?.let { add("motor=$it") }
+		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
@@ -349,6 +361,7 @@ class DevOptions(context: Context) {
 		const val K_VETOED = "vetoedDecoders"
 		const val K_FORCE_SW = "forceSoftwareVideo"
 		const val K_FORCED_ENGINE = "forcedEngine"
+		const val K_CONFIG_URL = "configUrlOverride"
 		const val K_STUCK_DEFAULT = "playlistStuckMedia3Default"
 		const val K_NO_RESYNC = "liveEdgeResyncDisabled"
 		const val K_TUNNELING = "tunnelingEnabled"
@@ -363,7 +376,7 @@ class DevOptions(context: Context) {
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
-			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_STUCK_DEFAULT, K_NO_RESYNC,
+			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_CONFIG_URL, K_STUCK_DEFAULT, K_NO_RESYNC,
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER,
 		)

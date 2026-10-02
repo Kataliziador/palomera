@@ -363,6 +363,25 @@ no sabe. La app toma el host de `ServerRepository.currentServer` y busca ahí el
 servidor de canales. Una sola app, cero configuración añadida, y dar de alta un
 ISP es instalarle el servidor de canales en su site.
 
+**La convención es el puerto, no una ruta** (`LiveTuning.CHANNEL_SERVICE_PORT`,
+hoy **8097**). Un puerto solo lo puede ocupar un proceso, así que el servicio no
+puede escuchar en el de Jellyfin: o va detrás de un proxy en una ruta —lo que
+obliga a montar nginx en cada site— o va en el suyo. El puerto funciona haya
+proxy o no.
+
+```
+Jellyfin   http://192.168.20.249:8096/        ← lo escribe el abonado
+Canales    http://192.168.20.249:8097/config.json   ← derivado
+```
+
+Se conserva el esquema (un site con TLS no se degrada a `http`) y se descartan
+ruta, consulta y credenciales: Jellyfin puede estar en `https://tv.isp.mx/jellyfin`
+y el servicio sigue en `https://tv.isp.mx:8097`, porque es la misma máquina pero
+otro proceso. Sin esquema no se adivina: asumir mal deja la sección muerta.
+
+**Mover ese puerto una vez desplegado obliga a tocar todos los sites a la vez
+que la APK.** Se cambia antes del primer despliegue o no se cambia.
+
 Los dos backends siguen siendo independientes en lo que importa: **el módulo
 `livetv` no consulta al servidor Jellyfin para nada**. Recibe una URL ya
 resuelta y no sabe de dónde salió — quien la deriva es `app/.../ui/livetv/`,

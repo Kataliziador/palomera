@@ -221,6 +221,19 @@ object LiveTuning {
 	 * responde, hay una caché en disco que sirve al instante. Hacer esperar al
 	 * suscriptor por una lista que ya tenemos sería absurdo.
 	 */
+	/**
+	 * Puerto del servicio de canales en el site del ISP.
+	 *
+	 * Vive en la misma máquina que Jellyfin pero es otro proceso, así que no
+	 * puede compartir su puerto. Moverlo una vez desplegado obliga a tocar
+	 * todos los sites a la vez que la APK, así que se cambia **antes** del
+	 * primer despliegue o no se cambia.
+	 */
+	const val CHANNEL_SERVICE_PORT = 8097
+
+	/** Ruta del `config.json` dentro del servicio de canales. */
+	const val CHANNEL_SERVICE_CONFIG_PATH = "/config.json"
+
 	const val CONFIG_CONNECT_TIMEOUT_MS = 5_000
 	const val CONFIG_READ_TIMEOUT_MS = 10_000
 

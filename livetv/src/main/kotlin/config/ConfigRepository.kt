@@ -42,12 +42,29 @@ data class ConfigResult(
  * No tiene dependencias nuevas a propósito (regla 11): `HttpURLConnection` y
  * `org.json` vienen en la plataforma.
  */
-class ConfigRepository(
-	context: Context,
-	private val configUrl: String,
-) {
+class ConfigRepository(context: Context) {
 
-	private val cacheFile = File(context.filesDir, "livetv/config.json")
+	private val directorio = File(context.filesDir, "livetv")
+
+	/**
+	 * Un archivo de caché **por servidor**.
+	 *
+	 * Con la URL derivada del host de Jellyfin (`CLAUDE.md` §6), una caja puede
+	 * cambiar de site —pruebas, un ISP que migra, un técnico— y con un solo
+	 * archivo heredaría la lista del anterior: canales que ya no existen,
+	 * apuntando a un Flussonic que no es el suyo.
+	 *
+	 * La clave es el identificador del servidor, no su dirección, para que
+	 * cambiar de dirección no tire la caché.
+	 */
+	private fun cacheDe(clave: String) = File(directorio, "config-${sanear(clave)}.json")
+
+	/** Lo que entra viene de fuera y acaba en un nombre de archivo. */
+	private fun sanear(clave: String) = clave
+		.map { if (it.isLetterOrDigit() || it == '-' || it == '_') it else '_' }
+		.joinToString("")
+		.take(64)
+		.ifEmpty { "sin-clave" }
 
 	/**
 	 * Devuelve la mejor configuración disponible, por este orden: la del
@@ -57,13 +74,17 @@ class ConfigRepository(
 	 * llamante tiene un último recurso —la lista de arranque del `BuildConfig`—
 	 * y romper ahí dejaría la sección en blanco.
 	 */
-	suspend fun load(): ConfigResult = withContext(Dispatchers.IO) {
-		if (configUrl.isBlank()) {
-			LiveLog.warn("config.sinUrl", "detalle" to "CONFIG_URL vacía en este flavor")
-			return@withContext desdeCache(ConfigOrigin.NINGUNO)
+	suspend fun load(configUrl: String?, claveDeCache: String): ConfigResult = withContext(Dispatchers.IO) {
+		val cacheFile = cacheDe(claveDeCache)
+
+		if (configUrl.isNullOrBlank()) {
+			// No es un error: pasa mientras no hay sesión, y con una dirección
+			// de la que no se puede derivar el servicio de canales.
+			LiveLog.warn("config.sinUrl", "clave" to claveDeCache)
+			return@withContext desdeCache(cacheFile, ConfigOrigin.NINGUNO)
 		}
 
-		val descargada = runCatching { descargar() }
+		val descargada = runCatching { descargar(configUrl) }
 			.getOrElse { fallo ->
 				LiveLog.warn(
 					"config.descargaFallida",
@@ -82,16 +103,16 @@ class ConfigRepository(
 				}
 
 			if (config != null) {
-				guardarCache(descargada)
+				guardarCache(cacheFile, descargada)
 				LiveLog.info("config.desdeRed", "canales" to config.channels.size)
 				return@withContext ConfigResult(config, ConfigOrigin.RED)
 			}
 		}
 
-		desdeCache(ConfigOrigin.NINGUNO)
+		desdeCache(cacheFile, ConfigOrigin.NINGUNO)
 	}
 
-	private fun desdeCache(siNoHay: ConfigOrigin): ConfigResult {
+	private fun desdeCache(cacheFile: File, siNoHay: ConfigOrigin): ConfigResult {
 		if (!cacheFile.exists()) {
 			LiveLog.warn("config.sinCache")
 			return ConfigResult(null, siNoHay)
@@ -121,7 +142,7 @@ class ConfigRepository(
 		return ConfigResult(config, ConfigOrigin.CACHE, edad)
 	}
 
-	private fun descargar(): String {
+	private fun descargar(configUrl: String): String {
 		val conexion = (URL(configUrl).openConnection() as HttpURLConnection).apply {
 			connectTimeout = LiveTuning.CONFIG_CONNECT_TIMEOUT_MS
 			readTimeout = LiveTuning.CONFIG_READ_TIMEOUT_MS
@@ -151,13 +172,13 @@ class ConfigRepository(
 		}
 	}
 
-	private fun guardarCache(texto: String) {
+	private fun guardarCache(cacheFile: File, texto: String) {
 		runCatching {
 			cacheFile.parentFile?.mkdirs()
 			// Se escribe aparte y se renombra: un corte de luz a mitad de
 			// escritura dejaría la caché truncada, y entonces la próxima vez no
 			// habría ni red ni respaldo.
-			val temporal = File(cacheFile.parentFile, "config.json.tmp")
+			val temporal = File(cacheFile.parentFile, cacheFile.name + ".tmp")
 			temporal.writeText(texto)
 			if (!temporal.renameTo(cacheFile)) {
 				temporal.copyTo(cacheFile, overwrite = true)
