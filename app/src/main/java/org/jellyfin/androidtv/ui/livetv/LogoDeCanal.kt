@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.ui.livetv
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import org.jellyfin.androidtv.ui.base.Text
+import org.jellyfin.livetv.config.Brand
 import org.jellyfin.livetv.source.ChannelProfile
 
 /**
@@ -91,4 +93,40 @@ fun inicialesDeCanal(nombre: String): String {
 	val palabras = nombre.split(' ').filter { it.isNotBlank() && it.lowercase() !in sufijos }
 	val base = palabras.firstOrNull() ?: nombre
 	return base.take(3).uppercase()
+}
+
+/**
+ * La marca del proveedor en la cabecera de la sección.
+ *
+ * **El logo sustituye al nombre, no lo acompaña.** Un logo con su nombre escrito
+ * al lado es lo que hace una cabecera de ISP; aquí la cabecera es de la sección,
+ * y el nombre solo aparece cuando no hay logo que lo diga.
+ *
+ * Si el logo no carga, cae al nombre. Y si no hay marca, el nombre es el de la
+ * marca neutra, que está diseñada para eso: nunca un hueco.
+ */
+@Composable
+fun LogoDeMarca(brand: Brand, modifier: Modifier = Modifier) {
+	var fallo by remember(brand.logoUrl) { mutableStateOf(false) }
+	val url = brand.logoUrl?.takeIf { it.isNotBlank() }
+
+	if (url != null && !fallo) {
+		AsyncImage(
+			model = url,
+			contentDescription = brand.displayName,
+			contentScale = ContentScale.Fit,
+			onError = { fallo = true },
+			// Alto fijo y ancho libre: los logos de marca son apaisados y
+			// encajarlos en un cuadrado los deja diminutos.
+			modifier = modifier.height(28.dp),
+		)
+	} else {
+		Text(
+			text = brand.displayName,
+			color = Color(brand.accent),
+			fontWeight = FontWeight.Bold,
+			fontSize = 20.sp,
+			modifier = modifier,
+		)
+	}
 }

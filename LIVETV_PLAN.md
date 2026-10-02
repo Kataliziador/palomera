@@ -281,7 +281,9 @@ hay que hacerlo antes de que llegue el primer dato extra, no después.
 **Reescrita el 02-oct: ya no hay flavors.** Una sola APK y una sola ficha de
 Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
 
-- `BrandResolver`: host de Jellyfin → URL del servidor de canales → marca
+- ~~Marca desde el servicio del site: `displayName`, `accent`, `logoUrl`~~
+  **hecho el 02-oct**, con validación de contraste 3:1 y respaldo por ranura
+- `BrandResolver`: la marca del **registro** pisa a la del site (B9)
 - Ranuras fijas (`displayName`, `accent`, `logo`) con validación
   de contraste y caída al valor neutro
 - Marca neutra **diseñada**, que es lo que se ve antes de entrar y sin red

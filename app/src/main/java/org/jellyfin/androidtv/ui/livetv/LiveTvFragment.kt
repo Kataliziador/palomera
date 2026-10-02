@@ -159,7 +159,11 @@ private fun ChannelRow(
 				}
 		) {
 			Row(verticalAlignment = Alignment.CenterVertically) {
-				Text(text = stringResource(R.string.pref_live_tv_cat), fontWeight = FontWeight.Bold)
+				// La marca del proveedor, en el único sitio de la sección donde
+				// cabe sin competir con los canales. El logo si lo hay; si no,
+				// el nombre. Nunca las dos cosas: un logo con su nombre al lado
+				// es lo que hace una cabecera de ISP, no una de producto.
+				LogoDeMarca(catalog.brand)
 				Spacer(modifier = Modifier.width(12.dp))
 				// De dónde salió la lista. Una caja sirviendo una lista vieja
 				// porque el servidor no responde se comporta igual que una al
@@ -215,6 +219,7 @@ private fun ChannelRow(
 				LiveTvChannelGrid(
 					sections = secciones,
 					favorites = favoritosIds,
+					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
 					firstChannelFocus = firstChannel,

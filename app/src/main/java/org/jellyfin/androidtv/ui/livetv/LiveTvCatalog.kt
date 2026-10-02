@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.auth.repository.ServerRepository
+import org.jellyfin.livetv.config.Brand
 import org.jellyfin.livetv.config.ChannelGroup
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
@@ -37,6 +38,8 @@ data class LiveCatalog(
 	val message: OperatorMessage? = null,
 	/** `id` del canal que abre una caja recién instalada. */
 	val defaultChannel: String? = null,
+	/** La marca del proveedor. Nunca nula: la neutra es una marca. */
+	val brand: Brand = Brand.NEUTRA,
 )
 
 /**
@@ -63,6 +66,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 			channels = BootstrapChannels.all,
 			groups = emptyList(),
 			origin = ConfigOrigin.NINGUNO,
+			brand = Brand.NEUTRA,
 		)
 	)
 	val state: StateFlow<LiveCatalog> get() = _state
@@ -158,6 +162,8 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					"origen" to resultado.origin,
 					"canales" to config.channels.size,
 					"grupos" to config.groups.size,
+					"marca" to config.brand.displayName,
+					"marcaOrigen" to config.brand.origen,
 				)
 				LiveCatalog(
 					channels = ordenar(config.channels),
@@ -165,6 +171,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					origin = resultado.origin,
 					message = config.message?.takeIf { it.vigente(System.currentTimeMillis()) },
 					defaultChannel = config.defaultChannel,
+					brand = config.brand,
 				)
 			}
 		}

@@ -149,6 +149,7 @@ habrá que volver a pasar por ellos.
 | `logoUrl` | **se dibuja en la barra**; en la guía todavía no | #28 |
 | `audioDefault` | se lee, **no se aplica** | #29 |
 | `message` | se lee y caduca solo; **no se dibuja** | #32 |
+| `brand` | **implementado**: nombre, logo y acento | — |
 | `defaultChannel` | se lee; **ningún camino lo usa todavía** | #33 |
 | `aliases` | se lee; **no hay búsqueda** en la sección | B2 |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |

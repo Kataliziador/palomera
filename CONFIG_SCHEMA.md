@@ -380,7 +380,7 @@ de guía de ese site no esté lista.
 
 ---
 
-## 6. `brand` *(acordado)*
+## 6. `brand`
 
 ```json
 "brand": {
@@ -390,20 +390,36 @@ de guía de ese site no esté lista.
 }
 ```
 
-| Campo | Tipo | Si falta |
-|---|---|---|
-| `displayName` | texto | marca neutra |
-| `accent` | texto `#RRGGBB` | color neutro |
-| `logoUrl` | texto | iniciales de `displayName` |
+| Campo | Tipo | Estado | Si falta |
+|---|---|---|---|
+| `displayName` | texto | **implementado** | «TV en vivo», la marca neutra |
+| `accent` | texto `#RRGGBB` | **implementado** | gris neutro |
+| `logoUrl` | texto | **implementado** | se enseña `displayName` |
+
+**El logo sustituye al nombre, no lo acompaña.** Si hay logo se ve el logo; si
+no carga o no hay, se ve el nombre. Nunca los dos: un logo con su nombre al lado
+es una cabecera de ISP, y esta es la cabecera de la sección.
+
+**Dónde se ve el acento:** en el nombre de la marca y en los **títulos de grupo**
+de la guía. No repinta la app entera: el VOD conserva el tema de siempre
+(`CLAUDE.md` §4, regla 2).
 
 **Ranuras fijas, no tema libre** (`CLAUDE.md` §8). No hay forma de enviar un
 tema, una hoja de estilos ni una disposición: el servicio **elige entre** lo que
 la APK ya sabe hacer, nunca entrega capacidades nuevas (regla 13).
 
-**El contraste se valida al cargar.** Un `accent` que no se lea sobre el fondo
-de la sección cae al color neutro y se registra. Es deliberado: con colores
-libres, tarde o temprano un acento ilegible se convierte en una llamada de
-soporte que no se puede reproducir.
+**El contraste se valida al cargar.** Se exige **3:1 contra el negro de la
+sección** —el umbral de WCAG para texto grande y elementos de interfaz, que es
+lo que el acento va a ser—. Un color que no llegue cae al neutro y se registra
+con su medición:
+
+```
+marca.colorIlegible accent=#101840 contraste=1.23 minimo=3.0
+```
+
+**El resto de la marca se conserva**: un acento malo no tira el nombre ni el
+logo. Y pedir 4.5 descartaría colores de marca perfectamente legibles a tres
+metros, así que no se pide.
 
 El logo se cachea. Formatos de imagen estándar; nada que pueda ejecutar algo.
 

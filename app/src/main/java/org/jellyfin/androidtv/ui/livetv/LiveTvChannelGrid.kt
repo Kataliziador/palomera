@@ -91,6 +91,13 @@ fun agruparCanales(
 fun LiveTvChannelGrid(
 	sections: List<ChannelSection>,
 	favorites: Set<String>,
+	/**
+	 * El acento de la marca del proveedor, ya validado contra el fondo.
+	 *
+	 * Los títulos de grupo son el único sitio de la guía donde el color del ISP
+	 * cabe sin competir con los canales, que son lo que la gente viene a ver.
+	 */
+	accent: Color,
 	onChannelClick: (ChannelProfile) -> Unit,
 	onChannelLongClick: (ChannelProfile) -> Unit,
 	firstChannelFocus: FocusRequester,
@@ -113,10 +120,11 @@ fun LiveTvChannelGrid(
 				// Color explícito: el del tema está pensado para el fondo claro
 				// de la app y sobre el negro de esta sección queda casi
 				// invisible. Un título de grupo que no se lee convierte la
-				// guía en una lista suelta.
+				// guía en una lista suelta. El acento llega ya validado contra
+				// este fondo, así que no puede volver a pasar.
 				Text(
 					text = seccion.title,
-					color = Color(0xFFBDBDBD),
+					color = accent,
 					fontWeight = FontWeight.Bold,
 					fontSize = 17.sp,
 					modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),

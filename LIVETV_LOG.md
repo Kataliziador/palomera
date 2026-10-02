@@ -236,6 +236,58 @@ un frame congelado.
 
 ## Entradas
 
+### [B5] La marca del proveedor se aplica — 2026-10-02
+
+Primer trozo de B5 tal como quedó reescrita: **sin flavors**, la marca sale del
+servicio del site y la app se viste al conectar.
+
+#### Lo que decide esta fase no es el color, es el respaldo
+
+Tres ranuras —`displayName`, `accent`, `logoUrl`— y **cada una con un respaldo
+que siempre funciona**, porque la marca es lo primero que se ve y la escribe un
+ISP en un JSON.
+
+**El contraste se valida contra el fondo de la sección**, exigiendo 3:1, que es
+el umbral de WCAG para texto grande y elementos de interfaz — justo lo que el
+acento va a ser. Pedir 4.5 habría descartado colores de marca legibles a tres
+metros y todos los ISPs habrían acabado en gris.
+
+Verificado con un acento de marca realista pero invisible sobre negro:
+
+```
+marca.colorIlegible accent=#101840 contraste=1.23 minimo=3.0
+catalogo.listo … marca=AzulISP marcaOrigen=parcial
+```
+
+**El acento malo no tira el resto de la marca.** El nombre se conserva y se
+dibuja legible; solo cae el color. `marcaOrigen` distingue `servidor`, `parcial`
+y `neutra`, que es lo que permite saber de un vistazo si un site está bien
+configurado.
+
+#### Dónde se ve, y dónde no
+
+El logo **sustituye** al nombre, no lo acompaña: un logo con su nombre al lado
+es una cabecera de ISP, y esta es la de la sección. Si el logo no carga, cae al
+nombre.
+
+El acento pinta el nombre y los **títulos de grupo** de la guía. **No repinta la
+app**: el VOD conserva el tema de siempre, que es lo que manda `CLAUDE.md` §4
+regla 2. Los títulos eran el único sitio donde el color del ISP cabe sin
+competir con los canales, y además estaban en un gris fijo puesto a mano.
+
+#### Un descuido mío, y por qué no se notó
+
+La primera versión pasaba el acento a la guía y **no lo usaba**: la sustitución
+del color no casó por la indentación y el parámetro quedó sin leer. Compiló,
+instaló y se veía bien — porque el valor que no se aplicaba coincidía con el
+gris que ya estaba. Lo delató la captura, no el compilador.
+
+Es el modo de fallo de siempre en este proyecto: **lo que se parece a que
+funciona**.
+
+**Estado:** cerrada esta parte. Quedan de B5 la pantalla de licencias y el
+renombrado de la app, que no dependen del servidor.
+
 ### Por qué HBO enseña tres pistas de audio y el stream tiene dos — 2026-10-02
 
 Pregunta de Edgar al validar: el stream trae dos audios y la app ofrece tres.

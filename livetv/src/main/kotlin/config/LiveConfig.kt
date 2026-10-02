@@ -97,6 +97,8 @@ data class LiveConfig(
 	val message: OperatorMessage? = null,
 	/** `id` del canal que abre una caja recién instalada. */
 	val defaultChannel: String? = null,
+	/** La marca del ISP, ya validada. Nunca nula: cae a la neutra. */
+	val brand: Brand = Brand.NEUTRA,
 ) {
 	/**
 	 * Los ajustes que aplican a **esta** caja, del menos al más específico.
@@ -201,6 +203,9 @@ object LiveConfigParser {
 			channels = canales,
 			deviceOverrides = ajustes,
 			message = parseMessage(raiz["message"] as? JsonObject),
+			brand = (raiz["brand"] as? JsonObject).let { b ->
+				BrandParser.parse(b?.str("displayName"), b?.str("accent"), b?.str("logoUrl"))
+			},
 			defaultChannel = porDefecto,
 		)
 	}
