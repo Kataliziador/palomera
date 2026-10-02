@@ -101,6 +101,24 @@ todos los que sí lo traen.
 «Favoritos» no se declara: la app lo construye con lo que marque el abonado y va
 siempre primero. Un canal favorito aparece **dos veces**, arriba y en su grupo.
 
+### `defaultChannel` solo decide la **primera** vez
+
+La app recuerda el último canal que se sintonizó en esa caja y le da el foco al
+volver a la guía. `defaultChannel` es el respaldo para cuando **no hay
+historia** —una caja recién instalada— y para cuando el último canal ya no está
+en el lineup.
+
+O sea: no sirve para «empujar» a los abonados a un canal. Elígelo pensando en el
+primer arranque, que es cuando alguien se forma una opinión del servicio.
+
+### El aviso del operador se dibuja en la sección, no sobre el vídeo
+
+Es información del ISP, no del canal, y taparle la imagen al abonado con el
+recado de su proveedor no sería un intercambio justo. Va bajo la marca, discreto.
+
+**Pon siempre `until`.** El fallo previsible no es el texto: es el aviso que
+nadie quitó.
+
 ### Un canal no disponible sí hace algo
 
 `unavailable: true` **está implementado**: el canal sigue en la guía, y al
@@ -148,9 +166,9 @@ habrá que volver a pasar por ellos.
 |---|---|---|
 | `logoUrl` | **se dibuja en la barra**; en la guía todavía no | #28 |
 | `audioDefault` | se lee, **no se aplica** | #29 |
-| `message` | se lee y caduca solo; **no se dibuja** | #32 |
+| `message` | **implementado**: se dibuja en la sección y caduca solo | — |
 | `brand` | **implementado**: nombre, logo y acento | — |
-| `defaultChannel` | se lee; **ningún camino lo usa todavía** | #33 |
+| `defaultChannel` | **implementado**: decide el foco la primera vez | — |
 | `aliases` | se lee; **no hay búsqueda** en la sección | B2 |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
 

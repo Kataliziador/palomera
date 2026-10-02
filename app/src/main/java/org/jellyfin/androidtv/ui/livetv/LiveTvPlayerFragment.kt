@@ -165,6 +165,11 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		return
 	}
 
+	// Se recuerda el canal **sintonizado**, no el previsualizado: zapear con
+	// ▲▼ pasea por la lista sin ver nada, y guardar cada paso dejaría de
+	// último canal uno por el que solo se pasó.
+	LaunchedEffect(channel.id) { LiveTvUltimoCanal.of(context).recordar(channel.id) }
+
 	// El plan lo decide la cascada (M3), por canal y por caja. Se rehace si
 	// cambian las capacidades, el canal o lo que diga el servidor.
 	val caps = remember { DeviceCapabilities.of(context) }

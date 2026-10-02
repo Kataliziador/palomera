@@ -76,8 +76,8 @@ cadencia.
 | `deviceOverrides` | lista | implementado | no |
 | `brand` | objeto | acordado | no |
 | `epg` | objeto | acordado | no |
-| `message` | objeto | **interpretado** | no |
-| `defaultChannel` | texto | **interpretado** | no |
+| `message` | objeto | **implementado** | no |
+| `defaultChannel` | texto | **implementado** | no |
 
 **Si falta `version`, el documento se rechaza entero** y la app se queda con su
 caché. Es el único campo de la raíz cuya ausencia es fatal, junto con no tener
@@ -117,8 +117,10 @@ campos nuevos no lo requiere.
 Un texto que el ISP quiere que vean sus abonados. **Lo lee alguien en su sala**,
 así que se escribe para esa persona.
 
-Se interpreta y se descarta solo cuando caduca, pero **todavía no se dibuja**:
-falta decidir dónde va sin estorbar al canal. Emítelo desde ya.
+Se dibuja bajo la marca, en la sección de canales — **no sobre el vídeo**: es
+información del ISP, no del canal, y taparle la imagen al abonado con el recado
+de su proveedor no sería un intercambio justo. Y discreto: un aviso que grita se
+lee una vez y molesta las cien siguientes.
 
 `until` existe porque el fallo previsible de esto es **el aviso que nadie quitó**:
 un mantenimiento de hace tres meses sigue en pantalla porque quien lo puso se
@@ -139,10 +141,12 @@ cualquier cosa según cómo esté numerado el lineup.
 Es el primer momento en que el abonado se forma una opinión del servicio, y
 cuesta un campo. Un `id` que no exista se ignora y se registra.
 
-**Hoy se interpreta pero ningún camino lo usa:** la app siempre abre el
-reproductor con un canal elegido desde la guía. Empezará a importar cuando haya
-memoria del último canal visto (B2), porque entonces la primera vez no habrá
-ninguno. Emítelo desde ya.
+**Solo decide la primera vez.** La app recuerda el último canal sintonizado en
+esa caja y le da el foco al volver a la guía; `defaultChannel` es el respaldo
+cuando no hay historia o cuando el último ya no está en el lineup.
+
+No sirve, por tanto, para empujar a nadie a un canal: elígelo pensando en el
+primer arranque.
 
 ---
 

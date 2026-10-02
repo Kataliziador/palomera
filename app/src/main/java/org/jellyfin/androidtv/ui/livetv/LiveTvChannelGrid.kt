@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,11 +102,43 @@ fun LiveTvChannelGrid(
 	accent: Color,
 	onChannelClick: (ChannelProfile) -> Unit,
 	onChannelLongClick: (ChannelProfile) -> Unit,
-	firstChannelFocus: FocusRequester,
+	/**
+	 * El canal que debe recibir el foco al entrar: el último visto, o el que el
+	 * ISP puso por defecto. `null` lo deja en la primera tarjeta.
+	 */
+	idConFoco: String?,
 	modifier: Modifier = Modifier,
 ) {
 	val verticalState = rememberLazyListState()
 	val scope = rememberCoroutineScope()
+
+	// Un canal favorito aparece dos veces —arriba y en su grupo— así que se
+	// toma la **primera** aparición: es la de más arriba y la que menos hace
+	// desplazarse a la guía.
+	val posicionConFoco = remember(sections, idConFoco) {
+		if (idConFoco == null) null
+		else sections.asSequence()
+			.mapIndexedNotNull { iSec, sec ->
+				sec.channels.indexOfFirst { it.id == idConFoco }
+					.takeIf { it >= 0 }
+					?.let { iSec to it }
+			}
+			.firstOrNull()
+	}
+
+	// El foco lo pide **la guía**, no quien la dibuja, y después de desplazarse.
+	//
+	// `LazyColumn` no compone lo que está fuera de pantalla: si el canal que
+	// debe recibir el foco está en una sección de más abajo, su tarjeta todavía
+	// no existe y el `FocusRequester` no está atado a nada. Pedir el foco antes
+	// de desplazarse no falla ruidosamente — simplemente no pasa nada, y el
+	// foco se queda en la primera tarjeta como si no hubiera memoria.
+	val focoInicial = remember { FocusRequester() }
+	LaunchedEffect(posicionConFoco, sections) {
+		if (sections.isEmpty()) return@LaunchedEffect
+		posicionConFoco?.let { (seccion, _) -> verticalState.scrollToItem(seccion) }
+		runCatching { focoInicial.requestFocus() }
+	}
 
 	LazyColumn(
 		state = verticalState,
@@ -148,10 +182,11 @@ fun LiveTvChannelGrid(
 									}
 								}
 								.then(
-									// Solo la primera tarjeta de la primera
-									// sección recibe el foco al entrar.
-									if (indiceSeccion == 0 && indice == 0) {
-										Modifier.focusRequester(firstChannelFocus)
+									// El foco va al último canal visto; si no
+									// hay o ya no está en el lineup, a la
+									// primera tarjeta.
+									if ((posicionConFoco ?: (0 to 0)) == (indiceSeccion to indice)) {
+										Modifier.focusRequester(focoInicial)
 									} else {
 										Modifier
 									}

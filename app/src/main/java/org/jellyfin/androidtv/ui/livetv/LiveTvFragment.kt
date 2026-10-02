@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.ui.livetv
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -22,14 +24,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -104,16 +107,22 @@ private fun ChannelRow(
 	onChannelClick: (ChannelProfile) -> Unit,
 	onDiagnosticsClick: () -> Unit,
 ) {
-	// Foco inicial en el primer canal. Es la variante que Edgar validó con el
-	// control; las medidas automáticas por `adb` entran a la sección con un
-	// toque, que no recorre el mismo camino de foco que el mando, así que no
-	// sirven para juzgar esto. Confirmar siempre con el control.
-	val firstChannel = remember { FocusRequester() }
-	LaunchedEffect(firstChannel, catalog.channels.size) {
-		if (catalog.channels.isNotEmpty()) runCatching { firstChannel.requestFocus() }
-	}
-
+	// El foco inicial lo pide la guía, que es quien sabe cuándo existe la
+	// tarjeta a la que debe ir (ver `LiveTvChannelGrid`).
+	//
+	// Las medidas automáticas por `adb` entran a la sección con un toque, que
+	// no recorre el mismo camino de foco que el mando: **confirmar siempre con
+	// el control**.
 	val context = LocalContext.current
+
+	// A qué canal mirar al entrar: lo último que vio esta persona, lo que el
+	// ISP puso por defecto, y si no, el primero. Con ~120 canales, volver a la
+	// sección y tener que buscar otra vez el canal de siempre es la diferencia
+	// entre una guía usable y una lista.
+	val ultimo = remember { LiveTvUltimoCanal.of(context) }
+	val idInicial = remember(catalog.channels, catalog.defaultChannel) {
+		ultimo.inicial(catalog.channels.map { it.id }, catalog.defaultChannel)
+	}
 	val dev = remember { DevOptions.of(context) }
 	val revision by dev.revision.collectAsState()
 	val degradada = remember(revision) { dev.isDegraded }
@@ -178,6 +187,27 @@ private fun ChannelRow(
 				}
 			}
 
+			// El aviso del operador. Va aquí y no sobre el vídeo: es
+			// información del ISP, no del canal, y tapar la imagen con ella
+			// sería cobrarle al abonado el recado de su proveedor.
+			//
+			// Discreto a propósito. Un aviso que grita se lee una vez y molesta
+			// las cien siguientes, y este se queda hasta que caduque.
+			catalog.message?.let { aviso ->
+				Spacer(modifier = Modifier.height(10.dp))
+				Row(
+					modifier = Modifier
+						.clip(RoundedCornerShape(6.dp))
+						.background(Color.White.copy(alpha = 0.07f))
+						.padding(horizontal = 14.dp, vertical = 10.dp),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Text(text = "ⓘ", color = Color(catalog.brand.accent))
+					Spacer(modifier = Modifier.width(10.dp))
+					Text(text = aviso.text, color = Color(0xFFD5D5D5))
+				}
+			}
+
 			// La degradación persiste en `SharedPreferences`: sobrevive al
 			// cierre de la app y al reinicio de la caja. Se avisa aquí, antes de
 			// sintonizar, porque una sesión con toggles pegados se mide como si
@@ -222,7 +252,7 @@ private fun ChannelRow(
 					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
-					firstChannelFocus = firstChannel,
+					idConFoco = idInicial,
 				)
 			}
 		}
