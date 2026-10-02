@@ -38,8 +38,10 @@ La app recuerda de qué URL cargó y no repite mientras no cambie.
   más se trata como caído.
 - **No hay reintentos.** Si falla, se usa la caché y se vuelve a intentar la
   próxima vez que alguien entre a la sección.
-- Límite de **2 MB**, sobre la longitud declarada. **Declara `Content-Length`**:
-  una respuesta troceada se salta la comprobación.
+- Límite de **2 MB**, comprobado **dos veces**: contra la longitud declarada
+  antes de leer, y contra lo leído de verdad. Una respuesta troceada ya no se lo
+  salta. Pasado el tope **se descarta la descarga entera**, no se trunca: un JSON
+  cortado por la mitad daría un error que no diría la causa.
 - No se envía ninguna cabecera especial. No hay autenticación (v1).
 
 **Consecuencia para el diseño:** generar el `config.json` **a demanda** es mala
@@ -117,11 +119,18 @@ habrá que volver a pasar por ellos.
 
 | Campo | Estado | Pendiente |
 |---|---|---|
-| `logoUrl` | se lee, **no se dibuja** | #28 |
+| `logoUrl` | **se dibuja en la barra**; en la guía todavía no | #28 |
 | `audioDefault` | se lee, **no se aplica** | #29 |
 
 **`audioDefault` es el que más se nota.** Hoy un canal con español e inglés
 arranca con la pista que elija Media3, no con la que digas. Está pendiente.
+
+**`logoUrl` ya se dibuja**, con las iniciales del canal como respaldo cuando
+falta **o cuando la imagen no carga**. Formatos de imagen estándar; el recuadro
+es cuadrado y la imagen se ajusta dentro sin recortarse, así que un logo
+apaisado se verá más pequeño pero entero. Una URL rota no deja un hueco: cae a
+las iniciales, así que **una errata en el logo no se nota en pantalla** — se
+nota mirando que el logo no sale.
 
 ---
 

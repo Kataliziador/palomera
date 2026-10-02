@@ -218,10 +218,11 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
-| 30 | **El límite de 2 MB del `config.json` solo mira la longitud declarada** | B | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
+| 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
+| ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
 | 29 | **`audioDefault` se interpreta pero no se aplica** | B4 | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
-| 28 | **`logoUrl` se interpreta pero no se dibuja** | B4 | la barra y la guía enseñan siempre iniciales. El campo se lee y se descarta |
-| 27 | **El inicio sigue consultando la LiveTV vieja de Jellyfin** | B | `GET /LiveTv/Programs/Recommended` al entrar. La sección vieja debe quedar inalcanzable (§4.5) y esa llamada contradice el invariante: gasta red, puede fallar en un Jellyfin sin TV y sugiere que la sección sigue viva |
+| ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
+| ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -229,6 +230,85 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [B] Tres huecos cerrados: logo, límite de tamaño y la LiveTV vieja — 2026-10-02
+
+Los tres salieron de escribir el contrato y mirar el código en vez de fiarme de
+lo que recordaba.
+
+#### #28 — El logo se dibuja, con respaldo de verdad
+
+`logoUrl` se interpretaba y se tiraba. Ahora se dibuja, en
+`app/.../ui/livetv/LogoDeCanal.kt`.
+
+**Las iniciales no se pintan detrás de la imagen**, que era la solución fácil:
+un logo con transparencia las dejaría asomar y se leería como suciedad. Se
+pintan solo cuando no hay logo **o cuando el logo no cargó**, y para saber lo
+segundo hace falta el estado de carga — por eso usa Coil directamente en vez del
+`AsyncImage` común de la app, que no lo expone.
+
+El estado de fallo va atado a la URL: al zapear, un canal sin logo no hereda el
+fallo del anterior ni uno con logo se queda con las iniciales del que falló.
+
+Probado con los tres casos, no solo el bueno:
+
+| Canal | `logoUrl` | Resultado |
+|---|---|---|
+| Estrellas HD | PNG real con transparencia | la imagen, sin iniciales asomando |
+| Estrellas SD | ausente | `EST` |
+| Béisbol | URL rota a propósito | `BÉI` |
+
+#### #30 — El límite de 2 MB ahora es un límite
+
+Se comprobaba contra la **longitud declarada**, así que una respuesta troceada
+se lo saltaba y se leía entera en memoria en una caja de 2 GB. Ahora la lectura
+va acotada.
+
+**Falla en vez de truncar.** Un JSON cortado a la mitad no es un JSON más corto:
+es basura que el analizador rechazaría igual, pero con un mensaje que no diría la
+causa.
+
+Probado con un servidor que responde `Transfer-Encoding: chunked` sin declarar
+longitud y manda 3 MB:
+
+```
+config.descargaFallida causa=IllegalStateException: el cuerpo supera 2097152 bytes sin declararlo
+config.desdeCache canales=6 · catalogo.listo origen=CACHE
+```
+
+#### #27 — El inicio ya no consulta la LiveTV de Jellyfin
+
+Eran **dos cosas**, no una. La consulta salía de `helper.loadOnNow()`
+(`/LiveTv/Programs/Recommended`), que llena una fila con la programación de la
+LiveTV **de Jellyfin** — la sección que reemplazamos. En el Jellyfin de un ISP
+sale vacía o falla, y mientras tanto gasta una petición en cada carga del inicio.
+
+Y al mirarlo apareció la otra: la fila de botones ofrecía **cuatro**, y tres de
+ellos —grabaciones, programación y series— llevan de vuelta a la sección vieja y
+a funciones de DVR que están fuera de alcance (§7). O sea, un camino de regreso
+a lo que la regla 5 declara inalcanzable.
+
+Ahora la fila tiene **un** botón, el que lleva a la sección nueva, y la fila de
+«en emisión» no se añade. Las ramas del `when` se quedan sin botón que las
+dispare pero **no se borran**: el código viejo permanece en el árbol e
+inalcanzable, que es justo lo que pide la regla 5.
+
+Medido antes y después: `GET /LiveTv/Programs/Recommended` pasa de dispararse en
+cada carga del inicio a **cero apariciones**.
+
+**Esto añade `HomeRowsFragment.kt` a la lista de enganches** de la verificación
+(a). Se justifica por §4 regla 5 y §7: la sección vieja no debe ser alcanzable y
+el DVR está fuera de alcance. El camino de VOD sigue intacto.
+
+#### Lo que se vio de paso y no se tocó
+
+**La fila de inicio solo aparece si el usuario de Jellyfin tiene
+`enableLiveTvAccess`.** Es un permiso del Jellyfin del ISP que no tiene nada que
+ver con nuestros canales: en un Jellyfin sin LiveTV configurada puede estar
+apagado y entonces la fila no sale. **La barra principal no está condicionada**,
+así que el camino bueno siempre funciona. Pendiente #31.
+
+**Estado:** cerrada.
 
 ### Tres proyectos en sintonía, y el mecanismo para que siga pasando — 2026-10-02
 

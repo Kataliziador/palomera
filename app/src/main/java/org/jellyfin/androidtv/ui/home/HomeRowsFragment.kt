@@ -112,9 +112,14 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 				HomeSectionType.RESUME_BOOK -> Unit // Books are not (yet) supported
 				HomeSectionType.ACTIVE_RECORDINGS -> rows.add(helper.loadLatestLiveTvRecordings())
 				HomeSectionType.NEXT_UP -> rows.add(helper.loadNextUp())
+				// `loadOnNow()` consulta la LiveTV **de Jellyfin**
+				// (`/LiveTv/Programs/Recommended`), que es la sección que
+				// reemplazamos (`CLAUDE.md` §4, regla 5). En el Jellyfin de un
+				// ISP esa fila sale vacía o falla, y mientras tanto gasta una
+				// petición en cada carga del inicio. Los canales de la fila
+				// nueva saldrán del catálogo propio cuando haya EPG (B8).
 				HomeSectionType.LIVE_TV -> if (currentUser.policy?.enableLiveTvAccess == true) {
 					rows.add(liveTVRow)
-					rows.add(helper.loadOnNow())
 				}
 
 				HomeSectionType.NONE -> Unit

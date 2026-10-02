@@ -29,16 +29,14 @@ class HomeFragmentLiveTVRow(
 		val header = HeaderItem(rowsAdapter.size().toLong(), activity.getString(R.string.pref_live_tv_cat))
 		val adapter = ArrayObjectAdapter(GridButtonPresenter())
 
-		// Live TV Guide button
+		// Solo la entrada a la sección nueva.
+		//
+		// Los otros tres botones del upstream —grabaciones, programación y
+		// series— llevan a la sección LiveTV de Jellyfin, que `CLAUDE.md` §4
+		// regla 5 deja **inalcanzable**, y a funciones de DVR que están fuera
+		// de alcance (§7). Dejarlos visibles ofrecía al abonado un camino de
+		// vuelta a la sección que reemplazamos.
 		adapter.add(GridButton(LiveTvOption.LIVE_TV_GUIDE_OPTION_ID, activity.getString(R.string.lbl_live_tv_guide)))
-		// Live TV Recordings button
-		adapter.add(GridButton(LiveTvOption.LIVE_TV_RECORDINGS_OPTION_ID, activity.getString(R.string.lbl_recorded_tv)))
-		if (Utils.canManageRecordings(userRepository.currentUser.value)) {
-			// Recording Schedule button
-			adapter.add(GridButton(LiveTvOption.LIVE_TV_SCHEDULE_OPTION_ID, activity.getString(R.string.lbl_schedule)))
-			// Recording Series button
-			adapter.add(GridButton(LiveTvOption.LIVE_TV_SERIES_OPTION_ID, activity.getString(R.string.lbl_series)))
-		}
 
 		rowsAdapter.add(ListRow(header, adapter))
 	}
@@ -49,6 +47,11 @@ class HomeFragmentLiveTVRow(
 		when (item.id) {
 			// Reemplazo de la sección LiveTV de Jellyfin (CLAUDE.md §4, regla 5).
 			LiveTvOption.LIVE_TV_GUIDE_OPTION_ID -> navigationRepository.navigate(Destinations.liveTv)
+			// Las ramas de grabaciones, programación y series se quedan sin
+			// botón que las dispare, pero no se borran: el código viejo
+			// permanece en el árbol e inalcanzable, que es lo que pide la
+			// regla 5. Borrarlo agrandaría el diff contra upstream sin ganar
+			// nada.
 			LiveTvOption.LIVE_TV_SCHEDULE_OPTION_ID -> navigationRepository.navigate(Destinations.liveTvSchedule)
 			LiveTvOption.LIVE_TV_RECORDINGS_OPTION_ID -> navigationRepository.navigate(Destinations.liveTvRecordings)
 			LiveTvOption.LIVE_TV_SERIES_OPTION_ID -> navigationRepository.navigate(Destinations.liveTvSeriesRecordings)

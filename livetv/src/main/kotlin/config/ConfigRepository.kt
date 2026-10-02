@@ -161,15 +161,47 @@ class ConfigRepository(context: Context) {
 			// desmesurado significa que la URL no apunta a lo que creemos —una
 			// página de error, un portal cautivo— y leerlo entero en memoria en
 			// una caja de 2 GB no es aceptable.
+			//
+			// La longitud declarada se mira primero porque permite cortar
+			// **antes** de leer nada. Pero no basta: una respuesta troceada no
+			// la declara, y ahí el único límite real es el de la lectura.
 			val longitud = conexion.contentLength
 			if (longitud > LiveTuning.CONFIG_MAX_BYTES) {
 				error("el cuerpo declara $longitud bytes, máximo ${LiveTuning.CONFIG_MAX_BYTES}")
 			}
 
-			return conexion.inputStream.bufferedReader().use { it.readText() }
+			return conexion.inputStream.bufferedReader().use { leerAcotado(it) }
 		} finally {
 			conexion.disconnect()
 		}
+	}
+
+	/**
+	 * Lee hasta `CONFIG_MAX_BYTES` y falla si hay más.
+	 *
+	 * **Falla en vez de truncar.** Un JSON cortado a la mitad no es un JSON
+	 * más corto: es basura que el analizador rechazaría igual, pero con un
+	 * mensaje que no diría la causa. Mejor decir que el cuerpo era demasiado
+	 * grande, que es lo que de verdad pasó.
+	 *
+	 * El tope cuenta **caracteres**, no bytes. Para un tope de 2 MB sobre un
+	 * documento ASCII la diferencia no importa, y contar bytes exactos exigiría
+	 * envolver el flujo antes de decodificar, que es más código para la misma
+	 * protección.
+	 */
+	private fun leerAcotado(lector: java.io.Reader): String {
+		val tope = LiveTuning.CONFIG_MAX_BYTES
+		val salida = StringBuilder()
+		val trozo = CharArray(8 * 1024)
+		while (true) {
+			val leidos = lector.read(trozo)
+			if (leidos < 0) break
+			if (salida.length + leidos > tope) {
+				error("el cuerpo supera $tope bytes sin declararlo")
+			}
+			salida.appendRange(trozo, 0, leidos)
+		}
+		return salida.toString()
 	}
 
 	private fun guardarCache(cacheFile: File, texto: String) {

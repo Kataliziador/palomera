@@ -81,7 +81,7 @@ fun LiveTvChannelBar(
 			.padding(start = 56.dp, end = 56.dp, top = 56.dp, bottom = 32.dp)
 	) {
 		Row(verticalAlignment = Alignment.Top) {
-			LogoDeCanal(channel)
+			LogoDeCanal(channel, modifier = Modifier.size(84.dp))
 
 			Spacer(modifier = Modifier.width(22.dp))
 
@@ -133,45 +133,6 @@ fun LiveTvChannelBar(
 			}
 		}
 	}
-}
-
-/**
- * Hueco del logo.
- *
- * Mientras el `config.json` no traiga `logoUrl`, enseña las iniciales del canal
- * en lugar de un recuadro vacío: un hueco con contenido se lee como diseño y
- * uno vacío como imagen rota.
- */
-@Composable
-private fun LogoDeCanal(channel: ChannelProfile) {
-	Box(
-		modifier = Modifier
-			.size(84.dp)
-			.clip(RoundedCornerShape(10.dp))
-			.background(Color.White.copy(alpha = 0.10f)),
-		contentAlignment = Alignment.Center,
-	) {
-		Text(
-			text = inicialesDe(channel.name),
-			color = Color.White.copy(alpha = 0.82f),
-			fontWeight = FontWeight.Bold,
-			fontSize = 26.sp,
-		)
-	}
-}
-
-/**
- * «HBO HD» → `HBO`, «Estrellas HD» → `EST`.
- *
- * Las iniciales de cada palabra daban «HH», porque la segunda palabra de medio
- * lineup es la calidad. Se descartan esos sufijos y se toman tres letras del
- * nombre de verdad, que es lo que alguien reconocería.
- */
-private fun inicialesDe(nombre: String): String {
-	val sufijos = setOf("hd", "sd", "4k", "uhd", "tv")
-	val palabras = nombre.split(' ').filter { it.isNotBlank() && it.lowercase() !in sufijos }
-	val base = palabras.firstOrNull() ?: nombre
-	return base.take(3).uppercase()
 }
 
 @Composable
