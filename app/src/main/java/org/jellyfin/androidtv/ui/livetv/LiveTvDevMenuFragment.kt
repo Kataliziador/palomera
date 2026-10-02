@@ -162,8 +162,9 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Reproducción tunneled",
-				value = if (dev.tunnelingEnabled) "ACTIVA (fábrica)" else "APAGADA",
-				changed = !dev.tunnelingEnabled,
+				value = (if (dev.tunnelingEnabled) "ACTIVA" else "APAGADA") +
+					"  (${dev.procedenciaDe(DevOptions.K_TUNNELING)})",
+				changed = dev.procedenciaDe(DevOptions.K_TUNNELING) == "menú",
 			) { change { dev.tunnelingEnabled = !dev.tunnelingEnabled } }
 		}
 		item {
@@ -203,8 +204,9 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "FLAG_ALLOW_NON_IDR_KEYFRAMES",
-				value = if (dev.tsAllowNonIdrKeyframes) "ON (fábrica)" else "APAGADO",
-				changed = !dev.tsAllowNonIdrKeyframes,
+				value = (if (dev.tsAllowNonIdrKeyframes) "ON" else "APAGADO") +
+					"  (${dev.procedenciaDe(DevOptions.K_TS_NONIDR)})",
+				changed = dev.procedenciaDe(DevOptions.K_TS_NONIDR) == "menú",
 			) { change { dev.tsAllowNonIdrKeyframes = !dev.tsAllowNonIdrKeyframes } }
 		}
 

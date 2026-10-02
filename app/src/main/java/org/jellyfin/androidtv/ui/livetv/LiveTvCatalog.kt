@@ -11,7 +11,9 @@ import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.livetv.config.ChannelGroup
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
+import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
+import org.jellyfin.livetv.diagnostics.ServerDeviceSettings
 import org.jellyfin.livetv.source.ChannelProfile
 
 /**
@@ -43,6 +45,7 @@ data class LiveCatalog(
 class LiveTvCatalog private constructor(context: Context) {
 
 	private val repository = ConfigRepository(context, BuildConfig.LIVETV_CONFIG_URL)
+	private val dev = DevOptions.of(context)
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
 	private val _state = MutableStateFlow(
@@ -69,6 +72,21 @@ class LiveTvCatalog private constructor(context: Context) {
 			_state.value = _state.value.copy(loading = true)
 			val resultado = repository.load()
 			val config = resultado.config
+
+			// Los ajustes por modelo de caja se aplican **antes** de enseñar la
+			// lista, porque gobiernan cómo se reproducirá el primer canal que
+			// alguien abra. Es lo que convierte una caja nueva que falla en un
+			// cambio de `config.json` en vez de una visita.
+			dev.aplicarDelServidor(config?.settingsForThisDevice()?.let { o ->
+				ServerDeviceSettings(
+					engine = o.engine,
+					tunneling = o.tunneling,
+					tsAllowNonIdrKeyframes = o.tsAllowNonIdrKeyframes,
+					tsDetectAccessUnits = o.tsDetectAccessUnits,
+					forceSoftwareVideo = o.forceSoftwareVideo,
+					targetOffsetMs = o.targetOffsetMs,
+				)
+			})
 
 			_state.value = if (config == null) {
 				// El respaldo de última instancia. Que se registre importa: una

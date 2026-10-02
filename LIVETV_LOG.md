@@ -224,6 +224,53 @@ un frame congelado.
 
 ## Entradas
 
+### Los ajustes por modelo de caja ya llegan al motor — 2026-10-02
+
+Escribí el analizador de `deviceOverrides` el 30-sep, lo probé con catorce
+pruebas, y **nunca lo conecté**. Estaban interpretados y ahí se quedaban. O
+sea: la salida de emergencia que le prometí a Edgar —«si una caja no soporta
+tunneled, lo excluyo desde el `config.json` sin recompilar»— **no existía**, y
+estábamos a punto de probar una caja nueva sin ella.
+
+**Tres capas, y el orden importa: fábrica → servidor → menú local.**
+
+El menú gana porque es la herramienta con la que se depura una caja concreta;
+si el servidor pudiera pisarlo, no habría forma de probar nada en campo. Pero
+gana **solo si alguien lo tocó**: un valor sin tocar no es una opinión, y por
+eso la resolución mira si la clave existe en preferencias, no su valor.
+
+Eso arregla de paso el problema del 01-oct, cuando el nuevo valor de fábrica de
+tunneled no entró porque había un `false` guardado: ahora un valor guardado
+significa «el menú manda aquí», que es exactamente lo que era.
+
+**Los ajustes se funden campo a campo**, no en bloque: se puede decir «todas
+las cajas de este fabricante sin tunneled» y además «y este modelo tampoco con
+nonIDR», sin repetir en el segundo lo que ya decía el primero.
+
+**Verificado contra un servidor de configuración real**, levantado para la
+prueba y apuntando a la caja de pruebas con `"tunneling": false`:
+
+```
+config.interpretada version=1 canales=6 grupos=4 ajustesPorCaja=1
+config.desdeRed canales=6
+dev.ajustesDelServidor tunneling=false
+engine.prepare ... tunneled=false  degradacion=de fábrica
+```
+
+El motor obedeció al servidor, y la línea de degradación sigue diciendo «de
+fábrica» — que es la semántica correcta: **un ajuste del servidor es
+configuración, no una desviación.** Solo el menú local degrada.
+
+**Y por primera vez la lista salió con los datos de verdad**: grupos
+«Nacionales», «Películas», «Documentales» y números 101, 102, 103, 201. Hasta
+hoy todo lo que se había visto eran los seis canales del `BuildConfig`
+numerados del 1 al 6.
+
+**Dos defectos de la lista, corregidos al mirar la captura:** los títulos de
+grupo salían en el gris del tema, pensado para el fondo claro de la app, y
+sobre el negro de esta sección eran ilegibles; y el número del canal quedaba
+cortado por el borde superior de la tarjeta.
+
 ### `mono.m3u8` sí entrega las dos pistas de audio — 2026-10-01
 
 Edgar vio dos audios en Flussonic y ninguno en la app, y yo diagnostiqué que el

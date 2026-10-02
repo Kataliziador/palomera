@@ -110,10 +110,16 @@ fun LiveTvChannelGrid(
 					if (it.hasFocus) scope.launch { verticalState.animateScrollToItem(indiceSeccion) }
 				}
 			) {
+				// Color explícito: el del tema está pensado para el fondo claro
+				// de la app y sobre el negro de esta sección queda casi
+				// invisible. Un título de grupo que no se lee convierte la
+				// guía en una lista suelta.
 				Text(
 					text = seccion.title,
+					color = Color(0xFFBDBDBD),
 					fontWeight = FontWeight.Bold,
-					modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+					fontSize = 17.sp,
+					modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
 				)
 
 				val horizontalState = rememberLazyListState()
@@ -161,7 +167,9 @@ private fun ChannelCard(
 	Button(
 		onClick = onClick,
 		modifier = modifier.width(150.dp).height(96.dp),
-		contentPadding = PaddingValues(10.dp),
+		// Más arriba que abajo: con 10 dp el número quedaba cortado por el
+		// borde de la tarjeta.
+		contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
 	) {
 		Column(modifier = Modifier.fillMaxWidth()) {
 			Row(verticalAlignment = Alignment.CenterVertically) {

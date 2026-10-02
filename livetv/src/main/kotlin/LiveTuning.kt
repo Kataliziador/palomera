@@ -178,6 +178,22 @@ object LiveTuning {
 	 */
 	const val HEARTBEAT_INTERVAL_MS = 2_000L
 
+	// --- Valores de fábrica que el servidor puede cambiar --------------------
+	//
+	// Son la capa de abajo de tres: **fábrica → servidor → menú local**. El
+	// servidor los pisa por modelo de caja (`deviceOverrides` del
+	// `config.json`) y el menú de diagnóstico los pisa a los dos, pero solo si
+	// alguien lo tocó a propósito.
+
+	/** Ver `CLAUDE.md` §6: activo en todas, se excluye por configuración. */
+	const val TUNNELING_DEFAULT = true
+
+	/** Sin él `estrellashd` no arranca, y no perjudica a ningún otro canal. */
+	const val TS_ALLOW_NON_IDR_DEFAULT = true
+
+	const val TS_DETECT_ACCESS_UNITS_DEFAULT = false
+	const val FORCE_SOFTWARE_VIDEO_DEFAULT = false
+
 	// --- Vigilante de recuperación ------------------------------------------
 
 	/**

@@ -91,6 +91,30 @@ data class LiveConfig(
 			.filter { it.match.matches() }
 			.sortedBy { it.match.specificity }
 
+	/**
+	 * Funde todos los ajustes que casan con esta caja en uno solo.
+	 *
+	 * Campo a campo gana el más específico, no el ajuste entero: así se puede
+	 * decir «todas las cajas de este fabricante sin tunneled» y además «y este
+	 * modelo concreto tampoco con el flag nonIDR», sin tener que repetir en el
+	 * segundo todo lo que ya decía el primero.
+	 */
+	fun settingsForThisDevice(): DeviceOverride? {
+		val aplicables = overridesForThisDevice()
+		if (aplicables.isEmpty()) return null
+		return aplicables.reduce { menos, mas ->
+			DeviceOverride(
+				match = mas.match,
+				engine = mas.engine ?: menos.engine,
+				tunneling = mas.tunneling ?: menos.tunneling,
+				tsAllowNonIdrKeyframes = mas.tsAllowNonIdrKeyframes ?: menos.tsAllowNonIdrKeyframes,
+				tsDetectAccessUnits = mas.tsDetectAccessUnits ?: menos.tsDetectAccessUnits,
+				forceSoftwareVideo = mas.forceSoftwareVideo ?: menos.forceSoftwareVideo,
+				targetOffsetMs = mas.targetOffsetMs ?: menos.targetOffsetMs,
+			)
+		}
+	}
+
 	companion object {
 		/** Versión de esquema que esta app entiende. */
 		const val SUPPORTED_VERSION = 1

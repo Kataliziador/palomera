@@ -17,10 +17,75 @@ import org.jellyfin.livetv.LiveTuning
  * **Todos los valores por defecto reproducen el comportamiento actual**
  * (CLAUDE.md §3): abrir el menú no cambia nada por sí solo.
  */
+/**
+ * Lo que el servidor de configuración dice para esta caja.
+ *
+ * Tipo propio y no el `DeviceOverride` del esquema: el diagnóstico no tiene
+ * por qué saber cómo está escrito el `config.json`, y si mañana cambia el
+ * formato, esto no se entera. `null` en un campo = el servidor no opina.
+ */
+data class ServerDeviceSettings(
+	val engine: String? = null,
+	val tunneling: Boolean? = null,
+	val tsAllowNonIdrKeyframes: Boolean? = null,
+	val tsDetectAccessUnits: Boolean? = null,
+	val forceSoftwareVideo: Boolean? = null,
+	val targetOffsetMs: Long? = null,
+)
+
 class DevOptions(context: Context) {
 
 	private val prefs: SharedPreferences =
 		context.getSharedPreferences("livetv.dev", Context.MODE_PRIVATE)
+
+	/**
+	 * Lo que el servidor de configuración dice para **esta** caja.
+	 *
+	 * Capa intermedia de tres: **fábrica → servidor → menú local**. El menú
+	 * gana porque es la herramienta con la que se depura una caja concreta; si
+	 * el servidor pudiera pisarlo, no habría forma de probar nada en campo.
+	 * Pero gana **solo si alguien lo tocó**: un valor sin tocar no es una
+	 * opinión.
+	 *
+	 * Esto es lo que hace real la promesa de `CLAUDE.md` §6 —excluir tunneled
+	 * en los modelos que no lo soporten sin recompilar— y lo que convierte una
+	 * caja nueva que falla en un cambio de `config.json` en vez de una visita.
+	 */
+	@Volatile
+	private var delServidor: ServerDeviceSettings? = null
+
+	fun aplicarDelServidor(ajustes: ServerDeviceSettings?) {
+		if (ajustes == delServidor) return
+		delServidor = ajustes
+		LiveLog.info(
+			"dev.ajustesDelServidor",
+			"tunneling" to ajustes?.tunneling,
+			"nonIDR" to ajustes?.tsAllowNonIdrKeyframes,
+			"AUD" to ajustes?.tsDetectAccessUnits,
+			"software" to ajustes?.forceSoftwareVideo,
+			"motor" to ajustes?.engine,
+		)
+		_revision.value++
+	}
+
+	/** De dónde salió cada valor. Se enseña en el menú y se registra. */
+	fun procedenciaDe(clave: String): String = when {
+		prefs.contains(clave) -> "menú"
+		delServidor != null && servidorDefine(clave) -> "servidor"
+		else -> "fábrica"
+	}
+
+	private fun servidorDefine(clave: String): Boolean = when (clave) {
+		K_TUNNELING -> delServidor?.tunneling != null
+		K_TS_NONIDR -> delServidor?.tsAllowNonIdrKeyframes != null
+		K_TS_AUD -> delServidor?.tsDetectAccessUnits != null
+		K_FORCE_SW -> delServidor?.forceSoftwareVideo != null
+		else -> false
+	}
+
+	private fun tresCapas(clave: String, delServidor: Boolean?, deFabrica: Boolean): Boolean =
+		if (prefs.contains(clave)) prefs.getBoolean(clave, deFabrica)
+		else delServidor ?: deFabrica
 
 	/** Cambia en cada modificación: la pantalla lo observa para rehacer el plan. */
 	private val _revision = MutableStateFlow(0)
@@ -42,7 +107,7 @@ class DevOptions(context: Context) {
 	 * hardware. Es el interruptor que ejercita el camino de respaldo.
 	 */
 	var forceSoftwareVideo: Boolean
-		get() = prefs.getBoolean(K_FORCE_SW, false)
+		get() = tresCapas(K_FORCE_SW, delServidor?.forceSoftwareVideo, LiveTuning.FORCE_SOFTWARE_VIDEO_DEFAULT)
 		set(v) = put { putBoolean(K_FORCE_SW, v) }
 
 	/** `null` = cascada automática. Si no, `"media3"` o `"libvlc"`. */
@@ -59,7 +124,7 @@ class DevOptions(context: Context) {
 	// `DefaultMediaSourceFactory`: van vía `DefaultHlsExtractorFactory`.
 
 	var tsDetectAccessUnits: Boolean
-		get() = prefs.getBoolean(K_TS_AUD, false)
+		get() = tresCapas(K_TS_AUD, delServidor?.tsDetectAccessUnits, LiveTuning.TS_DETECT_ACCESS_UNITS_DEFAULT)
 		set(v) = put { putBoolean(K_TS_AUD, v) }
 
 	/**
@@ -76,7 +141,7 @@ class DevOptions(context: Context) {
 	 * que no hay IDR donde reengancharse.
 	 */
 	var tsAllowNonIdrKeyframes: Boolean
-		get() = prefs.getBoolean(K_TS_NONIDR, true)
+		get() = tresCapas(K_TS_NONIDR, delServidor?.tsAllowNonIdrKeyframes, LiveTuning.TS_ALLOW_NON_IDR_DEFAULT)
 		set(v) = put { putBoolean(K_TS_NONIDR, v) }
 
 	/**
@@ -134,7 +199,7 @@ class DevOptions(context: Context) {
 	 * `CLAUDE.md` §6.
 	 */
 	var tunnelingEnabled: Boolean
-		get() = prefs.getBoolean(K_TUNNELING, true)
+		get() = tresCapas(K_TUNNELING, delServidor?.tunneling, LiveTuning.TUNNELING_DEFAULT)
 		set(v) = put { putBoolean(K_TUNNELING, v) }
 
 	/**
@@ -196,25 +261,28 @@ class DevOptions(context: Context) {
 	// --- Estado -------------------------------------------------------------
 
 	/** ¿Hay algo que aleje el comportamiento del de fábrica? Se avisa en el overlay. */
+	/**
+	 * ¿Hay algo que el **menú local** esté pisando?
+	 *
+	 * Se mide por las claves escritas en preferencias, no comparando valores
+	 * contra constantes: con tres capas, un valor puede coincidir con el de
+	 * fábrica y venir del servidor, y eso no es una degradación. Lo que importa
+	 * es si alguien tocó esta caja a mano.
+	 */
 	val isDegraded: Boolean
-		get() = vetoedDecoders.isNotEmpty() || forceSoftwareVideo || forcedEngine != null ||
-			playlistStuckMedia3Default || liveEdgeResyncDisabled || !tunnelingEnabled ||
-			wideTimestampSearch || watchdogDisabled ||
-			tsDetectAccessUnits || !tsAllowNonIdrKeyframes ||
-			targetOffsetOverrideMs != null || minBufferOverrideMs != null ||
-			maxBufferOverrideMs != null
+		get() = CLAVES_DEL_MENU.any { prefs.contains(it) }
 
 	fun describe(): String = buildList {
 		if (vetoedDecoders.isNotEmpty()) add("vetados=${vetoedDecoders.size}")
-		if (forceSoftwareVideo) add("video=software")
+		if (prefs.contains(K_FORCE_SW) && forceSoftwareVideo) add("video=software")
 		forcedEngine?.let { add("motor=$it") }
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
-		if (!tunnelingEnabled) add("tunneled=OFF")
-		if (wideTimestampSearch) add("búsqueda amplia")
-		if (tsDetectAccessUnits) add("AUD=on")
-		if (!tsAllowNonIdrKeyframes) add("nonIDR=OFF")
 		if (watchdogDisabled) add("sin vigilante")
+		if (wideTimestampSearch) add("búsqueda amplia")
+		if (prefs.contains(K_TS_AUD)) add("AUD=${if (tsDetectAccessUnits) "on" else "off"}")
+		if (prefs.contains(K_TS_NONIDR)) add("nonIDR=${if (tsAllowNonIdrKeyframes) "ON" else "OFF"}")
+		if (prefs.contains(K_TUNNELING)) add("tunneled=${if (tunnelingEnabled) "ON" else "OFF"}")
 		targetOffsetOverrideMs?.let { add("offset=${it}ms") }
 		minBufferOverrideMs?.let { add("minBuf=${it}ms") }
 		maxBufferOverrideMs?.let { add("maxBuf=${it}ms") }
@@ -264,6 +332,13 @@ class DevOptions(context: Context) {
 		const val K_MIN_BUFFER = "minBufferOverrideMs"
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"
 		const val K_OVERLAY_MODE = "overlayMode"
+
+		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
+		private val CLAVES_DEL_MENU = listOf(
+			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_STUCK_DEFAULT, K_NO_RESYNC,
+			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
+			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER,
+		)
 
 		const val OVERLAY_OCULTO = 0
 		const val OVERLAY_COMPACTO = 1
