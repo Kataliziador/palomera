@@ -134,9 +134,22 @@ fun LiveTvChannelGrid(
 	// de desplazarse no falla ruidosamente — simplemente no pasa nada, y el
 	// foco se queda en la primera tarjeta como si no hubiera memoria.
 	val focoInicial = remember { FocusRequester() }
+
+	// La fila del canal con foco se maneja desde aquí. Las demás llevan su
+	// propio estado, que no hace falta tocar.
+	//
+	// Hay **dos** desplazamientos, no uno: `LazyColumn` compone la sección y
+	// `LazyRow` compone la tarjeta. Con seis canales las filas cabían enteras
+	// en pantalla y el segundo nunca hizo falta; con 120 el canal 214 está a
+	// quince tarjetas a la derecha, su tarjeta no existe, y pedir el foco no
+	// hace nada — ni falla.
+	val filaConFoco = rememberLazyListState()
 	LaunchedEffect(posicionConFoco, sections) {
 		if (sections.isEmpty()) return@LaunchedEffect
-		posicionConFoco?.let { (seccion, _) -> verticalState.scrollToItem(seccion) }
+		posicionConFoco?.let { (seccion, indice) ->
+			verticalState.scrollToItem(seccion)
+			filaConFoco.scrollToItem(indice)
+		}
 		runCatching { focoInicial.requestFocus() }
 	}
 
@@ -164,7 +177,9 @@ fun LiveTvChannelGrid(
 					modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
 				)
 
-				val horizontalState = rememberLazyListState()
+				val horizontalState =
+					if (indiceSeccion == posicionConFoco?.first) filaConFoco
+					else rememberLazyListState()
 				LazyRow(
 					state = horizontalState,
 					horizontalArrangement = Arrangement.spacedBy(12.dp),

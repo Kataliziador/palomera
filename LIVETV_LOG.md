@@ -236,6 +236,48 @@ un frame congelado.
 
 ## Entradas
 
+### [B2] La guía a 120 canales, que es el tamaño de verdad — 2026-10-02
+
+Toda la interfaz se había construido y mirado con **seis** canales. El lineup
+real son ~120, y `LIVETV_PLAN.md` B2 lo dice desde el principio: *«diseñar para
+~120 canales, no para los 6 de prueba»*. Nunca se había comprobado.
+
+Se generó un lineup sintético de 120 canales en 8 grupos, con los seis reales
+dentro para que algo reproduzca de verdad, y con `defaultChannel` apuntando al
+**último de todos** — el peor caso de desplazamiento.
+
+#### Lo que encontró: el foco no llegaba
+
+Con seis canales cada fila cabía entera en pantalla. Con 120, el canal señalado
+está a quince tarjetas a la derecha de su fila, y **la tarjeta no existe**:
+`LazyRow` no compone lo que no se ve, igual que `LazyColumn`.
+
+Son **dos** desplazamientos, no uno. La columna compone la sección; la fila
+compone la tarjeta. Faltaba el segundo, y el síntoma no era un error: el foco se
+quedaba arriba **como si no hubiera memoria**. El mismo modo de fallo que el día
+anterior, un nivel más abajo.
+
+Arreglado: la fila del canal con foco se maneja desde fuera, se desplazan las
+dos y entonces se pide el foco. Verificado con el canal 214, el último de la
+lista, al final de su fila.
+
+#### Lo que aguantó
+
+| | 6 canales | 120 canales |
+|---|---|---|
+| PSS del proceso | 138 MB | **151 MB** |
+| `config.json` | 2.6 kB | 36 kB |
+| Interpretar el documento | — | **110 ms**, descarga incluida |
+
+**13 MB por 114 canales más**, en una caja de 2 GB. La guía se desplaza sin
+tirones y marcar un número sigue resolviendo: `198 → Señal 198`.
+
+**Lo que esto no mide:** la fluidez del desplazamiento con el mando, que es cosa
+de Edgar. Las medidas por `adb` entran a la sección con un toque y no recorren
+el mismo camino de foco.
+
+**Estado:** cerrada la comprobación de escala. Queda la validación con mando.
+
 ### [B5] La marca del proveedor se aplica — 2026-10-02
 
 Primer trozo de B5 tal como quedó reescrita: **sin flavors**, la marca sale del
