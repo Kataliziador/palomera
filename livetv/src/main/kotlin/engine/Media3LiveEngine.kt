@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.SurfaceView
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -14,8 +15,8 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
@@ -26,16 +27,17 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.min
+import kotlin.math.pow
 import org.jellyfin.livetv.LiveTuning
-import org.jellyfin.livetv.diagnostics.DeviceLoad
+import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import org.jellyfin.livetv.diagnostics.DevOptions
+import org.jellyfin.livetv.diagnostics.DeviceLoad
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.source.AudioTrackRef
 import org.jellyfin.livetv.source.ChannelProfile
 import org.jellyfin.livetv.source.LanguageNormalizer
-import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.math.min
-import kotlin.math.pow
 
 /**
  * El motor principal: Media3/ExoPlayer sobre HLS con segmentos TS.
@@ -60,6 +62,9 @@ class Media3LiveEngine(
 	private var surface: SurfaceView? = null
 	private var channel: ChannelProfile? = null
 	private var plan: PlaybackPlan? = null
+
+	/** El aviso de audio sin normalizar se da una vez por sintonía, no por evento. */
+	private var audioYaRevisado = false
 
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
 	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
@@ -216,6 +221,7 @@ class Media3LiveEngine(
 		releaseGapCount = 0
 		audioTracks = emptyList()
 		selectedAudio = null
+		audioYaRevisado = false
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
@@ -677,6 +683,7 @@ class Media3LiveEngine(
 			videoHeight = videoHeight,
 			pixelAspectRatio = pixelAspectRatio,
 			videoMime = exo?.videoFormat?.sampleMimeType,
+			audioMime = exo?.audioFormat?.sampleMimeType,
 			measuredFps = measuredFps(ahora),
 			frameGapCount = releaseGapCount,
 			maxFrameGapMs = maxReleaseGapMs,
@@ -931,6 +938,7 @@ class Media3LiveEngine(
 
 			val encontradas = mutableListOf<AudioTrackRef>()
 			var seleccionada: AudioTrackRef? = null
+			var mimeAudio: String? = null
 			val mapaAudio = mutableMapOf<String, Pair<androidx.media3.common.TrackGroup, Int>>()
 
 			tracks.groups
@@ -953,6 +961,11 @@ class Media3LiveEngine(
 						encontradas += ref
 						mapaAudio[claveDePista(ref)] = group.mediaTrackGroup to i
 						if (group.isTrackSelected(i)) seleccionada = ref
+						// La que suena manda; si no hay ninguna elegida todavía,
+						// vale la primera: en este lineup todas comparten códec.
+						if (mimeAudio == null || group.isTrackSelected(i)) {
+							mimeAudio = f.sampleMimeType
+						}
 					}
 				}
 
@@ -999,6 +1012,7 @@ class Media3LiveEngine(
 			audioTracks = encontradas
 			gruposDeAudio = mapaAudio
 			selectedAudio = seleccionada
+			revisarNormalizacionDeAudio(mimeAudio)
 			notify { it.onAudioTracksChanged(encontradas) }
 		}
 
@@ -1147,6 +1161,54 @@ class Media3LiveEngine(
 	 * pruebas —que trae MPEG-2 por hardware— nunca recorrería los pasos bajos
 	 * de la cascada, y esos pasos llegarían a producción sin probarse.
 	 */
+	/**
+	 * Avisa cuando el audio de un canal **no llegó normalizado a AAC**.
+	 *
+	 * `CLAUDE.md` §2 permite una sola excepción al principio rector —el audio
+	 * se normaliza a AAC en Flussonic— y §6 cuelga de ella la decisión de no
+	 * llevar decoders de MP2, MP3 ni AC-3. Con un headend por ISP eso dejó de
+	 * ser una garantía y pasó a ser un requisito de despliegue.
+	 *
+	 * **Existe por cómo falla, no por cómo suena.** La caja de pruebas
+	 * decodifica `audio/mpeg` y `audio/ac3` por hardware, así que un canal mal
+	 * normalizado se oye perfecto aquí y es silencio en una caja barata. Sin
+	 * esta línea, el síntoma que llega es «un abonado no tiene sonido» y hay
+	 * que ir al site a buscarlo.
+	 *
+	 * El aviso dice además **si esta caja puede decodificarlo**, que es lo que
+	 * separa «este site está mal configurado, arréglalo cuando puedas» de «este
+	 * canal está mudo ahora mismo en este modelo».
+	 */
+	private fun revisarNormalizacionDeAudio(mimeObservado: String?) {
+		if (audioYaRevisado || mimeObservado == null) return
+		audioYaRevisado = true
+
+		val canal = channel
+		if (mimeObservado == MimeTypes.AUDIO_AAC) {
+			LiveLog.debug("audio.normalizado", "canal" to canal?.id, "codec" to mimeObservado)
+			return
+		}
+
+		val caps = DeviceCapabilities.of(context)
+		val puede = caps.decodersFor(mimeObservado).isNotEmpty()
+		val datos = arrayOf(
+			"canal" to canal?.id,
+			"declarado" to canal?.audioCodec,
+			"observado" to mimeObservado,
+			"modelo" to caps.model,
+			"puedeDecodificar" to puede,
+		)
+
+		if (puede) {
+			// Suena, pero solo porque esta caja trae el decoder. En otra no.
+			LiveLog.warn("audio.noNormalizado", *datos)
+		} else {
+			// Mudo aquí y ahora. Se eleva a error para que salga en el volcado
+			// automático: es una visita al site, no una curiosidad.
+			LiveLog.error("audio.sinDecoder", null, *datos)
+		}
+	}
+
 	private inner class DegradableCodecSelector : MediaCodecSelector {
 		override fun getDecoderInfos(
 			mimeType: String,

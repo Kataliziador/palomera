@@ -76,6 +76,15 @@ data class EngineStats(
 	 * el JSON, el plan se habría construido sobre un dato falso (§4.6).
 	 */
 	val videoMime: String? = null,
+	/**
+	 * El MIME del audio que suena.
+	 *
+	 * Está aquí para que se vea en pantalla: el nombre del decoder no basta
+	 * —`OMX.amlogic.audio.decoder.mp2` se resume como «amlogic.audio» y pierde
+	 * el códec— y es justo el dato que distingue un site bien normalizado de
+	 * uno que va a dejar mudas las cajas baratas (`CLAUDE.md` §2).
+	 */
+	val audioMime: String? = null,
 	/** fps medido sobre los frames realmente renderizados, no el declarado. */
 	val measuredFps: Float = 0f,
 	/** Frames que salieron a pantalla tarde. No son frames perdidos: llegan, pero tarde. */

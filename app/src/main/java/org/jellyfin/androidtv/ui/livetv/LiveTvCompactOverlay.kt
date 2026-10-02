@@ -48,6 +48,10 @@ fun LiveTvCompactOverlay(
 				append(channel.id)
 				append("  v:").append(corto(stats.activeVideoDecoder))
 				append("  a:").append(corto(stats.activeAudioDecoder))
+				// El códec solo se escribe cuando **no** es AAC. Si todo está
+				// bien no gasta sitio, y si el site está mal normalizado el
+				// dato está en pantalla sin tener que pedir el log.
+				audioSinNormalizar(stats.audioMime)?.let { append(" ⚠").append(it) }
 				if (stats.videoWidth > 0) {
 					append("  ").append(stats.videoWidth).append('x').append(stats.videoHeight)
 					append('→').append(aspectoCorto(stats))
@@ -81,6 +85,18 @@ fun LiveTvCompactOverlay(
  * El nombre completo no cabe en una línea y su parte informativa son dos
  * palabras: quién lo fabrica y qué códec decodifica.
  */
+/**
+ * El códec de audio, abreviado, **solo si no es AAC**.
+ *
+ * `CLAUDE.md` §2: todo el audio debe llegar normalizado a AAC desde el
+ * headend. Cualquier otra cosa es un site mal configurado, y aunque esta caja
+ * lo decodifique por hardware, otra no lo hará.
+ */
+private fun audioSinNormalizar(mime: String?): String? {
+	if (mime.isNullOrBlank() || mime == "audio/mp4a-latm") return null
+	return mime.substringAfterLast('/').uppercase()
+}
+
 private fun corto(nombre: String?): String {
 	if (nombre.isNullOrBlank()) return "—"
 	val partes = nombre

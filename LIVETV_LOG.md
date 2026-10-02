@@ -227,6 +227,68 @@ un frame congelado.
 
 ## Entradas
 
+### [B6] El audio que no llegó normalizado se dice, no se adivina — 2026-10-02
+
+Primera defensa de las tres que pide `CLAUDE.md` §2 desde que el AAC dejó de
+estar garantizado. La que vive en la app.
+
+**Existe por cómo falla, no por cómo suena.** La caja de pruebas decodifica
+`audio/mpeg` y `audio/ac3` por hardware, así que un canal mal normalizado se oye
+perfecto aquí y es silencio en una caja barata. Sin esto, el síntoma que llega
+es «un abonado no tiene sonido» y hay que ir al site a buscarlo.
+
+**El aviso dice si esta caja puede decodificarlo**, que es lo que separa dos
+problemas distintos: `audio.noNormalizado` en WARN cuando suena pero solo
+porque esta caja trae el decoder, y `audio.sinDecoder` en ERROR cuando está
+mudo aquí y ahora. El segundo entra en el volcado automático porque es una
+visita al site, no una curiosidad.
+
+Se da **una vez por sintonía**, no por evento de pistas, o un canal con audio
+intermitente llenaría el log.
+
+#### Probado fabricando el fallo
+
+Los seis canales del lineup son AAC, así que el aviso no se dispara solo. Se
+construyó un canal mal normalizado —`beisbol` con el vídeo copiado y el audio
+recodificado a MP2— servido desde un servidor de prueba, con el `config.json`
+**declarando `aac`**, que es justo la mentira que se quiere cazar:
+
+```
+tracks.crudo  audio[es/mpeg-L2!nosoportada*]
+WARN audio.noNormalizado canal=mp2-sin-normalizar declarado=aac
+     observado=audio/mpeg-L2 modelo=4K Google TV Box puedeDecodificar=true
+decoder.audio name=OMX.amlogic.audio.decoder.mp2
+```
+
+Y con un canal real, ninguna marca: `audio.normalizado codec=audio/mp4a-latm`.
+
+**La rama `audio.sinDecoder` no se probó en la caja**: no hay un códec de audio
+válido en MPEG-TS que esta Skyworth no sepa decodificar. Difiere en un booleano
+que sale de `DeviceCapabilities.decodersFor`.
+
+#### También en pantalla, porque el nombre del decoder no basta
+
+El overlay resumía `OMX.amlogic.audio.decoder.mp2` como `a:amlogic.audio` y
+perdía justo el códec. Ahora escribe el códec **solo cuando no es AAC**:
+
+```
+mp2-sin-normalizar  v:amlogic.avc  a:amlogic.audio ⚠MPEG-L2  1280x720→16:9
+estrellashd         v:amlogic.avc  a:android.aac             1440x1080→16:9
+```
+
+Cuando todo está bien no gasta sitio; cuando el site está mal, el dato está en
+pantalla sin pedir el log.
+
+#### Un filo del commit anterior, encontrado al probar
+
+La caché se indexa por servidor de Jellyfin, pero el override del menú cambia
+la **fuente** sin cambiar el servidor: apuntar la caja a un servidor de pruebas
+guardaba esa lista en la caché del site real, y al quitar el override la caja
+se quedaba con el lineup equivocado. Ahora el override usa su propia clave.
+Era un footgun de técnico, no de producción, pero de los que se descubren tarde.
+
+**Estado:** cerrada.
+
 ### [B1] La URL de canales se deriva del host de Jellyfin — 2026-10-02
 
 Primer paso real de la arquitectura por site. Hasta hoy la URL venía de

@@ -88,11 +88,19 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	 */
 	private fun destino(): Pair<String?, String> {
 		val servidor = servidores.currentServer.value
-		val derivada = ServiceUrl.configDesdeServidor(servidor?.address)
-		val url = dev.configUrlOverride
-			?: derivada
+		val manual = dev.configUrlOverride
+		val url = manual
+			?: ServiceUrl.configDesdeServidor(servidor?.address)
 			?: BuildConfig.LIVETV_CONFIG_URL.takeIf { it.isNotBlank() }
-		val clave = servidor?.id?.toString() ?: "sin-servidor"
+
+		// Una lista de pruebas no se guarda en la caché del site real. La clave
+		// es el servidor de Jellyfin, pero el override cambia la **fuente** sin
+		// cambiar el servidor: sin esto, el técnico que apunta una caja a su
+		// portátil la deja con el lineup equivocado cuando se va.
+		val clave = when {
+			manual != null -> "manual"
+			else -> servidor?.id?.toString() ?: "sin-servidor"
+		}
 		return url to clave
 	}
 
