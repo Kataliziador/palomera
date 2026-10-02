@@ -218,6 +218,9 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
+| 30 | **El límite de 2 MB del `config.json` solo mira la longitud declarada** | B | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
+| 29 | **`audioDefault` se interpreta pero no se aplica** | B4 | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
+| 28 | **`logoUrl` se interpreta pero no se dibuja** | B4 | la barra y la guía enseñan siempre iniciales. El campo se lee y se descarta |
 | 27 | **El inicio sigue consultando la LiveTV vieja de Jellyfin** | B | `GET /LiveTv/Programs/Recommended` al entrar. La sección vieja debe quedar inalcanzable (§4.5) y esa llamada contradice el invariante: gasta red, puede fallar en un Jellyfin sin TV y sugiere que la sección sigue viva |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
@@ -226,6 +229,45 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### El contrato del `config.json`, escrito — 2026-10-02
+
+El servicio de canales de cada site es un desarrollo aparte, así que la frontera
+entre los dos proyectos tenía que dejar de estar en mi cabeza. `CONFIG_SCHEMA.md`
+documenta cada campo: tipo, si es obligatorio, qué hace la app con él y **qué
+pasa si falta**.
+
+**Tres estados por campo, y la distinción importa:** *implementado* (la app lo
+lee y lo usa), *interpretado* (el parser lo lee y nadie lo consume todavía) y
+*acordado* (decidido en `CLAUDE.md`, aún sin parser). Un servicio que emita solo
+lo implementado funciona completo; lo demás se puede emitir desde ya porque la
+app ignora lo que no entiende.
+
+**Escribirlo destapó tres cosas que iba a documentar mal**, y todas por asumir
+en vez de mirar:
+
+- **`logoUrl` se interpreta y no se dibuja.** La barra y la guía enseñan siempre
+  iniciales. Pendiente #28.
+- **`audioDefault` se interpreta y no se aplica.** El `config.json` puede decir
+  qué idioma arranca y la app lo ignora; elige la que elija Media3. La
+  normalización de idioma y la selección por identidad ya existen: falta
+  aplicarla al preparar. Pendiente #29.
+- **La insignia HD no es lo que creía.** No sale solo de la medición: es
+  `channel.hd || videoHeight >= 720`. La combinación es mejor que cualquiera de
+  las dos sueltas, pero no era lo que estaba a punto de escribir.
+
+Y dos límites que el código no cumple como parecía:
+
+- **El tope de 2 MB solo mira la longitud declarada.** Una respuesta troceada se
+  lo salta. Pendiente #30.
+- **El `Content-Type` no se comprueba.** Se interpreta el cuerpo venga como
+  venga. Queda como recomendación al que escriba el servicio, no como requisito.
+
+**Las cinco cosas que más fácil se hacen mal** cierran el documento, y la
+primera es comprobar que el audio es AAC antes de publicar un canal: es la
+defensa más barata contra la avería que no se ve.
+
+**Estado:** cerrada. Sin tocar código.
 
 ### [B6] El audio que no llegó normalizado se dice, no se adivina — 2026-10-02
 

@@ -40,6 +40,8 @@ Consecuencias que mandan sobre todo lo demás:
   del ISP. Lo que no es nuestro es la antena y lo que el ISP decida emitir.
 
 Documentos hermanos:
+- `CONFIG_SCHEMA.md` — contrato entre el servicio de canales de cada site y la
+  APK. Lo que el miniservicio tiene que emitir.
 - `CHANNELS.md` — datos medidos de cada canal. Fuente de verdad, no adivines.
 - `LIVETV_ENGINE.md` — especificación del motor: cascada, capacidades, sintonía.
 - `LIVETV_PLAN.md` — fases de trabajo y criterios de cierre.
