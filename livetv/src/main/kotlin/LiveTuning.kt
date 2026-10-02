@@ -232,12 +232,15 @@ object LiveTuning {
 	/**
 	 * Aplicar `audioDefault` del `config.json` al sintonizar.
 	 *
-	 * **De fábrica apagado**, que es el comportamiento anterior: arranca la
-	 * pista que elija Media3. Se enciende desde el menú para validarlo en
-	 * pantalla (`CLAUDE.md` §3), y el valor de fábrica se invierte cuando Edgar
-	 * lo apruebe.
+	 * **Activo de fábrica desde el 02-oct**, validado en pantalla por Edgar. El
+	 * interruptor del menú se queda para reproducir el comportamiento anterior
+	 * —arrancar con la pista que elija Media3— si alguna vez hace falta.
+	 *
+	 * Es un **valor por defecto, no una imposición**: en algunos satélites la
+	 * etiqueta de idioma miente, y la elección manual del abonado manda sobre
+	 * esto para el resto de la sintonía (`CLAUDE.md` §4, regla 6).
 	 */
-	const val AUDIO_DEFAULT_ENABLED = false
+	const val AUDIO_DEFAULT_ENABLED = true
 
 	const val CHANNEL_SERVICE_PORT = 8097
 

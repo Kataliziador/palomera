@@ -175,8 +175,8 @@ class DevOptions(context: Context) {
 	/**
 	 * Aplica el idioma de audio que pide el `config.json` al sintonizar.
 	 *
-	 * **Apagado de fábrica**: el comportamiento anterior es que arranque la
-	 * pista que elija Media3. Se enciende aquí para validarlo en pantalla.
+	 * **Activo de fábrica** desde el 02-oct. Apagarlo reproduce el
+	 * comportamiento anterior: arrancar con la pista que elija Media3.
 	 */
 	var audioDefaultEnabled: Boolean
 		get() = prefs.getBoolean(K_AUDIO_DEFAULT, LiveTuning.AUDIO_DEFAULT_ENABLED)

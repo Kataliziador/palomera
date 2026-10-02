@@ -196,12 +196,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Idioma de audio del config.json",
-				value = if (dev.audioDefaultEnabled) "SE APLICA" else "no se aplica (fábrica)",
-				changed = dev.audioDefaultEnabled,
+				value = if (dev.audioDefaultEnabled) "se aplica (fábrica)" else "NO SE APLICA",
+				changed = !dev.audioDefaultEnabled,
 			) { change { dev.audioDefaultEnabled = !dev.audioDefaultEnabled } }
 		}
 		item {
-			Info("Encendido, al sintonizar se elige la pista que pide audioDefault. Se nota en HBO y Discovery, que traen español e inglés.")
+			Info("Apagarlo reproduce el comportamiento anterior: arranca la pista que elija Media3, no la que pide el config.json.")
 		}
 
 		item { Header("Flags del extractor TS  (fase M4)") }

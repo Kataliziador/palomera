@@ -219,12 +219,13 @@ un frame congelado.
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
+| 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
 | 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. Alcanza también al `config.json` si un site lo sirve por HTTPS. Pedido en `autorizador/docs/PETICION_APK.md` |
 | 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
 | 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
 | ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
-| 29 | **`audioDefault` se aplica, pendiente de validación** | **M** | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
+| ~~29~~ | ~~**`audioDefault` se interpreta pero no se aplica**~~ | — | **cerrado 02-oct, validado por Edgar.** Activo de fábrica. La normalización es nuestra, no de Media3: `esl` no es código ISO y Media3 no lo casaría con `spa` |
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
@@ -234,6 +235,49 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Por qué HBO enseña tres pistas de audio y el stream tiene dos — 2026-10-02
+
+Pregunta de Edgar al validar: el stream trae dos audios y la app ofrece tres.
+
+**El master publica el español dos veces.** Medido descargando un segmento de
+cada uno de los tres destinos que declara:
+
+```
+tracks-a1    → aac                 ← rendition, español
+tracks-a2    → aac                 ← rendition, inglés
+tracks-v1a1  → aac + h264          ← la variante: vídeo + audio 1 MULTIPLEXADO
+```
+
+El nombre lo dice: `v1a1` es *vídeo 1 + audio 1*. Flussonic mete el español
+dentro de la variante **y además** lo declara como `EXT-X-MEDIA` aparte. Media3
+ve los tres caminos y los expone todos, así que las dos primeras pistas son el
+**mismo audio**.
+
+**No es un fallo de la app ni del stream**: es cómo empaqueta Flussonic. Y
+explica de paso por qué `mono.m3u8` solo enseñaba una — ahí no hay renditions,
+solo la variante.
+
+**Consecuencia para el abonado:** el selector ofrece «Español, Español, Inglés»,
+y la segunda no hace nada distinto de la primera. Funciona, pero confunde.
+
+#### Dónde arreglarlo, y por qué no en la app
+
+**Lo limpio es el headend:** que la variante no lleve audio multiplexado cuando
+ya se declaran renditions. Es lo que dice el estándar cuando se usa un grupo
+`AUDIO`, y muchos empaquetadores lo mezclan igual por compatibilidad con
+clientes viejos. Hay que mirar si Flussonic lo permite configurar.
+
+**En la app sería adivinar.** Dos pistas con el mismo idioma pueden ser el mismo
+audio duplicado —este caso— o dos audios distintos de verdad, como un español
+latino y un castellano. La app no puede distinguirlos sin inventarse una regla,
+y una regla que se equivoque **esconde una pista que el abonado necesitaba**,
+que es peor que enseñar una de más.
+
+Si el headend no puede evitarlo, la salida sería que el `config.json` lo diga
+—un campo que indique qué pistas publicar— y no que la app lo deduzca.
+
+**Estado:** abierta. Pendiente #36.
 
 ### [B] Sin lista de arranque en producción, y una petición del autorizador — 2026-10-02
 
@@ -291,7 +335,7 @@ haga con él y no después.
 
 **Estado:** cerrada la parte de la lista de arranque; la petición, registrada.
 
-### [M] El endpoint pasa a `index.m3u8` — 2026-10-02 — **pendiente de validación**
+### [M] El endpoint pasa a `index.m3u8` — 2026-10-02 → **cerrada**
 
 Revierte una decisión cerrada de `CLAUDE.md` §6. Decisión de Edgar, con un
 argumento que yo no tenía:
@@ -356,9 +400,12 @@ Y en `CLAUDE.md` §4 regla 6 queda escrito que **la etiqueta puede mentir**: la
 preferencia por idioma es un valor por defecto, nunca una imposición, y la
 elección del abonado manda para el resto de la sintonía.
 
-**Estado:** abierta — falta la validación en pantalla.
+**Validado por Edgar el 02-oct:** «se ven bien, igual que antes». Los seis
+canales sin regresión visible y sin penalización de zapeo apreciable.
 
-### [M] `audioDefault` se aplica — y de paso, `mono.m3u8` oculta las otras pistas — 2026-10-02 — **pendiente de validación**
+**Estado:** cerrada.
+
+### [M] `audioDefault` se aplica — y de paso, `mono.m3u8` oculta las otras pistas — 2026-10-02 → **cerrada**
 
 Modo A. Detrás del interruptor «Idioma de audio del config.json» del menú, **de
 fábrica apagado**, que es el comportamiento anterior.
