@@ -218,6 +218,8 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
+| 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
+| 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
 | ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
 | 29 | **`audioDefault` se interpreta pero no se aplica** | B4 | el `config.json` puede decir qué idioma arranca y la app lo ignora: elige la que elija Media3. La normalización de idioma ya existe y la selección por identidad también; falta aplicarla al preparar |
@@ -230,6 +232,68 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [B] El contrato crece: aviso, canal por defecto, alias, no disponible — 2026-10-02
+
+Cinco campos nuevos salidos de pensar qué más tiene sentido que gestione el
+servicio del site. Todos **opcionales**, y por eso con pruebas: un campo
+opcional mal interpretado no se ve —el documento se acepta igual y la función
+sencillamente no ocurre—.
+
+| Campo | Dónde | Estado |
+|---|---|---|
+| `message` | raíz | se lee y caduca solo; no se dibuja |
+| `defaultChannel` | raíz | se lee; ningún camino lo usa todavía |
+| `unavailable` + `unavailableMessage` | canal | **implementado** |
+| `aliases` | canal | se lee; no hay búsqueda |
+| `rating`, `backupUrl` | canal | se leen; sin comportamiento por diseño |
+
+#### Lo único con comportamiento completo: el canal no disponible
+
+**Hay dos formas de que un canal no se vea y no son lo mismo.** No publicarlo
+—el servicio no lo emite— es lo correcto mientras se da de alta o cuando se
+retira. Publicarlo como no disponible lo deja en la guía, con su número y su
+sitio, y al sintonizarlo enseña el motivo.
+
+La segunda existe porque **un canal que desaparece genera una llamada a soporte
+y uno que explica no**. Si alguien ve el 207 todos los días y un martes no está,
+llama.
+
+Se comprueba **antes** de construir plan ni motor: no tiene sentido abrir un
+decodificador para nada. Verificado en la caja:
+
+```
+canal.noDisponible canal=mileniosd motivo=Fuera de servicio por mantenimiento del headend
+```
+
+Y en pantalla, el nombre del canal con el motivo debajo.
+
+#### El aviso del operador lleva fecha, y esa es la parte importante
+
+`until` existe porque el fallo previsible de un aviso no es el texto: es **el
+aviso que nadie quitó**. Un mantenimiento de hace tres meses sigue en pantalla
+porque quien lo puso se olvidó. Con fecha se retira solo.
+
+Y una fecha ilegible **no tira el aviso**: se trata como sin caducidad y se
+registra. Perder el aviso es peor que enseñarlo de más.
+
+#### Lo que no se adoptó, y por qué
+
+**Paquetes** (básico, premium). La v1 no tiene autenticación de abonado, así que
+la app no puede saber quién es quién: servir lineups distintos es imposible hoy,
+no difícil. Decisión de Edgar.
+
+`rating` y `backupUrl` sí entraron **aunque no hagan nada**: el sitio natural de
+ese dato es el `config.json`, y meterlos después obligaría a volver a pasar por
+todos los sites. Conmutar de fuente además exige motor y validación en pantalla.
+
+#### Un error mío en las pruebas
+
+Escribí a mano el epoch de `2026-10-08T04:00:00Z` y me equivoqué en cuatro
+horas. La prueba falló, el parser tenía razón. Ahora la prueba lo **calcula**:
+un epoch a ojo acaba comprobando mi aritmética en vez del código.
+
+**Estado:** cerrada.
 
 ### [B] Tres huecos cerrados: logo, límite de tamaño y la LiveTV vieja — 2026-10-02
 

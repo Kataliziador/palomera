@@ -12,6 +12,7 @@ import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.livetv.config.ChannelGroup
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
+import org.jellyfin.livetv.config.OperatorMessage
 import org.jellyfin.livetv.config.ServiceUrl
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
@@ -32,6 +33,10 @@ data class LiveCatalog(
 	val groups: List<ChannelGroup>,
 	val origin: ConfigOrigin,
 	val loading: Boolean = false,
+	/** Aviso del operador, si lo hay y sigue vigente. */
+	val message: OperatorMessage? = null,
+	/** `id` del canal que abre una caja recién instalada. */
+	val defaultChannel: String? = null,
 )
 
 /**
@@ -154,7 +159,13 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					"canales" to config.channels.size,
 					"grupos" to config.groups.size,
 				)
-				LiveCatalog(ordenar(config.channels), config.groups, resultado.origin)
+				LiveCatalog(
+					channels = ordenar(config.channels),
+					groups = config.groups,
+					origin = resultado.origin,
+					message = config.message?.takeIf { it.vigente(System.currentTimeMillis()) },
+					defaultChannel = config.defaultChannel,
+				)
 			}
 		}
 	}
@@ -190,9 +201,20 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	fun byNumber(number: Int): ChannelProfile? =
 		_state.value.channels.firstOrNull { it.number == number }
 
+	/**
+	 * El canal pedido; si no se pide ninguno, el que abre una caja nueva.
+	 *
+	 * El respaldo es `defaultChannel` y solo después el primero de la lista. Sin
+	 * eso, una caja recién instalada abre lo que haya quedado primero según cómo
+	 * esté numerado el lineup, que puede ser cualquier cosa — y es el primer
+	 * momento en que el abonado se forma una opinión del servicio.
+	 */
 	fun byId(id: String?): ChannelProfile? {
-		val canales = _state.value.channels
-		return canales.firstOrNull { it.id == id } ?: canales.firstOrNull()
+		val estado = _state.value
+		val canales = estado.channels
+		return canales.firstOrNull { it.id == id }
+			?: canales.firstOrNull { it.id == estado.defaultChannel }
+			?: canales.firstOrNull()
 	}
 
 	companion object {

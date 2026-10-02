@@ -141,6 +141,30 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		return
 	}
 
+	// Un canal marcado como no disponible no se intenta reproducir.
+	//
+	// Es distinto de no publicarlo: el canal sigue en la guía, con su número y
+	// su sitio, pero dice por qué no está. **Un canal que desaparece genera una
+	// llamada a soporte**; uno que explica, no. Se comprueba antes de construir
+	// plan ni motor: no tiene sentido abrir un decodificador para nada.
+	if (channel.unavailable) {
+		LiveLog.info(
+			"canal.noDisponible",
+			"canal" to channel.id,
+			"motivo" to channel.unavailableMessage,
+		)
+		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+			Column(modifier = Modifier.align(Alignment.Center)) {
+				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
+				Text(
+					text = channel.unavailableMessage ?: "Este canal no está disponible ahora",
+					color = Color(0xFFBDBDBD),
+				)
+			}
+		}
+		return
+	}
+
 	// El plan lo decide la cascada (M3), por canal y por caja. Se rehace si
 	// cambian las capacidades, el canal o lo que diga el servidor.
 	val caps = remember { DeviceCapabilities.of(context) }

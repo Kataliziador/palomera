@@ -42,6 +42,30 @@ data class ChannelProfile(
 
 	/** Filtro duro: un motor ausente de esta lista no se elige nunca. */
 	val enginesAllowed: Set<String>? = null,
+
+	/**
+	 * Nombres alternativos para la búsqueda.
+	 *
+	 * Con ~120 canales nadie navega con flechas: busca. Y busca por lo que
+	 * llama al canal —«canal 2»— no por su nombre comercial.
+	 */
+	val aliases: List<String> = emptyList(),
+
+	/**
+	 * El canal está en la guía pero no se puede ver ahora.
+	 *
+	 * Distinto de no publicarlo. **Un canal que desaparece genera una llamada a
+	 * soporte**; uno que dice por qué no está, no. El `id` además sostiene los
+	 * favoritos del abonado, así que ocultar un canal borrándolo se los rompe.
+	 */
+	val unavailable: Boolean = false,
+	val unavailableMessage: String? = null,
+
+	/** Clasificación de contenido. Sin comportamiento todavía: futuro PIN. */
+	val rating: String? = null,
+
+	/** Segunda fuente del canal. Sin comportamiento todavía: exige motor (M-x). */
+	val backupUrl: String? = null,
 )
 
 /**

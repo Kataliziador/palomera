@@ -76,6 +76,8 @@ cadencia.
 | `deviceOverrides` | lista | implementado | no |
 | `brand` | objeto | acordado | no |
 | `epg` | objeto | acordado | no |
+| `message` | objeto | **interpretado** | no |
+| `defaultChannel` | texto | **interpretado** | no |
 
 **Si falta `version`, el documento se rechaza entero** y la app se queda con su
 caché. Es el único campo de la raíz cuya ausencia es fatal, junto con no tener
@@ -97,6 +99,50 @@ meses**, y al revés.
 
 Sube `version` cuando cambies el significado de un campo existente. Añadir
 campos nuevos no lo requiere.
+
+### `message` — el aviso del operador
+
+```json
+"message": {
+  "text": "Mantenimiento el martes de 2:00 a 4:00",
+  "until": "2026-10-08T04:00:00Z"
+}
+```
+
+| Campo | Obligatorio |
+|---|---|
+| `text` | **sí**, si existe el objeto |
+| `until` | no; pasado ese instante la app deja de enseñarlo |
+
+Un texto que el ISP quiere que vean sus abonados. **Lo lee alguien en su sala**,
+así que se escribe para esa persona.
+
+Se interpreta y se descarta solo cuando caduca, pero **todavía no se dibuja**:
+falta decidir dónde va sin estorbar al canal. Emítelo desde ya.
+
+`until` existe porque el fallo previsible de esto es **el aviso que nadie quitó**:
+un mantenimiento de hace tres meses sigue en pantalla porque quien lo puso se
+olvidó. Con fecha, se retira solo.
+
+Solo texto. Sin enlaces ni formato, por la misma razón que los `extras`.
+
+### `defaultChannel` — qué se sintoniza la primera vez
+
+```json
+"defaultChannel": "estrellashd"
+```
+
+El `id` del canal que abre una caja **recién instalada**, antes de que haya un
+«último canal visto». Sin esto la app abre el primero de la lista, que puede ser
+cualquier cosa según cómo esté numerado el lineup.
+
+Es el primer momento en que el abonado se forma una opinión del servicio, y
+cuesta un campo. Un `id` que no exista se ignora y se registra.
+
+**Hoy se interpreta pero ningún camino lo usa:** la app siempre abre el
+reproductor con un canal elegido desde la guía. Empezará a importar cuando haya
+memoria del último canal visto (B2), porque entonces la primera vez no habrá
+ninguno. Emítelo desde ya.
 
 ---
 
@@ -173,6 +219,11 @@ al reorganizar el lineup, o los favoritos del abonado apuntarán a otra cosa.
 | `logoUrl` | texto | **interpretado** | — |
 | `hd` | booleano | implementado | se deduce de la altura medida |
 | `extras` | lista | acordado | no se dibuja nada |
+| `aliases` | lista de texto | **interpretado** | solo se busca por el nombre |
+| `unavailable` | booleano | **implementado** | el canal se trata como normal |
+| `unavailableMessage` | texto | **implementado** | mensaje genérico |
+| `rating` | texto | **interpretado** | — |
+| `backupUrl` | texto | **interpretado** | — |
 
 **`logoUrl` todavía no se dibuja.** La app enseña siempre las iniciales del
 nombre. Emítelo igual, y ten los archivos servidos: cuando se implemente, los
@@ -203,6 +254,54 @@ Las reglas que lo hacen seguro, y que conviene conocer al generarlos:
   sobre se recorta en silencio; un `config.json` no puede empujar la barra
   fuera de pantalla.
 - **Una entrada mal formada se descarta, no tira el canal.**
+
+### Un canal que está pero no se puede ver
+
+```json
+"unavailable": true,
+"unavailableMessage": "Fuera de servicio por mantenimiento del headend"
+```
+
+**Hay dos formas de que un canal no se vea, y no son lo mismo:**
+
+- **No publicarlo.** El servicio sencillamente no lo emite. Es lo correcto
+  mientras se da de alta, o cuando se retira del lineup. La app no se entera.
+- **Publicarlo como no disponible.** El canal sigue en la guía, con su número y
+  su sitio, pero al sintonizarlo se enseña el motivo en vez de intentar
+  reproducir.
+
+La segunda existe porque **un canal que desaparece genera una llamada a
+soporte** y uno que dice «fuera de servicio por mantenimiento» no. Si alguien ve
+el 207 todos los días y un martes no está, llama.
+
+**Y una advertencia sobre no publicar: no borres el canal del servicio.** El
+`id` es de donde cuelgan los favoritos y el último canal visto del abonado.
+Quítalo de lo publicado, consérvalo en tu base.
+
+### `aliases` — para que la búsqueda encuentre el canal
+
+```json
+"aliases": ["canal 2", "las estrellas", "xew"]
+```
+
+Con 120 canales nadie navega con flechas: busca. Y busca por lo que llama al
+canal, no por su nombre comercial exacto. Sin alias, «canal 2» no encuentra
+«Estrellas HD».
+
+La búsqueda de la sección **todavía no existe** (B2), así que esto se interpreta
+y no se usa. Emítelo igual.
+
+### `rating` y `backupUrl` — datos sin comportamiento, todavía
+
+| Campo | Para qué, el día que se use |
+|---|---|
+| `rating` | clasificación de contenido, para un control parental con PIN |
+| `backupUrl` | segunda fuente del canal, para conmutar si la primera cae |
+
+**Ninguno de los dos hace nada hoy**, y conmutar de fuente exige trabajo de
+motor con validación en pantalla. Están en el contrato porque el sitio natural
+de ese dato es el `config.json`, y meterlos después obligaría a volver a pasar
+por todos los sites.
 
 ### Lo que necesita el motor
 
@@ -391,3 +490,5 @@ Y las cinco cosas que más fácil se hacen mal:
    abrirlo.
 4. **`targetOffsetMs` por debajo de la mitad de la ventana DVR** del canal.
 5. **No editar `deviceOverrides` a mano por site**: inyectarlos al generar.
+6. **No borrar un canal para ocultarlo**: dejar de publicarlo. El `id` sostiene
+   los favoritos del abonado.

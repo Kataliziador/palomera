@@ -179,3 +179,99 @@ private fun rechaza(bloque: () -> Unit) {
 		"se esperaba InvalidConfig, llegó ${fallo!!::class.java.simpleName}: ${fallo.message}"
 	}
 }
+
+/**
+ * Los campos añadidos el 02-oct: aviso del operador, canal por defecto, alias,
+ * no disponible, clasificación y fuente de respaldo.
+ *
+ * Se prueban porque todos son **opcionales**, y un campo opcional mal
+ * interpretado no se ve: el documento se acepta igual y la función sencillamente
+ * no ocurre.
+ */
+class LiveConfigAmpliadoTest : StringSpec({
+
+	fun doc(raiz: String = "", canal: String = "") = """
+		{
+		  "version": 1
+		  $raiz,
+		  "channels": [
+		    { "id":"c1", "name":"Uno", "url":"http://e/1.m3u8" $canal }
+		  ]
+		}
+	""".trimIndent()
+
+	// --- aviso del operador ---------------------------------------------
+
+	"el aviso se interpreta con su caducidad en ISO" {
+		val c = LiveConfigParser.parse(
+			doc(raiz = """, "message": { "text":"Mantenimiento", "until":"2026-10-08T04:00:00Z" }""")
+		)
+		c.message!!.text shouldBe "Mantenimiento"
+		// Calculado, no escrito a mano: un epoch a ojo se equivoca en horas y la
+		// prueba acaba comprobando mi aritmética en vez del parser.
+		c.message!!.untilEpochMs shouldBe java.time.Instant.parse("2026-10-08T04:00:00Z").toEpochMilli()
+	}
+
+	"un aviso sin caducidad está vigente siempre" {
+		val c = LiveConfigParser.parse(doc(raiz = """, "message": { "text":"Hola" }"""))
+		c.message!!.vigente(Long.MAX_VALUE) shouldBe true
+	}
+
+	"un aviso caducado deja de estar vigente" {
+		val c = LiveConfigParser.parse(
+			doc(raiz = """, "message": { "text":"Viejo", "until":"2020-01-01T00:00:00Z" }""")
+		)
+		c.message!!.vigente(System.currentTimeMillis()) shouldBe false
+	}
+
+	"una fecha ilegible no tira el aviso: perderlo es peor que enseñarlo de más" {
+		val c = LiveConfigParser.parse(
+			doc(raiz = """, "message": { "text":"Aviso", "until":"el martes" }""")
+		)
+		c.message!!.text shouldBe "Aviso"
+		c.message!!.untilEpochMs shouldBe null
+	}
+
+	"un aviso sin texto no es un aviso" {
+		LiveConfigParser.parse(doc(raiz = """, "message": { "until":"2026-10-08T04:00:00Z" }""")).message shouldBe null
+	}
+
+	// --- canal por defecto ----------------------------------------------
+
+	"el canal por defecto se acepta si existe" {
+		LiveConfigParser.parse(doc(raiz = """, "defaultChannel":"c1"""")).defaultChannel shouldBe "c1"
+	}
+
+	"un canal por defecto que no existe se ignora, no rompe" {
+		LiveConfigParser.parse(doc(raiz = """, "defaultChannel":"fantasma"""")).defaultChannel shouldBe null
+	}
+
+	// --- campos de canal ------------------------------------------------
+
+	"los alias se interpretan y los vacíos se descartan" {
+		val c = LiveConfigParser.parse(doc(canal = """, "aliases":["canal 2","  ","las estrellas"]"""))
+		c.channels[0].aliases shouldBe listOf("canal 2", "las estrellas")
+	}
+
+	"sin alias la lista queda vacía, no nula" {
+		LiveConfigParser.parse(doc()).channels[0].aliases shouldBe emptyList()
+	}
+
+	"un canal no disponible conserva su motivo" {
+		val c = LiveConfigParser.parse(
+			doc(canal = """, "unavailable":true, "unavailableMessage":"Mantenimiento del headend"""")
+		)
+		c.channels[0].unavailable shouldBe true
+		c.channels[0].unavailableMessage shouldBe "Mantenimiento del headend"
+	}
+
+	"por defecto un canal está disponible" {
+		LiveConfigParser.parse(doc()).channels[0].unavailable shouldBe false
+	}
+
+	"clasificación y fuente de respaldo se interpretan aunque no hagan nada" {
+		val c = LiveConfigParser.parse(doc(canal = """, "rating":"B15", "backupUrl":"http://e/1b.m3u8""""))
+		c.channels[0].rating shouldBe "B15"
+		c.channels[0].backupUrl shouldBe "http://e/1b.m3u8"
+	}
+})

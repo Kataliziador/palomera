@@ -74,12 +74,29 @@ data class DeviceOverride(
  * Ni un nombre de canal, ni una URL, ni un logo viven en el APK (regla 12):
  * todo sale de aquí o de `BuildConfig`.
  */
+/**
+ * Aviso del operador para sus abonados.
+ *
+ * `until` existe porque el fallo previsible de esto es **el aviso que nadie
+ * quitó**: un mantenimiento de hace tres meses sigue en pantalla porque quien
+ * lo puso se olvidó. Con fecha, se retira solo.
+ */
+data class OperatorMessage(
+	val text: String,
+	val untilEpochMs: Long? = null,
+) {
+	fun vigente(ahoraMs: Long): Boolean = untilEpochMs == null || ahoraMs < untilEpochMs
+}
+
 data class LiveConfig(
 	val version: Int,
 	val generatedAt: String?,
 	val groups: List<ChannelGroup>,
 	val channels: List<ChannelProfile>,
 	val deviceOverrides: List<DeviceOverride>,
+	val message: OperatorMessage? = null,
+	/** `id` del canal que abre una caja recién instalada. */
+	val defaultChannel: String? = null,
 ) {
 	/**
 	 * Los ajustes que aplican a **esta** caja, del menos al más específico.
@@ -158,6 +175,15 @@ object LiveConfigParser {
 		val canales = parseChannels(raiz.array("channels"), grupos.map { it.id }.toSet())
 		if (canales.isEmpty()) throw InvalidConfig("no hay ni un canal utilizable")
 
+		// Un `defaultChannel` que no existe se ignora: puede ser un canal que
+		// se dejó de publicar y nadie actualizó el campo, y eso no justifica
+		// dejar la sección sin canal por defecto.
+		val porDefecto = raiz.str("defaultChannel")?.takeIf { id ->
+			(canales.any { it.id == id }).also {
+				if (!it) LiveLog.warn("config.canalPorDefectoDesconocido", "id" to id)
+			}
+		}
+
 		val ajustes = parseOverrides(raiz.array("deviceOverrides"))
 
 		LiveLog.info(
@@ -174,6 +200,8 @@ object LiveConfigParser {
 			groups = grupos,
 			channels = canales,
 			deviceOverrides = ajustes,
+			message = parseMessage(raiz["message"] as? JsonObject),
+			defaultChannel = porDefecto,
 		)
 	}
 
@@ -226,8 +254,38 @@ object LiveConfigParser {
 				enginesAllowed = o.array("enginesAllowed")
 					?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank) }
 					?.toSet(),
+				aliases = o.array("aliases")
+					?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank) }
+					.orEmpty(),
+				unavailable = o.bool("unavailable") ?: false,
+				unavailableMessage = o.str("unavailableMessage"),
+				rating = o.str("rating"),
+				backupUrl = o.str("backupUrl"),
 			)
 		}
+	}
+
+	/**
+	 * El aviso del operador. Sin `text` no hay aviso, por mucho que haya objeto.
+	 *
+	 * La fecha se acepta en milisegundos epoch o en ISO-8601 con zona. Un valor
+	 * ilegible **no tira el aviso**: se trata como sin caducidad y se registra,
+	 * porque perder el aviso es peor que enseñarlo de más.
+	 */
+	private fun parseMessage(o: JsonObject?): OperatorMessage? {
+		if (o == null) return null
+		val texto = o.str("text")?.takeIf { it.isNotBlank() } ?: run {
+			LiveLog.warn("config.avisoSinTexto")
+			return null
+		}
+		val hasta = o.long("until") ?: o.str("until")?.let { crudo ->
+			runCatching { java.time.Instant.parse(crudo).toEpochMilli() }
+				.getOrElse {
+					LiveLog.warn("config.avisoFechaIlegible", "until" to crudo)
+					null
+				}
+		}
+		return OperatorMessage(texto, hasta)
 	}
 
 	private fun descartar(indice: Int, motivo: String, id: String? = null): ChannelProfile? {

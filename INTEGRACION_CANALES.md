@@ -101,6 +101,15 @@ todos los que sí lo traen.
 «Favoritos» no se declara: la app lo construye con lo que marque el abonado y va
 siempre primero. Un canal favorito aparece **dos veces**, arriba y en su grupo.
 
+### Un canal no disponible sí hace algo
+
+`unavailable: true` **está implementado**: el canal sigue en la guía, y al
+sintonizarlo se enseña su nombre y `unavailableMessage` en vez de intentar
+reproducir. No se abre decodificador ni se toca la red.
+
+Lo que **todavía no** hace: atenuar la tarjeta en la guía. El abonado se entera
+al entrar al canal, no antes.
+
 ### Lo que la app mide y prefiere sobre lo que digas
 
 - **La insignia HD** es `hd || alturaMedida >= 720`. Tu campo ayuda antes de
@@ -121,6 +130,10 @@ habrá que volver a pasar por ellos.
 |---|---|---|
 | `logoUrl` | **se dibuja en la barra**; en la guía todavía no | #28 |
 | `audioDefault` | se lee, **no se aplica** | #29 |
+| `message` | se lee y caduca solo; **no se dibuja** | #32 |
+| `defaultChannel` | se lee; **ningún camino lo usa todavía** | #33 |
+| `aliases` | se lee; **no hay búsqueda** en la sección | B2 |
+| `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
 
 **`audioDefault` es el que más se nota.** Hoy un canal con español e inglés
 arranca con la pista que elija Media3, no con la que digas. Está pendiente.
