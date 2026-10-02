@@ -207,7 +207,7 @@ un frame congelado.
 | 10 | ~~Caracterizar `test-sat70w-hbohd-mp4`~~ | M1 | **cerrado**: h264 1080i `bb`, AAC |
 | 11 | **`estrellashd-mp4`: pista de audio intermitente** | headend + M7 | desaparece y vuelve; revisar errores PES en Astra |
 | 12 | Sobrevivir a cambios en el número de pistas a mitad de stream | M7 | ExoPlayer lo tolera mal; caso real en `estrellashd-mp4` |
-| 13 | Aceptar `spa`, `esp`, `esl` y `es` como español | **M3** (subió de B4) | `estrellashd` y `estrellassd` usan `esl`. Con los PIDs normalizados por Flussonic, el idioma es la **única** clave de selección de audio: es motor, no interfaz |
+| 13 | ~~Aceptar `spa`, `esp`, `esl` y `es` como español~~ | — | **cerrado 02-oct con M3.** `ChannelProfile.normalizarIdioma` acepta `spa esp esl es spanish castellano`. Verificado en la caja: `estrellashd` entrega la etiqueta cruda `esl` y el motor la expone como `audio.pistas idiomas=[spa]` |
 | 14 | ~~Recapturar la muestra de `estrellashd-mp4`~~ | — | **cerrado 26-sep: la contradicción era falsa.** 60000/1001 y 30000/1001 eran los dos valores nominales del contenedor. Medido sobre 12 s del canal en vivo: 286 imágenes **progresivas** en 11.912 s (23.976 fps) con `repeat_pict` alternando 1,0,1,0 sin excepción → **cine con pulldown 3:2 señalizado**. Ver `CHANNELS.md` §3.quinquies |
 | 15 | Instalar tsduck y tomar línea base de errores CC con buen clima | M7 | no está en los repos de Ubuntu, bajar el .deb |
 | 22 | **`hbohd` transporta cine 23.976 con cadencia 3:2** | **M5** | microcortes que Edgar ve y los contadores no. Medido: 358 intervalos de 50 ms alternando con 357 de 33 ms, frente a 894 uniformes de 33 en `discoveryhd`. Descartado `FLAG_DETECT_ACCESS_UNITS`. Ver `CHANNELS.md` §3.quater |
@@ -218,11 +218,144 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
+| 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
+| 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
 
 ---
 
 ## Entradas
+
+### [M3] La cascada decide el plan por canal y por caja — 2026-10-02
+
+Hasta hoy el reproductor llevaba esto cableado:
+
+```kotlin
+reason = "M0: plan fijo, sin cascada"
+```
+
+Media3, hardware, sin desentrelazar, para todo. Funcionaba porque la caja de
+pruebas es el mejor caso posible —trae MPEG-2 por hardware— y nunca hizo falta
+el segundo paso. En la ZTE puede no haberlo.
+
+**Tres fuentes en el orden de `CLAUDE.md` §6, y el servidor no manda sobre la
+realidad.** Una orden de usar libVLC donde no está compilado se registra y se
+ignora; obedecerla a ciegas convertiría una errata en el `config.json` en un
+canal muerto en miles de casas. `enginesAllowed` es filtro duro: un motor fuera
+de esa lista no se elige **nunca**, ni como último recurso, ni aunque lo pida
+el servidor.
+
+**El plan es ahora el único lugar donde se decide.** Los flags del extractor
+los trae él, no los recalcula el motor; y el selector de códecs obedece
+`plan.videoPath` en vez de volver a mirar el menú por su cuenta. Daban la misma
+respuesta, pero con dos sitios decidiendo lo mismo basta un descuido para que
+el log diga una cosa y la caja haga otra.
+
+**Probado contra cajas que no tenemos.** Diecinueve pruebas con capacidades
+sintéticas: sin MPEG-2, sin nada, con libVLC y sin él. Probar la cascada contra
+la Skyworth no ejercita nada, porque resuelve los seis canales en el primer
+paso.
+
+**Medido en la caja, los seis canales:**
+
+```
+plan.construido canal=estrellashd  motor=media3 video=HW deint=NONE   motivo=hw para video/avc
+plan.construido canal=beisbol      motor=media3 video=HW deint=NONE   motivo=hw para video/avc
+plan.construido canal=discoveryhd  motor=media3 video=HW deint=VPU    motivo=hw para video/avc
+plan.construido canal=hbohd        motor=media3 video=HW deint=NONE   motivo=hw para video/avc
+plan.construido canal=mileniosd    motor=media3 video=HW deint=NONE   motivo=hw para video/avc
+plan.construido canal=estrellassd  motor=media3 video=HW deint=NONE   motivo=hw para video/mpeg2
+```
+
+Idéntico al plan fijo. Lo único que cambia en esta caja es que el motivo dice
+la verdad. Edgar los vio los seis y los declaró bien.
+
+**Un canal sin camino de decodificación ya no es pantalla negra:** sale su
+nombre y la razón por la que no se puede reproducir.
+
+**§4.6, el códec declarado es una pista y el stream es la verdad.** Si lo
+observado desmiente al `config.json`, el plan se rehace. Solo se vuelve a
+preparar si el camino cambia de verdad: un códec distinto que lleva al mismo
+sitio no justifica cortarle dos segundos al abonado. Se registra siempre,
+coincida o no, porque «no hubo discrepancia» y «nunca se llegó a comprobar» se
+veían igual en el log y son cosas distintas cuando un canal no arranca.
+
+```
+plan.codecObservado canal=estrellashd declarado=h264 observado=video/avc
+```
+
+#### El fallo que esto destapó, y era mío
+
+Al mover los flags del extractor al plan copié las constantes a mano:
+
+```kotlin
+const val FLAG_ALLOW_NON_IDR_KEYFRAMES = 1 shl 2   // mal
+```
+
+El valor real es `1`. **`1 shl 2` es `FLAG_IGNORE_H264_STREAM`.** Como ese flag
+viene activo de fábrica, le estaba diciendo al extractor que descartara el
+vídeo de los cinco canales H.264: audio perfecto, pantalla negra. MPEG-2 se
+salvó por ser otro códec, y eso fue lo que lo delató —el único canal con pista
+de vídeo en el log era justo el raro—. Los subtítulos CEA-608 habían
+desaparecido con él sin que nadie lo notara.
+
+Nació y murió dentro de la misma sesión: no llegó a ningún commit ni a ninguna
+APK de Edgar. **Las constantes ahora se importan de Media3.** No hay ninguna
+razón para copiarlas: el módulo ya depende del extractor.
+
+Verificado después:
+
+```
+tracks.crudo grupos=4  video[?/avc*] | audio[esl/mp4a-latm*] | texto[?/cea-608] | t5
+decoder.video OMX.amlogic.avc.decoder.awesome2 initMs=67
+```
+
+#### Dos hallazgos de paso
+
+**El cache de la caja llevaba un `deviceOverrides` de pruebas con
+`"tunneling": false`**, del servidor temporal del 30-sep. Con `CONFIG_URL`
+vacía la app no puede refrescarlo nunca, así que la caja llevaba horas
+reproduciendo con tunneled apagado, contra la política del 01-oct. Sustituido
+por el `config.json` del repo; arranca con `tunneled=true` y `degradacion=de
+fábrica`. **Mientras no haya un `CONFIG_URL` real, el cache es un estado
+congelado que nadie va a notar.**
+
+**`engine.attach` se llama ~2 veces por segundo** mientras reproduce (206 veces
+en 115 s). El bloque `update` del `AndroidView` corre en cada recomposición y
+las estadísticas recomponen cada medio segundo. Es anterior a esta fase y no se
+tocó —es render, o sea Modo A, y §3 prohíbe arreglar dos cosas de motor en el
+mismo commit—. Inunda el log y rota el buffer de logcat en menos de un minuto,
+lo que estorba para diagnosticar. Pendiente #25.
+
+#### La mitad degradada del cierre no se puede probar, y el motivo importa
+
+`LIVETV_PLAN.md` cierra M3 con «los seis canales funcionan en modo normal **y**
+en modo degradado»: vetar el MPEG-2 de hardware y ver que `estrellassd` sigue
+por el camino de respaldo. **Esa prueba no puede pasar en esta caja**, y al ir
+a montarla salió por qué. Decoders de vídeo de la Skyworth:
+
+```
+video/avc     OMX.amlogic.avc.decoder.awesome2      (hardware)
+video/mpeg2   OMX.amlogic.mpeg2.decoder.awesome2    (hardware)
+c2.android.*  hevc, vp8, vp9, mpeg4, h263           (software)
+```
+
+**No hay `c2.android.avc.decoder` ni `c2.android.mpeg2.decoder`.** De los dos
+códecs que este lineup usa de verdad, la caja no trae ningún decoder de
+software. El paso 2 de la cascada —software de plataforma— es **inalcanzable
+aquí para H.264 y para MPEG-2**; se salta directo al paso 3.
+
+Dicho de otro modo: **libVLC no es un refinamiento, es el único respaldo que
+existe.** Hasta M6, vetar el decoder de hardware de un canal lo deja sin camino
+y la cascada lo marca como no reproducible — que es la respuesta correcta y la
+que se ve en pantalla, pero no es «funciona en modo degradado».
+
+Conviene no generalizarlo: es una caja, no la regla. La ZTE puede traer los
+`c2.android` genéricos. Pero era justo lo que la cascada existía para descubrir,
+y lo descubrió el primer día.
+
+**Estado:** cerrada la mitad normal —Edgar vio los seis canales—. La mitad
+degradada queda **bloqueada por M6**, no pendiente de prueba. Ver pendiente #26.
 
 ### Los ajustes por modelo de caja ya llegan al motor — 2026-10-02
 

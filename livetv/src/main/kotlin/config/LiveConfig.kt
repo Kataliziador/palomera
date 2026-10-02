@@ -64,6 +64,8 @@ data class DeviceOverride(
 	val tsDetectAccessUnits: Boolean? = null,
 	val forceSoftwareVideo: Boolean? = null,
 	val targetOffsetMs: Long? = null,
+	/** Si el VPU de este modelo desentrelaza. Se valida en pantalla, no por API. */
+	val vpuDeinterlaces: Boolean? = null,
 )
 
 /**
@@ -111,6 +113,7 @@ data class LiveConfig(
 				tsDetectAccessUnits = mas.tsDetectAccessUnits ?: menos.tsDetectAccessUnits,
 				forceSoftwareVideo = mas.forceSoftwareVideo ?: menos.forceSoftwareVideo,
 				targetOffsetMs = mas.targetOffsetMs ?: menos.targetOffsetMs,
+				vpuDeinterlaces = mas.vpuDeinterlaces ?: menos.vpuDeinterlaces,
 			)
 		}
 	}
@@ -262,6 +265,7 @@ object LiveConfigParser {
 				tsDetectAccessUnits = o.bool("tsDetectAccessUnits"),
 				forceSoftwareVideo = o.bool("forceSoftwareVideo"),
 				targetOffsetMs = o.long("targetOffsetMs"),
+				vpuDeinterlaces = o.bool("vpuDeinterlaces"),
 			)
 		}
 	}

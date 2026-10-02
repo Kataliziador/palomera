@@ -24,7 +24,6 @@ import androidx.media3.exoplayer.hls.playlist.HlsPlaylistTracker
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
-import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import org.jellyfin.livetv.LiveTuning
@@ -225,11 +224,10 @@ class Media3LiveEngine(
 
 		// En HLS los flags del extractor **no** se heredan de
 		// `DefaultMediaSourceFactory`: hay que pasarlos por aquí
-		// (LIVETV_ENGINE.md §5). Configurables en caliente desde el menú, que
-		// es lo que M4 necesita para resolver la contradicción en Amlogic.
-		var tsFlags = 0
-		if (dev.tsDetectAccessUnits) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
-		if (dev.tsAllowNonIdrKeyframes) tsFlags = tsFlags or DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
+		// (LIVETV_ENGINE.md §5). Vienen **en el plan** y no se leen del menú
+		// aquí: el motor reproduce lo que la cascada decidió, y así el motivo
+		// que se registra describe de verdad cómo se está reproduciendo.
+		val tsFlags = plan.tsFlags
 
 		// Umbral de playlist detenido. Con el valor de Media3 (3.5) el error
 		// salta a los ~14 s, justo antes de que Flussonic termine de
@@ -678,6 +676,7 @@ class Media3LiveEngine(
 			videoWidth = videoWidth,
 			videoHeight = videoHeight,
 			pixelAspectRatio = pixelAspectRatio,
+			videoMime = exo?.videoFormat?.sampleMimeType,
 			measuredFps = measuredFps(ahora),
 			frameGapCount = releaseGapCount,
 			maxFrameGapMs = maxReleaseGapMs,
@@ -1158,9 +1157,15 @@ class Media3LiveEngine(
 				.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
 
 			val isVideo = mimeType.startsWith("video/")
+			// El camino de vídeo lo decide **el plan**, no este selector. Son
+			// la misma respuesta hoy —la cascada lee el mismo menú y el mismo
+			// servidor—, pero con dos lugares donde se decide lo mismo basta
+			// un descuido para que el log diga una cosa y la caja haga otra.
+			val porPlan = plan?.videoPath
+			val soloSoftware = porPlan == DecodePath.SW_PLATFORM || porPlan == DecodePath.SW_VLC
 			val kept = all.filterNot { info ->
 				val vetado = dev.isVetoed(info.name)
-				val porSoftware = isVideo && dev.forceSoftwareVideo && info.hardwareAccelerated
+				val porSoftware = isVideo && soloSoftware && info.hardwareAccelerated
 				vetado || porSoftware
 			}
 

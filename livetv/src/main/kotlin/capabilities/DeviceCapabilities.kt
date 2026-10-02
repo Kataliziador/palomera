@@ -50,6 +50,29 @@ class DeviceCapabilities private constructor(
 	fun hasAnyFor(mime: String): Boolean = decodersFor(mime).isNotEmpty()
 
 	companion object {
+		/**
+		 * Fabrica unas capacidades a mano.
+		 *
+		 * Existe para las pruebas de la cascada, y no es un atajo: **la
+		 * cascada se construye para cajas que no tenemos**. La de pruebas
+		 * resuelve los seis canales en el primer paso, así que probar contra
+		 * ella no ejercita ni uno de los caminos de respaldo. Sin poder
+		 * inventar cajas, el código que decide qué hacer en una ZTE sin MPEG-2
+		 * llegaría a producción sin haberse ejecutado nunca.
+		 */
+		fun paraPruebas(
+			decoders: List<DecoderInfo>,
+			abis: List<String> = listOf("armeabi-v7a"),
+			sdkInt: Int = 30,
+			totalRamMb: Int = 2048,
+			manufacturer: String = "Prueba",
+			model: String = "CajaDePrueba",
+			device: String = "prueba",
+			hasVlcBackend: Boolean = false,
+		) = DeviceCapabilities(
+			decoders, abis, sdkInt, totalRamMb, manufacturer, model, device, hasVlcBackend,
+		)
+
 		private const val PREFS = "livetv.capabilities"
 		private const val KEY_FINGERPRINT = "fingerprint"
 

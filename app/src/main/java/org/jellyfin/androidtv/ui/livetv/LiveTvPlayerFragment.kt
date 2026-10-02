@@ -44,6 +44,7 @@ import org.jellyfin.androidtv.ui.ScreensaverLock
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.engine.AspectMode
@@ -53,7 +54,7 @@ import org.jellyfin.livetv.engine.EngineListener
 import org.jellyfin.livetv.engine.EngineStats
 import org.jellyfin.livetv.engine.LiveEngine
 import org.jellyfin.livetv.engine.Media3LiveEngine
-import org.jellyfin.livetv.engine.PlaybackPlan
+import org.jellyfin.livetv.engine.PlanBuilder
 import org.jellyfin.livetv.source.ChannelProfile
 
 /**
@@ -140,17 +141,43 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		return
 	}
 
-	// M0: plan fijo. La cascada que lo decide por canal y por caja es M3.
-	val plan = remember {
-		PlaybackPlan(
-			engineId = "media3",
-			videoPath = DecodePath.HW,
-			audioPath = DecodePath.HW,
-			deinterlace = DeinterlaceMode.NONE,
-			targetOffsetMs = LiveTuning.TARGET_OFFSET_DEFAULT_MS,
-			tsFlags = 0,
-			reason = "M0: plan fijo, sin cascada",
-		)
+	// El plan lo decide la cascada (M3), por canal y por caja. Se rehace si
+	// cambian las capacidades, el canal o lo que diga el servidor.
+	val caps = remember { DeviceCapabilities.of(context) }
+	val plan = remember(channel.id, revision, caps) {
+		PlanBuilder.build(
+			channel = channel,
+			caps = caps,
+			servidor = dev.ajustesDelServidor,
+			tsFlags = dev.tsFlags,
+			forzarSoftwareLocal = dev.forceSoftwareVideo,
+			motorForzadoLocal = dev.forcedEngine,
+		).also {
+			LiveLog.info(
+				"plan.construido",
+				"canal" to channel.id,
+				"motor" to it.engineId,
+				"video" to it.videoPath,
+				"deint" to it.deinterlace,
+				"offsetMs" to it.targetOffsetMs,
+				"motivo" to it.reason,
+			)
+		}
+	}
+
+	// Un canal sin camino de decodificación se dice, no se deja en negro.
+	if (plan.unsupported) {
+		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+			Column(modifier = Modifier.align(Alignment.Center)) {
+				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
+				Text(
+					text = "Este canal no se puede reproducir en este dispositivo",
+					color = Color(0xFFBDBDBD),
+				)
+				Text(text = plan.reason, color = Color(0xFF7D8187), fontSize = 14.sp)
+			}
+		}
+		return
 	}
 
 	// El motor se crea una sola vez por canal. Ojo con atarlo al SurfaceView:
@@ -160,14 +187,94 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	// de p50 < 2 s (CLAUDE.md §10).
 	// Atado al canal **sintonizado**: el de la barra cambia mientras se zapea y
 	// reconstruir el motor en cada pulsación es justo lo que hay que evitar.
-	val engine: LiveEngine = remember(channel.url, revision) {
-		Media3LiveEngine(context.applicationContext, dev)
+	val engine: LiveEngine = remember(channel.url, revision, plan.engineId) {
+		when (plan.engineId) {
+			PlanBuilder.MEDIA3_ENGINE_ID -> Media3LiveEngine(context.applicationContext, dev)
+			else -> {
+				// libVLC es M6 y todavía no existe. La cascada no puede
+				// elegirlo hoy (`hasVlcBackend` es false), así que llegar aquí
+				// significa que alguien añadió un motor y olvidó este punto:
+				// se registra y se sigue reproduciendo, que es mejor que una
+				// pantalla negra.
+				LiveLog.error(
+					"plan.motorSinImplementacion",
+					null,
+					"canal" to channel.id,
+					"motor" to plan.engineId,
+				)
+				Media3LiveEngine(context.applicationContext, dev)
+			}
+		}
 	}
 
 	LaunchedEffect(engine) {
 		while (true) {
 			stats = engine.stats()
 			delay(STATS_REFRESH_MS)
+		}
+	}
+
+	// §4.6: el códec del `config.json` es una pista; el stream es la verdad.
+	// Se mira una vez por sintonía, cuando ya hay formato de vídeo: si lo
+	// observado desmiente lo declarado, la cascada se rehace y el motor se
+	// vuelve a preparar con el plan correcto.
+	//
+	// Solo se actúa si el plan **cambia de verdad**. En los seis canales del
+	// lineup el códec declarado coincide, así que esto no debe dispararse
+	// nunca aquí; existe para el lineup de 120, donde nadie garantiza que el
+	// JSON siga al headend.
+	var planRevisado by remember(channel.id, plan) { mutableStateOf(false) }
+	LaunchedEffect(engine, stats.videoMime) {
+		val observado = stats.videoMime ?: return@LaunchedEffect
+		if (planRevisado) return@LaunchedEffect
+		planRevisado = true
+
+		// Se registra siempre, coincida o no. Sin esta línea, «no hubo
+		// discrepancia» y «nunca se llegó a comprobar» se ven igual en el log,
+		// y son cosas distintas cuando un canal no arranca.
+		LiveLog.info(
+			"plan.codecObservado",
+			"canal" to channel.id,
+			"declarado" to channel.videoCodec,
+			"observado" to observado,
+		)
+
+		val nuevo = PlanBuilder.revisar(
+			plan = plan,
+			channel = channel,
+			mimeObservado = observado,
+			caps = caps,
+			servidor = dev.ajustesDelServidor,
+			tsFlags = dev.tsFlags,
+			forzarSoftwareLocal = dev.forceSoftwareVideo,
+			motorForzadoLocal = dev.forcedEngine,
+		) ?: return@LaunchedEffect
+
+		if (nuevo.videoPath == plan.videoPath && nuevo.engineId == plan.engineId) {
+			// El códec era otro pero el camino no cambia. Ya quedó registrado
+			// por `revisar()`; rearrancar el canal no arreglaría nada y le
+			// costaría al abonado un corte de dos segundos.
+			return@LaunchedEffect
+		}
+
+		LiveLog.warn(
+			"plan.rehecho",
+			"canal" to channel.id,
+			"antes" to plan.reason,
+			"ahora" to nuevo.reason,
+		)
+		if (nuevo.engineId == plan.engineId) {
+			engine.prepare(channel, nuevo)
+		} else {
+			// Cambiar de motor exige reconstruirlo, y eso no se hace desde
+			// aquí: el motor está atado a `remember`. Queda registrado para
+			// M6, cuando libVLC exista y haya a dónde conmutar.
+			LiveLog.error(
+				"plan.cambioDeMotorNoAplicado",
+				null,
+				"canal" to channel.id,
+				"motorPedido" to nuevo.engineId,
+			)
 		}
 	}
 

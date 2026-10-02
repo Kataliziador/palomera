@@ -25,6 +25,8 @@ data class PlaybackPlan(
 	val targetOffsetMs: Long,
 	val tsFlags: Int,
 	val reason: String,
+	/** No hay forma de reproducir este canal en esta caja. Se avisa, no se calla. */
+	val unsupported: Boolean = false,
 )
 
 data class EngineStats(
@@ -66,6 +68,14 @@ data class EngineStats(
 	val videoHeight: Int = 0,
 	/** SAR. Ignorarlo deforma los dos canales anamórficos. */
 	val pixelAspectRatio: Float = 1f,
+	/**
+	 * El MIME del vídeo **observado en el stream**, no el declarado.
+	 *
+	 * Lo necesita la cascada: el códec del `config.json` es una pista y el
+	 * stream es la verdad. Si el headend recodifica un canal y nadie actualiza
+	 * el JSON, el plan se habría construido sobre un dato falso (§4.6).
+	 */
+	val videoMime: String? = null,
 	/** fps medido sobre los frames realmente renderizados, no el declarado. */
 	val measuredFps: Float = 0f,
 	/** Frames que salieron a pantalla tarde. No son frames perdidos: llegan, pero tarde. */

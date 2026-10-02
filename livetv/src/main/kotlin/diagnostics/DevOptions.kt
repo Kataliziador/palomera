@@ -2,6 +2,7 @@ package org.jellyfin.livetv.diagnostics
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.jellyfin.livetv.LiveTuning
@@ -31,6 +32,13 @@ data class ServerDeviceSettings(
 	val tsDetectAccessUnits: Boolean? = null,
 	val forceSoftwareVideo: Boolean? = null,
 	val targetOffsetMs: Long? = null,
+	/**
+	 * Si el VPU de este modelo desentrelaza.
+	 *
+	 * No se puede consultar por API (`LIVETV_ENGINE.md` §4.4): se valida
+	 * mirando la pantalla una vez por modelo y el resultado se publica aquí.
+	 */
+	val vpuDeinterlaces: Boolean? = null,
 )
 
 class DevOptions(context: Context) {
@@ -53,6 +61,8 @@ class DevOptions(context: Context) {
 	 */
 	@Volatile
 	private var delServidor: ServerDeviceSettings? = null
+
+	val ajustesDelServidor: ServerDeviceSettings? get() = delServidor
 
 	fun aplicarDelServidor(ajustes: ServerDeviceSettings?) {
 		if (ajustes == delServidor) return
@@ -233,6 +243,24 @@ class DevOptions(context: Context) {
 		set(v) = put { if (v == null) remove(K_MAX_BUFFER) else putInt(K_MAX_BUFFER, v) }
 
 	val minBufferMs: Int get() = minBufferOverrideMs ?: LiveTuning.MIN_BUFFER_MS
+
+	/**
+	 * Los flags del extractor TS, ya resueltos por las tres capas.
+	 *
+	 * Vive aquí y no en el motor porque es quien conoce las tres capas, y
+	 * porque el plan de reproducción tiene que poder llevarlos: así el motivo
+	 * que se ve en el overlay describe de verdad cómo se está reproduciendo.
+	 */
+	val tsFlags: Int
+		get() {
+			var f = 0
+			// Las constantes se importan, nunca se copian: `1 shl 2` no es
+			// `ALLOW_NON_IDR_KEYFRAMES` sino `IGNORE_H264_STREAM`, y copiarlas
+			// mal dejó los cinco canales H.264 con audio y pantalla negra.
+			if (tsDetectAccessUnits) f = f or DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
+			if (tsAllowNonIdrKeyframes) f = f or DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
+			return f
+		}
 	val maxBufferMs: Int get() = maxBufferOverrideMs ?: LiveTuning.MAX_BUFFER_MS
 
 	// --- Overlay ------------------------------------------------------------

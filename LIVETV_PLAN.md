@@ -105,6 +105,13 @@ Luego, con el menú de degradación, vetar el MPEG-2 de hardware y confirmar que
 
 **Cierre:** los seis canales funcionan en modo normal **y** en modo degradado.
 
+> **02-oct: la mitad normal está cerrada y la degradada está bloqueada por
+> M6.** La caja de pruebas no tiene decoder de vídeo por software para H.264
+> ni para MPEG-2 —solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263—, así que
+> vetar el decoder de hardware no cae al paso 2 de la cascada: se queda sin
+> camino. **libVLC es el único respaldo que existe en esta caja.** Ver
+> pendiente #26 de `LIVETV_LOG.md`.
+
 **Dependencia de headend:** el audio AAC del canal mp2v. Mientras no se
 aplique, ese canal sigue en MP2 y depende del decoder de hardware de la caja
 de pruebas — que lo tiene, así que no bloquea, pero tampoco prueba nada.
