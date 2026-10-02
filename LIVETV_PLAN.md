@@ -244,9 +244,23 @@ La navegación de películas y series se conserva tal cual. **Dependencia:** B2.
 
 ## B8 — EPG *(fase final, no ahora)*
 Consumo del XMLTV, guía por canal, programa actual y siguiente.
-**Aún no hay EPG generado**: este bloque empieza por producir el XMLTV desde
-el EIT de Astra. Se deja para el final por decisión del cliente; la prioridad
-es el motor y que la app funcione completa sin guía.
+
+**Reescrita el 02-oct.** El muro de este bloque no era consumir la guía sino
+producirla, y con el servidor de canales+EPG en cada site (`CLAUDE.md` §1) esa
+mitad **cambia de lado**: generar el XMLTV desde el EIT de Astra es trabajo del
+headend y de la tubería de distribución, como Katalog con el VOD. No es trabajo
+de la app.
+
+Lo que queda aquí es tratable y ya tiene su hueco esperando —hoy la barra de
+canal lleva `DummyEpg.kt`—:
+
+- El `config.json` lleva **puntero** al XMLTV y su cadencia, no la guía dentro
+- Descarga, interpretación y caché propios, con su propio ritmo
+- Programa actual y siguiente en la barra; guía por canal
+- **Un site sin EPG es normal**, no un error: la barra se degrada sin guía
+
+Sigue siendo la última por decisión del cliente: la prioridad es el motor y que
+la app funcione completa sin guía.
 
 ## B4 — Overlays e interfaz
 Barra de info de canal, selector de pista de audio, selector de aspecto,
@@ -258,14 +272,41 @@ cambios es vía M.
 el idioma es la única clave de selección que queda. B4 dibuja el selector; M3
 decide qué pista es cuál.
 
-## B5 — Marca blanca
-Product flavors, recursos por ISP, renombrado completo, avisos de licencia y
-de no afiliación a Jellyfin.
+**Los `extras` entran aquí** (`CLAUDE.md` §6): la barra pinta los pares
+etiqueta/valor que traiga el canal, sin saber qué son, recortados y validados.
+Es lo que permite que un ISP añada información mañana sin una versión nueva, y
+hay que hacerlo antes de que llegue el primer dato extra, no después.
+
+## B5 — Marca dinámica
+**Reescrita el 02-oct: ya no hay flavors.** Una sola APK y una sola ficha de
+Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
+
+- `BrandResolver`: host de Jellyfin → URL del servidor de canales → marca
+- Ranuras fijas (`displayName`, `accent`, `logo`) con validación
+  de contraste y caída al valor neutro
+- Marca neutra **diseñada**, que es lo que se ve antes de entrar y sin red
+- Caché de marca y de logo, indexada por servidor
+- Renombrado de la app: fuera el nombre y el logo de Jellyfin
+- Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0 y
+  LGPL-2.1
+
+**Cierre:** dos servidores de canales distintos visten la app distinto sin
+recompilar, y sin ninguno la app arranca con la marca neutra y la lista de
+`BuildConfig`.
 
 ## B6 — Telemetría
-Reporte por sesión: modelo, SoC, canal, plan de reproducción, resultado, error,
-ms hasta el primer frame, rebuffers. Sin dependencia de Google Play Services,
-porque Fire TV y muchas cajas genéricas no lo traen.
+**Dos capas que no se mezclan** (`CLAUDE.md` §8):
+
+- **Diagnóstico técnico**, anónimo y siempre activo: modelo, SoC, canal, plan
+  de reproducción, resultado, error, ms hasta el primer frame, rebuffers. Y el
+  **códec de audio recibido**, que es como se detecta un site con el AAC mal
+  configurado (§2).
+- **Datos de abonado**, detrás de un interruptor por proveedor y con contrato:
+  identidad y qué vio quién. Exige aviso de privacidad y el formulario de
+  Seguridad de los datos de Play, y el editor somos nosotros.
+
+Sin dependencia de Google Play Services, porque Fire TV y muchas cajas
+genéricas no lo traen.
 
 ## B7 — Preparación para Play Store
 Manifiesto con `leanback`, `touchscreen` y `faketouch` en `required="false"`;

@@ -9,13 +9,35 @@ Reglas de este repositorio. Léelas completas antes de tocar código.
 Fork de `jellyfin-androidtv` (GPL-2.0) con **un módulo nuevo y aislado para
 canales de TV en vivo**. Todo el VOD de Jellyfin queda **intacto**.
 
-El producto se vende con marca blanca a varios ISPs mexicanos y se publica en
-Google Play Store.
+El producto se vende a varios ISPs mexicanos. **Una sola APK, una sola ficha
+en Google Play**, publicada por nosotros; la marca de cada ISP se aplica en
+caliente al conectar (§8).
+
+**Todo lo que la app consume vive en el site del ISP**, en su LAN:
 
 ```
-Satélite Ku 77W / 70W ──→ Cesbo Astra ──→ Flussonic ──→ HLS ──→ APK
-Multicast TotalPlay ─────────────────────↗
+EN EL SITE DE CADA ISP
+┌───────────────────────────────────────────────┐
+│ Satélite Ku ─→ Cesbo Astra ─→ Flussonic ─→ HLS│  ← headend propio del ISP
+│                                               │
+│ Jellyfin            ← VOD, lo alimentamos      │
+│                       nosotros con Katalog     │
+│ Servidor de canales ← lista + marca + EPG      │
+└───────────────────────────────────────────────┘
+                      ↑ LAN
+              APK en la caja del abonado
 ```
+
+Consecuencias que mandan sobre todo lo demás:
+
+- **Cada ISP tiene su propio headend y su propio lineup.** Los canales de
+  producción no son los de `CHANNELS.md` y nadie los habrá medido. El motor
+  tiene que decidir solo, por canal y por caja (`LIVETV_ENGINE.md` §4).
+- **El tramo app → contenido es LAN.** Lo medido en este repositorio es
+  representativo de producción, y los objetivos de §10 son exigibles.
+- **Nosotros entramos al site** —ya lo hacemos con Katalog—, así que la
+  configuración del headend y del servidor de canales es trabajo nuestro, no
+  del ISP. Lo que no es nuestro es la antena y lo que el ISP decida emitir.
 
 Documentos hermanos:
 - `CHANNELS.md` — datos medidos de cada canal. Fuente de verdad, no adivines.
@@ -43,6 +65,35 @@ excepción caso por caso no escala. El video **nunca** se transcodifica.
 
 Consecuencia: la app no necesita decoders de MP2, MP3 ni AC-3, y con ellos
 desaparecen la extensión FFmpeg, el NDK y toda la compilación nativa.
+
+### El AAC ya no está garantizado, y así es como falla
+
+Esa decisión se tomó cuando había **un** headend y era nuestro. Con uno por ISP
+(§1), el AAC pasa de garantía a **requisito de despliegue**: se cumple en los
+sites donde lo configuramos bien, y no se cumple en los demás.
+
+**La forma en que falla es silenciosa y cara.** La caja de pruebas decodifica
+`audio/mpeg`, `audio/ac3` y `audio/eac3` por hardware, así que un canal mal
+normalizado **se oye perfecto aquí** y es silencio en una caja barata sin esos
+decoders. Nadie se entera hasta que llama un abonado de un site al que hay que
+ir. Es exactamente contra lo que avisa §9.
+
+Tres defensas, y las tres se aplican:
+
+1. **El generador del `config.json` no publica un canal cuyo audio no sea
+   AAC**, o lo marca. Es el momento más barato de detectarlo, porque el dato lo
+   da la API de Flussonic.
+2. **La app registra siempre el códec de audio recibido** y lo eleva a aviso
+   cuando no es AAC. Una línea —`audio.noNormalizado canal=X codec=mp2`—
+   convierte «un abonado no tiene sonido» en «el canal 207 de este site no pasó
+   por la normalización».
+3. **La guía de Flussonic es el manual de despliegue de cada site**, no una
+   ayuda interna: `segment_duration 2`, `segment_count 12`, origen por
+   `tshttp://`, `source_timeout` y `EXT-X-SERVER-CONTROL`.
+
+Lo que **no** se hace es reintroducir decoders de MP2 o AC-3 en la app. La
+salida es arreglar el site, no cargar en ~120 cajas el peso de un headend mal
+configurado.
 
 ---
 
@@ -294,26 +345,114 @@ servidor que el hardware no puede cumplir.
   señal.** En banda Ku, la lluvia hace fallar decoders sanos.
 
 ### Backends del sistema
-Son **dos, separados**:
+Son **dos, separados, y los dos viven en el site del ISP** (§1):
 
 | | VOD | Canales en vivo |
 |---|---|---|
-| Servidor | Jellyfin del ISP | Servidor propio de configuración |
-| URL | la configura el usuario | cableada por flavor |
+| Servidor | Jellyfin del ISP | Servidor de canales del ISP |
+| URL | la escribe el usuario | **derivada del host de Jellyfin** |
 | Auth del contenido | usuario Jellyfin | ninguna (v1) |
 | Acceso a la sección | sesión Jellyfin | **sesión Jellyfin** |
 
 **La sección de canales queda detrás del inicio de sesión.** El suscriptor
 entra a Jellyfin y desde ahí llega a TV en vivo, igual que a Inicio o Buscar.
 
-Los dos backends siguen siendo independientes: los canales se sirven desde el
-servidor de configuración propio y no requieren credenciales, y el módulo
-`livetv` no consulta al servidor Jellyfin para nada. Lo que la sesión controla
-es **quién ve la sección**, no de dónde salen los canales.
+**La URL de canales se deriva, no se configura.** El abonado ya tiene que
+escribir la dirección de Jellyfin; pedirle una segunda sería pedirle algo que
+no sabe. La app toma el host de `ServerRepository.currentServer` y busca ahí el
+servidor de canales. Una sola app, cero configuración añadida, y dar de alta un
+ISP es instalarle el servidor de canales en su site.
+
+Los dos backends siguen siendo independientes en lo que importa: **el módulo
+`livetv` no consulta al servidor Jellyfin para nada**. Recibe una URL ya
+resuelta y no sabe de dónde salió — quien la deriva es `app/.../ui/livetv/`,
+que sí puede leer la sesión. El módulo no depende de `app` (§4.1).
+
+Lo que la sesión controla es **quién ve la sección**, no de dónde salen los
+canales.
 
 Consecuencia práctica: la sesión de Jellyfin es la puerta única de la app, así
 que el enganche natural es la barra principal, junto a Inicio y Buscar, y no
 el destino raíz de la navegación.
+
+#### Qué sirve el servidor de canales, y qué no
+
+| Contenido | De quién es | Cadencia |
+|---|---|---|
+| Lista de canales y grupos | del ISP | cuando cambia su lineup |
+| Marca (§8) | del ISP | casi nunca |
+| `deviceOverrides` | **nuestro** | cuando aprendemos algo de un modelo |
+| EPG | del ISP | cada día, y pesa |
+
+**Los `deviceOverrides` no son del ISP y no deben editarse por site.** «Este
+modelo de caja no soporta tunneled» es conocimiento que se gana una vez,
+mirando una pantalla, y vale para todos. Si vive en el archivo de cada site hay
+que copiarlo a N sitios a mano, y el día que se salte uno ese ISP arranca sin
+imagen en un modelo que ya sabíamos que fallaba.
+
+**La salida es generar el archivo, no editarlo.** La herramienta que produce el
+`config.json` de cada site —la misma que lee la API de Flussonic para la lista—
+inyecta nuestra tabla de modelos al generarlo. El ISP pone sus canales,
+nosotros ponemos el conocimiento de hardware, sale un solo archivo y nadie
+copia nada.
+
+**El EPG va por puntero, no dentro del `config.json`.** La lista cambia cuando
+alguien la cambia; la guía cambia cada día y pesa megas. Juntos, cada caja se
+baja la guía entera para comprobar si cambió un canal. El `config.json` lleva
+la URL del XMLTV y cada cuánto refrescarlo, y la guía viaja aparte con su
+propio cacheo. Eso además permite que un site sirva canales sin EPG mientras su
+tubería de guía no esté lista.
+
+#### Contenedores genéricos: datos nuevos sin versión nueva
+
+La regla de §13 —**el servidor elige entre lo que ya trae el APK, nunca entrega
+capacidades**— se aplica igual al diseño. El servidor recombina; no inventa. Una
+pantalla que no existe o un componente que nadie escribió son código, y eso es
+una versión de la APK. La diferencia con los flavors es que esa versión se hace
+**una vez y llega a todos**.
+
+Pero buena parte de lo que un ISP va a querer añadir no es comportamiento: es
+**texto que se muestra**. Para eso se definen contenedores genéricos, y se
+definen **ahora**: meterlos después significa que los primeros datos extra sí
+costaron una versión.
+
+Un canal —y la configuración en su raíz— puede llevar una lista de pares
+etiqueta/valor que la app pinta **sin saber qué son**:
+
+```json
+"extras": [
+  { "label": "Calidad", "value": "HD" },
+  { "label": "Región",  "value": "Norte" }
+]
+```
+
+Un ISP pone unos, otro pone otros, y nadie toca la app.
+
+Las reglas que lo hacen seguro:
+
+- **Solo texto.** Sin enlaces, sin acciones, sin formato. En cuanto algo
+  necesita comportamiento, deja de ser dato y vuelve a ser código.
+- **Acotado.** Número máximo de entradas y longitud máxima por campo, recortando
+  en silencio. Un `config.json` no puede empujar la barra fuera de pantalla.
+- **Una entrada mal formada se descarta, no tira la lista.** Misma regla que ya
+  rige para los canales: perder un canal por una errata sería desproporcionado.
+- **Lo desconocido se ignora y se registra.** Es lo que permite que un servidor
+  nuevo hable con una APK vieja.
+
+Lo que esto **no** cubre: información que necesite lógica propia. Eso sigue
+siendo una versión — una, para todos.
+
+#### El esquema tiene que sobrevivir a sus propios servidores
+
+La APK se actualiza para todos a la vez por Play. Los servidores de canales se
+actualizan site por site. **Una APK nueva va a convivir con servidores viejos
+durante meses**, así que:
+
+- Un campo que no está se resuelve con el valor de fábrica, nunca con un fallo.
+- Un `version` mayor del que la app conoce se usa igual, ignorando lo que no
+  entienda, y se registra.
+- El cache se indexa **por servidor**. Hoy es un solo `files/livetv/config.json`
+  y una caja que cambie de servidor hereda la lista del anterior.
 
 ---
 
@@ -336,26 +475,85 @@ el destino raíz de la navegación.
 
 ---
 
-## 8. Marca blanca
+## 8. Marca
 
-Cada ISP cliente es un **product flavor** de Gradle:
+**Una sola APK y una sola ficha en Google Play, publicada por nosotros.** No
+hay `productFlavors` por ISP. La marca del proveedor la sirve su propio
+servidor de canales (§6) y la app se viste al conectar.
 
-```kotlin
-productFlavors {
-    create("garratv") {
-        applicationId = "mx.garratv.tv"
-        resValue("string", "app_name", "GarraTV")
-        buildConfigField("String", "CONFIG_URL", "\"https://.../garratv/config.json\"")
-        buildConfigField("boolean", "VOD_ENABLED", "true")
-    }
-}
-```
+Los ISPs no piden ficha propia: piden que funcione y un poco de
+personalización. Y el costo de los flavors nunca fue programarlos — era
+publicar: N fichas, N firmas, N revisiones de Google y N despliegues por cada
+corrección.
 
-Icono, banner de TV y colores en `src/<flavor>/res/`.
+### Ranuras fijas, no tema libre
 
-**Ningún flavor usa el nombre ni el logo de Jellyfin.** Cada uno lleva su
-marca, y la pantalla de información incluye "no afiliado al proyecto Jellyfin"
-junto con los avisos de licencia GPL-2.0 (fork) y LGPL-2.1 (FFmpeg, libVLC).
+La personalización es un **conjunto cerrado de ranuras**:
+
+| Ranura | Para qué |
+|---|---|
+| `displayName` | el nombre que se ve dentro de la app |
+| `accent` | color de acento |
+| `logo` | URL, cacheada; con iniciales de respaldo |
+
+Nada más, y **el contraste se valida al cargar**. Con colores libres, tarde o
+temprano un ISP elige un acento que sobre el negro de la sección de canales no
+se lee, y la llamada de soporte es nuestra. Una ranura que no pasa la
+validación cae al valor neutro y se registra.
+
+Lo que **no** cambia en caliente: el nombre y el icono de la ficha de Play, y
+el icono del lanzador. Son estáticos por construcción. Se puede intercambiar el
+icono con `activity-alias`, pero todas las variantes viajan dentro del APK, el
+lanzador pierde el acceso directo a veces y en Android TV es frágil: **no se
+hace**.
+
+### La marca neutra se diseña, no se improvisa
+
+Es lo que ve quien aún no ha entrado, quien apunta a un servidor sin marca
+configurada y quien arranca sin red. No es un caso raro: **es la primera
+pantalla de toda instalación**. No puede decir Jellyfin ni parecer un error.
+
+Y la marca **se cachea**. Si no sobrevive a un arranque sin red, la app se ve
+genérica en cada corte — que es exactamente el fallo del `config.json`
+congelado del 02-oct.
+
+### Quién tiene derecho a pintar la app
+
+La marca sale del servidor de canales del site, **no del servidor Jellyfin**.
+Si saliera de Jellyfin, cualquiera que apunte la app a un Jellyfin propio
+podría vestirla.
+
+Con la APK abierta en Play, alguien puede levantar su propio servidor de
+canales y tener «nuestra» app con la marca que quiera. El daño es bajo —es su
+instalación— pero el editor de registro somos nosotros. **En v1 se acepta.** Si
+algún día importa, la salida es verificar la marca contra una lista nuestra, y
+queda escrito aquí para no reinventarlo.
+
+### Lo que sigue siendo obligatorio
+
+**La app no usa el nombre ni el logo de Jellyfin.** La pantalla de información
+incluye "no afiliado al proyecto Jellyfin" junto con los avisos de licencia
+GPL-2.0 (fork) y LGPL-2.1 (libVLC, cuando llegue M6). Con una sola app esto es
+**una pantalla**, no N.
+
+### Datos de abonados: dos capas, y no se mezclan
+
+Eventualmente se quiere saber quién se conecta. Para eso **no hace falta
+acceso al site**: la app es nuestra y es la que se conecta. Acceso a su Jellyfin
+solo haría falta para ver sesiones que no pasan por la app, o para cruzar con
+su base de abonados.
+
+Se separan desde el principio, porque mezcladas no se desenredan:
+
+- **Diagnóstico técnico** — modelo de caja, canal, plan de reproducción,
+  errores, ms al primer fotograma, rebuffers. Anónimo, necesario para operar.
+- **Datos de abonado** — identidad, qué vio quién y cuándo. Es dato personal,
+  cae bajo la LFPDPPP, y como el editor somos nosotros, la responsabilidad de
+  declararlo en el aviso de privacidad y en el formulario de Seguridad de los
+  datos de Play también es nuestra.
+
+El primero va solo. El segundo va **detrás de un interruptor por proveedor**,
+con contrato. Ver B6.
 
 ---
 

@@ -3,6 +3,14 @@
 Caracterización medida de los canales y de la caja de pruebas.
 **Fuente de verdad del proyecto. No asumas nada: está aquí.**
 
+> **02-oct: esto es el lineup de referencia, no el de producción.** Al quedar
+> un headend por ISP (`CLAUDE.md` §1), los canales que verá un abonado son
+> otros, con otros códecs, otros entrelazados y otras rarezas que nadie habrá
+> medido. Estos seis siguen siendo contra lo que se afina el motor y contra lo
+> que se juzga una regresión — pero el motor **no puede suponerlos**. Para eso
+> está la cascada de M3, que decide por canal y por caja sin saber de antemano
+> qué hay, y rehace el plan si el stream desmiente al `config.json`.
+
 Medido el 2026-09-20 y 2026-09-21 con `scan-canales.sh` y `adb`.
 **Reverificado contra Flussonic el 2026-09-22** (PIDs, SAR, orden de campo
 y ventana DVR): ver §2.bis. Esa revisión corrigió varias cifras de aquí.

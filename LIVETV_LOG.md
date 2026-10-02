@@ -226,6 +226,134 @@ un frame congelado.
 
 ## Entradas
 
+### Un servidor por site: la arquitectura cambia de forma — 2026-10-02
+
+Hasta hoy los documentos describían **un** servidor de configuración, nuestro y
+central, y una APK por ISP vía `productFlavors`. Edgar aclaró la topología real
+y es otra:
+
+```
+EN EL SITE DE CADA ISP
+  Satélite → Astra → Flussonic        ← headend propio del ISP
+  Jellyfin                            ← VOD, lo alimentamos con Katalog
+  Servidor de canales + EPG           ← lista, marca y guía
+                 ↑ LAN
+         APK (una sola, ficha nuestra en Play)
+```
+
+**Katalog no toca la app.** Lleva el VOD al Jellyfin local; la app solo ve
+Jellyfin. Al lado se añade el servidor de canales para que la misma APK tenga
+VOD y TV en vivo.
+
+#### Lo que esto simplifica
+
+**Los flavors desaparecen.** Los ISPs no quieren ficha propia —puede ser la
+nuestra— así que una APK, una firma, una revisión de Google, un despliegue. El
+precio aceptado: somos el editor de registro, y las reseñas, el soporte y
+cualquier aviso de política caen sobre nosotros; y una APK mala rompe a todos a
+la vez, lo que obliga a usar de verdad el despliegue por fases de Play.
+
+**El registro central de marcas sobra.** Llegué a proponer un mapa
+host → marca servido por nosotros. Con el servidor de canales en el site, la
+marca sale de ahí junto con la lista: nada que mantener, nada que actualizar
+cuando un ISP cambie de dominio. Dar de alta un proveedor es instalarle el
+servidor.
+
+**El huevo y la gallina se resuelve solo.** El abonado ya escribe la dirección
+de Jellyfin; el servidor de canales se deriva de ese host. Cero configuración
+añadida.
+
+**El muro de la EPG cambia de lado.** B8 estaba parada en «aún no hay EPG
+generado», que era producirla desde el EIT de Astra. Eso pasa a ser trabajo del
+headend y de la tubería, igual que Katalog con el VOD. Lo que queda en la app
+—bajar, interpretar, cachear, pintar actual y siguiente— es trabajo normal.
+
+#### Lo que esto rompe, y es lo serio
+
+**El AAC deja de ser una garantía.** `CLAUDE.md` §2 permite una sola excepción
+—normalizar el audio a AAC en Flussonic— y §6 cuelga de ella la decisión de no
+llevar decoders de MP2, MP3 ni AC-3. Eso valía con **un** headend nuestro. Con
+uno por ISP es un requisito de despliegue, y se cumple donde lo configuremos
+bien.
+
+**Falla en silencio y caro.** Medido en la caja de pruebas:
+
+```
+audio/mp4a-latm  audio/mpeg  audio/ac3  audio/eac3  audio/vnd.dts …
+```
+
+La Skyworth decodifica MP2 y AC-3 por hardware. Un canal mal normalizado **se
+oye perfecto aquí** y es silencio en una caja barata. Nadie se entera hasta que
+llama un abonado de un site al que hay que ir — justo lo que advierte §9 sobre
+desarrollar contra la mejor caja posible.
+
+Tres defensas, las tres adoptadas: el generador del `config.json` no publica un
+canal que no sea AAC; la app registra el códec recibido y avisa cuando no lo
+es; y la guía de Flussonic pasa a ser el manual de despliegue de cada site. Lo
+que **no** se hace es reintroducir decoders: la salida es arreglar el site, no
+cargar en ~120 cajas el peso de un headend mal configurado.
+
+**Los `deviceOverrides` no son del ISP.** «Este modelo no soporta tunneled» se
+gana una vez mirando una pantalla y vale para todos. En el archivo de cada site
+habría que copiarlo a N sitios a mano, y el día que se salte uno ese ISP
+arranca sin imagen en un modelo que ya sabíamos que fallaba. La salida es
+**generar** el archivo, no editarlo: la herramienta que lee la API de Flussonic
+inyecta nuestra tabla de modelos al generarlo.
+
+**El esquema tiene que sobrevivir a sus propios servidores.** La APK se
+actualiza para todos a la vez por Play; los servidores, site por site. Una APK
+nueva convivirá con servidores viejos durante meses. Y el cache hay que
+indexarlo por servidor: hoy es un solo `files/livetv/config.json` y una caja
+que cambie de servidor hereda la lista de la anterior.
+
+**`CHANNELS.md` cambia de significado**: pasa de «los canales» a «el lineup de
+referencia». Los de producción serán otros y nadie los habrá medido. Es
+exactamente para lo que se escribió la cascada de M3, un día antes de saber que
+hacía falta también para esto.
+
+#### Una corrección
+
+Dije que dónde vive Flussonic era «la pregunta que decide el resto». Exageré:
+para el diseño de la APK da igual, la lista trae las URLs que traiga. Donde sí
+importaba era en si lo medido valía, porque todo este repositorio está medido
+contra una LAN. Con un headend por ISP, **es LAN** y las cifras valen.
+
+#### Una APK o N: la decisión, y por qué esta
+
+Edgar dudó entre una APK para todos y una por ISP. La duda venía de tratar como
+una sola pregunta lo que son dos: **cuántas fichas de Play** y **cuántos
+códigos fuente**. Se pueden tener N fichas desde un solo código — para eso
+existen los `productFlavors`.
+
+**N códigos fuente queda descartado y no se re-discute.** Todo §4 existe para
+que los rebases contra upstream sean triviales; con forks divergentes, cada
+arreglo del motor —como el de la constante del extractor de este mismo día— hay
+que aplicarlo N veces, y a la tercera ya no son iguales.
+
+Entre una ficha y N, decidió la **asimetría**, no el costo:
+
+- Empezar con una y que un ISP exija la suya: se añade un flavor flaco
+  —`applicationId`, nombre, icono, servidor por defecto— en un día, y la marca
+  dinámica sigue funcionando dentro.
+- Empezar con N y que nadie las necesitara: meses de N envíos a la tienda por
+  cada versión, y consolidar exige migrar abonados entre `applicationId`, que
+  **Play no permite**. Hay que reinstalar.
+
+Las dos arquitecturas conviven. Una se amplía barato y la otra no se deshace.
+
+**`vodEnabled` se retiró de las ranuras de marca:** siempre va a haber VOD.
+Queda `VOD_ENABLED` en `build.gradle.kts`, a limpiar cuando se toque código.
+
+**Y se añadieron los contenedores genéricos** (§6). Buena parte de lo que un ISP
+querrá añadir no es comportamiento sino texto que se muestra; con una lista de
+pares etiqueta/valor que la app pinta sin saber qué son, eso deja de costar una
+versión. Hay que definirlos ahora: después, los primeros datos extra ya se
+habrán pagado.
+
+**Estado:** propuesta escrita en `CLAUDE.md` §1, §2, §6 y §8,
+`LIVETV_PLAN.md` B4, B5, B6 y B8, y `CHANNELS.md`. Revisada y aceptada por
+Edgar. Sin tocar código.
+
 ### [M3] La cascada decide el plan por canal y por caja — 2026-10-02
 
 Hasta hoy el reproductor llevaba esto cableado:
