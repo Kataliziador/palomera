@@ -27,14 +27,18 @@ android {
 		// Canales de prueba de M0. Andamiaje: desaparece en B1, cuando el
 		// ConfigRepository consuma el config.json del servidor.
 		// Formato: id|nombre|url|videoCodec|audioCodec, separados por ';'
+		//
+		// `index.m3u8` y no `mono.m3u8` (CLAUDE.md §6, revisado el 02-oct):
+		// el media playlist multiplexa los audios en un solo TS y Media3 solo
+		// expone uno. El master los declara como renditions y los expone todos.
 		val livetvBase = "http://192.168.11.250:8181"
 		val livetvBootstrapChannels = listOf(
-			"estrellashd|Estrellas HD|$livetvBase/test-sat77w-estrellashd-mp4/mono.m3u8|h264|aac",
-			"beisbol|Béisbol|$livetvBase/beisbol/mono.m3u8|h264|aac",
-			"discoveryhd|Discovery HD|$livetvBase/test-sat70w-discoveryhd-mp4/mono.m3u8|h264|aac",
-			"hbohd|HBO HD|$livetvBase/test-sat70w-hbohd-mp4/mono.m3u8|h264|aac",
-			"estrellassd|Estrellas SD|$livetvBase/test-sat77w-estrellassd-mp2v/mono.m3u8|mpeg2video|aac",
-			"mileniosd|Milenio SD|$livetvBase/mileniosd/mono.m3u8|h264|aac",
+			"estrellashd|Estrellas HD|$livetvBase/test-sat77w-estrellashd-mp4/index.m3u8|h264|aac",
+			"beisbol|Béisbol|$livetvBase/beisbol/index.m3u8|h264|aac",
+			"discoveryhd|Discovery HD|$livetvBase/test-sat70w-discoveryhd-mp4/index.m3u8|h264|aac",
+			"hbohd|HBO HD|$livetvBase/test-sat70w-hbohd-mp4/index.m3u8|h264|aac",
+			"estrellassd|Estrellas SD|$livetvBase/test-sat77w-estrellassd-mp2v/index.m3u8|mpeg2video|aac",
+			"mileniosd|Milenio SD|$livetvBase/mileniosd/index.m3u8|h264|aac",
 		).joinToString(";")
 		buildConfigField("String", "LIVETV_BOOTSTRAP_CHANNELS", "\"$livetvBootstrapChannels\"")
 	}

@@ -218,7 +218,7 @@ un frame congelado.
 | 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
-| 34 | **`mono.m3u8` solo expone una pista de audio a Media3** | **M / §6** | el segmento trae dos PIDs y la app ve una; `index.m3u8` ve las tres. Cuesta ~180 ms de primer fotograma y una conexión. Decisión de Edgar: es §6 cerrada y es Modo A |
+| ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
 | 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
 | 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
@@ -233,6 +233,73 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### [M] El endpoint pasa a `index.m3u8` — 2026-10-02 — **pendiente de validación**
+
+Revierte una decisión cerrada de `CLAUDE.md` §6. Decisión de Edgar, con un
+argumento que yo no tenía:
+
+> «en ciertos satélites el audio está invertido: aunque dice ES, suele traer
+> audio en inglés»
+
+Eso cambia el peso entero del asunto. Yo lo había planteado como «180 ms de
+zapeo contra tener el segundo audio en los canales de cine». **No es eso.** Si
+la etiqueta miente, la segunda pista no es un extra: es **el único remedio** que
+le queda al abonado, y con `mono.m3u8` ni siquiera la ve.
+
+#### Lo medido
+
+| endpoint | lo que ve la app en `discoveryhd` |
+|---|---|
+| `mono.m3u8` | `cuantas=1 idiomas=[spa]` |
+| `index.m3u8` | `cuantas=3 idiomas=[spa, spa, eng]` |
+
+El segmento trae dos PIDs de audio (`0xdd` spa, `0xde` eng) en los dos casos. La
+diferencia es la declaración: el master los publica como `EXT-X-MEDIA` separadas
+y Media3 los trata como renditions; multiplexados en el mismo TS, el extractor
+solo saca uno.
+
+#### No reintroduce ABR, y ahora se vigila
+
+Los seis canales declaran **un solo** `EXT-X-STREAM-INF`:
+
+```
+beisbol  mileniosd  estrellashd  estrellassd      variantes=1  audios=0
+discoveryhd  hbohd                                variantes=1  audios=2
+```
+
+Pero eso lo sostiene el headend, no la app. Se añadió `abr.variasVariantes`: un
+master con más de una calidad **se registra** en vez de poner a Media3 a conmutar
+en silencio. §6 lo prohíbe y hasta ahora no había forma de notar la infracción.
+
+#### Los seis, por el endpoint nuevo
+
+```
+estrellashd  HW avc     1 [spa]
+estrellassd  HW mpeg2   1 [spa]
+mileniosd    HW avc     1 [spa]
+hbohd        HW avc     3 [spa, spa, eng]
+discoveryhd  HW avc     3 [spa, spa, eng]
+beisbol      HW avc     1 [spa]
+```
+
+Los seis arrancan en español, ninguno disparó `abr.variasVariantes`, y la
+cascada resuelve igual que antes. **El MPEG-2 también reproduce** por el master,
+que era lo que más dudas me daba.
+
+#### Qué se cambió, y qué no
+
+El endpoint **no vive en la app**: viaja en la `url` de cada canal del
+`config.json`. Así que esto es un cambio de **datos**, no de código — salvo el
+vigilante de ABR. Actualizados `headend/config.json`, la lista de arranque del
+`BuildConfig`, `CLAUDE.md` §6, el contrato, `INTEGRACION_CANALES.md` y el
+proyecto del servicio de canales.
+
+Y en `CLAUDE.md` §4 regla 6 queda escrito que **la etiqueta puede mentir**: la
+preferencia por idioma es un valor por defecto, nunca una imposición, y la
+elección del abonado manda para el resto de la sintonía.
+
+**Estado:** abierta — falta la validación en pantalla.
 
 ### [M] `audioDefault` se aplica — y de paso, `mono.m3u8` oculta las otras pistas — 2026-10-02 — **pendiente de validación**
 

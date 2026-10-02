@@ -79,6 +79,9 @@ class Media3LiveEngine(
 	/** El aviso de «no está la pista pedida» se da una vez, el intento no. */
 	private var audioPorDefectoAvisado = false
 
+	/** Un master con varias calidades se avisa una vez, no en cada evento. */
+	private var abrYaAvisado = false
+
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
 	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
 
@@ -237,6 +240,7 @@ class Media3LiveEngine(
 		audioYaRevisado = false
 		audioPorDefectoAplicado = false
 		audioPorDefectoAvisado = false
+		abrYaAvisado = false
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
@@ -954,6 +958,24 @@ class Media3LiveEngine(
 					"$tipo[$pistas]"
 				},
 			)
+
+			// `CLAUDE.md` §6 prohíbe ABR: una sola calidad por canal. Con
+			// `index.m3u8` eso lo sostiene el headend —un solo
+			// `EXT-X-STREAM-INF`— y aquí no hay forma de impedirlo, pero sí de
+			// **verlo**. Un master con varias calidades pondría a Media3 a
+			// conmutar sin que nadie se enterara.
+			val calidadesDeVideo = tracks.groups
+				.filter { it.type == C.TRACK_TYPE_VIDEO }
+				.sumOf { it.length }
+			if (calidadesDeVideo > 1 && !abrYaAvisado) {
+				abrYaAvisado = true
+				LiveLog.warn(
+					"abr.variasVariantes",
+					"canal" to channel?.id,
+					"calidades" to calidadesDeVideo,
+					"detalle" to "el master declara más de una calidad; §6 prohíbe ABR",
+				)
+			}
 
 			val encontradas = mutableListOf<AudioTrackRef>()
 			var seleccionada: AudioTrackRef? = null

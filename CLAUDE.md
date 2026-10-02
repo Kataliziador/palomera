@@ -216,6 +216,11 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
    de una misma sesión. Nunca por índice de Jellyfin. Prohibido reusar
    `offsetStreamIndex` ni `getExoPlayerTrack`/`setExoPlayerTrack`.
 
+   **Y la etiqueta puede mentir.** En algunos satélites una pista marcada `spa`
+   trae inglés. Por eso la preferencia por idioma es un **valor por defecto**,
+   nunca una imposición: el abonado tiene que poder cambiarla, y su elección
+   manda sobre lo que diga el `config.json` para el resto de la sintonía.
+
    **Por qué no basta el PID** (medido 2026-09-22): Flussonic renumera los
    PIDs al remuxar y entrega los seis canales con video `0xd3` y audio `0xdd`
    (+`0xde` el segundo). El PID es un alias de la posición y no distingue
@@ -277,8 +282,26 @@ lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
 ## 6. Decisiones cerradas (no se re-discuten)
 
 ### Transporte
-- **HLS con segmentos TS**, endpoint `mono.m3u8` (media playlist directo, no el
-  master `video.m3u8`). Segmentos de 2 a 3 s, ya configurados en Flussonic.
+- **HLS con segmentos TS**, endpoint **`index.m3u8`** — el master. Segmentos de
+  2 a 3 s, ya configurados en Flussonic.
+
+  **Revisado el 02-oct; antes era `mono.m3u8`.** El media playlist multiplexa
+  los audios en un solo TS y **Media3 solo expone uno**: medido sobre un
+  segmento de `discoveryhd` con dos PIDs (`0xdd` spa, `0xde` eng), la app veía
+  una sola pista. El master los declara como `EXT-X-MEDIA` separadas y la app
+  ve las tres.
+
+  **No reintroduce ABR:** los seis canales declaran **un solo**
+  `EXT-X-STREAM-INF`, o sea una calidad. Si algún día un master trajera varias,
+  la app lo registra (`abr.variasVariantes`) en vez de ponerse a conmutar en
+  silencio.
+
+  **Por qué importa más de lo que parece:** en algunos satélites **la etiqueta
+  de idioma miente** —una pista marcada `spa` trae inglés—. Si la app solo
+  expone una pista, el abonado no tiene salida. Poder cambiar de audio no es un
+  lujo del canal de cine: es el único remedio cuando el headend etiqueta mal.
+
+  Costo medido: ~180 ms más al primer fotograma y una conexión más.
 - Conserva el contenedor MPEG-TS sin conversión, que es lo que permite llevar
   MPEG-2 y MP2 tal cual.
 - **Prohibido implementar ABR.** Una sola calidad por canal.

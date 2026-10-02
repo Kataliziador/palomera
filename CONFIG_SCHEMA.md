@@ -176,7 +176,7 @@ un canal por una errata en la guía sería desproporcionado.
   "number": 101,
   "name": "Estrellas HD",
   "group": "nacionales",
-  "url": "http://10.0.0.5:8181/estrellashd/mono.m3u8",
+  "url": "http://10.0.0.5:8181/estrellashd/index.m3u8",
   "logoUrl": "http://10.0.0.5:8097/logos/estrellashd.png",
   "videoCodec": "h264",
   "audioCodec": "aac",

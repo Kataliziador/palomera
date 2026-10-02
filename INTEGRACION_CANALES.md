@@ -110,6 +110,24 @@ reproducir. No se abre decodificador ni se toca la red.
 Lo que **todavía no** hace: atenuar la tarjeta en la guía. El abonado se entera
 al entrar al canal, no antes.
 
+### El endpoint es `index.m3u8`, y no es un detalle
+
+**`mono.m3u8` solo expone una pista de audio a Media3.** Medido el 02-oct sobre
+un segmento de `discoveryhd` con dos PIDs (`0xdd` spa, `0xde` eng): por el media
+playlist la app veía **una** pista; por el master, **tres**.
+
+La causa es cómo se declaran: el master publica los audios como `EXT-X-MEDIA`
+separadas y Media3 los trata como renditions; multiplexados en el mismo TS, el
+extractor solo saca uno.
+
+**Importa más de lo que parece:** en algunos satélites la etiqueta de idioma
+miente —una pista marcada `spa` trae inglés— y si la app solo expone una, el
+abonado no tiene salida.
+
+**Emite siempre `audioDefault`**, en todos los canales. La app lo usa como valor
+por defecto y el abonado puede cambiarlo; su elección manda para el resto de la
+sintonía.
+
 ### Lo que la app mide y prefiere sobre lo que digas
 
 - **La insignia HD** es `hd || alturaMedida >= 720`. Tu campo ayuda antes de
@@ -155,9 +173,10 @@ No lo pidas ni lo diseñes esperándolo:
   no decodifica, no suena.
 - **No lleva decoders de MP2, MP3 ni AC-3**, y no los va a llevar. Por eso la
   regla del AAC no es una preferencia.
-- **No hace ABR.** Una sola calidad por canal: emite una URL, no un master.
-- **No lee el master `video.m3u8`.** El endpoint es `mono.m3u8`, media playlist
-  directo.
+- **No hace ABR**, pero desde el 02-oct **sí lee el master**: el endpoint es
+  `index.m3u8`. Emite un master con **un solo `EXT-X-STREAM-INF`**; si trae
+  varios, la app registra `abr.variasVariantes` y Media3 se pondrá a conmutar
+  calidad, que `CLAUDE.md` §6 prohíbe.
 - **No ejecuta nada que venga del servidor.** Ni código, ni plantillas, ni hojas
   de estilo. Texto, números, listas e imágenes.
 - **No graba, no hace catch-up, no tiene DVR.**
