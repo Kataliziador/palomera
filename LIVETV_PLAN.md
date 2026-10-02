@@ -294,6 +294,20 @@ Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
 recompilar, y sin ninguno la app arranca con la marca neutra y la lista de
 `BuildConfig`.
 
+## B9 — Registro de sites
+Consulta al registro antes de derivar por convención (`REGISTRY_SCHEMA.md`).
+
+- Normalización del host igual que en `ServiceUrl`
+- Autorización guardada por host, con su caducidad
+- **Degradación:** sin respuesta y vigente se entra; caducada hay gracia;
+  pasada la gracia se cierra **explicando**, no con un error genérico
+- La puerta cubre **solo** la sección de canales; el VOD no se toca
+- `channelsUrl` y `brand` del registro pisan a la convención y al site
+
+**Dependencia:** B1. **Criterio de cierre:** dar de alta un host en el registro
+y que una caja entre sin tocar la app; quitarlo y que se cierre con su mensaje
+al caducar. Y con el registro apagado, una caja ya autorizada sigue entrando.
+
 ## B6 — Telemetría
 **Dos capas que no se mezclan** (`CLAUDE.md` §8):
 

@@ -230,6 +230,84 @@ un frame congelado.
 
 ## Entradas
 
+### El registro de sites: lo que compra no es lo que parece — 2026-10-02
+
+Edgar propuso un autorizador en la nube: la APK pregunta si el host que escribió
+el abonado pertenece a un ISP con contrato, y el registro le devuelve además
+dónde está su servicio de canales y su marca.
+
+**El argumento bueno no era el control de acceso.** Lo que de verdad compra es
+**matar la convención del puerto**. Hoy la APK encuentra el servicio de canales
+cambiando el puerto por una constante compilada, y eso obligó a escribir «fíjalo
+antes del primer despliegue o tocas todos los sites a la vez que la app». Con
+registro, cada site dice dónde está el suyo y cambiarlo es editar una fila.
+
+| | Sin registro | Con registro |
+|---|---|---|
+| Dar de alta un ISP | instalarle el servicio | **+ una fila** |
+| Quitarle el acceso | ir a su site | una fila |
+| Mover el servicio de canales | imposible sin publicar versión | una fila |
+
+**Y una corrección a mí mismo.** El 02-oct escribí que el registro central de
+marcas «sobraba» porque el site sirve la suya. Sobraba *para marcar*. No para
+autorizar ni para ligar, que son otra cosa, y esos dos usos lo justifican solos.
+
+#### Lo que no es, escrito para que nadie se lleve un susto
+
+**No es un candado técnico.** Este fork es GPL-2.0: el código es público por
+obligación, la comprobación se ve a simple vista, y una APK de Play se decompila
+en minutos. Es un **interruptor operativo sobre gente que coopera** —un ISP con
+contrato al que se deja de autorizar queda fuera sin visitar su site— y para eso
+basta. Lo que no hará es impedir que alguien decidido la use sin pagar; para eso
+el control tendría que estar en el acceso al contenido, que es autenticación de
+abonado y está fuera de alcance.
+
+Queda escrito en `REGISTRY_SCHEMA.md` §1 con esas palabras, porque un documento
+que lo presente como seguridad invita a construir sobre él cosas que no aguanta.
+
+#### Las tres reglas que salieron de preguntarse qué pasa cuando falla
+
+Un autorizador mal diseñado es **un punto único de fallo entre nuestro servidor y
+la televisión de todos los abonados de todos los ISPs a la vez**.
+
+1. **La autorización caduca y mientras tanto no se vuelve a preguntar.** En
+   semanas, no en horas, decidido por Edgar. El daño de cortar de más es mucho
+   peor que el de cortar tarde.
+2. **Sin respuesta y vigente, se entra.** Hay despliegues donde la caja llega a
+   la red del ISP pero no a internet.
+3. **La puerta cubre solo la sección de canales.** Bloquear el login de Jellyfin
+   bloquearía también el VOD que se sirve con Katalog, y convertiría un fallo del
+   registro en un ISP entero sin nada.
+
+Más un periodo de gracia cuando caduca y el registro no contesta: cortarle a un
+cliente que paga por un problema de red propio es peor que tardar en cortarle a
+uno que no paga.
+
+**`until` es obligatorio en la respuesta.** Una autorización sin caducidad es
+eterna, y bastaría un fallo del registro para dejar una caja autorizada para
+siempre sin forma de retirarlo.
+
+#### Decidido sin preguntar, por si alguien discrepa
+
+- **La puerta solo cubre TV en vivo.** Se propuso, Edgar no objetó y se escribió
+  así. Es reversible.
+- **Cajas que nunca alcanzan internet:** no se construye hasta que el escenario
+  sea real, pero el diseño no lo impide —la autorización viajaría firmada dentro
+  del `config.json` del site—. Queda escrito para que nadie cierre esa puerta sin
+  darse cuenta.
+
+#### De paso, una trampa para el otro proyecto
+
+Al confirmar Edgar que Flussonic puede estar en otra IP: en la APK no hay nada
+que hacer —las URLs viajan en el `config.json` y el HTTP en claro ya está
+permitido—, pero el generador del site puede leer la API de Flussonic por una
+dirección interna y **emitir esa misma dirección**. Aquí se vería bien y en la
+sala del abonado no cargaría ningún canal. Anotado como regla 9 y como hallazgo
+en `/home/proyectos/servidor-canales`.
+
+**Estado:** cerrada. Propuesta en `REGISTRY_SCHEMA.md`, `CLAUDE.md` §1/§6/§8 y
+`LIVETV_PLAN.md` B9. Sin tocar código.
+
 ### El contrato del `config.json`, escrito — 2026-10-02
 
 El servicio de canales de cada site es un desarrollo aparte, así que la frontera

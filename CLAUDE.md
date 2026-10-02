@@ -42,6 +42,8 @@ Consecuencias que mandan sobre todo lo demás:
 Documentos hermanos:
 - `CONFIG_SCHEMA.md` — contrato entre el servicio de canales de cada site y la
   APK. Lo que el miniservicio tiene que emitir.
+- `REGISTRY_SCHEMA.md` — contrato entre el registro de sites y la APK. Qué
+  autoriza, qué liga y qué pasa cuando no contesta.
 - `CHANNELS.md` — datos medidos de cada canal. Fuente de verdad, no adivines.
 - `LIVETV_ENGINE.md` — especificación del motor: cascada, capacidades, sintonía.
 - `LIVETV_PLAN.md` — fases de trabajo y criterios de cierre.
@@ -365,8 +367,38 @@ no sabe. La app toma el host de `ServerRepository.currentServer` y busca ahí el
 servidor de canales. Una sola app, cero configuración añadida, y dar de alta un
 ISP es instalarle el servidor de canales en su site.
 
+**Y antes de derivar, se pregunta al registro.** Un servicio nuestro en la nube,
+con una fila por site, que dice si ese host pertenece a un ISP con contrato
+vigente y **dónde está su servicio de canales** (`REGISTRY_SCHEMA.md`). Lo que
+de verdad compra no es el control de acceso: es que mover el servicio de canales
+de un site deje de exigir una versión nueva de la app.
+
+```
+1. El registro dice dónde está        → se usa eso
+2. No contestó, o no lo dice          → derivar por convención
+3. Tampoco                            → caché de ese site
+4. Tampoco                            → lista de arranque del BuildConfig
+```
+
+Tres reglas del registro que no se negocian, y están ahí porque el fallo de un
+servicio nuestro no puede apagar televisiones:
+
+- **La autorización caduca, y mientras no caduque no se vuelve a preguntar.**
+  En semanas, no en horas: el daño de cortar de más es peor que el de cortar
+  tarde.
+- **Si el registro no contesta y la autorización sigue viva, se entra.** Hay
+  despliegues donde la caja llega a la red del ISP pero no a internet.
+- **La puerta cubre solo la sección de canales.** Bloquear el login de Jellyfin
+  bloquearía también el VOD servido por Katalog y convertiría cualquier fallo
+  del registro en un ISP entero sin nada.
+
+**No es un candado técnico y no se escribe como si lo fuera.** Este fork es
+GPL-2.0: el código es público, la comprobación se ve y cualquiera puede
+compilar una versión sin ella. Es un interruptor operativo sobre gente que
+coopera, y para eso basta.
+
 **La convención es el puerto, no una ruta** (`LiveTuning.CHANNEL_SERVICE_PORT`,
-hoy **8097**). Un puerto solo lo puede ocupar un proceso, así que el servicio no
+hoy **8097**), y es lo que se usa cuando el registro no dice nada. Un puerto solo lo puede ocupar un proceso, así que el servicio no
 puede escuchar en el de Jellyfin: o va detrás de un proxy en una ruta —lo que
 obliga a montar nginx en cada site— o va en el suyo. El puerto funciona haya
 proxy o no.
@@ -499,8 +531,9 @@ durante meses**, así que:
 ## 8. Marca
 
 **Una sola APK y una sola ficha en Google Play, publicada por nosotros.** No
-hay `productFlavors` por ISP. La marca del proveedor la sirve su propio
-servidor de canales (§6) y la app se viste al conectar.
+hay `productFlavors` por ISP. La marca del proveedor la sirve **el registro o su
+propio servidor de canales** (§6) y la app se viste al conectar. El orden es el
+mismo que para todo lo demás: registro, site, marca neutra.
 
 Los ISPs no piden ficha propia: piden que funcione y un poco de
 personalización. Y el costo de los flavors nunca fue programarlos — era
