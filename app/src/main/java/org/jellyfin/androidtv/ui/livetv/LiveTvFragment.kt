@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -36,11 +37,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import kotlinx.coroutines.delay
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
+import org.jellyfin.androidtv.ui.base.ShapeDefaults
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.base.button.Button
 import org.jellyfin.androidtv.ui.navigation.Destinations
@@ -167,69 +170,74 @@ private fun ChannelRow(
 					true
 				}
 		) {
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				// La marca del proveedor, en el único sitio de la sección donde
-				// cabe sin competir con los canales. El logo si lo hay; si no,
-				// el nombre. Nunca las dos cosas: un logo con su nombre al lado
-				// es lo que hace una cabecera de ISP, no una de producto.
+			// La cabecera: marca a la izquierda, estado a la derecha.
+			//
+			// Antes todo se apilaba —marca, aviso, degradación y un botón de
+			// Diagnóstico del tamaño de una tarjeta— y empujaba los canales
+			// media pantalla hacia abajo. **Lo que la gente viene a ver son los
+			// canales**, así que el resto se aparta a una sola línea.
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
 				LogoDeMarca(catalog.brand)
-				Spacer(modifier = Modifier.width(12.dp))
+
+				Spacer(modifier = Modifier.weight(1f))
+
 				// De dónde salió la lista. Una caja sirviendo una lista vieja
 				// porque el servidor no responde se comporta igual que una al
 				// día, y sin este aviso nadie las distingue.
 				when {
-					catalog.loading -> Text(text = "actualizando…", color = Color(0xFF9E9E9E))
+					catalog.loading -> Pastilla("actualizando…", Color(0xFF9E9E9E))
 					catalog.origin == ConfigOrigin.CACHE ->
-						Text(text = "lista guardada — el servidor no responde", color = Color.Yellow)
+						Pastilla("lista guardada — el servidor no responde", Color(0xFFE2B33C))
 					catalog.origin == ConfigOrigin.NINGUNO ->
-						Text(text = "canales de prueba", color = Color(0xFF9E9E9E))
+						Pastilla("canales de prueba", Color(0xFF9E9E9E))
 					else -> Unit
+				}
+
+				// La degradación persiste en `SharedPreferences`: sobrevive al
+				// cierre de la app y al reinicio de la caja. Se avisa antes de
+				// sintonizar, porque una sesión con toggles pegados se mide
+				// como si fuera de fábrica y eso ya costó dos conclusiones
+				// falsas.
+				if (degradada) {
+					Spacer(modifier = Modifier.width(8.dp))
+					Pastilla(degradacion, Color(0xFFE2B33C))
+				}
+
+				Spacer(modifier = Modifier.width(12.dp))
+
+				// Diagnóstico sigue a mano —se veta un decoder y se entra al
+				// canal sin salir de la sección— pero deja de ocupar el sitio
+				// del primer canal.
+				Button(
+					onClick = onDiagnosticsClick,
+					contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+				) {
+					Text(text = "Diagnóstico", fontSize = 13.sp)
 				}
 			}
 
 			// El aviso del operador. Va aquí y no sobre el vídeo: es
 			// información del ISP, no del canal, y tapar la imagen con ella
 			// sería cobrarle al abonado el recado de su proveedor.
-			//
-			// Discreto a propósito. Un aviso que grita se lee una vez y molesta
-			// las cien siguientes, y este se queda hasta que caduque.
 			catalog.message?.let { aviso ->
-				Spacer(modifier = Modifier.height(10.dp))
+				Spacer(modifier = Modifier.height(14.dp))
 				Row(
 					modifier = Modifier
-						.clip(RoundedCornerShape(6.dp))
-						.background(Color.White.copy(alpha = 0.07f))
+						.clip(ShapeDefaults.Small)
+						.background(Color.White.copy(alpha = 0.06f))
 						.padding(horizontal = 14.dp, vertical = 10.dp),
 					verticalAlignment = Alignment.CenterVertically,
 				) {
 					Text(text = "ⓘ", color = Color(catalog.brand.accent))
 					Spacer(modifier = Modifier.width(10.dp))
-					Text(text = aviso.text, color = Color(0xFFD5D5D5))
+					Text(text = aviso.text, color = Color(0xFFD5D5D5), fontSize = 14.sp)
 				}
 			}
 
-			// La degradación persiste en `SharedPreferences`: sobrevive al
-			// cierre de la app y al reinicio de la caja. Se avisa aquí, antes de
-			// sintonizar, porque una sesión con toggles pegados se mide como si
-			// fuera de fábrica y eso ya costó dos conclusiones falsas.
-			if (degradada) {
-				Spacer(modifier = Modifier.height(8.dp))
-				Text(text = "degradación activa: $degradacion", color = Color.Yellow)
-			}
-
-			Spacer(modifier = Modifier.height(16.dp))
-
-			// Entrada al menú de degradación. Vive junto a los canales porque es
-			// donde hace falta: se veta un decoder y se entra al canal a ver qué
-			// cambia, sin salir de la sección.
-			Button(
-				onClick = onDiagnosticsClick,
-				contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-			) {
-				Text(text = "Diagnóstico", fontWeight = FontWeight.Medium)
-			}
-
-			Spacer(modifier = Modifier.height(16.dp))
+			Spacer(modifier = Modifier.height(26.dp))
 
 			if (secciones.isEmpty()) {
 				// Sin canales hay dos situaciones distintas y conviene no

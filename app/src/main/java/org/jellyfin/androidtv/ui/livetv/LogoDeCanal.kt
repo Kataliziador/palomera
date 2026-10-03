@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import org.jellyfin.androidtv.ui.base.ShapeDefaults
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.config.Brand
 import org.jellyfin.livetv.source.ChannelProfile
@@ -47,6 +48,14 @@ fun LogoDeCanal(
 	modifier: Modifier = Modifier,
 	tamano: Dp = 84.dp,
 	tamanoTexto: TextUnit = 26.sp,
+	/**
+	 * El recuadro propio del logo.
+	 *
+	 * Tiene sentido suelto —en la barra del canal, donde flota sobre el vídeo—
+	 * y **estorba dentro de una tarjeta**, que ya tiene su fondo: se ve una
+	 * caja dentro de otra. Ahí se pasa transparente.
+	 */
+	fondo: Color = Color.White.copy(alpha = 0.10f),
 ) {
 	// Atado a la URL: al zapear, un canal sin logo no debe heredar el fallo del
 	// anterior, ni uno con logo quedarse con las iniciales del que falló.
@@ -56,7 +65,7 @@ fun LogoDeCanal(
 	Box(
 		modifier = modifier
 			.clip(RoundedCornerShape(10.dp))
-			.background(Color.White.copy(alpha = 0.10f)),
+			.background(fondo),
 		contentAlignment = Alignment.Center,
 	) {
 		if (url != null && !fallo) {
@@ -128,5 +137,24 @@ fun LogoDeMarca(brand: Brand, modifier: Modifier = Modifier) {
 			fontSize = 20.sp,
 			modifier = modifier,
 		)
+	}
+}
+
+/**
+ * Un estado de la cabecera, en una pastilla discreta.
+ *
+ * Son avisos que importan pero que nadie viene a leer: «la lista es vieja»,
+ * «esta caja está degradada». Como texto suelto competían con la marca; como
+ * pastillas se leen cuando se buscan y desaparecen del camino cuando no.
+ */
+@Composable
+fun Pastilla(texto: String, color: Color, modifier: Modifier = Modifier) {
+	Box(
+		modifier = modifier
+			.clip(ShapeDefaults.Small)
+			.background(color.copy(alpha = 0.14f))
+			.padding(horizontal = 10.dp, vertical = 5.dp),
+	) {
+		Text(text = texto, color = color, fontSize = 12.sp)
 	}
 }

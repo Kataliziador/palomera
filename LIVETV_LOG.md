@@ -236,6 +236,64 @@ un frame congelado.
 
 ## Entradas
 
+### [B4] La sección se parece al resto de la app — 2026-10-03
+
+Edgar pidió «un diseño moderno y acorde a la demás interfaz». Eso tiene una
+respuesta medible, no de gusto: `CLAUDE.md` §4 regla 2 dice que la sección usa
+`JellyfinTheme` y los componentes de `ui/base/` **porque tiene que verse como el
+resto de la app**. Se había cumplido a medias.
+
+#### El diagnóstico: se estaba usando el componente equivocado
+
+```kotlin
+object ButtonDefaults { val Shape: Shape = CircleShape }
+```
+
+Las tarjetas de canal eran `Button`. En este sistema de diseño **una píldora
+significa acción**, y por eso salían ovaladas: no era un descuido de radio, era
+usar un botón para representar contenido. Las tarjetas del inicio son
+rectángulos con imagen y el nombre debajo.
+
+#### Lo que cambió
+
+**La tarjeta de canal es un mosaico con el logo al frente**, rectangular
+(`ShapeDefaults.Medium`), con el nombre **debajo** como en las filas de Inicio.
+A tres metros, con 120 canales y el pulgar en una flecha, un canal se reconoce
+por su imagen mucho antes que leyendo «Estrellas HD». El número va arriba a la
+izquierda en monoespaciada, para que la columna quede alineada entre tarjetas;
+HD abajo a la derecha; el favorito como estrella; y **«sin señal» se dice en la
+tarjeta**, no al entrar — enterarse después de pulsar es enterarse tarde.
+
+**Los controles del reproductor sí son píldoras**, y por el mismo motivo por el
+que la tarjeta no lo es: son actos. Ahora usan `ButtonColors` y
+`ButtonDefaults.Shape` del sistema de diseño en vez de grises inventados, así
+que son los mismos botones que los de la barra principal.
+
+**La cabecera dejó de empujar los canales media pantalla.** Marca a la
+izquierda; estado, degradación y Diagnóstico a la derecha en una sola línea. El
+botón de Diagnóstico ocupaba el sitio del primer canal.
+
+#### Tres defectos que salieron al reescribir
+
+**La pulsación larga para marcar favoritos no funcionaba.** La tarjeta recibía
+`onLongClick` y **nunca se lo pasaba al botón** —que sí lo admite—. Nadie lo
+notó porque no hay forma de distinguir «no funciona» de «no lo mantuve
+bastante». Verificado ahora: `favoritos.cambio canal=estrellashd ahora=favorito`.
+
+**Una caja dentro de otra.** `LogoDeCanal` dibuja su propio recuadro, que tiene
+sentido suelto en la barra —flota sobre el vídeo— y dentro de una tarjeta se ve
+como un marco sobrante. Ahora el fondo es un parámetro.
+
+**El HD seguía anunciándose en un canal sin señal**, que no dice nada útil.
+
+#### Lo que esto no juzga
+
+La fluidez con el mando. Las capturas por `adb` dicen que la jerarquía y el foco
+están donde deben, no cómo se siente recorrer la guía con el control. Eso es de
+Edgar.
+
+**Estado:** cerrada. Pendiente la validación en pantalla con mando.
+
 ### [B2] La guía a 120 canales, que es el tamaño de verdad — 2026-10-02
 
 Toda la interfaz se había construido y mirado con **seis** canales. El lineup

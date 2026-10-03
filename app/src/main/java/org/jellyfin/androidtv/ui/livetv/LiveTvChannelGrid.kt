@@ -156,7 +156,7 @@ fun LiveTvChannelGrid(
 	LazyColumn(
 		state = verticalState,
 		modifier = modifier.focusGroup(),
-		verticalArrangement = Arrangement.spacedBy(18.dp),
+		verticalArrangement = Arrangement.spacedBy(26.dp),
 	) {
 		itemsIndexed(sections, key = { _, s -> s.id }) { indiceSeccion, seccion ->
 			Column(
@@ -182,10 +182,10 @@ fun LiveTvChannelGrid(
 					else rememberLazyListState()
 				LazyRow(
 					state = horizontalState,
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					horizontalArrangement = Arrangement.spacedBy(16.dp),
 				) {
 					itemsIndexed(seccion.channels, key = { _, c -> c.id }) { indice, canal ->
-						ChannelCard(
+						LiveTvChannelCard(
 							channel = canal,
 							favorite = canal.id in favorites,
 							onClick = { onChannelClick(canal) },
@@ -210,42 +210,6 @@ fun LiveTvChannelGrid(
 					}
 				}
 			}
-		}
-	}
-}
-
-@Composable
-private fun ChannelCard(
-	channel: ChannelProfile,
-	favorite: Boolean,
-	onClick: () -> Unit,
-	onLongClick: () -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	Button(
-		onClick = onClick,
-		modifier = modifier.width(150.dp).height(96.dp),
-		// Más arriba que abajo: con 10 dp el número quedaba cortado por el
-		// borde de la tarjeta.
-		contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
-	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				channel.number?.let { numero ->
-					// El número en monoespaciada para que la columna quede
-					// alineada entre tarjetas y se pueda leer de un vistazo.
-					Text(
-						text = numero.toString(),
-						fontFamily = FontFamily.Monospace,
-						fontWeight = FontWeight.Bold,
-						fontSize = 13.sp,
-					)
-					Spacer(modifier = Modifier.width(8.dp))
-				}
-				if (favorite) Text(text = "★", fontSize = 13.sp)
-			}
-			Spacer(modifier = Modifier.height(4.dp))
-			Text(text = channel.name, fontWeight = FontWeight.Medium)
 		}
 	}
 }

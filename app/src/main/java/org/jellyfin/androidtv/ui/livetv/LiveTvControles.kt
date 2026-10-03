@@ -18,7 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jellyfin.androidtv.ui.base.JellyfinTheme
+import org.jellyfin.androidtv.ui.base.ShapeDefaults
 import org.jellyfin.androidtv.ui.base.Text
+import org.jellyfin.androidtv.ui.base.button.ButtonColors
+import org.jellyfin.androidtv.ui.base.button.ButtonDefaults
 
 /**
  * Un control de la barra: qué hace y en qué estado está.
@@ -65,56 +69,68 @@ fun LiveTvControles(
 
 @Composable
 private fun BotonDeControl(control: Control, enfocado: Boolean) {
-	// El orden importa: un control deshabilitado **y enfocado** tiene fondo
-	// blanco, así que pintarlo del gris de deshabilitado lo dejaba invisible.
-	// Primero se decide sobre qué fondo se está, y luego cuánto se apaga.
-	val color = when {
-		enfocado && !control.disponible -> Color.Black.copy(alpha = 0.38f)
-		enfocado -> Color.Black
-		!control.disponible -> Color.White.copy(alpha = 0.30f)
-		else -> Color.White.copy(alpha = 0.92f)
+	// Aquí la píldora **sí** es lo correcto, y por el mismo motivo por el que
+	// no lo era en la guía: estos son actos —cambiar audio, ajustar imagen— y
+	// en este sistema de diseño una píldora significa acción. Un canal es
+	// contenido y por eso su tarjeta es un rectángulo.
+	//
+	// La selección no es el foco real de Compose: se recorre con ◀ ▶ dentro de
+	// la barra, así que los colores se pasan a mano en vez de dejar que el
+	// botón reaccione solo.
+	val esquema = JellyfinTheme.colorScheme
+	val colores = ButtonColors(
+		containerColor = when {
+			!control.disponible -> esquema.buttonDisabled
+			control.activo -> esquema.buttonActive
+			else -> esquema.button
+		},
+		contentColor = when {
+			!control.disponible -> esquema.onButtonDisabled
+			control.activo -> esquema.onButtonActive
+			else -> esquema.onButton
+		},
+		focusedContainerColor = esquema.buttonFocused,
+		focusedContentColor = esquema.onButtonFocused,
+		disabledContainerColor = esquema.buttonDisabled,
+		disabledContentColor = esquema.onButtonDisabled,
+	)
+
+	// Un control deshabilitado **y** seleccionado tiene el fondo claro del
+	// foco, así que su texto no puede ser el gris de deshabilitado: quedaría
+	// invisible. Primero se decide sobre qué fondo se está.
+	val fondo = if (enfocado) colores.focusedContainerColor else colores.containerColor
+	val tinta = if (enfocado) {
+		if (control.disponible) colores.focusedContentColor else colores.focusedContentColor.copy(alpha = 0.45f)
+	} else {
+		colores.contentColor
 	}
 
 	Row(
 		modifier = Modifier
-			.clip(RoundedCornerShape(6.dp))
-			.background(
-				when {
-					enfocado -> Color.White
-					control.activo -> Color.White.copy(alpha = 0.26f)
-					else -> Color.White.copy(alpha = 0.12f)
-				}
-			)
+			.clip(ButtonDefaults.Shape)
+			.background(fondo, ButtonDefaults.Shape)
 			.then(
-				// El borde marca lo que está encendido cuando no tiene el foco:
-				// sin él, «activo» y «disponible» se ven igual de lejos.
+				// El borde marca lo que está encendido cuando no está
+				// seleccionado: sin él, «activo» y «disponible» se ven igual
+				// de lejos.
 				if (control.activo && !enfocado) {
-					Modifier.border(1.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(6.dp))
+					Modifier.border(1.dp, esquema.onButtonActive.copy(alpha = 0.55f), ButtonDefaults.Shape)
 				} else {
 					Modifier
 				}
 			)
-			.padding(horizontal = 14.dp, vertical = 8.dp),
+			.padding(horizontal = 16.dp, vertical = 9.dp),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		Text(
 			text = control.etiqueta,
-			color = color,
+			color = tinta,
 			fontSize = 15.sp,
 			fontWeight = if (enfocado) FontWeight.SemiBold else FontWeight.Normal,
 		)
 		control.valor?.let {
 			Spacer(modifier = Modifier.width(8.dp))
-			Text(
-				text = it,
-				color = when {
-					enfocado && !control.disponible -> Color.Black.copy(alpha = 0.30f)
-					enfocado -> Color.Black.copy(alpha = 0.62f)
-					!control.disponible -> Color.White.copy(alpha = 0.22f)
-					else -> Color.White.copy(alpha = 0.58f)
-				},
-				fontSize = 14.sp,
-			)
+			Text(text = it, color = tinta.copy(alpha = 0.66f), fontSize = 14.sp)
 		}
 	}
 }
@@ -135,7 +151,7 @@ fun LiveTvOpciones(
 ) {
 	Column(
 		modifier = modifier
-			.clip(RoundedCornerShape(10.dp))
+			.clip(ShapeDefaults.Medium)
 			// Opaco del todo y con borde: sobre el velo de la barra, un panel
 			// traslúcido deja ver el texto de debajo y las dos capas se leen
 			// como una sola cosa rota.
@@ -149,7 +165,7 @@ fun LiveTvOpciones(
 		opciones.forEachIndexed { i, opcion ->
 			Row(
 				modifier = Modifier
-					.clip(RoundedCornerShape(5.dp))
+					.clip(ShapeDefaults.ExtraSmall)
 					.background(if (i == seleccionada) Color.White else Color.Transparent)
 					.padding(horizontal = 14.dp, vertical = 8.dp),
 			) {
@@ -185,7 +201,7 @@ fun LiveTvSubtitulos(lineas: List<String>, modifier: Modifier = Modifier) {
 				color = Color.White,
 				fontSize = 24.sp,
 				modifier = Modifier
-					.clip(RoundedCornerShape(4.dp))
+					.clip(ShapeDefaults.ExtraSmall)
 					.background(Color.Black.copy(alpha = 0.72f))
 					.padding(horizontal = 12.dp, vertical = 4.dp),
 			)
