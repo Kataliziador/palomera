@@ -196,9 +196,16 @@ No lo pidas ni lo diseñes esperándolo:
 - **No lleva decoders de MP2, MP3 ni AC-3**, y no los va a llevar. Por eso la
   regla del AAC no es una preferencia.
 - **No hace ABR**, pero desde el 02-oct **sí lee el master**: el endpoint es
-  `index.m3u8`. Emite un master con **un solo `EXT-X-STREAM-INF`**; si trae
-  varios, la app registra `abr.variasVariantes` y Media3 se pondrá a conmutar
-  calidad, que `CLAUDE.md` §6 prohíbe.
+  `index.m3u8`. Emite un master con **un solo `EXT-X-STREAM-INF`**.
+
+  **La mayoría del lineup real no cumple eso por defecto:** las plantillas
+  `*-ABR` de Flussonic dan 576p y 720p. Publica
+  `index.m3u8?filter=tracks:v<N>a<M>…` y el master sale con una calidad y todos
+  los audios, sin tocar el headend.
+
+  Si se te cuela un master con varias, **la app no puede impedirlo**: registra
+  `abr.variasVariantes` y Media3 se pone a conmutar calidad, que §6 prohíbe. Ese
+  aviso es el único rastro que queda.
 - **No ejecuta nada que venga del servidor.** Ni código, ni plantillas, ni hojas
   de estilo. Texto, números, listas e imágenes.
 - **No graba, no hace catch-up, no tiene DVR.**

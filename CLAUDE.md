@@ -291,8 +291,13 @@ lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
 ## 6. Decisiones cerradas (no se re-discuten)
 
 ### Transporte
-- **HLS con segmentos TS**, endpoint **`index.m3u8`** — el master. Segmentos de
-  2 a 3 s, ya configurados en Flussonic.
+- **HLS con segmentos TS**, endpoint **`index.m3u8`** — el master.
+
+  **Segmentos: 2–3 s solo en los seis de desarrollo.** Medido el 03-oct sobre
+  producción: los streams sin `segment_count` propio —que son **todos** menos
+  `mileniosd` y `beisbol`— sirven **4 segmentos de ~5,5 s**, o sea una ventana
+  DVR de **~22 s**, no de ~30. Con eso, `targetOffsetMs` no puede pasar de
+  ~11000; el valor de fábrica de 8000 va bien y **12000 ya no**.
 
   **Revisado el 02-oct; antes era `mono.m3u8`.** El media playlist multiplexa
   los audios en un solo TS y **Media3 solo expone uno**: medido sobre un
@@ -300,10 +305,18 @@ lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
   una sola pista. El master los declara como `EXT-X-MEDIA` separadas y la app
   ve las tres.
 
-  **No reintroduce ABR:** los seis canales declaran **un solo**
-  `EXT-X-STREAM-INF`, o sea una calidad. Si algún día un master trajera varias,
-  la app lo registra (`abr.variasVariantes`) en vez de ponerse a conmutar en
-  silencio.
+  **Y la mayoría del lineup real SÍ es ABR.** Los seis de desarrollo declaran un
+  solo `EXT-X-STREAM-INF`, pero medido el 03-oct, la mayoría de los 44 streams
+  vivos usan plantillas `*-ABR` de Flussonic y su master trae **dos calidades**,
+  576p y 720p. Publicados tal cual, la app haría ABR.
+
+  **La salida es la URL, no recompilar ni tocar Flussonic:** el generador publica
+  `index.m3u8?filter=tracks:v2a1a2`, que devuelve un master de una sola calidad
+  con todos los audios. Está en `INTEGRACION_CANALES.md` como condición.
+
+  La app **no puede impedirlo**, solo verlo: un master con varias calidades
+  registra `abr.variasVariantes` en vez de ponerse a conmutar en silencio. Si
+  el generador se olvida del filtro, ese aviso es el único rastro.
 
   **Por qué importa más de lo que parece:** en algunos satélites **la etiqueta
   de idioma miente** —una pista marcada `spa` trae inglés—. Si la app solo

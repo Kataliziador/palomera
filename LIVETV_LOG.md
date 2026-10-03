@@ -237,6 +237,38 @@ un frame congelado.
 
 ## Entradas
 
+### Tres hallazgos del servicio de canales que desmienten este repositorio — 2026-10-03
+
+Medidos allí contra el Flussonic de producción —44 streams vivos, no los seis de
+desarrollo— y corregidos aquí, porque los contratos los escribe este proyecto.
+
+**La mayoría del lineup real es ABR.** Los seis de desarrollo declaran un solo
+`EXT-X-STREAM-INF`; la mayoría de los de producción usan plantillas `*-ABR` de
+Flussonic y traen **dos calidades**, 576p y 720p. Publicados tal cual, la app
+haría ABR, que §6 prohíbe. La salida no es recompilar ni tocar el headend: el
+generador publica `index.m3u8?filter=tracks:v2a1a2`, que devuelve un master de
+una calidad con todos los audios.
+
+**Esto sube el valor del guardia que se añadió el 02-oct.** La app no puede
+impedir el ABR, solo verlo: `abr.variasVariantes` es el único rastro si el
+generador se olvida del filtro. Cuando se escribió, los seis canales lo hacían
+parecer teórico.
+
+**La ventana DVR de producción es de ~22 s, no de ~30.** Los streams sin
+`segment_count` propio —todos menos `mileniosd` y `beisbol`— sirven 4 segmentos
+de ~5,5 s. `CLAUDE.md` decía que con `segment_count 12` la ventana rondaba los
+30 s y que «8000–12000 va holgado»: **12000 pasaría de la mitad de la ventana**
+y rompería el canal al primer chubasco. El valor de fábrica, 8000, sigue bien.
+
+**`foxny` entrega audio MP2 en la salida**, sin plantilla de transcodificación.
+Es el primer caso real de lo que §2 describe como la avería silenciosa: perfecto
+en la caja de pruebas, mudo en una caja sin decoder de MP2. El aviso
+`audio.noNormalizado` existe justo para esto.
+
+Corregidos `CLAUDE.md` §6, `CONFIG_SCHEMA.md` e `INTEGRACION_CANALES.md`.
+
+**Estado:** cerrada.
+
 ### Auditoría: 73 pruebas, un fallo real del motor y dos derivas de documento — 2026-10-03
 
 Edgar pidió verificar que todo esté documentado y que todo funcione. Lo que
