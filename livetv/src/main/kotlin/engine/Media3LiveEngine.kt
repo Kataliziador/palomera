@@ -358,6 +358,16 @@ class Media3LiveEngine(
 	}
 
 	override fun release() {
+		// Se registra porque una fuga de reproductores sería invisible sin esto:
+		// un `ExoPlayer` por zapeo que nadie suelta no da error, solo se come la
+		// memoria y pelea por recursos del decodificador.
+		//
+		// **Salen dos por sintonía y eso es correcto:** uno lo hace Compose al
+		// soltar el motor anterior (`habiaPlayer=true`) y el otro lo hace
+		// `prepare()` antes de construir el nuevo (`habiaPlayer=false`). Lo que
+		// delataría una fuga es un `prepare` **sin** su `release` previo con
+		// `habiaPlayer=true`.
+		LiveLog.info("engine.release", "canal" to channel?.id, "habiaPlayer" to (player != null))
 		pararLatido()
 		player?.release()
 		player = null
@@ -1058,6 +1068,22 @@ class Media3LiveEngine(
 			notify { it.onAudioTracksChanged(encontradas) }
 		}
 
+		/**
+		 * Si el problema viene de la señal o de dentro del reproductor.
+		 *
+		 * Los códigos de entrada/salida y los de analizado son lo que provoca
+		 * un chubasco: segmentos que no llegan o llegan rotos. Un fallo del
+		 * decodificador o una aserción de Media3 **no son el satélite**, y
+		 * decir que sí manda a buscar donde no es.
+		 */
+		private fun causaDe(error: PlaybackException): CausaDeFallo = when (error.errorCode) {
+			in PlaybackException.ERROR_CODE_IO_UNSPECIFIED..PlaybackException.ERROR_CODE_IO_NO_PERMISSION,
+			in PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED..PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
+			-> CausaDeFallo.SENAL
+
+			else -> CausaDeFallo.INTERNO
+		}
+
 		override fun onPlayerError(error: PlaybackException) {
 			// Prohibido cerrar el player ante un error de red (CLAUDE.md §6).
 			when (error.errorCode) {
@@ -1083,7 +1109,9 @@ class Media3LiveEngine(
 					// La escalera de recuperación completa es M7. Aquí, lo mínimo
 					// honesto: reintentar sin soltar el player.
 					player?.prepare()
-					notify { it.onRecoverableError(error.errorCodeName, error) }
+					notify {
+						it.onRecoverableError(error.errorCodeName, error, causaDe(error))
+					}
 				}
 			}
 		}

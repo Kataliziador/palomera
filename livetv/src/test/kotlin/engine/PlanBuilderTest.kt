@@ -208,3 +208,41 @@ class PlanBuilderTest : StringSpec({
 		PlanBuilder.mimeDe("algoQueNoConozco") shouldBe null
 	}
 })
+
+/**
+ * Qué causa se le atribuye a cada fallo.
+ *
+ * Existe porque el mensaje **dirige a quien lo lee**: decir «señal débil por
+ * condiciones climáticas» ante una aserción de Media3 manda a un técnico a
+ * revisar una antena que está perfecta. Hasta el 03-oct todos los errores
+ * decían eso.
+ */
+class CausaDeFalloTest : StringSpec({
+
+	// El clasificador vive en el motor, que necesita Android. Aquí se fija la
+	// **regla**, que es lo que de verdad hay que no romper: los códigos de
+	// entrada/salida y de analizado son señal; el resto, no.
+	fun causa(code: Int): CausaDeFallo = when (code) {
+		in 2000..2007 -> CausaDeFallo.SENAL     // ERROR_CODE_IO_*
+		in 3001..3004 -> CausaDeFallo.SENAL     // ERROR_CODE_PARSING_*
+		else -> CausaDeFallo.INTERNO
+	}
+
+	"un segmento que no llega es señal" {
+		causa(2001) shouldBe CausaDeFallo.SENAL  // IO_NETWORK_CONNECTION_FAILED
+		causa(2004) shouldBe CausaDeFallo.SENAL  // IO_BAD_HTTP_STATUS
+	}
+
+	"un contenedor roto es señal: eso lo hace la lluvia" {
+		causa(3001) shouldBe CausaDeFallo.SENAL  // PARSING_CONTAINER_MALFORMED
+	}
+
+	"un fallo del decodificador no es el satélite" {
+		causa(4001) shouldBe CausaDeFallo.INTERNO  // DECODER_INIT_FAILED
+		causa(4003) shouldBe CausaDeFallo.INTERNO  // DECODING_FAILED
+	}
+
+	"una aserción interna de Media3 tampoco" {
+		causa(1004) shouldBe CausaDeFallo.INTERNO  // FAILED_RUNTIME_CHECK
+	}
+})

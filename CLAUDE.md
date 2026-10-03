@@ -156,7 +156,7 @@ medio segundo adelantado".
 ### Modo B — Todo lo demás: autónomo
 
 Aplica a lista de canales, EPG, navegación, guía, favoritos, overlays,
-estética, marca blanca, cliente del servidor de configuración, telemetría,
+estética, marca dinámica, cliente del servidor de configuración, telemetría,
 build, empaquetado y preparación para Play Store.
 
 Reglas del Modo B:
@@ -238,8 +238,17 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      ':!*/flavors/*' ':!*.md'
    ```
 
-   Lo que aparezca aquí son los enganches de navegación, y se justifican uno a
-   uno en el commit.
+   Lo que aparezca aquí son **tres cosas y ninguna más**, y se justifican una a
+   una en el commit:
+
+   - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
+     `HomeFragmentLiveTVRow.kt`, `HomeRowsFragment.kt`;
+   - **archivos de compilación** — `app/build.gradle.kts`,
+     `settings.gradle.kts`, `.gitignore`;
+   - **la excepción registrada de `deviceProfile.kt`** (§6, retirada de
+     nextlib).
+
+   Cualquier otra cosa exige justificarse en el commit **y** decirlo aquí.
 
    ```bash
    # b) el camino de VOD, intacto

@@ -126,6 +126,21 @@ data class EngineStats(
 	val selectedSubtitle: AudioTrackRef? = null,
 )
 
+/**
+ * Qué clase de problema es, para que la pantalla no mienta sobre la causa.
+ *
+ * **Importa porque el mensaje dirige a quien lo lee.** Decir «señal débil por
+ * condiciones climáticas» ante una aserción interna de Media3 manda a un
+ * técnico a revisar una antena que está perfecta, y le quita media hora.
+ */
+enum class CausaDeFallo {
+	/** Red, segmentos, playlist: lo que la lluvia provoca de verdad. */
+	SENAL,
+
+	/** Del reproductor o del decodificador. No es el satélite. */
+	INTERNO,
+}
+
 interface EngineListener {
 	fun onReady() {}
 	fun onPlaying() {}
@@ -136,7 +151,7 @@ interface EngineListener {
 	 * cerrar el player**: un canal caído por lluvia es un estado temporal
 	 * (CLAUDE.md §6).
 	 */
-	fun onRecoverableError(event: String, error: Throwable?) {}
+	fun onRecoverableError(event: String, error: Throwable?, causa: CausaDeFallo = CausaDeFallo.SENAL) {}
 
 	/** El canal no se puede reproducir en esta caja. Agotada la cascada. */
 	fun onFatalError(event: String, error: Throwable?) {}

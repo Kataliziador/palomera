@@ -48,6 +48,7 @@ import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.engine.AspectMode
+import org.jellyfin.livetv.engine.CausaDeFallo
 import org.jellyfin.livetv.engine.DecodePath
 import org.jellyfin.livetv.engine.DeinterlaceMode
 import org.jellyfin.livetv.engine.EngineListener
@@ -315,9 +316,17 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 
 			override fun onCues(lineas: List<String>) { lineasSubtitulo = lineas }
 
-			override fun onRecoverableError(event: String, error: Throwable?) {
+			override fun onRecoverableError(event: String, error: Throwable?, causa: CausaDeFallo) {
 				// Nunca se cierra el player: es un estado temporal (CLAUDE.md §6).
-				state = "Señal débil por condiciones climáticas"
+				//
+				// **El mensaje no inventa la causa.** Hasta el 03-oct cualquier
+				// error decía «señal débil por condiciones climáticas», incluida
+				// una aserción interna de Media3 — y eso manda a un técnico a
+				// revisar una antena que está perfecta.
+				state = when (causa) {
+					CausaDeFallo.SENAL -> "Señal débil por condiciones climáticas"
+					CausaDeFallo.INTERNO -> "Reconectando…"
+				}
 				detail = event
 			}
 

@@ -220,7 +220,7 @@ al reorganizar el lineup, o los favoritos del abonado apuntarán a otra cosa.
 | `number` | entero | implementado | el canal va al final de todo |
 | `order` | entero | implementado | desempata por nombre |
 | `group` | texto | implementado | queda suelto, bajo «Otros» |
-| `logoUrl` | texto | **interpretado** | — |
+| `logoUrl` | texto | **implementado** | iniciales del nombre |
 | `hd` | booleano | implementado | se deduce de la altura medida |
 | `extras` | lista | acordado | no se dibuja nada |
 | `aliases` | lista de texto | **interpretado** | solo se busca por el nombre |
@@ -229,9 +229,13 @@ al reorganizar el lineup, o los favoritos del abonado apuntarán a otra cosa.
 | `rating` | texto | **interpretado** | — |
 | `backupUrl` | texto | **interpretado** | — |
 
-**`logoUrl` todavía no se dibuja.** La app enseña siempre las iniciales del
-nombre. Emítelo igual, y ten los archivos servidos: cuando se implemente, los
-sites ya estarán listos sin volver a pasar por ellos.
+**`logoUrl` se dibuja en la guía y en la barra del canal.** Si falta, o si la
+imagen no carga, se enseñan las iniciales del nombre — nunca un hueco. Una URL
+rota por tanto **no se nota en pantalla**: se nota mirando que el logo no sale.
+
+Formatos de imagen estándar. **Nombres inmutables**: la app cachea por URL y no
+invalida, así que reemplazar un logo conservando el nombre deja a las cajas
+enseñando el viejo durante días.
 
 **`hd` se combina con la medición, no la sustituye:** la insignia dice HD si
 este campo es `true` **o** si la altura medida llega a 720. Así un canal que
@@ -314,7 +318,7 @@ por todos los sites.
 | `videoCodec` | texto | implementado | la cascada asume hardware y se corrige al abrir el stream |
 | `audioCodec` | texto | implementado | solo sirve para contrastar con lo recibido |
 | `interlaced` | booleano | implementado | `false` |
-| `audioDefault` | texto | **interpretado** | la app elige la primera pista |
+| `audioDefault` | texto | **implementado** | la pista que elija Media3 |
 | `targetOffsetMs` | entero | implementado | 8000 |
 | `enginesAllowed` | lista de texto | implementado | sin filtro |
 
@@ -327,12 +331,15 @@ Valores que la app reconoce en `videoCodec`: `h264`/`avc`, `hevc`/`h265`,
 `mpeg2video`/`mpeg2`, `mpeg4`, `vp9`, `av1`. También acepta el MIME directo
 (`video/avc`). Lo que no reconoce se trata como «sin declarar».
 
-**`audioDefault` todavía no elige nada.** La app arranca con la pista que elija
-Media3 y el abonado puede cambiarla desde los controles; el campo se lee pero no
-se aplica. Emítelo: el idioma es la **única** clave de selección que queda,
-porque Flussonic renumera los PIDs al remuxar (`CHANNELS.md` §2.bis), y la
-normalización que lo hará posible ya existe —`spa`, `esp`, `esl`, `es`,
-`spanish` y `castellano` son todos español—.
+**`audioDefault` elige la pista al sintonizar**, activo de fábrica desde el
+02-oct. El idioma es la **única** clave que sirve, porque Flussonic renumera los
+PIDs al remuxar (`CHANNELS.md` §2.bis), y la comparación usa **nuestra**
+normalización —`spa`, `esp`, `esl`, `es`, `spanish`, `castellano`— y no la de
+Media3, que no casaría `esl` con `spa`.
+
+**Es un valor por defecto, no una imposición.** En algunos satélites la etiqueta
+miente: una pista marcada `spa` trae inglés. El abonado puede cambiarla, y su
+elección manda para el resto de la sintonía. Emítelo en **todos** los canales.
 
 `targetOffsetMs` **nunca por encima de la mitad de la ventana DVR del canal**.
 Con `segment_count 12` la ventana ronda los 30 s, así que 8000–12000 va holgado.

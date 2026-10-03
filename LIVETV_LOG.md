@@ -219,10 +219,11 @@ un frame congelado.
 | 20 | Traer `scan-canales.sh` al repositorio | B | vive suelto en `/home/scan-canales.sh` y produce la fuente de verdad |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
+| 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. Entre el 5 % y el 30 % de los zapeos con tunneled; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
 | 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
 | 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. Alcanza también al `config.json` si un site lo sirve por HTTPS. Pedido en `autorizador/docs/PETICION_APK.md` |
-| 33 | **`defaultChannel` se interpreta pero ningún camino lo usa** | B2 | el reproductor siempre recibe un `id` desde la guía, así que `byId(null)` nunca ocurre. Empezará a importar con la memoria del último canal visto: la primera vez no habrá ninguno |
-| 32 | **El aviso del operador se interpreta pero no se dibuja** | B4 | falta decidir dónde va sin estorbar al canal. Caduca solo, así que lo único que falta es pintarlo |
+| ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
+| ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
 | 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
 | ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
 | ~~29~~ | ~~**`audioDefault` se interpreta pero no se aplica**~~ | — | **cerrado 02-oct, validado por Edgar.** Activo de fábrica. La normalización es nuestra, no de Media3: `esl` no es código ISO y Media3 no lo casaría con `spa` |
@@ -235,6 +236,88 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Auditoría: 73 pruebas, un fallo real del motor y dos derivas de documento — 2026-10-03
+
+Edgar pidió verificar que todo esté documentado y que todo funcione. Lo que
+salió:
+
+#### El mecanismo de sincronía se ganó el sueldo
+
+La copia del contrato en `servidor-canales` **se había quedado atrás**: decía
+`ed0999e` y `CONFIG_SCHEMA.md` iba por `28a831d`. Se habría desarrollado el
+miniservicio contra un contrato viejo sin que nadie lo notara.
+
+Se vuelven a copiar las dos, y la operación pasa a ser un script en el
+repositorio —`herramientas/sincronizar-contratos.sh`—, porque **la deriva
+ocurrió justo por ser manual**.
+
+#### Documentos que afirmaban lo que el código ya desmiente
+
+Verificado campo a campo contra el parser, no de memoria:
+
+| Decía | Es |
+|---|---|
+| `logoUrl` «todavía no se dibuja» | se dibuja en guía y barra |
+| `audioDefault` «no elige nada» | elige al sintonizar, activo de fábrica |
+| §4.7 «lo que aparezca aquí son los enganches de navegación» | también archivos de compilación y la excepción de `deviceProfile.kt` |
+
+Corregidos en `CONFIG_SCHEMA.md`, `INTEGRACION_CANALES.md` y `CLAUDE.md`, y
+cerrados los pendientes 32 y 33, que ya estaban hechos.
+
+#### Un fallo real del motor, y lo que se pudo arreglar de él
+
+```
+player.error errorCode=ERROR_CODE_FAILED_RUNTIME_CHECK
+Caused by: java.lang.IllegalStateException
+  at MediaCodecVideoRenderer.onEnabled(MediaCodecVideoRenderer.java:845)
+```
+
+Esa aserción es la del **modo tunneled**. Medido:
+
+| | sintonías | errores |
+|---|---|---|
+| tunneled activo | 21 · 17 · 6 | 1 · 1 · 2 |
+| tunneled apagado | 18 | **0** |
+
+**Siempre se recupera**: el canal acaba reproduciendo, y en todas las corridas
+el número de `player.playing` cubre todas las sintonías.
+
+**Lo que sí se arregló, porque era nuestro:** la pantalla decía «Señal débil por
+condiciones climáticas» ante **cualquier** error recuperable, incluida una
+aserción interna de Media3. Eso manda a un técnico a revisar una antena que está
+perfecta. Ahora el motor clasifica la causa —entrada/salida y analizado son
+señal; decodificador y aserciones, no— y lo interno dice «Reconectando…». Con
+pruebas de la regla.
+
+**Lo que no se tocó:** la causa raíz está dentro de la configuración de tunneled
+de Media3, y es Modo A sobre la función que `CLAUDE.md` §6 describe como «la más
+dependiente del fabricante de toda la pila», validada en pantalla dos veces por
+Edgar. No se cambia en remoto. Pendiente #37.
+
+#### Dos conclusiones mías que tuve que retirar sobre la marcha
+
+**«Falla siempre en `beisbol`»** — 3 de 3 en las primeras corridas. Era **sesgo
+de muestreo**: el zapeo automático llegaba a beisbol siempre en el mismo punto.
+Con transiciones variadas falla en canales distintos y en las dos direcciones de
+resolución. Y beisbol **en frío**, sin canal anterior, no falla nunca.
+
+**«Hay un `release` espurio por sintonía»** — salía de mi propia línea de log
+recién añadida. `prepare()` llama a `release()` antes de construir, así que
+salen dos por sintonía y es correcto. Lo comprobé antes de escribirlo como
+hallazgo; el comentario del código ahora dice cuál es el patrón sano, para que
+el siguiente no repita la persecución.
+
+**Sin fuga de reproductores:** 16 `prepare`, 31 `release`, y la memoria sube
+**3 MB en 15 zapeos**.
+
+#### Estado general
+
+73 pruebas pasan. Compilan depuración y release. Las dos verificaciones de §4.7
+salen como deben. Los seis canales resuelven `media3 / HW`, arrancan en español
+y ninguno dispara avisos de audio sin normalizar.
+
+**Estado:** cerrada.
 
 ### [B4] La sección se parece al resto de la app — 2026-10-03
 
