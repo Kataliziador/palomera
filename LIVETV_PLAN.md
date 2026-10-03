@@ -272,10 +272,11 @@ cambios es vía M.
 el idioma es la única clave de selección que queda. B4 dibuja el selector; M3
 decide qué pista es cuál.
 
-**Los `extras` entran aquí** (`CLAUDE.md` §6): la barra pinta los pares
-etiqueta/valor que traiga el canal, sin saber qué son, recortados y validados.
-Es lo que permite que un ISP añada información mañana sin una versión nueva, y
-hay que hacerlo antes de que llegue el primer dato extra, no después.
+~~**Los `extras` entran aquí** (`CLAUDE.md` §6)~~ **hecho el 03-oct.** La barra
+pinta los del canal bajo «Luego» y la cabecera de la sección los de la raíz,
+sin saber qué son, con topes en `LiveTuning` —6 entradas, 24 y 40 caracteres—
+y recorte silencioso. Las tarjetas de la guía **no** los enseñan: con 120
+canales una tarjeta tiene que leerse de un vistazo.
 
 ## B5 — Marca dinámica
 **Reescrita el 02-oct: ya no hay flavors.** Una sola APK y una sola ficha de

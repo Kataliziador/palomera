@@ -221,6 +221,14 @@ private fun QueEstanDando(
 		}
 	}
 
+	// Lo que el ISP quiso añadir y la app no entiende. Va al final del bloque
+	// del programa porque es lo menos urgente de la barra: debajo de qué están
+	// dando y de qué viene luego.
+	if (channel.extras.isNotEmpty()) {
+		Spacer(modifier = Modifier.height(12.dp))
+		DatosExtra(channel.extras)
+	}
+
 	// El detalle técnico solo aparece cuando algo va mal: en marcha estorba.
 	if (!enVivo && detail != null) {
 		Spacer(modifier = Modifier.height(8.dp))

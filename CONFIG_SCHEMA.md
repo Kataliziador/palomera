@@ -63,7 +63,8 @@ cadencia.
   "channels": [ … ],
   "deviceOverrides": [ … ],
   "brand": { … },
-  "epg": { … }
+  "epg": { … },
+  "extras": [ { "label": "Plan", "value": "Digital Total" } ]
 }
 ```
 
@@ -74,10 +75,11 @@ cadencia.
 | `groups` | lista | implementado | no |
 | `channels` | lista | implementado | **sí**, con al menos uno utilizable |
 | `deviceOverrides` | lista | implementado | no |
-| `brand` | objeto | acordado | no |
+| `brand` | objeto | **implementado** | no |
 | `epg` | objeto | acordado | no |
 | `message` | objeto | **implementado** | no |
 | `defaultChannel` | texto | **implementado** | no |
+| `extras` | lista | **implementado** | no |
 
 **Si falta `version`, el documento se rechaza entero** y la app se queda con su
 caché. Es el único campo de la raíz cuya ausencia es fatal, junto con no tener
@@ -222,7 +224,7 @@ al reorganizar el lineup, o los favoritos del abonado apuntarán a otra cosa.
 | `group` | texto | implementado | queda suelto, bajo «Otros» |
 | `logoUrl` | texto | **implementado** | iniciales del nombre |
 | `hd` | booleano | implementado | se deduce de la altura medida |
-| `extras` | lista | acordado | no se dibuja nada |
+| `extras` | lista | **implementado** | no se dibuja nada |
 | `aliases` | lista de texto | **interpretado** | solo se busca por el nombre |
 | `unavailable` | booleano | **implementado** | el canal se trata como normal |
 | `unavailableMessage` | texto | **implementado** | mensaje genérico |
@@ -254,14 +256,28 @@ que aún no ha abierto se etiqueta con lo que diga el archivo.
 Pares etiqueta/valor que la app pinta **sin saber qué son**. Es lo que permite
 que un ISP añada información sin que haya que tocar la APK.
 
+**Van en el canal y también en la raíz**, y no se dibujan en el mismo sitio:
+los del canal salen en la barra, bajo «Luego»; los de la raíz salen en la
+cabecera de la sección, bajo el nombre del proveedor. Los primeros hablan del
+canal; los segundos, del servicio.
+
 Las reglas que lo hacen seguro, y que conviene conocer al generarlos:
 
 - **Solo texto.** Sin enlaces, sin acciones, sin formato. En cuanto algo
   necesita comportamiento, deja de ser dato y vuelve a ser código.
-- **Acotado**: número máximo de entradas y longitud máxima por campo. Lo que
-  sobre se recorta en silencio; un `config.json` no puede empujar la barra
-  fuera de pantalla.
-- **Una entrada mal formada se descarta, no tira el canal.**
+- **Acotado**: **6 entradas**, **24 caracteres de etiqueta** y **40 de valor**.
+  Lo que sobre se recorta en silencio y se registra
+  `config.extrasRecortados`. Un `config.json` no puede empujar la barra fuera
+  de pantalla.
+- **Una entrada mal formada se descarta, no tira el canal.** Sin `label` o sin
+  `value` utilizable, esa entrada no existe; las demás siguen.
+
+**El recorte no avisa en pantalla.** Una etiqueta de 40 caracteres se publica
+cortada a 24 y el abonado lee media palabra. Es un descuido del generador, no
+un fallo de la app, y la única pista está en el log.
+
+**No se dibujan en las tarjetas de la guía**, solo en la barra y en la
+cabecera. Con 120 canales, la tarjeta tiene que leerse de un vistazo.
 
 ### Un canal que está pero no se puede ver
 

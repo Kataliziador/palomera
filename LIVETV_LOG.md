@@ -238,6 +238,48 @@ un frame congelado.
 
 ## Entradas
 
+### B4 — Los `extras`, antes de que llegue el primer dato extra — 2026-10-03
+
+**Síntoma:** `CONFIG_SCHEMA.md` llevaba los `extras` como «acordado» desde que
+se escribió, y el parser no los miraba. Un ISP podía emitirlos y no pasaba nada.
+
+**Por qué ahora y no cuando hagan falta:** porque entonces ya es tarde. El
+contrato solo crece hacia atrás compatible, así que el día que un ISP mande su
+primer `extras` la APK tiene que saber leerlo **ya instalada**; implementarlo
+después significa que ese primer dato costó una versión y una ronda de Play
+para todos los sites.
+
+**Cambio:**
+
+- `ChannelExtra` en el módulo, con `extras` en el canal **y en la raíz**;
+- topes en `LiveTuning` —`EXTRAS_MAX_ENTRIES` 6, `EXTRAS_MAX_LABEL_CHARS` 24,
+  `EXTRAS_MAX_VALUE_CHARS` 40— porque sin ellos **un `config.json` decide
+  cuánto ocupa la barra**, y la barra vive encima del vídeo;
+- recorte silencioso con `config.extrasRecortados`, y la entrada sin `label` o
+  sin `value` descartada sola. Igual que un canal mal formado: no tira nada;
+- `DatosExtra`, que reusa el idioma visual de «Luego …» en vez de inventar un
+  componente. La app no entiende estos datos, así que **no puede
+  jerarquizarlos**: no le toca darles un estilo propio.
+
+**Dónde se dibujan, y dónde no.** Los del canal, en la barra bajo «Luego»; los
+de la raíz, en la cabecera de la sección bajo el nombre del proveedor. **Las
+tarjetas de la guía no los enseñan**: con 120 canales una tarjeta tiene que
+leerse de un vistazo, y ahí es donde un `extras` descuidado haría más daño.
+
+**Prueba:** en la caja, con un `config.json` propio que incluye una entrada sin
+etiqueta y otra con 200 caracteres en los dos campos. Log:
+`config.extrasRecortados de=estrellashd recibidos=5 publicados=4`. En pantalla,
+la cabecera enseña «Plan Digital Total — Soporte 800 123 4567» y la barra
+«Calidad HD — Región Norte — Satélite 77W», con el par abusivo cortado a 24/40
+y pasando a la segunda línea sin empujar nada.
+
+**Resultado:** 7 pruebas nuevas del parser. `CONFIG_SCHEMA.md` e
+`INTEGRACION_CANALES.md` actualizados en el mismo commit, como pide la regla de
+sincronía. De paso, `brand` estaba marcado «acordado» en el esquema y lleva
+implementado desde el 02-oct.
+
+**Estado:** cerrada.
+
 ### B5 — Avisos legales, y la app deja de mandar al abonado a Jellyfin — 2026-10-03
 
 **Síntoma:** tres cosas que un abonado de un ISP se encontraba y no debería.

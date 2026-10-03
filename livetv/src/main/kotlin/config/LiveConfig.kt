@@ -2,6 +2,8 @@ package org.jellyfin.livetv.config
 
 import android.os.Build
 import org.jellyfin.livetv.diagnostics.LiveLog
+import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.source.ChannelExtra
 import org.jellyfin.livetv.source.ChannelProfile
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -99,6 +101,8 @@ data class LiveConfig(
 	val defaultChannel: String? = null,
 	/** La marca del ISP, ya validada. Nunca nula: cae a la neutra. */
 	val brand: Brand = Brand.NEUTRA,
+	/** Texto libre del ISP para la sección entera. Acotado, sin significado. */
+	val extras: List<ChannelExtra> = emptyList(),
 ) {
 	/**
 	 * Los ajustes que aplican a **esta** caja, del menos al más específico.
@@ -207,7 +211,41 @@ object LiveConfigParser {
 				BrandParser.parse(b?.str("displayName"), b?.str("accent"), b?.str("logoUrl"))
 			},
 			defaultChannel = porDefecto,
+			extras = parseExtras(raiz.array("extras"), "raíz"),
 		)
+	}
+
+	/**
+	 * Los pares etiqueta/valor, recortados a los topes de [LiveTuning].
+	 *
+	 * **Nada de esto tira nada.** Una entrada sin etiqueta o sin valor se
+	 * descarta sola; lo que pase de los topes se recorta. Perder un canal
+	 * —o la lista— por un texto largo sería desproporcionado, y la app no
+	 * sabe qué significan estos campos como para juzgarlos.
+	 */
+	private fun parseExtras(array: JsonArray?, deQuien: String): List<ChannelExtra> {
+		if (array == null) return emptyList()
+
+		val utiles = array.mapNotNull { elemento ->
+			val o = elemento as? JsonObject ?: return@mapNotNull null
+			val label = o.str("label")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+			val value = o.str("value")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+			ChannelExtra(
+				label = label.take(LiveTuning.EXTRAS_MAX_LABEL_CHARS),
+				value = value.take(LiveTuning.EXTRAS_MAX_VALUE_CHARS),
+			)
+		}
+
+		if (utiles.size < array.size || utiles.size > LiveTuning.EXTRAS_MAX_ENTRIES) {
+			LiveLog.warn(
+				"config.extrasRecortados",
+				"de" to deQuien,
+				"recibidos" to array.size,
+				"publicados" to minOf(utiles.size, LiveTuning.EXTRAS_MAX_ENTRIES),
+			)
+		}
+
+		return utiles.take(LiveTuning.EXTRAS_MAX_ENTRIES)
 	}
 
 	private fun parseGroups(array: JsonArray?): List<ChannelGroup> {
@@ -266,6 +304,7 @@ object LiveConfigParser {
 				unavailableMessage = o.str("unavailableMessage"),
 				rating = o.str("rating"),
 				backupUrl = o.str("backupUrl"),
+				extras = parseExtras(o.array("extras"), id),
 			)
 		}
 	}

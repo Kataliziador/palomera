@@ -4,6 +4,8 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.source.ChannelExtra
 
 /**
  * Lo que se prueba aquí no es el camino feliz, que es trivial, sino **lo que
@@ -255,6 +257,56 @@ class LiveConfigAmpliadoTest : StringSpec({
 
 	"sin alias la lista queda vacía, no nula" {
 		LiveConfigParser.parse(doc()).channels[0].aliases shouldBe emptyList()
+	}
+
+	// --- extras ---------------------------------------------------------
+
+	"los extras se interpretan como pares etiqueta/valor" {
+		val c = LiveConfigParser.parse(
+			doc(canal = """, "extras":[{"label":"Calidad","value":"HD"},{"label":"Región","value":"Norte"}]""")
+		)
+		c.channels[0].extras shouldContainExactly listOf(
+			ChannelExtra("Calidad", "HD"),
+			ChannelExtra("Región", "Norte"),
+		)
+	}
+
+	"la raíz también puede llevar extras" {
+		val c = LiveConfigParser.parse(doc(raiz = """, "extras":[{"label":"Plan","value":"Básico"}]"""))
+		c.extras shouldContainExactly listOf(ChannelExtra("Plan", "Básico"))
+	}
+
+	"una entrada sin etiqueta o sin valor se descarta, el resto sigue" {
+		val c = LiveConfigParser.parse(
+			doc(canal = """, "extras":[{"label":"Calidad"},{"value":"Norte"},{"label":" ","value":"x"},{"label":"Ok","value":"sí"}]""")
+		)
+		c.channels[0].extras shouldContainExactly listOf(ChannelExtra("Ok", "sí"))
+	}
+
+	"los extras de más se recortan en silencio, no tiran el canal" {
+		val muchos = (1..20).joinToString(",") { """{"label":"L$it","value":"V$it"}""" }
+		val c = LiveConfigParser.parse(doc(canal = """, "extras":[$muchos]"""))
+		c.channels[0].extras.size shouldBe LiveTuning.EXTRAS_MAX_ENTRIES
+		c.channels[0].extras.first() shouldBe ChannelExtra("L1", "V1")
+	}
+
+	"un texto largo se recorta, no descarta la entrada" {
+		val largo = "x".repeat(200)
+		val c = LiveConfigParser.parse(doc(canal = """, "extras":[{"label":"$largo","value":"$largo"}]"""))
+		val e = c.channels[0].extras.single()
+		e.label.length shouldBe LiveTuning.EXTRAS_MAX_LABEL_CHARS
+		e.value.length shouldBe LiveTuning.EXTRAS_MAX_VALUE_CHARS
+	}
+
+	"un extras que no es lista de objetos no tira el canal" {
+		val c = LiveConfigParser.parse(doc(canal = """, "extras":["suelto", 7]"""))
+		c.channels[0].extras shouldBe emptyList()
+		c.channels[0].name shouldBe "Uno"
+	}
+
+	"sin extras la lista queda vacía, no nula" {
+		LiveConfigParser.parse(doc()).channels[0].extras shouldBe emptyList()
+		LiveConfigParser.parse(doc()).extras shouldBe emptyList()
 	}
 
 	"un canal no disponible conserva su motivo" {

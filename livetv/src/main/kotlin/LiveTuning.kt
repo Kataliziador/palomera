@@ -256,4 +256,22 @@ object LiveTuning {
 	 * cautivo— y no se lee en memoria.
 	 */
 	const val CONFIG_MAX_BYTES = 2 * 1024 * 1024
+
+	/**
+	 * Topes de los `extras`: los pares etiqueta/valor que un ISP puede añadir
+	 * a un canal —o a la raíz— y que la app pinta **sin saber qué son**
+	 * (`CLAUDE.md` §6).
+	 *
+	 * Existen porque sin ellos un `config.json` decide cuánto ocupa la barra
+	 * de canal, y la barra vive encima del vídeo. Seis entradas de 40
+	 * caracteres caben; sesenta empujan la guía fuera de la pantalla y el
+	 * abonado no tiene forma de arreglarlo.
+	 *
+	 * **Lo que sobra se recorta en silencio.** Rechazar el canal entero por un
+	 * texto largo sería desproporcionado, y avisar en pantalla convertiría un
+	 * descuido del operador en un problema del abonado.
+	 */
+	const val EXTRAS_MAX_ENTRIES = 6
+	const val EXTRAS_MAX_LABEL_CHARS = 24
+	const val EXTRAS_MAX_VALUE_CHARS = 40
 }

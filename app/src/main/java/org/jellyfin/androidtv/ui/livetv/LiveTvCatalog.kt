@@ -18,6 +18,7 @@ import org.jellyfin.livetv.config.ServiceUrl
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.diagnostics.ServerDeviceSettings
+import org.jellyfin.livetv.source.ChannelExtra
 import org.jellyfin.livetv.source.ChannelProfile
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -40,6 +41,8 @@ data class LiveCatalog(
 	val defaultChannel: String? = null,
 	/** La marca del proveedor. Nunca nula: la neutra es una marca. */
 	val brand: Brand = Brand.NEUTRA,
+	/** Texto libre del ISP para la sección entera, ya acotado por el parser. */
+	val extras: List<ChannelExtra> = emptyList(),
 )
 
 /**
@@ -172,6 +175,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					message = config.message?.takeIf { it.vigente(System.currentTimeMillis()) },
 					defaultChannel = config.defaultChannel,
 					brand = config.brand,
+					extras = config.extras,
 				)
 			}
 		}

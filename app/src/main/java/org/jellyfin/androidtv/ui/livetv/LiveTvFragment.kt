@@ -237,6 +237,15 @@ private fun ChannelRow(
 				}
 			}
 
+			// Los extras de la raíz: información del ISP sobre su servicio, no
+			// sobre un canal. Van junto al aviso del operador por la misma
+			// razón —son suyos, no nuestros— pero sin recuadro: un aviso pide
+			// que lo leas, esto solo está ahí.
+			if (catalog.extras.isNotEmpty()) {
+				Spacer(modifier = Modifier.height(14.dp))
+				DatosExtra(catalog.extras, tamano = 14.sp)
+			}
+
 			Spacer(modifier = Modifier.height(26.dp))
 
 			if (secciones.isEmpty()) {

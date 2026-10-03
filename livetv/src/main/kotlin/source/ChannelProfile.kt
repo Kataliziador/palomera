@@ -6,6 +6,19 @@ package org.jellyfin.livetv.source
  * Nada de esto se codifica en la app (CLAUDE.md regla 12): ni nombre, ni URL,
  * ni logo. El módulo recibe el perfil y obedece.
  */
+/**
+ * Un par etiqueta/valor que la app pinta sin saber qué significa.
+ *
+ * Es la válvula de escape del contrato: lo que un ISP quiera añadir mañana
+ * —«Calidad: HD», «Región: Norte»— **si es solo texto**, llega sin una versión
+ * nueva de la APK. En cuanto algo necesita comportamiento deja de ser dato y
+ * vuelve a ser código, que es una versión — una, para todos (`CLAUDE.md` §6).
+ */
+data class ChannelExtra(
+	val label: String,
+	val value: String,
+)
+
 data class ChannelProfile(
 	val id: String,
 	val name: String,
@@ -66,6 +79,9 @@ data class ChannelProfile(
 
 	/** Segunda fuente del canal. Sin comportamiento todavía: exige motor (M-x). */
 	val backupUrl: String? = null,
+
+	/** Texto libre del ISP, acotado y sin significado para la app. */
+	val extras: List<ChannelExtra> = emptyList(),
 )
 
 /**

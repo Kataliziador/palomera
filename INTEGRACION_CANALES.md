@@ -169,6 +169,7 @@ habrá que volver a pasar por ellos.
 | `message` | **implementado**: se dibuja en la sección y caduca solo | — |
 | `brand` | **implementado**: nombre, logo y acento | — |
 | `defaultChannel` | **implementado**: decide el foco la primera vez | — |
+| `extras` | **implementado**: barra del canal y cabecera de la sección | — |
 | `aliases` | se lee; **no hay búsqueda** en la sección | B2 |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
 
@@ -176,6 +177,19 @@ habrá que volver a pasar por ellos.
 canales: es la única clave que sirve, porque los PIDs los renumera Flussonic. Y
 es un valor por defecto — si la etiqueta del satélite miente, el abonado lo
 cambia y su elección manda.
+
+**Los `extras` ya se dibujan, y en dos sitios distintos.** Los del canal, en la
+barra, bajo «Luego»; los de la raíz, en la cabecera de la sección, bajo el
+nombre del proveedor. Los primeros hablan del canal, los segundos del servicio,
+y **no hay un tercer sitio**: las tarjetas de la guía no los enseñan, porque con
+120 canales una tarjeta tiene que leerse de un vistazo.
+
+Los topes son **6 entradas, 24 caracteres de etiqueta y 40 de valor**, y lo que
+sobra **se recorta en silencio**: sin `label` o sin `value` la entrada
+desaparece, y una etiqueta larga se publica cortada. El abonado no ve ningún
+aviso —leería media palabra y nada más—, así que el único rastro es
+`config.extrasRecortados de=<canal|raíz> recibidos=N publicados=M`. **Si lo ves
+en tu log, el texto que escribiste no es el que sale en pantalla.**
 
 **`logoUrl` se dibuja en la guía y en la barra**, con las iniciales del canal
 como respaldo cuando falta **o cuando la imagen no carga**. La imagen se ajusta
@@ -258,6 +272,7 @@ adb -s $D logcat -v time | grep -i livetv
 | `config.malformada` | no se pudo interpretar; se quedó con la caché |
 | `config.desdeCache antiguedadHoras=N` | **no te llegó a leer** |
 | `audio.noNormalizado canal=X observado=…` | **se coló un canal sin AAC** |
+| `config.extrasRecortados de=… recibidos=N publicados=M` | tus `extras` no salen enteros |
 
 **Si no aparece `config.interpretada`, tu documento no sirve**, por bien que se
 vea en un navegador.
