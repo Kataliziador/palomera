@@ -244,14 +244,17 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
      `HomeFragmentLiveTVRow.kt`, `HomeRowsFragment.kt`;
    - **archivos de compilación** — `app/build.gradle.kts`,
-     `settings.gradle.kts`, `.gitignore`;
+     `settings.gradle.kts`, `.gitignore`. El primero lleva además el
+     `applicationId`, que es identidad publicada y no configuración (§8);
    - **la excepción registrada de `deviceProfile.kt`** (§6, retirada de
      nextlib);
    - **marca y avisos legales** — `ui/preference/category/about.kt`,
-     `ui/startup/fragment/ConnectHelpAlertFragment.kt` y los `res/values*/
-     strings.xml`. Es §8 hecho código: la app no usa el nombre ni el logo de
-     Jellyfin, y la pantalla de información lleva el «no afiliado» y la
-     licencia GPL-2.0. **No es opcional ni es estética**: es lo que hace
+     `ui/startup/fragment/ConnectHelpAlertFragment.kt`, los `res/values*/
+     strings.xml`, los recursos de marca (`app_logo`, `app_icon*`,
+     `app_banner*`, `mipmap/`) y los atributos `icon`, `banner` y `label` del
+     `AndroidManifest.xml`. Es §8 hecho código: la app no usa el nombre ni el
+     logo de Jellyfin, y la pantalla de información lleva el «no afiliado» y
+     la licencia GPL-2.0. **No es opcional ni es estética**: es lo que hace
      legal el envío a Play, y vive por fuerza en las pantallas del upstream
      —no existe una sección de información propia y hacerla costaría más
      diff que reusar la suya—;
@@ -667,12 +670,45 @@ instalación— pero el editor de registro somos nosotros. **En v1 se acepta.** 
 algún día importa, la salida es verificar la marca contra una lista nuestra, y
 queda escrito aquí para no reinventarlo.
 
+### La app se llama Palco
+
+Decidido el 2026-10-03. El nombre nombra **el aparato, no una empresa**: dentro
+de la app la marca es la del ISP, y un nombre que suene a marca competiría con
+la de nuestro propio cliente en su propia caja. «Palco» es un sustantivo —el
+asiento desde el que se mira—, cabe en el lanzador sin truncarse y acepta el
+posesivo del ISP sin forzarlo.
+
+**Queda por verificar** que esté libre: IMPI, clases 38 y 41, y el título en la
+Play Console. Hasta entonces es un nombre elegido, no un nombre disponible.
+
+**El `applicationId` es `mx.kataliziador.palco`, y es lo único irreversible de
+todo el proyecto.** Play lo fija en el primer envío. Veníamos arrastrando
+`org.jellyfin.androidtv`, que es el paquete del upstream y ya está publicado por
+el proyecto Jellyfin: con él el envío se rechaza y la app choca con la Jellyfin
+de verdad en la misma caja.
+
+El `namespace` de Gradle **sigue siendo `org.jellyfin.androidtv`** y no se toca:
+es el paquete Kotlin de ~2.000 archivos, sólo existe en tiempo de compilación y
+renombrarlo haría ingobernable el rebase contra upstream (§4) sin que nadie
+llegue a verlo. Lo que se publica es el `applicationId`.
+
+**El nombre visible se puede cambiar; el paquete no.** Si algún día Palco no
+sirve, se edita el título de la ficha y `app_name`. Por eso el nombre no era la
+decisión urgente: lo era el paquete.
+
 ### Lo que sigue siendo obligatorio
 
 **La app no usa el nombre ni el logo de Jellyfin.** La pantalla de información
 incluye "no afiliado al proyecto Jellyfin" junto con los avisos de licencia
 GPL-2.0 (fork) y LGPL-2.1 (libVLC, cuando llegue M6). Con una sola app esto es
 **una pantalla**, no N.
+
+**Lo que sí sigue diciendo Jellyfin, y debe seguir diciéndolo:** todo lo que
+habla del **servidor** del ISP —«este servidor usa Jellyfin %1$s», «abra
+Jellyfin en un navegador para terminar la configuración», el informe de perfil
+de dispositivo—. §8 prohíbe usar el nombre **como marca nuestra**, no nombrar el
+software que el abonado tiene enfrente. Cambiarlo haría los mensajes de error
+inservibles para quien instala el site.
 
 ### Datos de abonados: dos capas, y no se mezclan
 

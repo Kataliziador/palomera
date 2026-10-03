@@ -6,7 +6,22 @@ plugins {
 	alias(libs.plugins.aboutlibraries)
 }
 
+// La identidad publicada de la app, y **lo único de todo el proyecto que no se
+// puede cambiar nunca**: Play fija el nombre de paquete en el primer envío y no
+// admite cambiarlo después.
+//
+// Heredábamos `org.jellyfin.androidtv`, que es el paquete del upstream y ya está
+// publicado por el proyecto Jellyfin. Con él, el envío se rechaza —los nombres de
+// paquete son únicos en toda la tienda— y además la app choca con la Jellyfin de
+// verdad si alguien tiene las dos en la misma caja.
+val appId = "mx.kataliziador.palco"
+
 android {
+	// El `namespace` **no** cambia: es el paquete Kotlin de ~2.000 archivos y
+	// sólo existe en tiempo de compilación. Renombrarlo reescribiría el árbol
+	// entero y haría ingobernable el rebase contra upstream (§4), sin que nadie
+	// llegue a verlo nunca. Lo que se publica es `applicationId`, y ese sí es
+	// nuestro.
 	namespace = "org.jellyfin.androidtv"
 	compileSdk = libs.versions.android.compileSdk.get().toInt()
 
@@ -15,7 +30,7 @@ android {
 		targetSdk = libs.versions.android.targetSdk.get().toInt()
 
 		// Release version
-		applicationId = namespace
+		applicationId = appId
 		versionName = project.getVersionName()
 		versionCode = getVersionCode(versionName!!)
 
@@ -79,9 +94,13 @@ android {
 			isMinifyEnabled = false
 
 			// Set package names used in various XML files
-			resValue("string", "app_id", namespace!!)
-			resValue("string", "app_search_suggest_authority", "${namespace}.content")
-			resValue("string", "app_search_suggest_intent_data", "content://${namespace}.content/intent")
+			// Derivados de `appId`, no del `namespace`: las `authorities` de los
+			// proveedores se declaran en el manifest como `${applicationId}.…`,
+			// y si estas cadenas apuntaran a otro sitio las sugerencias de
+			// búsqueda consultarían un proveedor que no existe.
+			resValue("string", "app_id", appId)
+			resValue("string", "app_search_suggest_authority", "${appId}.content")
+			resValue("string", "app_search_suggest_intent_data", "content://${appId}.content/intent")
 
 			// Set flavored application name
 			resValue("string", "app_name", "@string/app_name_release")
@@ -103,9 +122,9 @@ android {
 			applicationIdSuffix = ".debug"
 
 			// Set package names used in various XML files
-			resValue("string", "app_id", namespace + applicationIdSuffix)
-			resValue("string", "app_search_suggest_authority", "${namespace + applicationIdSuffix}.content")
-			resValue("string", "app_search_suggest_intent_data", "content://${namespace + applicationIdSuffix}.content/intent")
+			resValue("string", "app_id", appId + applicationIdSuffix)
+			resValue("string", "app_search_suggest_authority", "${appId + applicationIdSuffix}.content")
+			resValue("string", "app_search_suggest_intent_data", "content://${appId + applicationIdSuffix}.content/intent")
 
 			// Set flavored application name
 			resValue("string", "app_name", "@string/app_name_debug")

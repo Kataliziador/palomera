@@ -292,12 +292,15 @@ Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
 - `BrandResolver`: la marca del **registro** pisa a la del site (B9)
 - Ranuras fijas (`displayName`, `accent`, `logo`) con validación
   de contraste y caída al valor neutro
-- Marca neutra **diseñada**, que es lo que se ve antes de entrar y sin red
+- ~~Marca neutra **diseñada**, que es lo que se ve antes de entrar y sin red~~
+  **hecha el 03-oct**: logotipo monocromo —arco y antepecho— sobre el negro de
+  la pantalla de arranque. Monocromo a propósito, para no competir con el
+  acento que cada ISP ponga encima
 - Caché de marca y de logo, indexada por servidor
-- Renombrado de la app: fuera el nombre y el logo de Jellyfin.
-  **Bloqueado en el nombre de producto**, que es decisión de Edgar. Detrás de
-  él van el `app_name`, el logo de la pantalla de usuarios —la primera de toda
-  instalación— y el texto del salva-pantallas (pendiente 38)
+- ~~Renombrado de la app: fuera el nombre y el logo de Jellyfin~~ **hecho el
+  03-oct.** Se llama **Palco**; `applicationId` `mx.kataliziador.palco`;
+  logotipo, icono y banner propios, en vector. Queda comprobar el nombre en
+  IMPI (clases 38 y 41) y en la Play Console
 - ~~Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0~~
   **hecho el 03-oct.** La LGPL-2.1 se añade cuando entre libVLC en M6: hoy no
   viaja en el APK y declararla sería falso

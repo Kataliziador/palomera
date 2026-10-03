@@ -1,0 +1,25 @@
+<!--
+  El icono de las cajas anteriores a Android 8, que no entienden
+  `adaptive-icon`. Mismo símbolo, con el fondo ya incorporado y las esquinas
+  redondeadas a mano, porque aquí no hay máscara del sistema.
+
+  `mipmap-anydpi-v26/app_icon.xml` gana a partir de API 26; este sirve de 21 a
+  25, que es hasta donde llega `minSdk`.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#23272E"
+        android:pathData="M18,2 L90,2 A16,16 0 0 1 106,18 L106,90 A16,16 0 0 1 90,106 L18,106 A16,16 0 0 1 2,90 L2,18 A16,16 0 0 1 18,2 Z" />
+    <path
+        android:pathData="M40,76 L40,54 A14,14 0 0 1 68,54 L68,76"
+        android:strokeColor="#F4F5F7"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M30,68 L78,68"
+        android:strokeColor="#F4F5F7"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round" />
+</vector>

@@ -302,7 +302,7 @@
     <string name="lbl_remove_user_content">Eliminar cuenta</string>
     <string name="lbl_remove_users">Esto también eliminará todas las cuentas asociadas</string>
     <string name="lbl_manage_servers">Gestionar servidores</string>
-    <string name="no_network_permissions">Jellyfin necesita permisos de red para funcionar</string>
+    <string name="no_network_permissions">Esta aplicación necesita permisos de red para funcionar</string>
     <string name="pref_theme_muted_purple">Morado silenciado</string>
     <string name="lbl_switch_user">Cambiar de cuenta</string>
     <string name="user_picker_last_user_summary">Usar la última cuenta activa</string>
@@ -318,7 +318,7 @@
     <string name="no_user_warning">¡No pudimos encontrar ninguna cuenta!
 \nAgregue una nueva cuenta presionando el botón \"Agregar cuenta\".</string>
     <string name="welcome_content">Conéctate a tu servidor para empezar.</string>
-    <string name="welcome_title">¡Bienvenido a Jellyfin!</string>
+    <string name="welcome_title">Te damos la bienvenida a Palco</string>
     <string name="saved_servers">Servidores guardados</string>
     <string name="press_to_close">Presione para cerrar</string>
     <string name="lbl_next_up_minimal">Sin miniatura</string>
@@ -364,7 +364,7 @@
     <string name="home_section_livetv">Television en vivo</string>
     <string name="home_sections">Secciones de inicio</string>
     <string name="home_prefs">Inicio</string>
-    <string name="searchable_hint">Buscar en Jellyfin</string>
+    <string name="searchable_hint">Buscar</string>
     <string name="home_section_next_up">A continuación</string>
     <string name="home_section_active_recordings">Grabaciones activas</string>
     <string name="home_section_resume_audio">Seguir escuchando</string>
@@ -443,8 +443,7 @@
     <string name="lbl_quality_profile">Perfil de calidad</string>
     <string name="desc_audio_night_mode">Nivela el volumen de audio automáticamente</string>
     <string name="pref_audio_night_mode">Modo nocturno de audio (experimental)</string>
-    <string name="app_notification_beta">Aplicación actualizada a %1$s
-\nGracias por participar en el programa beta de Jellyfin.</string>
+    <string name="app_notification_beta">Aplicación actualizada a %1$s</string>
     <string name="color_white">Blanco</string>
     <string name="color_black">Negro</string>
     <string name="color_darkgrey">Gris oscuro</string>
@@ -490,7 +489,7 @@
         <item quantity="many">%1$s pistas</item>
         <item quantity="other">%1$s pistas</item>
     </plurals>
-    <string name="pref_screensaver_inapp_enabled_description">Mostrar el salvapantallas de Jellyfin mientras la aplicación esté abierta</string>
+    <string name="pref_screensaver_inapp_enabled_description">Mostrar el salvapantallas mientras la aplicación esté abierta</string>
     <string name="pref_screensaver_inapp_timeout">Iniciar el salvapantallas después de</string>
     <string name="pref_screensaver">Salvapantallas</string>
     <string name="disable_ui_mode_warning">Deshabilitar advertencia sobre el tipo de dispositivo</string>
