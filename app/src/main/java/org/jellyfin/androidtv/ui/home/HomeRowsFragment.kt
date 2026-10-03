@@ -118,9 +118,14 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 				// ISP esa fila sale vacía o falla, y mientras tanto gasta una
 				// petición en cada carga del inicio. Los canales de la fila
 				// nueva saldrán del catálogo propio cuando haya EPG (B8).
-				HomeSectionType.LIVE_TV -> if (currentUser.policy?.enableLiveTvAccess == true) {
-					rows.add(liveTVRow)
-				}
+				//
+				// **Y ya no se condiciona a `enableLiveTvAccess`.** Ese permiso
+				// es del Jellyfin del ISP y habla de *su* LiveTV, que no
+				// usamos: nuestros canales salen del servidor del site y no
+				// requieren credenciales (§6). Un ISP con ese permiso apagado
+				// —lo normal cuando su Jellyfin no tiene TV configurada— se
+				// quedaba sin la fila del inicio hacia nuestra sección.
+				HomeSectionType.LIVE_TV -> rows.add(liveTVRow)
 
 				HomeSectionType.NONE -> Unit
 			}

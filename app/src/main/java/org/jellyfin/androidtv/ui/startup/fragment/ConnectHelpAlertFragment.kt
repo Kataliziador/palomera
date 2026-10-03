@@ -3,7 +3,6 @@ package org.jellyfin.androidtv.ui.startup.fragment
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +23,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
@@ -91,13 +89,12 @@ private fun ConnectHelpAlert(
 					}
 				}
 
-				Image(
-					painter = painterResource(R.drawable.qr_jellyfin_docs),
-					contentDescription = stringResource(R.string.app_name),
-					modifier = Modifier
-						.width(200.dp)
-						.align(Alignment.CenterVertically),
-				)
+				// Aquí iba un QR a la documentación de Jellyfin.
+				//
+				// **A un abonado de un ISP no le sirve de nada**: no va a
+				// montarse un servidor, va a pedirle la dirección a su
+				// proveedor. Y enviarlo al proyecto original contradice §8,
+				// que exige que la app no lo use como marca.
 			}
 		}
 	}

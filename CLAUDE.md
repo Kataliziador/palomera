@@ -238,17 +238,31 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      ':!*/flavors/*' ':!*.md'
    ```
 
-   Lo que aparezca aquí son **tres cosas y ninguna más**, y se justifican una a
-   una en el commit:
+   Lo que aparezca aquí son **cinco cosas y ninguna más**, y se justifican una
+   a una en el commit:
 
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
      `HomeFragmentLiveTVRow.kt`, `HomeRowsFragment.kt`;
    - **archivos de compilación** — `app/build.gradle.kts`,
      `settings.gradle.kts`, `.gitignore`;
    - **la excepción registrada de `deviceProfile.kt`** (§6, retirada de
-     nextlib).
+     nextlib);
+   - **marca y avisos legales** — `ui/preference/category/about.kt`,
+     `ui/startup/fragment/ConnectHelpAlertFragment.kt` y los `res/values*/
+     strings.xml`. Es §8 hecho código: la app no usa el nombre ni el logo de
+     Jellyfin, y la pantalla de información lleva el «no afiliado» y la
+     licencia GPL-2.0. **No es opcional ni es estética**: es lo que hace
+     legal el envío a Play, y vive por fuerza en las pantallas del upstream
+     —no existe una sección de información propia y hacerla costaría más
+     diff que reusar la suya—;
+   - **utilería fuera de la app** — `herramientas/` y `headend/`, que no se
+     compilan ni viajan en el APK.
 
    Cualquier otra cosa exige justificarse en el commit **y** decirlo aquí.
+
+   **Nada de esto puede cambiar el comportamiento del VOD**, que es el
+   invariante. Tocar `about.kt` cambia texto; si alguna vez hiciera falta
+   tocar lógica en una pantalla compartida, deja de ser Modo B.
 
    ```bash
    # b) el camino de VOD, intacto

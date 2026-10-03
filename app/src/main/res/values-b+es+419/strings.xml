@@ -278,7 +278,7 @@
     <string name="lbl_pause">Pausa</string>
     <string name="lbl_hide_unwatched_count">Cuando el contenido fue visto</string>
     <string name="pref_watched_indicator">Mostrar indicadores observados</string>
-    <string name="login_help_description">Jellyfin requiere un servidor para conectarse. Visite nuestra documentación en docs.jellyfin.org o escanee el código QR para comenzar con Jellyfin.</string>
+    <string name="login_help_description">Para ver, esta aplicación necesita la dirección del servidor de tu proveedor. Pídesela a él.</string>
     <string name="login_help_title">¿Necesitas ayuda\?</string>
     <string name="connect_manually_by_address">Ingrese la dirección del servidor</string>
     <string name="discovered_servers_empty">No se han encontrado servidores en la red local.</string>

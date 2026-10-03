@@ -224,11 +224,12 @@ un frame congelado.
 | 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. Alcanza también al `config.json` si un site lo sirve por HTTPS. Pedido en `autorizador/docs/PETICION_APK.md` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
 | ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
-| 31 | **La fila de inicio depende de un permiso de Jellyfin** | B | `HomeSectionType.LIVE_TV` solo se añade si el usuario tiene `enableLiveTvAccess`, que es un permiso del Jellyfin del ISP sin relación con nuestros canales. La barra principal no está condicionada, así que el camino bueno funciona igual |
+| ~~31~~ | ~~**La fila de inicio depende de un permiso de Jellyfin**~~ | — | **cerrado 03-oct:** `HomeSectionType.LIVE_TV` ya no se condiciona a `enableLiveTvAccess`. Ese permiso es del Jellyfin del ISP y habla de *su* LiveTV. **La caja de pruebas no lo demuestra** —su usuario tiene el permiso—, pero el cambio solo quita una condición: lo que antes salía sigue saliendo |
 | ~~30~~ | ~~**El límite de 2 MB del `config.json` solo mira la longitud declarada**~~ | — | **cerrado 02-oct:** la lectura va acotada y falla en vez de truncar. Probado con una respuesta troceada de 3 MB | una respuesta troceada, sin `Content-Length`, se salta la comprobación y se lee entera en memoria. Con un servicio propio en LAN el riesgo es bajo, pero el límite no es el que dice ser |
 | ~~29~~ | ~~**`audioDefault` se interpreta pero no se aplica**~~ | — | **cerrado 02-oct, validado por Edgar.** Activo de fábrica. La normalización es nuestra, no de Media3: `esl` no es código ISO y Media3 no lo casaría con `spa` |
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
+| 38 | **La primera pantalla lleva el logo y el nombre de Jellyfin** | **B5** | la de selección de usuario y servidor, que es la primera de toda instalación. §8 lo prohíbe y exige una marca neutra diseñada. **Bloqueado en el nombre de producto**, que es decisión de Edgar; el resto —logo neutro, `app_name`, el salva-pantallas que dice «de Jellyfin»— sale detrás de él |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -236,6 +237,59 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### B5 — Avisos legales, y la app deja de mandar al abonado a Jellyfin — 2026-10-03
+
+**Síntoma:** tres cosas que un abonado de un ISP se encontraba y no debería.
+
+La pantalla de información decía «Jellyfin app version» con el logo del
+proyecto, y no decía en ninguna parte que esto es un fork GPL-2.0 ni que el
+proyecto original no lo respalda. §8 pide las dos cosas y **no son estética:
+son lo que hace legal el envío a Play.**
+
+La ayuda del inicio de sesión mostraba un QR a `docs.jellyfin.org` y el texto
+«para usar esta app necesitas un servidor». A quien contrató televisión por
+cable eso no le dice nada: no va a montarse un servidor, va a pedirle la
+dirección a su proveedor.
+
+Y la fila de TV en vivo del inicio solo se añadía si el usuario tenía
+`enableLiveTvAccess` (#31) — un permiso del Jellyfin del ISP, sobre *su* LiveTV,
+que no usamos.
+
+**Cambio**, todo Modo B:
+
+- `about.kt`: dos entradas nuevas —«Avisos legales» con el «no afiliado» y
+  «Licencias del software» con la GPL-2.0—; la fila de versión pasa a
+  «Versión de la aplicación» con icono neutro, **conservando el identificador
+  técnico `jellyfin-androidtv <versión>` en el contenido**, que es lo que hace
+  falta para diagnosticar y lo que la GPL-2.0 exige reconocer;
+- `ConnectHelpAlertFragment.kt`: fuera el QR, y el texto reescrito a «Para ver,
+  esta aplicación necesita la dirección del servidor de tu proveedor. Pídesela
+  a él.» en los tres `values*/`;
+- `HomeRowsFragment.kt`: `HomeSectionType.LIVE_TV -> rows.add(liveTVRow)`, sin
+  condición.
+
+Esto abre una **cuarta categoría permitida** en la verificación de §4.7 —marca
+y avisos legales— y una quinta para `herramientas/` y `headend/`, que no se
+compilan. Las dos quedan escritas ahí, como pide la regla. Ninguna toca lógica:
+son texto e iconos en pantallas del upstream, y la comprobación (b) sigue
+saliendo con la única excepción registrada.
+
+**Prueba:** en la caja, las cinco filas de «Acerca de» se leen enteras —la de
+licencias hubo que acortarla porque el resumen se truncaba a cuatro líneas—, la
+pantalla de ayuda sale sin QR con el texto nuevo, y la fila «TV en vivo» del
+inicio aparece con su botón de guía.
+
+**Lo que no se puede dar por probado:** el usuario de la caja **tiene**
+`enableLiveTvAccess`, así que la fila habría salido igual. El cambio solo
+retira una condición.
+
+**Resultado:** la app ya no usa el nombre ni el logo de Jellyfin en la
+información ni manda al abonado a la documentación del proyecto. **Sigue
+usándolos en la primera pantalla de todas** —selección de usuario y servidor—,
+que es el pendiente 38 y está bloqueado en el nombre de producto.
+
+**Estado:** cerrada en lo que no depende de la marca.
 
 ### Tres hallazgos del servicio de canales que desmienten este repositorio — 2026-10-03
 

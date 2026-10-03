@@ -278,7 +278,7 @@
     <string name="server_connecting">Conectando con %1$s</string>
     <string name="lbl_hide_unwatched_count">Cuando el contenido fue visto</string>
     <string name="pref_watched_indicator">Mostrar indicadores de \"ya visto\"</string>
-    <string name="login_help_description">Jellyfin necesita un servidor al cual conectarse. Visita nuestra documentación en docs.jellyfin.org o escanea el código QR para comenzar a usar Jellyfin.</string>
+    <string name="login_help_description">Para ver, esta aplicación necesita la dirección del servidor de tu proveedor. Pídesela a él.</string>
     <string name="login_help_title">¿Necesitas ayuda\?</string>
     <string name="connect_manually_by_address">Introduce la dirección del servidor</string>
     <string name="discovered_servers_empty">No se ha encontrado ningún servidor en la red local.</string>

@@ -288,9 +288,13 @@ Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
   de contraste y caída al valor neutro
 - Marca neutra **diseñada**, que es lo que se ve antes de entrar y sin red
 - Caché de marca y de logo, indexada por servidor
-- Renombrado de la app: fuera el nombre y el logo de Jellyfin
-- Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0 y
-  LGPL-2.1
+- Renombrado de la app: fuera el nombre y el logo de Jellyfin.
+  **Bloqueado en el nombre de producto**, que es decisión de Edgar. Detrás de
+  él van el `app_name`, el logo de la pantalla de usuarios —la primera de toda
+  instalación— y el texto del salva-pantallas (pendiente 38)
+- ~~Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0~~
+  **hecho el 03-oct.** La LGPL-2.1 se añade cuando entre libVLC en M6: hoy no
+  viaja en el APK y declararla sería falso
 
 **Cierre:** dos servidores de canales distintos visten la app distinto sin
 recompilar, y sin ninguno la app arranca con la marca neutra y la lista de
