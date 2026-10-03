@@ -107,6 +107,24 @@ fun LiveTvChannelGrid(
 	 * ISP puso por defecto. `null` lo deja en la primera tarjeta.
 	 */
 	idConFoco: String?,
+	/**
+	 * Si la guía puede quedarse el foco al componerse.
+	 *
+	 * Es `false` mientras se busca: las secciones cambian **en cada tecla**, y
+	 * sin esto la guía reclamaría el foco a media palabra y el abonado acabaría
+	 * escribiendo en ninguna parte.
+	 */
+	tomarFoco: Boolean = true,
+	/**
+	 * Un contador que, al subir, manda el foco a [idConFoco] aunque
+	 * [tomarFoco] sea `false`.
+	 *
+	 * Es lo que permite que la búsqueda ceda el foco mientras se escribe y lo
+	 * recupere **cuando el abonado pulsa ABAJO**, y en la primera tarjeta: la
+	 * navegación geométrica de Compose aterriza en la segunda, porque el campo
+	 * de texto ocupa el ancho entero y su centro cae ahí.
+	 */
+	enfocar: Int = 0,
 	modifier: Modifier = Modifier,
 ) {
 	val verticalState = rememberLazyListState()
@@ -144,13 +162,13 @@ fun LiveTvChannelGrid(
 	// quince tarjetas a la derecha, su tarjeta no existe, y pedir el foco no
 	// hace nada — ni falla.
 	val filaConFoco = rememberLazyListState()
-	LaunchedEffect(posicionConFoco, sections) {
+	LaunchedEffect(posicionConFoco, sections, enfocar) {
 		if (sections.isEmpty()) return@LaunchedEffect
 		posicionConFoco?.let { (seccion, indice) ->
 			verticalState.scrollToItem(seccion)
 			filaConFoco.scrollToItem(indice)
 		}
-		runCatching { focoInicial.requestFocus() }
+		if (tomarFoco || enfocar > 0) runCatching { focoInicial.requestFocus() }
 	}
 
 	LazyColumn(

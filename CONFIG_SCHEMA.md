@@ -225,7 +225,7 @@ al reorganizar el lineup, o los favoritos del abonado apuntarán a otra cosa.
 | `logoUrl` | texto | **implementado** | iniciales del nombre |
 | `hd` | booleano | implementado | se deduce de la altura medida |
 | `extras` | lista | **implementado** | no se dibuja nada |
-| `aliases` | lista de texto | **interpretado** | solo se busca por el nombre |
+| `aliases` | lista de texto | **implementado** | solo se busca por el nombre |
 | `unavailable` | booleano | **implementado** | el canal se trata como normal |
 | `unavailableMessage` | texto | **implementado** | mensaje genérico |
 | `rating` | texto | **interpretado** | — |
@@ -312,8 +312,21 @@ Con 120 canales nadie navega con flechas: busca. Y busca por lo que llama al
 canal, no por su nombre comercial exacto. Sin alias, «canal 2» no encuentra
 «Estrellas HD».
 
-La búsqueda de la sección **todavía no existe** (B2), así que esto se interpreta
-y no se usa. Emítelo igual.
+**La búsqueda de la sección ya los usa.** Están en la misma bolsa que el
+nombre, así que basta con que uno de los dos case.
+
+Cómo busca, para que los alias se escriban sabiendo qué hacen:
+
+- **Se ignoran acentos, mayúsculas y signos**, y también los espacios: «canal
+  5» encuentra «Canal-5» y «tnt» encuentra «T.N.T.». No hace falta duplicar un
+  nombre solo por la puntuación.
+- **Lo exacto gana a lo que empieza igual.** Si «Estrellas HD» lleva el alias
+  `canal 2`, quien teclea «canal 2» lo ve **antes** que «Canal 22».
+- **Una consulta de solo dígitos busca el número de canal**, no los nombres que
+  lo contengan.
+- **No hay corrección de erratas ni parecidos.** Un resultado aproximado, en una
+  lista de 120, esconde el que sí casaba. Si un canal se conoce por un nombre
+  mal escrito, el sitio de ese nombre es un alias.
 
 ### `rating` y `backupUrl` — datos sin comportamiento, todavía
 

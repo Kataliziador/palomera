@@ -230,6 +230,11 @@ configuración de fábrica y versión de esquema. **Dependencia:** M0.
 D-pad, último canal, favoritos, entrada directa por número y búsqueda. Una
 lista plana de 120 no es navegable con control remoto. **Dependencia:** B1.
 
+~~Búsqueda~~ **hecha el 03-oct.** `ChannelSearch` en el módulo, con sus
+pruebas: casa contra nombre y `aliases`, ignora acentos, mayúsculas, signos y
+espacios, y lo exacto gana a lo que empieza igual. Los dígitos buscan el
+número. Se abre con «Buscar canal» y filtra mientras se escribe.
+
 ## B3 — Sección LiveTV, reescrita desde cero
 La sección de canales en vivo se **reescribe entera**, y **reemplaza** la
 sección LiveTV de Jellyfin: la fila del inicio apunta a la nueva y la vieja

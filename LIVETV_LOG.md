@@ -238,6 +238,58 @@ un frame congelado.
 
 ## Entradas
 
+### B2 — Buscar un canal entre ciento veinte — 2026-10-03
+
+**Síntoma:** la sección tenía marcado por número y nada más. `aliases` llevaba
+en el contrato desde el 02-oct, se interpretaba, y **no lo usaba nadie**: el
+campo existía para una búsqueda que no existía.
+
+El número sirve a quien ya se lo sabe. Quien no, con 120 canales y un mando,
+no tiene salida.
+
+**Cambio:**
+
+- `ChannelSearch` en el módulo, no en la pantalla. Es la pieza que **se puede
+  equivocar en silencio** —un orden mal elegido deja el acierto en tercer
+  lugar y nadie lo nota— y ahí se prueba sin caja: 11 pruebas;
+- plegado agresivo: acentos, mayúsculas, signos **y espacios** fuera. Así
+  «tnt» encuentra «T.N.T.» y «canal 5» encuentra «Canal-5», sin que el
+  operador tenga que duplicar nombres por la puntuación;
+- `BarraDeBusqueda` en `ui/livetv/`, que filtra mientras se escribe y sustituye
+  la guía entera por una fila de «Resultados».
+
+**Tres cosas que solo se vieron en la caja**, y ninguna se habría visto
+compilando:
+
+1. **«canal 2» enseñaba primero «Canal 22».** El alias de «Estrellas HD» *es*
+   «canal 2», y perdía contra un nombre que solo empieza igual. Se añadió un
+   escalón: **lo exacto gana a lo que empieza igual**, aunque sea un alias.
+2. **ABAJO no salía del campo de texto.** `BasicTextField` se queda las teclas
+   de dirección aunque sea de una sola línea. Los resultados se veían y no se
+   podían tocar, que es peor que no tener búsqueda.
+3. **ATRÁS cerraba la búsqueda entera a la primera**, con el teclado del
+   sistema tapando media pantalla: no había forma de llegar a los resultados.
+   Ahora la primera baja el teclado y la segunda cierra. Y desde una tarjeta de
+   resultados, un `BackHandler` devuelve a la guía en vez de echar al abonado
+   de TV en vivo.
+
+**Un detalle de foco que costó una vuelta:** con `moveFocus(Down)` el foco
+aterrizaba en la **segunda** tarjeta, porque el campo ocupa el ancho entero y
+su centro geométrico cae ahí. Se resolvió con un contador —`enfocar`— que la
+guía observa: mientras se escribe cede el foco, y al pulsar ABAJO lo recupera
+en el primer resultado.
+
+**Prueba:** en la caja, con diez canales y alias. «hbo» → 301 y 302 en ese
+orden; «canal 2» → «Estrellas HD» antes que «Canal 22»; «milenio» sin tilde
+encuentra «Milenio Televisión»; «futbol» enseña «Ningún canal coincide con
+«futbol»»; ATRÁS desde los resultados devuelve la guía con el foco en el primer
+canal.
+
+**Resultado:** `aliases` pasa de «interpretado» a «implementado» en
+`CONFIG_SCHEMA.md`, con las reglas de casado escritas para quien los genera.
+
+**Estado:** cerrada.
+
 ### B4 — Los `extras`, antes de que llegue el primer dato extra — 2026-10-03
 
 **Síntoma:** `CONFIG_SCHEMA.md` llevaba los `extras` como «acordado» desde que

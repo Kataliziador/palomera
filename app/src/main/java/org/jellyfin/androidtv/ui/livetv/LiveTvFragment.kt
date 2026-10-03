@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.ui.livetv
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +55,7 @@ import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.source.ChannelProfile
+import org.jellyfin.livetv.source.ChannelSearch
 import org.koin.android.ext.android.inject
 
 /**
@@ -134,9 +137,46 @@ private fun ChannelRow(
 	val favoritos = remember { LiveTvFavorites.of(context) }
 	val favoritosIds by favoritos.ids.collectAsState()
 
-	val secciones = remember(catalog, favoritosIds) {
+	val guia = remember(catalog, favoritosIds) {
 		agruparCanales(catalog.channels, catalog.groups, favoritosIds)
 	}
+
+	// --- Búsqueda -----------------------------------------------------------
+	//
+	// Con ~120 canales el número sirve a quien ya se lo sabe; el resto busca
+	// por el nombre. Y busca por **cómo llama al canal**, que es para lo que
+	// están los `aliases` del `config.json`.
+	//
+	// Mientras hay consulta, la guía entera se sustituye por una sola fila de
+	// resultados: ver los grupos vacíos debajo haría parecer que la búsqueda
+	// no filtró nada.
+	var buscando by remember { mutableStateOf(false) }
+	var consulta by remember { mutableStateOf("") }
+	// Sube cuando el abonado pulsa ABAJO en el campo: es la señal de que ahora
+	// sí quiere el foco en los resultados.
+	var bajarAResultados by remember { mutableIntStateOf(0) }
+
+	val resultados = remember(catalog.channels, consulta) {
+		if (consulta.isBlank()) emptyList() else ChannelSearch.buscar(catalog.channels, consulta)
+	}
+	val secciones = when {
+		!buscando || consulta.isBlank() -> guia
+		resultados.isEmpty() -> emptyList()
+		else -> listOf(ChannelSection("__busqueda", "Resultados", resultados))
+	}
+
+	fun cerrarBusqueda() {
+		buscando = false
+		consulta = ""
+		bajarAResultados = 0
+	}
+
+	// ATRÁS desde los resultados vuelve a la guía, no sale de la sección.
+	//
+	// El campo de texto ya trata ATRÁS por su cuenta —primero baja el teclado—,
+	// pero en cuanto el foco está en una tarjeta de resultados ese camino no
+	// existe. Sin esto, la tecla obvia echa al abonado de TV en vivo entera.
+	BackHandler(enabled = buscando) { cerrarBusqueda() }
 
 	// --- Marcado por número -------------------------------------------------
 	//
@@ -163,6 +203,8 @@ private fun ChannelRow(
 				.focusGroup()
 				.onKeyEvent { evento ->
 					if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
+					// Mientras se busca, los dígitos son texto, no un canal.
+					if (buscando) return@onKeyEvent false
 					val digito = digitoDe(evento.key) ?: return@onKeyEvent false
 					// Se acota a cuatro cifras: más no existe en ningún lineup y
 					// evita que una pulsación pegada del mando acumule sin fin.
@@ -208,6 +250,19 @@ private fun ChannelRow(
 
 				Spacer(modifier = Modifier.width(12.dp))
 
+				// Buscar va antes que Diagnóstico porque es del abonado y el
+				// otro es nuestro. Es un botón y no un icono suelto para que se
+				// vea qué hace: en una caja de TV nadie descubre una función
+				// que no se nombra.
+				Button(
+					onClick = { buscando = true },
+					contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+				) {
+					Text(text = "Buscar canal", fontSize = 13.sp)
+				}
+
+				Spacer(modifier = Modifier.width(8.dp))
+
 				// Diagnóstico sigue a mano —se veta un decoder y se entra al
 				// canal sin salir de la sección— pero deja de ocupar el sitio
 				// del primer canal.
@@ -246,6 +301,17 @@ private fun ChannelRow(
 				DatosExtra(catalog.extras, tamano = 14.sp)
 			}
 
+			if (buscando) {
+				Spacer(modifier = Modifier.height(16.dp))
+				BarraDeBusqueda(
+					consulta = consulta,
+					onConsultaChange = { consulta = it },
+					onCerrar = { cerrarBusqueda() },
+					onBajar = { bajarAResultados++ },
+					acento = Color(catalog.brand.accent),
+				)
+			}
+
 			Spacer(modifier = Modifier.height(26.dp))
 
 			if (secciones.isEmpty()) {
@@ -255,8 +321,13 @@ private fun ChannelRow(
 				// va a pasar en un site mal configurado, y decir «no hay
 				// canales» ahí manda a buscar donde no es.
 				Text(
-					text = when (catalog.origin) {
-						ConfigOrigin.NINGUNO ->
+					text = when {
+						// Buscando, la lista vacía no habla del servidor: habla
+						// de lo que se acaba de teclear. Decir «no se pudo
+						// cargar la lista» aquí mandaría a buscar donde no es.
+						buscando && consulta.isNotBlank() ->
+							"Ningún canal coincide con «$consulta»."
+						catalog.origin == ConfigOrigin.NINGUNO ->
 							"No se pudo cargar la lista de canales de este servidor."
 						else -> "No hay canales que mostrar."
 					},
@@ -269,7 +340,9 @@ private fun ChannelRow(
 					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
-					idConFoco = idInicial,
+					idConFoco = if (buscando) resultados.firstOrNull()?.id else idInicial,
+					tomarFoco = !buscando,
+					enfocar = bajarAResultados,
 				)
 			}
 		}

@@ -170,8 +170,18 @@ habrá que volver a pasar por ellos.
 | `brand` | **implementado**: nombre, logo y acento | — |
 | `defaultChannel` | **implementado**: decide el foco la primera vez | — |
 | `extras` | **implementado**: barra del canal y cabecera de la sección | — |
-| `aliases` | se lee; **no hay búsqueda** en la sección | B2 |
+| `aliases` | **implementado**: la búsqueda de la sección los usa | — |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
+
+**Los `aliases` ya se buscan.** La sección tiene búsqueda: se abre con «Buscar
+canal», filtra mientras se escribe y casa contra el nombre **y** los alias,
+ignorando acentos, mayúsculas, signos y espacios. Un alias **exacto** gana a un
+nombre que solo empieza igual —«canal 2» enseña «Estrellas HD» antes que «Canal
+22»—, y una consulta de solo dígitos busca el número.
+
+No hay corrección de erratas: si a un canal se le llama de una forma concreta,
+esa forma va en `aliases`. Son el único sitio donde cabe el nombre que usa el
+abonado y no el comercial.
 
 **`audioDefault` ya elige la pista al sintonizar.** Emítelo en **todos** los
 canales: es la única clave que sirve, porque los PIDs los renumera Flussonic. Y
