@@ -163,11 +163,55 @@ ate a un proveedor concreto.
 
 ## 8. Cómo se prueba contra una caja
 
-El override del menú de desarrollador que ya existe apunta la URL del
-**`config.json`**, no la del registro. El equivalente para el registro **sigue
-sin implementarse**: va en la segunda mitad de B9, con el cliente de red.
+**Ya se puede apuntar la app a un registro de pruebas.** Se empuja el archivo
+de preferencias con `adb`, igual que el override del `config.json`:
 
-Lo que **sí** está hecho desde el 04-oct, y se puede copiar como pruebas tuyas:
+```bash
+D=192.168.20.132:5555
+cat > /tmp/livetv.dev.xml <<'XML'
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="registryUrlOverride">http://TU_IP:8098</string>
+</map>
+XML
+adb -s $D shell am force-stop mx.kataliziador.palco.debug
+adb -s $D push /tmp/livetv.dev.xml /data/local/tmp/d.xml
+adb -s $D shell run-as mx.kataliziador.palco.debug sh -c \
+  "'cat /data/local/tmp/d.xml > /data/data/mx.kataliziador.palco.debug/shared_prefs/livetv.dev.xml'"
+```
+
+La app compone `/v1/resolve` sobre lo que pongas ahí. Una caja apuntada a un
+registro de pruebas **lo anuncia en pantalla** (`degradación: registro=manual`),
+porque una caja con ese estado pegado y olvidada ya costó dos conclusiones
+falsas en este proyecto.
+
+**Y hay que saber esto para probar:** mientras la autorización guardada siga
+viva, la app **no vuelve a preguntar**, así que apuntarla a otro registro no
+hace nada. En el menú de diagnóstico hay «Olvidar la autorización guardada»,
+que la tira y obliga a preguntar de nuevo. Sirve también en operación: un
+técnico que acaba de dar de alta un site no tiene por qué esperar semanas.
+
+### El veredicto está en el log
+
+```bash
+adb -s $D logcat -v time | grep -i livetv
+```
+
+| Línea | Qué significa |
+|---|---|
+| `registro.respuesta host=… autorizado=… hasta=… channelsUrl=… marca=…` | **te contestó y se entendió** |
+| `registro.acceso host=… resultado=permitido motivo=…` | la decisión que se tomó |
+| `registro.vigente host=… hasta=…` | **no te preguntó**: la guardada sigue viva |
+| `registro.sinRespuesta host=… motivo=…` | no se pudo hablar contigo |
+| `registro.fechaIlegible` / `registro.channelsUrlIlegible` | algo de tu respuesta no sirvió |
+| `catalogo.destino … procedencia=registro` | **tu `channelsUrl` ganó** a la convención |
+| `catalogo.listo … marcaOrigen=registro` | tu marca ganó a la del site |
+
+Medido contra el registro de producción el 2026-10-04 desde la caja de pruebas:
+las tres primeras salen como deben, y el TLS de `authjelly.satmx.net` funciona
+en Android 11 sin tocar nada.
+
+Lo que se puede copiar como pruebas tuyas:
 
 | Qué | Dónde |
 |---|---|
@@ -179,8 +223,8 @@ Los dos últimos son la especificación ejecutable de lo que esta página
 describe. Si quieres saber qué hace la app con una respuesta tuya concreta,
 ese es el sitio donde mirarlo sin preguntarme.
 
-Cuando el cliente de red exista, este documento se actualiza con el
-procedimiento contra una caja y las líneas de log que sirven de veredicto.
+Falta por ver en pantalla la pantalla de denegación; su lógica está cubierta
+por las pruebas, pero nadie la ha mirado en una tele todavía.
 
 ---
 

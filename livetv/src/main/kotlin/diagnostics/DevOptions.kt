@@ -192,6 +192,18 @@ class DevOptions(context: Context) {
 	 * Nace apagado porque es un cambio de comportamiento del motor y el valor
 	 * de fábrica tiene que ser el anterior hasta que se valide en pantalla.
 	 */
+	/**
+	 * Apuntar el registro a otro sitio, para probar sin tocar el de producción.
+	 *
+	 * Se pone como el override del `config.json`: empujando el archivo de
+	 * preferencias con `adb`. No tiene fila propia en el menú porque no es algo
+	 * que se cambie con el mando, pero sí se **enseña** cuál está en uso: una
+	 * caja apuntada a un registro de pruebas y olvidada es exactamente el tipo
+	 * de estado pegado que ya costó dos conclusiones falsas.
+	 */
+	val registryUrlOverride: String?
+		get() = prefs.getString(K_REGISTRY_URL, null)?.trim()?.takeIf { it.isNotEmpty() }
+
 	var rescateTunneledEnabled: Boolean
 		get() = prefs.getBoolean(K_RESCATE_TUNNELED, LiveTuning.RESCATE_TUNNELED_DEFAULT)
 		set(v) = put { putBoolean(K_RESCATE_TUNNELED, v) }
@@ -352,6 +364,7 @@ class DevOptions(context: Context) {
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
 		if (simularTunneledSinImagen) add("FINGE SIN IMAGEN")
+		if (registryUrlOverride != null) add("registro=manual")
 		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
@@ -411,13 +424,14 @@ class DevOptions(context: Context) {
 		const val K_OVERLAY_MODE = "overlayMode"
 		const val K_RESCATE_TUNNELED = "rescateTunneledEnabled"
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
+		const val K_REGISTRY_URL = "registryUrlOverride"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
 			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_CONFIG_URL, K_STUCK_DEFAULT, K_NO_RESYNC,
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
-			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN,
+			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL,
 		)
 
 		const val OVERLAY_OCULTO = 0

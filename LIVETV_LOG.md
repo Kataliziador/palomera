@@ -231,12 +231,13 @@ un frame congelado.
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct: la app se llama Palco.** Logotipo, icono y banner propios en vector, `applicationId` `mx.kataliziador.palco`. Queda **comprobar el nombre en IMPI (clases 38 y 41) y en la Play Console**: está elegido, no verificado |
 | 39 | **De la cabecera de la sección no se puede bajar a la guía** | B | con el foco en «Buscar canal» o «Diagnóstico», ABAJO no hace nada: hay que ir a la izquierda primero. Es anterior a lo de hoy —comprobado contra `8ffaf90`— y no tiene que ver con el refresco. Se arregla con `focusProperties { down = … }` en la fila de cabecera apuntando a la guía |
-| 40 | **`REGISTRY_URL` ya se puede fijar** | **B9** | el registro está en producción: `https://authjelly.satmx.net`, dominio y no IP, sin puerto, y el código compone `+ "/v1/resolve"`. Deja de estar bloqueado en esto. Con override en el menú de desarrollador |
+| ~~40~~ | ~~**`REGISTRY_URL` ya se puede fijar**~~ | — | **cerrado 04-oct:** compilada en `BuildConfig`, con override por preferencias para apuntar a un registro de pruebas |
 | ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
 | 43 | **`TARGET_OFFSET_SATELLITE_MS` está muerto** | B | documentado en `LiveTuning` como el valor de los canales satelitales, pero `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: 8000` y no lo usa nadie. Hoy no estorba —el servidor calcula el offset por canal desde la ventana medida, que es mejor— pero quien lea `LiveTuning` creerá que los satelitales van a 12 s |
 | 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
 | 45 | **Rescate del tunneled sin imagen: escrito, sin validar en pantalla** | **M** | hecho el 04-oct, **apagado de fábrica** como pide §3. Hay que mirarlo en la tele con «Fingir tunneled sin imagen» encendido, y si vale, **el valor de fábrica tiene que pasar a activo antes del primer envío a Play** — que es cuando el riesgo deja de ser teórico, porque la ZTE solo se puede medir una vez publicada la app |
+| 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -244,6 +245,67 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### B9, segunda mitad: contra el registro de verdad — 2026-10-04
+
+**Lo primero fue mirar qué contesta.** El registro lleva en producción desde
+ayer, y resultó que **ya tiene dado de alta el Jellyfin de pruebas**, así que
+esto no se probó contra una imitación: se probó contra el servicio.
+
+La respuesta real está metida tal cual como prueba de regresión. Una prueba
+escrita a mano comprueba lo que yo creo que manda el registro; ésa comprueba lo
+que manda.
+
+**Hecho:** `RegistryRepository` con `HttpURLConnection` y sin dependencias
+nuevas, caché por host en disco, `installId` opaco por instalación,
+`BuildConfig.REGISTRY_URL`, override por preferencias, la pantalla de sección
+cerrada y el enganche en el catálogo.
+
+**El registro precede a la convención del puerto, no la sustituye.** El orden
+del destino queda: menú → registro → derivación → `BuildConfig`. Y la marca del
+registro pisa a la del site.
+
+**Medido en la caja, contra producción:**
+
+```
+registro.respuesta host=192.168.20.249 autorizado=true hasta=… channelsUrl=… marca=pruebas
+registro.acceso    host=192.168.20.249 resultado=permitido motivo=autorizado por el registro
+catalogo.destino   url=http://192.168.20.249:8097/config.json procedencia=registro
+catalogo.listo     canales=10 marca=pruebas marcaOrigen=registro
+```
+
+En pantalla: el logotipo del registro sustituye al nombre y los títulos de grupo
+salen en su ámbar. El TLS de `authjelly.satmx.net` funciona en Android 11 sin
+tocar nada —lo que **no** dice nada de las cajas por debajo de 7.1.1, que es el
+pendiente 35.
+
+**Y a la segunda entrada no volvió a preguntar:** `registro.vigente`. Una
+consulta por site, no por arranque.
+
+**Un fallo pequeño del tipo que cuesta horas.** `catalogo.listo` registraba la
+marca **del site** mientras la pantalla pintaba la **del registro**: decía
+`marcaOrigen=neutra` con el logotipo del registro delante. Un log que informa de
+otra cosa que la pantalla manda a buscar donde no es. Ahora registra la
+efectiva.
+
+**Algo que hizo falta y no estaba previsto:** «Olvidar la autorización
+guardada», en el menú. Mientras la guardada siga viva la app no vuelve a
+preguntar —que es lo correcto—, pero eso hace imposible probar la denegación, y
+en operación obliga a un técnico que acaba de dar de alta un site a esperar
+semanas. Apareció al intentar probar; se queda porque sirve para las dos cosas.
+
+**Lo que no se vio:** la pantalla de denegación. Su lógica tiene nueve pruebas y
+el camino autorizado está medido, pero nadie ha mirado el `SeccionCerrada` en
+una tele. Pendiente 46.
+
+**De regalo:** se vio el icono de Palco en el lanzador de Google TV, que era lo
+que quedó sin comprobar al renombrar la app. El aro con el antepecho se lee a
+ese tamaño.
+
+**Resultado:** pendiente 40 cerrado. Queda el trabajo de certificados (35) y la
+pantalla por mirar (46).
+
+**Estado:** cerrada, salvo lo que exige una tele y un emulador.
 
 ### B9, primera mitad: la decisión, antes que la red — 2026-10-04
 

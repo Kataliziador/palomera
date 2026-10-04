@@ -11,6 +11,10 @@ import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.livetv.config.Brand
 import org.jellyfin.livetv.config.ChannelGroup
+import org.jellyfin.livetv.config.Acceso
+import org.jellyfin.livetv.config.DecisorDeAcceso
+import org.jellyfin.livetv.config.RegistryRepository
+import org.jellyfin.livetv.config.SiteAuthorization
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
 import org.jellyfin.livetv.config.OperatorMessage
@@ -44,6 +48,13 @@ data class LiveCatalog(
 	val brand: Brand = Brand.NEUTRA,
 	/** Texto libre del ISP para la sección entera, ya acotado por el parser. */
 	val extras: List<ChannelExtra> = emptyList(),
+	/**
+	 * Si se entra a la sección, según el registro de sites.
+	 *
+	 * Permitido mientras no se demuestre lo contrario: la sección nunca se
+	 * cierra por no haber preguntado todavía.
+	 */
+	val acceso: Acceso = Acceso.Permitido(motivo = "sin comprobar"),
 )
 
 /**
@@ -61,6 +72,13 @@ data class LiveCatalog(
 class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 
 	private val repository = ConfigRepository(context)
+	private val registro = RegistryRepository(context).apply {
+		appVersion = BuildConfig.VERSION_NAME
+	}
+
+	/** Lo último que el registro dijo de este host. Decide URL, marca y acceso. */
+	@Volatile
+	private var autorizacion: SiteAuthorization? = null
 	private val dev = DevOptions.of(context)
 	private val servidores by inject<ServerRepository>()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -122,6 +140,11 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 		val servidor = servidores.currentServer.value
 		val manual = dev.configUrlOverride
 		val url = manual
+			// El registro **precede** a la convención del puerto, no la
+			// sustituye (`REGISTRY_SCHEMA.md` §5). Es lo que permite mover el
+			// servicio de canales de un site editando una fila en vez de
+			// publicando una versión de la app.
+			?: autorizacion?.takeIf { it.authorized }?.channelsUrl
 			?: ServiceUrl.configDesdeServidor(servidor?.address)
 			?: BuildConfig.LIVETV_CONFIG_URL.takeIf { it.isNotBlank() }
 
@@ -136,9 +159,57 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 		return url to clave
 	}
 
+	/**
+	 * Pregunta al registro **solo si hace falta**.
+	 *
+	 * Una consulta por site, no por arranque: mientras la autorización guardada
+	 * siga viva no se vuelve a preguntar (`REGISTRY_SCHEMA.md` §4). Eso fija la
+	 * carga del registro en unas dos peticiones por minuto con diez ISPs, y es
+	 * lo que le permite ser un servicio modesto.
+	 */
+	private suspend fun comprobarAcceso(): Acceso {
+		val host = ServiceUrl.hostDeServidor(servidores.currentServer.value?.address)
+		if (host == null) {
+			// Sin sesión no hay host que preguntar. Pasa en builds de
+			// desarrollo que apuntan al `BuildConfig`; no es motivo para
+			// cerrar nada.
+			return Acceso.Permitido(motivo = "sin host de Jellyfin que consultar")
+		}
+
+		val guardada = registro.guardada(host)
+		autorizacion = guardada
+
+		val ahora = System.currentTimeMillis()
+		if (guardada != null && guardada.vigente(ahora)) {
+			return DecisorDeAcceso.decidir(guardada, null, ahora)
+				.also { LiveLog.info("registro.vigente", "host" to host, "hasta" to guardada.untilEpochMs) }
+		}
+
+		val base = dev.registryUrlOverride ?: BuildConfig.REGISTRY_URL.takeIf { it.isNotBlank() }
+		val respuesta = registro.resolver(base, host)
+		if (respuesta != null) autorizacion = respuesta
+
+		return DecisorDeAcceso.decidir(guardada, respuesta, ahora).also { acceso ->
+			LiveLog.info(
+				"registro.acceso",
+				"host" to host,
+				"resultado" to if (acceso is Acceso.Denegado) "DENEGADO" else "permitido",
+				"motivo" to when (acceso) {
+					is Acceso.Permitido -> acceso.motivo
+					is Acceso.Denegado -> acceso.motivo
+				},
+			)
+		}
+	}
+
 	fun refresh(silencioso: Boolean = false) {
 		scope.launch {
 			if (!silencioso) _state.value = _state.value.copy(loading = true)
+
+			// El registro va **antes** de mirar el destino: puede decir dónde
+			// está el servicio de canales de este site.
+			val acceso = comprobarAcceso()
+
 			val (url, clave) = destino()
 			urlCargada = url
 			LiveLog.info(
@@ -147,6 +218,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 				"servidor" to clave,
 				"procedencia" to when {
 					dev.configUrlOverride != null -> "menú"
+					autorizacion?.channelsUrl != null -> "registro"
 					ServiceUrl.configDesdeServidor(servidores.currentServer.value?.address) != null -> "derivada de Jellyfin"
 					else -> "BuildConfig"
 				},
@@ -179,15 +251,25 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					"canales" to BootstrapChannels.all.size,
 					"motivo" to "sin configuración del servidor ni caché",
 				)
-				LiveCatalog(numerarArranque(BootstrapChannels.all), emptyList(), ConfigOrigin.NINGUNO)
+				LiveCatalog(
+					numerarArranque(BootstrapChannels.all),
+					emptyList(),
+					ConfigOrigin.NINGUNO,
+					acceso = acceso,
+				)
 			} else {
+				// La marca que se registra es **la que se va a pintar**, no la
+				// que sirvió el site. Con el registro pisando a la del site, un
+				// log que informara de la del site diría «neutra» mientras la
+				// pantalla enseña otra cosa, y eso manda a buscar donde no es.
+				val marcaEfectiva = autorizacion?.brand ?: config.brand
 				LiveLog.info(
 					"catalogo.listo",
 					"origen" to resultado.origin,
 					"canales" to config.channels.size,
 					"grupos" to config.groups.size,
-					"marca" to config.brand.displayName,
-					"marcaOrigen" to config.brand.origen,
+					"marca" to marcaEfectiva.displayName,
+					"marcaOrigen" to if (autorizacion?.brand != null) "registro" else marcaEfectiva.origen,
 				)
 				LiveCatalog(
 					channels = ordenar(config.channels),
@@ -195,8 +277,11 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					origin = resultado.origin,
 					message = config.message?.takeIf { it.vigente(System.currentTimeMillis()) },
 					defaultChannel = config.defaultChannel,
-					brand = config.brand,
+					// La marca del registro pisa a la del site (§5): es la
+					// nuestra, y la del site la pone el ISP.
+					brand = marcaEfectiva,
 					extras = config.extras,
+					acceso = acceso,
 				)
 			}
 

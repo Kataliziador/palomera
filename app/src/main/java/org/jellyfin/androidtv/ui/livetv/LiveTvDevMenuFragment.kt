@@ -31,6 +31,7 @@ import org.jellyfin.androidtv.ui.base.button.Button
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
+import org.jellyfin.livetv.config.RegistryRepository
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 
@@ -260,6 +261,22 @@ private fun DevMenu() {
 			Row(label = "minBufferMs", value = v?.let { "$it ms" } ?: "5000 (fábrica)", changed = v != null) {
 				change { dev.minBufferOverrideMs = nextBuffer(v) }
 			}
+		}
+
+		item { Header("Registro de sites") }
+		item {
+			Row(
+				label = "Olvidar la autorización guardada",
+				value = "y volver a preguntar",
+			) {
+				change {
+					val n = RegistryRepository(context).olvidar()
+					Toast.makeText(context, "Olvidadas: $n", Toast.LENGTH_SHORT).show()
+				}
+			}
+		}
+		item {
+			Info("Un técnico que acaba de dar de alta un site no tiene por qué esperar a que caduque.")
 		}
 
 		item { Header("Restablecer") }

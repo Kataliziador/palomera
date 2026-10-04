@@ -53,6 +53,7 @@ import org.jellyfin.androidtv.ui.navigation.Destinations
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
+import org.jellyfin.livetv.config.Acceso
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.source.ChannelProfile
@@ -218,6 +219,8 @@ private fun ChannelRow(
 					if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
 					// Mientras se busca, los dígitos son texto, no un canal.
 					if (buscando) return@onKeyEvent false
+					// Y con la sección cerrada no hay canal que marcar.
+					if (catalog.acceso is Acceso.Denegado) return@onKeyEvent false
 					val digito = digitoDe(evento.key) ?: return@onKeyEvent false
 					// Se acota a cuatro cifras: más no existe en ningún lineup y
 					// evita que una pulsación pegada del mando acumule sin fin.
@@ -263,6 +266,10 @@ private fun ChannelRow(
 
 				Spacer(modifier = Modifier.width(12.dp))
 
+				// Con la sección cerrada no se ofrece buscar: no hay nada que
+				// buscar, y un botón que no lleva a ningún sitio hace parecer
+				// rota una pantalla que está explicando algo.
+				if (catalog.acceso !is Acceso.Denegado) {
 				// Buscar va antes que Diagnóstico porque es del abonado y el
 				// otro es nuestro. Es un botón y no un icono suelto para que se
 				// vea qué hace: en una caja de TV nadie descubre una función
@@ -275,6 +282,7 @@ private fun ChannelRow(
 				}
 
 				Spacer(modifier = Modifier.width(8.dp))
+				}
 
 				// Diagnóstico sigue a mano —se veta un decoder y se entra al
 				// canal sin salir de la sección— pero deja de ocupar el sitio
@@ -305,6 +313,24 @@ private fun ChannelRow(
 				}
 			}
 
+			// El aviso del registro: no se ha podido verificar el servicio pero
+			// se sigue entrando. Va arriba del todo y en tono de aviso, no de
+			// error, porque para el abonado no ha cambiado nada todavía.
+			(catalog.acceso as? Acceso.Permitido)?.aviso?.let { aviso ->
+				Spacer(modifier = Modifier.height(14.dp))
+				Row(
+					modifier = Modifier
+						.clip(ShapeDefaults.Small)
+						.background(Color(0xFFE2B33C).copy(alpha = 0.12f))
+						.padding(horizontal = 14.dp, vertical = 10.dp),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Text(text = "ⓘ", color = Color(0xFFE2B33C))
+					Spacer(modifier = Modifier.width(10.dp))
+					Text(text = aviso, color = Color(0xFFD5D5D5), fontSize = 14.sp)
+				}
+			}
+
 			// Los extras de la raíz: información del ISP sobre su servicio, no
 			// sobre un canal. Van junto al aviso del operador por la misma
 			// razón —son suyos, no nuestros— pero sin recuadro: un aviso pide
@@ -327,7 +353,10 @@ private fun ChannelRow(
 
 			Spacer(modifier = Modifier.height(26.dp))
 
-			if (secciones.isEmpty()) {
+			val denegado = catalog.acceso as? Acceso.Denegado
+			if (denegado != null) {
+				SeccionCerrada(denegado.mensaje)
+			} else if (secciones.isEmpty()) {
 				// Sin canales hay dos situaciones distintas y conviene no
 				// confundirlas: el servidor contestó una lista vacía —raro,
 				// pero suyo— o no se pudo hablar con él. Lo segundo es lo que
@@ -367,6 +396,42 @@ private fun ChannelRow(
 				modifier = Modifier.align(Alignment.Center),
 			)
 		}
+	}
+}
+
+/**
+ * Lo que se ve cuando el registro dice que este servidor no está autorizado.
+ *
+ * **No puede parecer que la app está rota** (`REGISTRY_SCHEMA.md` §3). El
+ * abonado no ha hecho nada mal y no puede arreglar nada: lo único útil que esta
+ * pantalla hace es decirle a quién preguntar. De ahí las decisiones:
+ *
+ * - **Nada de rojo, ni icono de error, ni «algo salió mal».** Es un estado del
+ *   servicio, no un fallo del aparato.
+ * - **El mensaje lo escribe quien opera el registro y se enseña tal cual**, sin
+ *   envolverlo en texto nuestro que lo contradiga. Si no mandó ninguno, hay uno
+ *   genérico, que es peor y por eso el contrato insiste tanto.
+ * - **El VOD sigue ahí.** La puerta cubre solo esta sección, así que se dice:
+ *   es la diferencia entre «se me rompió la aplicación» y «esta parte no está
+ *   disponible».
+ */
+@Composable
+private fun SeccionCerrada(mensaje: String) {
+	Column(modifier = Modifier.fillMaxWidth(0.6f)) {
+		Text(
+			text = "TV en vivo no está disponible",
+			color = Color.White,
+			fontWeight = FontWeight.SemiBold,
+			fontSize = 24.sp,
+		)
+		Spacer(modifier = Modifier.height(14.dp))
+		Text(text = mensaje, color = Color(0xFFBDBDBD), fontSize = 17.sp)
+		Spacer(modifier = Modifier.height(22.dp))
+		Text(
+			text = "Tus películas y series siguen disponibles en Inicio.",
+			color = Color(0xFF7D8187),
+			fontSize = 15.sp,
+		)
 	}
 }
 

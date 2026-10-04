@@ -39,6 +39,16 @@ android {
 		buildConfigField("boolean", "VOD_ENABLED", "true")
 		buildConfigField("String", "LIVETV_CONFIG_URL", "\"\"")
 
+		// La dirección del registro de sites va compilada: la app tiene que
+		// saber a quién preguntar antes de preguntar nada, así que no puede
+		// venir de él (`INTEGRACION_REGISTRO.md` §7).
+		//
+		// **Dominio y no IP** —mudar el servidor tiene que ser un registro DNS,
+		// no una versión de la app—, sin puerto, y el código compone
+		// `/v1/resolve`. Cambiarla después del primer despliegue exige una
+		// versión nueva para todos los ISPs a la vez.
+		buildConfigField("String", "REGISTRY_URL", "\"https://authjelly.satmx.net\"")
+
 		// Canales de prueba de M0. Andamiaje: desaparece en B1, cuando el
 		// ConfigRepository consuma el config.json del servidor.
 		// Formato: id|nombre|url|videoCodec|audioCodec, separados por ';'
