@@ -1,6 +1,7 @@
 package org.jellyfin.livetv.engine
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -147,6 +148,18 @@ class Media3LiveEngine(
 	// Métricas de los objetivos de CLAUDE.md §10
 	private var prepareAtMs = 0L
 	private var firstFrameAtMs = 0L
+
+	/**
+	 * El tunneled **efectivo de esta sesión**, que no siempre es el ajustado.
+	 *
+	 * El rescate puede apagarlo a mitad de sintonía al demostrarse que no da
+	 * imagen, y a partir de ahí es esto —no `dev.tunnelingEnabled`— lo que
+	 * describe cómo se está reproduciendo de verdad.
+	 */
+	private var tunnelingSesion = false
+
+	/** El rescate se hace una vez por sesión: si no bastó, no bastará repetirlo. */
+	private var rescateTunneledHecho = false
 	private var msToFirstFrame = 0L
 	private var rebufferCount = 0
 	private var bufferingSinceMs = 0L
@@ -198,6 +211,7 @@ class Media3LiveEngine(
 		this.plan = plan
 
 		val stuckCoefficient = dev.playlistStuckCoefficient
+		tunnelingSesion = dev.tunnelingEnabled
 
 		LiveLog.startSession(channel.id, channel.url, channel.videoCodec, channel.audioCodec)
 		LiveLog.info(
@@ -207,7 +221,7 @@ class Media3LiveEngine(
 			"targetOffsetMs" to (dev.targetOffsetOverrideMs ?: plan.targetOffsetMs),
 			"reason" to plan.reason,
 			"playlistStuckCoef" to stuckCoefficient,
-			"tunneled" to dev.tunnelingEnabled,
+			"tunneled" to tunnelingSesion,
 			"tsSearchPaquetes" to dev.timestampSearchPackets,
 			"degradacion" to dev.describe(),
 		)
@@ -223,6 +237,7 @@ class Media3LiveEngine(
 		resyncCount = 0
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
+		rescateTunneledHecho = false
 		msToFirstFrame = 0
 		rebufferCount = 0
 		bufferingSinceMs = 0
@@ -321,7 +336,7 @@ class Media3LiveEngine(
 		// elegirán decoders capaces de entregar directamente al hardware de
 		// pantalla.
 		val selector = DefaultTrackSelector(context).apply {
-			setParameters(buildUponParameters().setTunnelingEnabled(dev.tunnelingEnabled))
+			setParameters(buildUponParameters().setTunnelingEnabled(tunnelingSesion))
 		}
 		trackSelector = selector
 
@@ -445,6 +460,7 @@ class Media3LiveEngine(
 		huecosEnElLatidoAnterior = huecosAhora
 
 		vigilar(exo, s)
+		vigilarImagen(exo)
 
 		val c = ultimaCarga
 		// La carga del sistema solo se anota donde el kernel la deja leer: en
@@ -481,6 +497,64 @@ class Media3LiveEngine(
 	 * un canal caído por lluvia vuelve solo cuando vuelve la señal, sin que el
 	 * abonado toque nada (CLAUDE.md §6).
 	 */
+	/**
+	 * El fallo que el vigilante de progreso no puede ver: **tunneled sin
+	 * imagen**.
+	 *
+	 * `vigilar` declara atascado lo que no avanza de posición. Cuando el
+	 * tunneled de una caja no entrega fotogramas, el audio suena, la posición
+	 * avanza y la pantalla está negra: desde dentro todo va bien, y el abonado
+	 * se queda mirando un negro hasta que llama por teléfono.
+	 *
+	 * **Esto importa porque la caja mayoritaria del cliente —la ZTE B866V2—
+	 * solo admite instalaciones desde la ficha de Play**, así que la primera
+	 * vez que la veamos será con la app ya publicada. El tunneled está activo
+	 * de fábrica y se excluye por modelo, o sea por conocimiento que todavía no
+	 * tenemos de ella. Si lo implementa mal, el síntoma es ese negro, en todos
+	 * los canales y en la caja que más abonados tiene.
+	 *
+	 * El remedio es barato y se cura solo: apagar el tunneled **para esta
+	 * sesión** y rehacer la preparación. Convierte un fallo permanente y mudo
+	 * en un hipo de unos segundos, sin esperar a que alguien nos cuente qué
+	 * modelo falló. Y lo deja escrito en el log, que es como lo aprendemos.
+	 */
+	private fun vigilarImagen(exo: ExoPlayer) {
+		if (!dev.rescateTunneledEnabled) return
+		if (!tunnelingSesion || rescateTunneledHecho) return
+		if (prepareAtMs == 0L) return
+
+		// Con la simulación encendida se ignora que sí hubo imagen: es la única
+		// forma de ver el rescate en una caja que funciona bien.
+		val huboImagen = firstFrameAtMs > 0L && !dev.simularTunneledSinImagen
+		if (huboImagen) return
+
+		// Si ni siquiera está reproduciendo, el atasco es de otro tipo y de
+		// eso se encarga `vigilar`: apagar el tunneled no arreglaría nada y
+		// perdería la única función que quita los microcortes del cine.
+		if (!exo.isPlaying) return
+		if (System.currentTimeMillis() - prepareAtMs < LiveTuning.TUNNELED_NO_IMAGE_MS) return
+
+		rescateTunneledHecho = true
+		tunnelingSesion = false
+		LiveLog.warn(
+			"tunneled.sinImagen",
+			"modelo" to "${Build.MANUFACTURER} ${Build.MODEL}",
+			"sdk" to Build.VERSION.SDK_INT,
+			"msSinImagen" to (System.currentTimeMillis() - prepareAtMs),
+			"simulado" to dev.simularTunneledSinImagen,
+			"accion" to "se apaga el tunneled y se rehace la preparación",
+		)
+
+		trackSelector?.let { sel ->
+			runCatching { sel.setParameters(sel.buildUponParameters().setTunnelingEnabled(false)) }
+				.onFailure { LiveLog.error("tunneled.rescateFallido", it) }
+		}
+		runCatching {
+			exo.seekToDefaultPosition()
+			exo.prepare()
+		}.onFailure { LiveLog.error("tunneled.rescateFallido", it) }
+	}
+
 	private fun vigilar(exo: ExoPlayer, s: EngineStats) {
 		if (dev.watchdogDisabled) return
 
@@ -1178,6 +1252,16 @@ class Media3LiveEngine(
 		) {
 			if (firstFrameAtMs == 0L) {
 				firstFrameAtMs = System.currentTimeMillis()
+				// Que el rescate funcionara es tan importante como que saltara:
+				// sin esta línea sabríamos que una caja da negro con tunneled,
+				// pero no si la salida que le dimos la arregla.
+				if (rescateTunneledHecho) {
+					LiveLog.info(
+						"tunneled.rescatado",
+						"modelo" to "${Build.MANUFACTURER} ${Build.MODEL}",
+						"msHastaImagen" to (firstFrameAtMs - prepareAtMs),
+					)
+				}
 				msToFirstFrame = firstFrameAtMs - prepareAtMs
 				LiveLog.info("frames.first", "msDesdePrepare" to msToFirstFrame)
 			}

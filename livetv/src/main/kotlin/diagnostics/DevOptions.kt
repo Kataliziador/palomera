@@ -187,6 +187,28 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_WATCHDOG_OFF, v) }
 
 	/**
+	 * Apagar el tunneled solo cuando se demuestra que no da imagen.
+	 *
+	 * Nace apagado porque es un cambio de comportamiento del motor y el valor
+	 * de fábrica tiene que ser el anterior hasta que se valide en pantalla.
+	 */
+	var rescateTunneledEnabled: Boolean
+		get() = prefs.getBoolean(K_RESCATE_TUNNELED, LiveTuning.RESCATE_TUNNELED_DEFAULT)
+		set(v) = put { putBoolean(K_RESCATE_TUNNELED, v) }
+
+	/**
+	 * Fingir que no llegó el primer fotograma, para poder ver el rescate.
+	 *
+	 * Sin esto no hay forma de probarlo: la caja de pruebas entrega imagen con
+	 * tunneled, que es justo lo que queremos. Es el menú de degradación de §9
+	 * —simular cajas peores— aplicado al único fallo que no podemos reproducir
+	 * con el hardware que tenemos delante.
+	 */
+	var simularTunneledSinImagen: Boolean
+		get() = prefs.getBoolean(K_SIM_SIN_IMAGEN, false)
+		set(v) = put { putBoolean(K_SIM_SIN_IMAGEN, v) }
+
+	/**
 	 * Devuelve el umbral de playlist detenido al valor de Media3 (3.5), para
 	 * poder comparar en pantalla el comportamiento antiguo con el nuevo.
 	 */
@@ -329,6 +351,8 @@ class DevOptions(context: Context) {
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
+		if (simularTunneledSinImagen) add("FINGE SIN IMAGEN")
+		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (prefs.contains(K_TS_AUD)) add("AUD=${if (tsDetectAccessUnits) "on" else "off"}")
@@ -385,12 +409,15 @@ class DevOptions(context: Context) {
 		const val K_MIN_BUFFER = "minBufferOverrideMs"
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"
 		const val K_OVERLAY_MODE = "overlayMode"
+		const val K_RESCATE_TUNNELED = "rescateTunneledEnabled"
+		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
 			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_CONFIG_URL, K_STUCK_DEFAULT, K_NO_RESYNC,
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
+			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN,
 		)
 
 		const val OVERLAY_OCULTO = 0

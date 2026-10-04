@@ -207,6 +207,38 @@ object LiveTuning {
 	const val WATCHDOG_STALL_MS = 10_000L
 
 	/**
+	 * Cuánto se espera un primer fotograma antes de dar el tunneled por malo.
+	 *
+	 * **Es el único fallo catastrófico que el vigilante no ve.** Su condición
+	 * de «atascado» es que la posición no avance; cuando el tunneled de una
+	 * caja no entrega imagen, el audio suena, la posición avanza con
+	 * normalidad y la pantalla está negra. Desde dentro, todo va bien.
+	 *
+	 * La señal buena es `onRenderedFirstFrame`, que **sí llega en modo
+	 * tunneled** —lo que se queda ciego ahí es el contador de fotogramas y
+	 * `SurfaceFlinger`, que es otra cosa (`CLAUDE.md` §6)—. Reproduciendo, con
+	 * la posición avanzando y sin primer fotograma, el decodificador nunca dio
+	 * una imagen.
+	 *
+	 * Ocho segundos: un arranque sano da el primer fotograma entre 1,1 y 1,5 s
+	 * medidos, y el objetivo de `CLAUDE.md` §10 para el primer canal es 4 s con
+	 * 6 aceptables. Ocho queda por encima de cualquier arranque legítimo, aun
+	 * con mala señal, y por debajo de lo que alguien aguanta mirando un negro.
+	 */
+	const val TUNNELED_NO_IMAGE_MS = 8_000L
+
+	/**
+	 * Si el rescate del tunneled está activo de fábrica.
+	 *
+	 * **Falso hasta que Edgar lo valide en pantalla** (`CLAUDE.md` §3): todo
+	 * cambio de comportamiento del motor nace con el valor de fábrica igual al
+	 * anterior. **Tiene que pasar a `true` antes del primer envío a Play**, que
+	 * es cuando el riesgo que cubre deja de ser teórico: la caja mayoritaria
+	 * del cliente solo se puede medir una vez publicada la app.
+	 */
+	const val RESCATE_TUNNELED_DEFAULT = false
+
+	/**
 	 * Espera entre escalones de recuperación.
 	 *
 	 * Un salto al borde tarda en surtir efecto; medir antes de que se note

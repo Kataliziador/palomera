@@ -236,6 +236,7 @@ un frame congelado.
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
 | 43 | **`TARGET_OFFSET_SATELLITE_MS` está muerto** | B | documentado en `LiveTuning` como el valor de los canales satelitales, pero `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: 8000` y no lo usa nadie. Hoy no estorba —el servidor calcula el offset por canal desde la ventana medida, que es mejor— pero quien lea `LiveTuning` creerá que los satelitales van a 12 s |
 | 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
+| 45 | **Rescate del tunneled sin imagen: escrito, sin validar en pantalla** | **M** | hecho el 04-oct, **apagado de fábrica** como pide §3. Hay que mirarlo en la tele con «Fingir tunneled sin imagen» encendido, y si vale, **el valor de fábrica tiene que pasar a activo antes del primer envío a Play** — que es cuando el riesgo deja de ser teórico, porque la ZTE solo se puede medir una vez publicada la app |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -243,6 +244,69 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### El único fallo que el vigilante no podía ver — 2026-10-04
+
+**Por qué ahora.** La ZTE B866V2 —la caja mayoritaria del cliente— **solo
+admite instalaciones desde la ficha pública de Play**. O sea: la primera vez
+que la veamos será con la app ya publicada. Y el tunneled está activo de
+fábrica, con un modelo de exclusión por modelo, o sea por conocimiento que de
+esa caja todavía no tenemos.
+
+**Síntoma que eso puede producir:** si la ZTE implementa mal el tunneled, el
+audio suena, la posición avanza y la pantalla está negra. En todos los canales
+y en la caja que más abonados tiene.
+
+**Lo que se encontró revisando:** el vigilante de recuperación **no lo ve**. Su
+condición de «atascado» es que la posición no avance; aquí avanza con
+normalidad. Desde dentro del reproductor todo va bien.
+
+**Lo que sí lo ve:** `onRenderedFirstFrame`, que **llega en modo tunneled** —lo
+que se queda ciego ahí es el contador de fotogramas y `SurfaceFlinger`, que es
+otra cosa (§6)—. Reproduciendo, con la posición avanzando y sin primer
+fotograma a los 8 s, el decodificador nunca dio una imagen.
+
+**Cambio:** `vigilarImagen()`, junto al vigilante de progreso. Apaga el
+tunneled **para esa sesión** y rehace la preparación, una sola vez. El tunneled
+efectivo pasa a ser una variable de sesión (`tunnelingSesion`), no
+`dev.tunnelingEnabled`, porque a partir del rescate ya no coinciden.
+
+Dos interruptores nuevos en el menú: el rescate —**apagado de fábrica**, como
+pide §3 para todo cambio de comportamiento del motor— y «Fingir tunneled sin
+imagen», que es la única forma de verlo en una caja que sí da imagen (§9,
+simular cajas peores).
+
+**Medido en la caja**, con la simulación encendida:
+
+```
+frames.first msDesdePrepare=2478
+latido n=2 … frames=0  fps=0.0      ← tunneled: el contador no ve nada
+latido n=3 … frames=0  fps=0.0
+tunneled.sinImagen modelo=SkyworthDigital 4K Google TV Box msSinImagen=8179 simulado=true
+latido n=4 … estado=almacenando     ← la nueva preparación
+latido n=5 … frames=37              ← el contador empieza a ver
+latido n=7 … frames=121 fps=57.8
+```
+
+**Que el contador pase de 0 a ~60 fps es la prueba independiente de que el
+tunneled se apagó de verdad**, no solo de que lo registramos: en modo tunneled
+ese contador lee cero, y en esta misma sesión leyó cero durante los primeros
+ocho segundos. Costo: un rebuffer.
+
+**Lo que no se puede dar por bueno todavía.** La captura de pantalla sale en
+blanco antes y después, así que **no demuestra que la imagen esté ahí**. Es
+justo el aviso de §6: antes de concluir algo de un modo, hay que comprobar que
+el instrumento podría verlo. Esto es Modo A y se juzga mirando la tele.
+
+Y un hueco de la simulación: `tunneled.rescatado` no se registra con la
+simulación encendida, porque `firstFrameAtMs` ya era mayor que cero. En el caso
+real sí saldría. Lo que se pierde es la confirmación de que el rescate sirvió,
+no el rescate.
+
+**Pendiente 45:** validarlo en pantalla y, si vale, **subir el valor de fábrica
+a activo antes del primer envío a Play**.
+
+**Estado:** abierta, a la espera de Edgar.
 
 ### La lista se quedaba congelada hasta reiniciar la app — 2026-10-04
 

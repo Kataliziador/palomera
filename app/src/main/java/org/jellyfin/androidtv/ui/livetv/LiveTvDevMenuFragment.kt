@@ -173,6 +173,28 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Rescate: apagar tunneled si no da imagen",
+				value = if (dev.rescateTunneledEnabled) "ACTIVO" else "apagado (fábrica)",
+				changed = dev.rescateTunneledEnabled,
+			) { change { dev.rescateTunneledEnabled = !dev.rescateTunneledEnabled } }
+		}
+		item {
+			Info("Reproduciendo, con la posición avanzando y sin primer fotograma a los 8 s: se apaga el tunneled y se rehace. Pendiente de validación.")
+		}
+
+		item {
+			Row(
+				label = "Fingir tunneled sin imagen",
+				value = if (dev.simularTunneledSinImagen) "FINGIENDO" else "no",
+				changed = dev.simularTunneledSinImagen,
+			) { change { dev.simularTunneledSinImagen = !dev.simularTunneledSinImagen } }
+		}
+		item {
+			Info("Para ver el rescate en una caja que sí da imagen. Hay que tener el rescate activo.")
+		}
+
+		item {
+			Row(
 				label = "Búsqueda amplia de timestamps TS",
 				value = "${dev.timestampSearchPackets} paquetes",
 				changed = dev.wideTimestampSearch,
