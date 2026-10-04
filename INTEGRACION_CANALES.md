@@ -31,13 +31,29 @@ segundo, sube `version` y se avisa aquí.
 
 ## 2. Cuándo pregunta la APK, y cuántas veces
 
-**Una vez por entrada a la sección de canales**, no por arranque ni por canal.
-La app recuerda de qué URL cargó y no repite mientras no cambie.
+**Al entrar a la sección, y después cada 15 minutos mientras siga abierta.**
+También cuando la caja cambia de servidor.
+
+**Esto cambió el 03-oct y antes aquí decía otra cosa.** Decía «una vez por
+entrada a la sección», y era falso: se bajaba **una sola vez por proceso**. Una
+caja de salón tiene la app viva días, así que lo que publicabas no llegaba a
+nadie que no la reiniciara, y un `message` con `until` podía caducar sin que lo
+viera nadie. Lo encontró este proyecto probándolo en un site; está corregido en
+la app, no solo en el documento.
+
+Consecuencia para la interfaz del operador: **un cambio tarda hasta 15 minutos
+en verse en una caja encendida**, o lo que tarde en reabrirse la app. Conviene
+decirlo donde se publica.
 
 - Tiempo de espera: **5 s para conectar, 10 s para leer**. Un servicio que tarde
   más se trata como caído.
-- **No hay reintentos.** Si falla, se usa la caché y se vuelve a intentar la
-  próxima vez que alguien entre a la sección.
+- **No hay reintentos inmediatos.** Si falla, se usa la caché y se vuelve a
+  intentar en el siguiente ciclo de 15 minutos, o cuando alguien vuelva a
+  entrar a la sección.
+- **Un documento idéntico no se vuelve a dibujar.** La app compara lo que baja
+  con lo que ya tenía y, si no cambió, no toca la pantalla: a quien esté
+  navegando la guía no se le mueve el foco cada cuarto de hora. Para ti esto
+  solo significa que servir el mismo archivo no cuesta nada.
 - Límite de **2 MB**, comprobado **dos veces**: contra la longitud declarada
   antes de leer, y contra lo leído de verdad. Una respuesta troceada ya no se lo
   salta. Pasado el tope **se descarta la descarga entera**, no se trunca: un JSON

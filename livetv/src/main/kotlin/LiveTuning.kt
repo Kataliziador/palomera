@@ -247,6 +247,23 @@ object LiveTuning {
 	/** Ruta del `config.json` dentro del servicio de canales. */
 	const val CHANNEL_SERVICE_CONFIG_PATH = "/config.json"
 
+	/**
+	 * Cada cuánto se vuelve a bajar el `config.json` mientras la app sigue
+	 * viva.
+	 *
+	 * **Antes no se volvía a bajar nunca.** La lista se pedía una vez por
+	 * proceso, y una caja de salón puede tener la app abierta días: el
+	 * operador quitaba un canal o ponía un aviso de mantenimiento y no llegaba
+	 * a quien no reiniciase la app. Lo encontró el proyecto del servidor de
+	 * canales, probándolo en un site.
+	 *
+	 * Quince minutos porque el documento son ~36 kB en la LAN del propio ISP:
+	 * quinientas cajas son unos 70 MB al día contra una máquina que está en el
+	 * mismo armario. Más corto no compra nada; más largo deja al operador sin
+	 * saber cuándo llega lo que publicó.
+	 */
+	const val CONFIG_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+
 	const val CONFIG_CONNECT_TIMEOUT_MS = 5_000
 	const val CONFIG_READ_TIMEOUT_MS = 10_000
 

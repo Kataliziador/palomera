@@ -44,6 +44,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import kotlinx.coroutines.delay
 import org.jellyfin.androidtv.R
+import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.ShapeDefaults
 import org.jellyfin.androidtv.ui.base.Text
@@ -85,10 +86,22 @@ class LiveTvFragment : Fragment() {
 		savedInstanceState: Bundle?,
 	) = content {
 		JellyfinTheme {
-			// El catálogo se pide una sola vez por proceso: entrar y salir de la
-			// sección no puede convertirse en una descarga por visita.
-			val catalogo by remember { LiveTvCatalog.of(requireContext()).also { it.refreshOnce() }.state }
+			// Entrar y salir de la sección no puede convertirse en una descarga
+			// por visita, pero **tampoco puede ser una sola por proceso**: una
+			// caja de salón tiene la app abierta días, y lo que el operador
+			// publique tiene que llegarle sin que nadie reinicie nada.
+			val catalogoFuente = remember { LiveTvCatalog.of(requireContext()) }
+			val catalogo by remember { catalogoFuente.also { it.refreshSiHaceFalta() }.state }
 				.collectAsState()
+
+			// Y mientras la sección está abierta, se vuelve a mirar cada tanto.
+			// Quien deja la guía puesta es justo quien no va a reiniciar.
+			LaunchedEffect(catalogoFuente) {
+				while (true) {
+					delay(LiveTuning.CONFIG_REFRESH_INTERVAL_MS)
+					catalogoFuente.refreshSiHaceFalta()
+				}
+			}
 
 			Column(modifier = Modifier.fillMaxSize()) {
 				MainToolbar(MainToolbarActiveButton.LiveTv)

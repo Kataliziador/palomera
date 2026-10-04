@@ -16,8 +16,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -162,6 +165,12 @@ fun LiveTvChannelGrid(
 	// quince tarjetas a la derecha, su tarjeta no existe, y pedir el foco no
 	// hace nada — ni falla.
 	val filaConFoco = rememberLazyListState()
+	// **Se vuelve a pedir el foco en cada cambio de `sections`, y tiene que ser
+	// así.** El catálogo llega en dos pasos —el de arranque o la caché primero,
+	// el del servidor después— y al sustituirse las tarjetas el foco se pierde.
+	// Se intentó tomarlo una sola vez y la sección se abría con el foco en la
+	// barra de arriba. Lo que evita que un refresco por tiempo lo mueva no está
+	// aquí: es que el catálogo no se re-emite si no cambió (`LiveTvCatalog`).
 	LaunchedEffect(posicionConFoco, sections, enfocar) {
 		if (sections.isEmpty()) return@LaunchedEffect
 		posicionConFoco?.let { (seccion, indice) ->

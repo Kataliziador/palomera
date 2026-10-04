@@ -221,7 +221,7 @@ un frame congelado.
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
 | 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. Entre el 5 % y el 30 % de los zapeos con tunneled; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
 | 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
-| 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. Alcanza también al `config.json` si un site lo sirve por HTTPS. Pedido en `autorizador/docs/PETICION_APK.md` |
+| 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. **Actualizado 03-oct con el primer despliegue:** la cadena real es `YR2 → ISRG Root YR → ISRG Root X1`, así que hay que incluir **X1 y también Root YR y YE**; X2 ya no pinta nada. Y el mismo ancla de confianza hace falta en el OkHttp de Coil, o la autorización entra y el logo no. `autorizador/docs/PETICION_APK.md` §3 y §6 |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
 | ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
 | ~~31~~ | ~~**La fila de inicio depende de un permiso de Jellyfin**~~ | — | **cerrado 03-oct:** `HomeSectionType.LIVE_TV` ya no se condiciona a `enableLiveTvAccess`. Ese permiso es del Jellyfin del ISP y habla de *su* LiveTV. **La caja de pruebas no lo demuestra** —su usuario tiene el permiso—, pero el cambio solo quita una condición: lo que antes salía sigue saliendo |
@@ -230,6 +230,10 @@ un frame congelado.
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct: la app se llama Palco.** Logotipo, icono y banner propios en vector, `applicationId` `mx.kataliziador.palco`. Queda **comprobar el nombre en IMPI (clases 38 y 41) y en la Play Console**: está elegido, no verificado |
+| 39 | **De la cabecera de la sección no se puede bajar a la guía** | B | con el foco en «Buscar canal» o «Diagnóstico», ABAJO no hace nada: hay que ir a la izquierda primero. Es anterior a lo de hoy —comprobado contra `8ffaf90`— y no tiene que ver con el refresco. Se arregla con `focusProperties { down = … }` en la fila de cabecera apuntando a la guía |
+| 40 | **`REGISTRY_URL` ya se puede fijar** | **B9** | el registro está en producción: `https://authjelly.satmx.net`, dominio y no IP, sin puerto, y el código compone `+ "/v1/resolve"`. Deja de estar bloqueado en esto. Con override en el menú de desarrollador |
+| 41 | **El `host` que se mande al registro hay que normalizarlo aquí** | **B9** | el autorizador acepta host limpio o URL completa y compara en minúsculas, pero avisa de que `ServiceUrl` ni baja a minúsculas ni quita el punto final. Un `tv.isp.mx.` no lo encontraría ninguno de los dos. Normalizar antes de preguntar |
+| 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -237,6 +241,57 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### La lista se quedaba congelada hasta reiniciar la app — 2026-10-04
+
+**Síntoma, encontrado por el proyecto del servidor de canales** probándolo en un
+site: se edita el lineup, el servicio publica el nuevo, y la caja sigue
+enseñando el anterior — incluso saliendo de «TV en vivo» y volviendo a entrar.
+Solo al cerrar y abrir la app aparece.
+
+**Causa:** `LiveTvCatalog.refreshOnce()` salía antes si la URL no había
+cambiado, y el catálogo es una instancia única. O sea: **una descarga por
+proceso**. Una caja de salón tiene la app viva días.
+
+**Y `INTEGRACION_CANALES.md` decía «una vez por entrada a la sección».** No era
+una simplificación: era falso, y es exactamente el fallo contra el que avisa
+`CLAUDE.md` §1 —un documento de integración desfasado se cree—. El otro proyecto
+lo leyó, lo probó y se dio con ello.
+
+**Cambio:** `refreshSiHaceFalta()` baja la lista si la caja cambió de servidor o
+si la que tiene lleva más de `CONFIG_REFRESH_INTERVAL_MS` (15 min), y la sección
+abierta reintenta con esa misma cadencia. El refresco por tiempo **no enseña
+«actualizando…»**: quien mira la guía no pidió nada.
+
+**Dos intentos equivocados antes del bueno**, y los dos los cazó la caja:
+
+1. **Tomar el foco una sola vez.** La idea era que un refresco no le moviera el
+   foco a quien estuviera mirando el canal 214. Resultado: la sección se abría
+   con el foco en la barra de arriba. El catálogo llega en **dos pasos**
+   —arranque o caché, y después servidor—, y al sustituirse las tarjetas el
+   foco se pierde; la petición repetida era lo que lo recuperaba.
+2. **Marcar el foco como tomado solo si `requestFocus()` no lanzaba.** Mismo
+   resultado: el intento tiene éxito sobre la lista de arranque, y el foco se
+   pierde después, cuando llega la del servidor.
+
+   Se comprobó contra `8ffaf90` que en HEAD el foco sí entraba: **era una
+   regresión mía**, no un defecto viejo.
+
+**Lo que funciona:** no re-emitir un catálogo idéntico. `LiveCatalog` es `data
+class` hasta el fondo, así que comparar es barato, y el caso normal —«no cambió
+nada»— pasa a costar cero recomposiciones. El foco solo se mueve cuando la
+lista cambió de verdad, que es cuando tiene sentido.
+
+**Prueba**, con el intervalo bajado a 20 s para no esperar un cuarto de hora, y
+restituido a 15 min después: con el foco en el canal 103, dos refrescos sin
+cambios lo dejan donde estaba; al quitar un canal y publicar un aviso desde el
+servidor, la caja los enseña **sin tocarla** y el foco vuelve al primer canal.
+
+**Resultado:** pendiente 42 abierto —cuánto debe esperar el servidor antes de
+retirar un canal caído— y pendiente 39, un atasco de foco anterior que salió al
+probar: de «Buscar canal» o «Diagnóstico» no se baja a la guía.
+
+**Estado:** cerrada.
 
 ### B5 — La app se llama Palco, y el paquete era lo urgente — 2026-10-03
 

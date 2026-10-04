@@ -17,6 +17,7 @@ import org.jellyfin.livetv.config.OperatorMessage
 import org.jellyfin.livetv.config.ServiceUrl
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
+import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.diagnostics.ServerDeviceSettings
 import org.jellyfin.livetv.source.ChannelExtra
 import org.jellyfin.livetv.source.ChannelProfile
@@ -81,10 +82,29 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	@Volatile
 	private var urlCargada: String? = null
 
-	fun refreshOnce() {
+	/** Cuándo se bajó por última vez, para no dejar la lista congelada. */
+	@Volatile
+	private var ultimaCargaMs: Long = 0L
+
+	/**
+	 * Baja la lista si hace falta: porque la caja cambió de servidor, o porque
+	 * la que tiene ya tiene sus buenos minutos.
+	 *
+	 * **Lo segundo no estaba y era un defecto de verdad.** Esto se pedía una
+	 * vez por proceso, y una caja de salón puede tener la app abierta días: el
+	 * operador quitaba un canal, o ponía un aviso con su caducidad, y no
+	 * llegaba a nadie que no reiniciara la app. El aviso podía caducar antes de
+	 * que alguien lo viera.
+	 */
+	fun refreshSiHaceFalta() {
 		val (url, _) = destino()
-		if (urlCargada != null && urlCargada == url) return
-		refresh()
+		val cambioDeServidor = urlCargada == null || urlCargada != url
+		val caducada = System.currentTimeMillis() - ultimaCargaMs >= LiveTuning.CONFIG_REFRESH_INTERVAL_MS
+		if (!cambioDeServidor && !caducada) return
+
+		// Un refresco por tiempo no enseña «actualizando…»: quien está mirando
+		// la guía no pidió nada y no tiene por qué ver parpadear un aviso.
+		refresh(silencioso = !cambioDeServidor)
 	}
 
 	/**
@@ -116,9 +136,9 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 		return url to clave
 	}
 
-	fun refresh() {
+	fun refresh(silencioso: Boolean = false) {
 		scope.launch {
-			_state.value = _state.value.copy(loading = true)
+			if (!silencioso) _state.value = _state.value.copy(loading = true)
 			val (url, clave) = destino()
 			urlCargada = url
 			LiveLog.info(
@@ -133,6 +153,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 			)
 			val resultado = repository.load(url, clave)
 			val config = resultado.config
+			ultimaCargaMs = System.currentTimeMillis()
 
 			// Los ajustes por modelo de caja se aplican **antes** de enseñar la
 			// lista, porque gobiernan cómo se reproducirá el primer canal que
@@ -149,7 +170,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 				)
 			})
 
-			_state.value = if (config == null) {
+			val nuevo = if (config == null) {
 				// El respaldo de última instancia. Que se registre importa: una
 				// sección servida desde el `BuildConfig` está enseñando los
 				// canales de prueba, no el lineup del cliente.
@@ -177,6 +198,21 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					brand = config.brand,
 					extras = config.extras,
 				)
+			}
+
+			// **Solo se emite si de verdad cambió.**
+			//
+			// Con el refresco por tiempo, un catálogo idéntico emitido cada
+			// cuarto de hora rehace las tarjetas de la guía, y al rehacerlas el
+			// foco se pierde y vuelve al canal inicial: a quien estuviera
+			// mirando el 214 le saltaría solo, sin tocar nada. Comparar es
+			// barato —son `data class` hasta el fondo— y deja el caso normal,
+			// que es «no cambió nada», en cero recomposiciones.
+			val actual = _state.value
+			_state.value = if (nuevo == actual.copy(loading = false)) {
+				actual.copy(loading = false)
+			} else {
+				nuevo
 			}
 		}
 	}
