@@ -267,6 +267,28 @@ canal lleva `DummyEpg.kt`—:
 Sigue siendo la última por decisión del cliente: la prioridad es el motor y que
 la app funcione completa sin guía.
 
+### Lo que cuenta y pide el proyecto del servidor de canales
+
+Entregado el 04-oct en `/home/proyectos/servidor-canales/docs/PETICION_APK.md`.
+El contrato no cambia. La otra mitad de este bloque **ya está hecha allí**: el
+servicio descarga la guía, la filtra y la sirve con nuestros `id`.
+
+- **El `epg.xml` ya se sirve** en `http://<host>:8097/epg.xml` y se anuncia con
+  `epg: { url, refreshMinutes: 1440 }`. El §2 de la petición dice exactamente
+  qué va a encontrar B8: XMLTV con el `id` del canal como `channel id`, horas
+  siempre `YYYYMMDDHHMMSS +0000`, 2–3 días por delante, sin `icon`, y **no
+  todos los canales publicados** tienen guía
+- **El puntero aparece y desaparece.** Solo se emite mientras hay guía al día;
+  un `config.json` posterior **sin** `epg` significa «ya no hay guía»
+- **Piden que la caja guarde la guía y respete `refreshMinutes`**: una petición
+  al día, no una por entrada a la sección (§3.1)
+- **Preguntan si la app acepta `Content-Encoding: gzip`**; no lo activarán
+  hasta que este proyecto diga que sí (§3.2). Ojo con el límite de 2 MB del
+  `config.json`, que se mide sobre la longitud declarada
+- De paso, lo medido allí con la caja: los streams con 4 segmentos de ~5,6 s
+  se cortan —11 rebuffers en 70 s, 0 con 12 × 2,8 s—; no piden cambiar la app
+  (§4.1)
+
 ## B4 — Overlays e interfaz
 Barra de info de canal, selector de pista de audio, selector de aspecto,
 mensajes de estado. La **interfaz** es vía B; cómo el motor aplica esos
