@@ -1,6 +1,7 @@
 package org.jellyfin.livetv.config
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 
 /**
@@ -67,5 +68,39 @@ class ServiceUrlTest : StringSpec({
 
 	"el espacio alrededor no estorba" {
 		url("  http://host:8096  ") shouldBe "http://host:8097/config.json"
+	}
+
+	// --- el host que se le pregunta al registro ---------------------------
+	//
+	// Es más tolerante que la derivación de la URL de canales, y tiene que
+	// serlo: aquí no hay esquema que adivinar, solo un nombre que comparar.
+
+	"el host del registro baja a minúsculas" {
+		ServiceUrl.hostDeServidor("https://RedTV.IspJelly.NET:8096/web") shouldBe "redtv.ispjelly.net"
+	}
+
+	"el host del registro quita el punto final del FQDN absoluto" {
+		// Lo avisó el proyecto del autorizador: si cada lado normaliza
+		// distinto, hay hosts que preguntamos y no encuentra.
+		ServiceUrl.hostDeServidor("http://tv.isp.mx./") shouldBe "tv.isp.mx"
+	}
+
+	"el host del registro no necesita esquema" {
+		ServiceUrl.hostDeServidor("redtv.ispjelly.net:8096") shouldBe "redtv.ispjelly.net"
+		ServiceUrl.hostDeServidor("  redtv.ispjelly.net  ") shouldBe "redtv.ispjelly.net"
+	}
+
+	"el host del registro descarta credenciales, ruta, consulta y ancla" {
+		ServiceUrl.hostDeServidor("https://u:p@tv.isp.mx:8096/jellyfin?x=1#y") shouldBe "tv.isp.mx"
+	}
+
+	"un IPv6 conserva los corchetes" {
+		ServiceUrl.hostDeServidor("http://[FD00::1]:8096/") shouldBe "[fd00::1]"
+	}
+
+	"sin host utilizable devuelve nulo" {
+		ServiceUrl.hostDeServidor(null).shouldBeNull()
+		ServiceUrl.hostDeServidor("   ").shouldBeNull()
+		ServiceUrl.hostDeServidor("http://").shouldBeNull()
 	}
 })

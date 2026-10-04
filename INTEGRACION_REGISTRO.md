@@ -34,7 +34,11 @@ La APK normaliza el host que escribió el abonado **antes** de preguntarte, con
 `livetv/src/main/kotlin/config/ServiceUrl.kt`. Las reglas:
 
 - Se descartan **esquema, puerto, ruta, consulta, ancla y credenciales**
-- Se compara **en minúsculas**
+- Se baja **a minúsculas**
+- **Se quita el punto final** del FQDN absoluto: `tv.isp.mx.` → `tv.isp.mx`.
+  Lo pediste tú en tu `HALLAZGOS.md` y está hecho desde el 04-oct, en
+  `ServiceUrl.hostDeServidor`
+- **El esquema es opcional**: la app lo acepta con o sin él
 - `https://RedTV.ispjelly.net:8096/web?x=1` y `redtv.ispjelly.net` son **el
   mismo site**
 - Un IPv6 literal conserva sus corchetes: `[fd00::1]`
@@ -78,8 +82,14 @@ contestas                                  → se usa y se guarda
 no contestas + autorización vigente        → se entra
 no contestas + caducada + dentro de gracia → se entra, avisando
 no contestas + caducada + fuera de gracia  → se cierra, explicando
+no contestas + nunca contestaste           → se entra, avisando
 contestas «no autorizado»                  → se cierra con tu mensaje
 ```
+
+**La penúltima fila es nueva del 04-oct** y faltaba en el contrato: una caja
+recién instalada que alcanza la red de su ISP pero no la nube. Cerrar ahí
+dejaría muerto ese despliegue desde el primer día. **La gracia son 14 días**
+sobre tu ventana.
 
 **La puerta cubre solo la sección de canales.** El VOD de Jellyfin no se toca:
 bloquear el login dejaría a un ISP sin las películas que Katalog le sirve, y
@@ -154,14 +164,23 @@ ate a un proveedor concreto.
 ## 8. Cómo se prueba contra una caja
 
 El override del menú de desarrollador que ya existe apunta la URL del
-**`config.json`**, no la del registro. Para probar el registro hará falta uno
-equivalente, y **todavía no está implementado** en la app: B9 del plan.
+**`config.json`**, no la del registro. El equivalente para el registro **sigue
+sin implementarse**: va en la segunda mitad de B9, con el cliente de red.
 
-Mientras tanto, se prueba con `curl` contra el contrato, y los casos de
-`ServiceUrlTest` como pruebas de la normalización.
+Lo que **sí** está hecho desde el 04-oct, y se puede copiar como pruebas tuyas:
 
-Cuando B9 exista, este documento se actualiza con el procedimiento y las líneas
-de log que sirven de veredicto.
+| Qué | Dónde |
+|---|---|
+| Normalización del host | `ServiceUrl.hostDeServidor` + 6 casos en `ServiceUrlTest` |
+| Interpretación de tu respuesta | `RegistryParser` + 11 casos en `RegistryParserTest` |
+| La escalera de degradación entera | `DecisorDeAcceso` + 9 casos en `DecisorDeAccesoTest` |
+
+Los dos últimos son la especificación ejecutable de lo que esta página
+describe. Si quieres saber qué hace la app con una respuesta tuya concreta,
+ese es el sitio donde mirarlo sin preguntarme.
+
+Cuando el cliente de red exista, este documento se actualiza con el
+procedimiento contra una caja y las líneas de log que sirven de veredicto.
 
 ---
 

@@ -375,15 +375,18 @@ object LiveConfigParser {
 
 // Un campo ausente tiene que distinguirse de uno puesto a cero o a cadena
 // vacía: `targetOffsetMs: 0` es una orden, y su ausencia es «usa el del canal».
-private fun JsonObject.prim(key: String): JsonPrimitive? = this[key] as? JsonPrimitive
+// Internas y no privadas del archivo: el parser del registro necesita
+// exactamente las mismas reglas —recortar, descartar vacíos, no lanzar— y
+// duplicarlas sería invitar a que diverjan.
+internal fun JsonObject.prim(key: String): JsonPrimitive? = this[key] as? JsonPrimitive
 
-private fun JsonObject.str(key: String): String? =
+internal fun JsonObject.str(key: String): String? =
 	prim(key)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }
 
-private fun JsonObject.int(key: String): Int? = prim(key)?.intOrNull
+internal fun JsonObject.int(key: String): Int? = prim(key)?.intOrNull
 
-private fun JsonObject.long(key: String): Long? = prim(key)?.longOrNull
+internal fun JsonObject.long(key: String): Long? = prim(key)?.longOrNull
 
-private fun JsonObject.bool(key: String): Boolean? = prim(key)?.booleanOrNull
+internal fun JsonObject.bool(key: String): Boolean? = prim(key)?.booleanOrNull
 
-private fun JsonObject.array(key: String): JsonArray? = this[key] as? JsonArray
+internal fun JsonObject.array(key: String): JsonArray? = this[key] as? JsonArray

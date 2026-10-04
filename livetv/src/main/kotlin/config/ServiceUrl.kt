@@ -80,6 +80,50 @@ object ServiceUrl {
 		return "$esquema://$host:$puerto"
 	}
 
+	/**
+	 * El host tal como se le pregunta al registro: **la clave de un site**.
+	 *
+	 * Es más tolerante que [baseDesdeServidor] y tiene que serlo. Aquélla
+	 * deriva la URL del servicio de canales y por eso exige esquema —sin él no
+	 * se puede saber si el site va por TLS, y asumirlo mal deja la sección
+	 * muerta—. Aquí no hay nada que adivinar: solo hace falta el nombre.
+	 *
+	 * Se baja a minúsculas y **se quita el punto final** del FQDN absoluto. Lo
+	 * segundo lo avisó el proyecto del autorizador: `tv.isp.mx.` y `tv.isp.mx`
+	 * son el mismo nombre para el DNS, y si cada lado normaliza distinto hay
+	 * hosts que la app pregunta y el registro no encuentra. El reporte que eso
+	 * produce es «a este cliente no le funciona y a los demás sí», que es el
+	 * más caro de diagnosticar.
+	 *
+	 * Un IPv6 literal **conserva sus corchetes**, que es como se escribe y como
+	 * se compara.
+	 */
+	fun hostDeServidor(direccionJellyfin: String?): String? {
+		val cruda = direccionJellyfin?.trim()
+		if (cruda.isNullOrEmpty()) return null
+
+		// El esquema es opcional aquí, a diferencia de `baseDesdeServidor`.
+		val resto = if ("://" in cruda) cruda.substringAfter("://") else cruda
+		val autoridad = resto.takeWhile { it != '/' && it != '?' && it != '#' }
+		val sinCredenciales = autoridad.substringAfterLast('@')
+
+		val host = if (sinCredenciales.startsWith("[")) {
+			sinCredenciales.substringBefore(']', missingDelimiterValue = "").plus(']')
+				.takeIf { it.length > 1 } ?: return nuloHost(cruda)
+		} else {
+			sinCredenciales.substringBefore(':')
+		}
+
+		val limpio = host.lowercase().trimEnd('.')
+		if (limpio.isEmpty()) return nuloHost(cruda)
+		return limpio
+	}
+
+	private fun nuloHost(direccion: String): String? {
+		LiveLog.warn("registro.hostIlegible", "direccion" to direccion)
+		return null
+	}
+
 	private fun nulo(direccion: String): String? {
 		LiveLog.warn("url.hostIlegible", "direccion" to direccion)
 		return null

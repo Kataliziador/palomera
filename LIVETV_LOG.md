@@ -232,7 +232,7 @@ un frame congelado.
 | ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct: la app se llama Palco.** Logotipo, icono y banner propios en vector, `applicationId` `mx.kataliziador.palco`. Queda **comprobar el nombre en IMPI (clases 38 y 41) y en la Play Console**: está elegido, no verificado |
 | 39 | **De la cabecera de la sección no se puede bajar a la guía** | B | con el foco en «Buscar canal» o «Diagnóstico», ABAJO no hace nada: hay que ir a la izquierda primero. Es anterior a lo de hoy —comprobado contra `8ffaf90`— y no tiene que ver con el refresco. Se arregla con `focusProperties { down = … }` en la fila de cabecera apuntando a la guía |
 | 40 | **`REGISTRY_URL` ya se puede fijar** | **B9** | el registro está en producción: `https://authjelly.satmx.net`, dominio y no IP, sin puerto, y el código compone `+ "/v1/resolve"`. Deja de estar bloqueado en esto. Con override en el menú de desarrollador |
-| 41 | **El `host` que se mande al registro hay que normalizarlo aquí** | **B9** | el autorizador acepta host limpio o URL completa y compara en minúsculas, pero avisa de que `ServiceUrl` ni baja a minúsculas ni quita el punto final. Un `tv.isp.mx.` no lo encontraría ninguno de los dos. Normalizar antes de preguntar |
+| ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
 | 43 | **`TARGET_OFFSET_SATELLITE_MS` está muerto** | B | documentado en `LiveTuning` como el valor de los canales satelitales, pero `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: 8000` y no lo usa nadie. Hoy no estorba —el servidor calcula el offset por canal desde la ventana medida, que es mejor— pero quien lea `LiveTuning` creerá que los satelitales van a 12 s |
 | 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
@@ -244,6 +244,64 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### B9, primera mitad: la decisión, antes que la red — 2026-10-04
+
+**Por qué B9 y por qué ahora.** B6 —el diagnóstico, que tiene que viajar en el
+primer APK que pise una ZTE— va montado sobre la petición al registro, que es
+la conversación que la caja ya tiene con nosotros. Así que el registro va
+primero.
+
+**Qué se hizo, y qué deliberadamente no.** Solo lo que se puede probar sin red
+y sin caja: la normalización del host, la interpretación de la respuesta y la
+escalera de degradación. El cliente HTTP, la caché y el enganche en la sección
+quedan para la segunda mitad.
+
+No es por prudencia: **es que la parte peligrosa es ésta**. Un cliente HTTP que
+falla se ve enseguida; una escalera de degradación mal hecha deja entrar a quien
+no debe, o —mucho peor— apaga televisiones de quien sí paga, y eso no se nota
+hasta que alguien llama.
+
+**Un hueco del contrato que salió al implementarlo.** La tabla de degradación no
+tenía fila para «nunca contestó y no hay autorización previa»: una caja recién
+instalada que alcanza la red de su ISP pero no la nube. Es exactamente el
+despliegue que `REGISTRY_SCHEMA.md` §6 nombra como el que algún día exigiría
+firmar la autorización dentro del `config.json`. Si ahí se cerrara, ese
+escenario estaría muerto desde el primer día, y un corte de internet del ISP
+dejaría sin televisión a cajas que nunca llegaron a preguntar.
+
+**Se entra, se avisa y se registra.** Encaja con lo que esto es: un interruptor
+operativo sobre gente que coopera, no un candado. La fila está añadida al
+contrato y al documento de integración, en este mismo commit.
+
+**Decisiones de parser, todas en la misma dirección:** prefiere descartar a
+guardar algo a medias. Sin `authorized`, se descarta; autorizada sin `until`
+utilizable, se descarta. Una autorización sin caducidad es eterna, y bastaría
+un campo que el registro se deje para dejar una caja autorizada para siempre.
+Descartar es recuperable; guardar, no.
+
+Es la regla opuesta a la del aviso del operador, donde una fecha ilegible se
+trata como «sin caducidad» porque perder el aviso es peor. La diferencia es que
+uno es un texto y el otro es una llave.
+
+**La gracia: 14 días**, sobre la ventana de semanas que ya emite el registro.
+Generoso a propósito — cortarle a un cliente que paga por un problema de red
+nuestro es peor que tardar en cortarle a uno que no paga.
+
+**Prueba:** 38 casos en tres archivos, sin levantar nada. Incluye que una
+denegación guardada no autorice mientras dure su fecha, que es el error que
+`vigente()` evitaría mal si solo mirase `untilEpochMs`.
+
+Las pruebas de kotest con `shouldThrow` y `shouldBeInstanceOf` no se pueden
+usar: vienen compiladas para JVM 11 y el módulo va a 1.8. El archivo del parser
+del `config.json` ya llevaba esa nota desde antes; no se toca el `jvmTarget` por
+esto.
+
+**Resultado:** pendiente 41 cerrado. Queda la segunda mitad: cliente HTTP con
+los 10 s pedidos, caché por host, override del menú, y el enganche en la entrada
+a la sección.
+
+**Estado:** cerrada la primera mitad.
 
 ### El único fallo que el vigilante no podía ver — 2026-10-04
 

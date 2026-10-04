@@ -65,9 +65,15 @@ Content-Type: application/json
 | `device` | soporte: saber qué cajas hay en cada ISP sin preguntar |
 | `installId` | identificador opaco por instalación, para contar cajas |
 
-**`host` se normaliza igual que en `ServiceUrl`:** se descarta esquema, puerto,
-ruta, consulta y credenciales, y se compara en minúsculas. `https://RedTV.ispjelly.net:8096/web`
+**`host` se normaliza con `ServiceUrl.hostDeServidor`:** se descartan esquema,
+puerto, ruta, consulta, ancla y credenciales; se baja a minúsculas; y **se quita
+el punto final** del FQDN absoluto, así que `tv.isp.mx.` y `tv.isp.mx` son el
+mismo nombre. Un IPv6 literal conserva sus corchetes. `https://RedTV.ispjelly.net:8096/web`
 y `redtv.ispjelly.net` son el mismo site.
+
+El esquema aquí es **opcional**, a diferencia de la derivación de la URL de
+canales: ahí hace falta para saber si el site va por TLS, y aquí solo hay un
+nombre que comparar.
 
 **Un site puede tener varios alias.** El abonado puede escribir el DNS público,
 la IP local o un dominio alternativo, y las tres tienen que resolver al mismo
@@ -161,8 +167,22 @@ registro contesta  → se usa y se guarda
 no contesta + vigente  → se entra
 no contesta + caducada + dentro de gracia  → se entra, y se avisa
 no contesta + caducada + fuera de gracia   → se cierra, explicando
+no contesta + nunca contestó               → se entra, y se avisa
 contesta «no autorizado»  → se cierra con su mensaje
 ```
+
+**La última fila se añadió el 04-oct, al implementarlo.** Faltaba, y es el caso
+de una caja recién instalada que alcanza la red de su ISP pero no la nube —el
+mismo despliegue que §6 nombra como el que algún día exigiría firmar la
+autorización dentro del `config.json`—. Si ahí se cerrara, ese escenario
+estaría muerto desde el primer día y un corte de internet del ISP dejaría sin
+televisión a cajas que nunca llegaron a preguntar.
+
+Se entra, se avisa y se registra. Encaja con lo que esto es: un interruptor
+operativo sobre gente que coopera, no un candado.
+
+**La gracia son 14 días** (`LiveTuning.REGISTRY_GRACE_MS`), sobre la ventana
+que ya emite el registro. Generoso a propósito.
 
 **La caducidad se cuenta en semanas, no en horas.** Es el compromiso entre
 velocidad de corte y daño por fallo propio, y el daño de cortar de más es mucho

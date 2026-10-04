@@ -296,6 +296,28 @@ object LiveTuning {
 	 */
 	const val CONFIG_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
 
+	// --- Registro de sites --------------------------------------------------
+
+	/**
+	 * Diez segundos, pedidos por el proyecto del autorizador.
+	 *
+	 * Si no contesta, la app ya sabe degradarse: esperar más solo retrasa la
+	 * entrada a TV en vivo sin cambiar el resultado.
+	 */
+	const val REGISTRY_CONNECT_TIMEOUT_MS = 10_000
+	const val REGISTRY_READ_TIMEOUT_MS = 10_000
+
+	/**
+	 * Cuánto se sigue entrando después de que caduque la autorización, cuando
+	 * el registro no contesta.
+	 *
+	 * **Catorce días, y empezar generoso a propósito** (`REGISTRY_SCHEMA.md`
+	 * §4): cortarle a un cliente que paga por un problema de red nuestro es
+	 * peor que tardar en cortarle a uno que no paga. La ventana que emite el
+	 * registro ya se mide en semanas; esto es el colchón sobre ella.
+	 */
+	const val REGISTRY_GRACE_MS = 14L * 24 * 60 * 60 * 1000
+
 	const val CONFIG_CONNECT_TIMEOUT_MS = 5_000
 	const val CONFIG_READ_TIMEOUT_MS = 10_000
 
