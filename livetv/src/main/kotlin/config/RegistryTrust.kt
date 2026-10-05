@@ -72,21 +72,36 @@ object RegistryTrust {
 		R.raw.isrg_root_ye,
 	)
 
-	@Volatile
-	private var cache: SSLSocketFactory? = null
+	/**
+	 * Las dos piezas juntas, porque hay clientes que piden las dos.
+	 *
+	 * `HttpURLConnection` se conforma con la fábrica de sockets; OkHttp exige
+	 * además el `X509TrustManager`, porque sin él no puede construir su cadena
+	 * de certificados y se niega a adivinarlo.
+	 */
+	class Confianza(val socketFactory: SSLSocketFactory, val trustManager: X509TrustManager)
 
-	/** La fábrica de sockets para el registro. Se construye una vez. */
-	fun socketFactory(context: Context): SSLSocketFactory? = cache ?: runCatching {
+	@Volatile
+	private var cache: Confianza? = null
+
+	/**
+	 * La confianza ampliada, construida una vez.
+	 *
+	 * `null` significa «usa la del sistema». En una caja moderna eso funciona
+	 * igual; en una vieja es el fallo que [RegistryTrust] viene a evitar, y por
+	 * eso se registra en vez de callarse.
+	 */
+	fun confianza(context: Context): Confianza? = cache ?: runCatching {
 		val tm = trustManager(RAICES.map { context.resources.openRawResource(it) })
 		val ctx = SSLContext.getInstance("TLS").apply { init(null, arrayOf(tm), null) }
-		ctx.socketFactory.also { cache = it }
+		Confianza(ctx.socketFactory, tm).also { cache = it }
 	}.getOrElse {
-		// Si esto falla, lo que queda es la confianza del sistema, que en una
-		// caja moderna funciona igual. Callarlo dejaría el fallo invisible justo
-		// en el modelo donde importa.
 		LiveLog.error("registro.confianzaNoConstruida", it)
 		null
 	}
+
+	/** La fábrica de sockets sola, para quien no necesita más. */
+	fun socketFactory(context: Context): SSLSocketFactory? = confianza(context)?.socketFactory
 
 	/**
 	 * Construye el `TrustManager` compuesto a partir de las raíces dadas.

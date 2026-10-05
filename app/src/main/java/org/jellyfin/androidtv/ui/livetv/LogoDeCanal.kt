@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import org.jellyfin.androidtv.ui.base.ShapeDefaults
 import org.jellyfin.androidtv.ui.base.Text
@@ -125,6 +126,10 @@ fun LogoDeMarca(brand: Brand, modifier: Modifier = Modifier) {
 			contentDescription = brand.displayName,
 			contentScale = ContentScale.Fit,
 			onError = { fallo = true },
+			// Cargador propio, no el global: el logo puede venir del registro
+			// por TLS y una caja anterior a Android 7.1.1 no trae esa raíz.
+			// Ver [LogoLoader] para por qué no se amplía el global.
+			imageLoader = LogoLoader.of(LocalContext.current),
 			// Alto fijo y ancho libre: los logos de marca son apaisados y
 			// encajarlos en un cuadrado los deja diminutos.
 			modifier = modifier.height(28.dp),

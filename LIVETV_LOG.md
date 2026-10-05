@@ -238,7 +238,7 @@ un frame congelado.
 | ~~44~~ | ~~**`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa**~~ | — | **cerrado 05-oct en su mitad de Modo B:** pasa a llamarse `TARGET_OFFSET_WINDOW_WARN_FRACTION`, y el local y la clave del registro dejan de decir «techo». El comportamiento no cambia y no tenía que cambiar: quien protege de verdad es la vuelta al borde, sobre el offset **real**. **Recortar lo pedido sigue sin hacerse y sería Modo A.** Para saber si hace falta, el instrumento ya está puesto: que un site empiece a escribir `offset.superaLaVentana` es la señal, y lo primero que diría es que el `config.json` de ese site pide un offset que su ventana no da |
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
-| 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
+| ~~47~~ | ~~**En Android < 7.1.1 el logo de marca del registro no carga**~~ | — | **cerrado 05-oct con un cargador propio** (`LogoLoader`), tal como decía la nota: el `ImageLoader` global no se toca, porque es el del VOD. Verificado en el emulador de API 22 contra el registro de producción: `marcaOrigen=registro` y el logo **en pantalla**, sin `marca.logoSinConfianzaAmpliada` y sin error de TLS |
 | 48 | **Con la búsqueda abierta, ARRIBA no vuelve a la cabecera** | B | medido con `uiautomator` el 05-oct al cerrar el 39: desde el campo de texto, ARRIBA deja el foco donde estaba. La salida que sí funciona es ATRÁS, que cierra la búsqueda, así que nadie se queda encerrado. Es un roce, no un atasco, y es el mismo problema geométrico del 39 en el otro sentido |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
@@ -247,6 +247,49 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #47 — El logo de marca, ahora también en las cajas viejas — 2026-10-05
+
+El registro sirve el logo del ISP por HTTPS desde su propio host. Una caja
+anterior a Android 7.1.1 no trae la raíz ISRG, así que la descarga fallaba:
+medido el 05-oct en API 22, **la autorización entraba y el logo no**. La
+autorización entra porque `RegistryRepository` ya usa la confianza ampliada de
+`RegistryTrust`; el logo lo pide Coil, y Coil usaba la del sistema.
+
+**Lo que no se hizo, y es la mitad de la decisión:** ampliar el `ImageLoader`
+global. Es el mismo que carga las carátulas del VOD. Ampliar la confianza de
+todas las imágenes de la app para arreglar un logo es mal negocio, y además
+sería meter mano en el camino que `CLAUDE.md` §4 declara invariante.
+
+Así que el cargador es **propio y pequeño**: un `OkHttpClient` con la misma
+confianza que ya usa el registro, el decodificador SVG porque un logo de marca
+es tan probable en vector como en mapa de bits, y nada más. Lo usa sólo
+`LogoDeMarca`.
+
+Para dárselo a OkHttp hizo falta exponer también el `X509TrustManager`:
+`HttpURLConnection` se conforma con la fábrica de sockets, OkHttp exige las dos
+piezas. De ahí `RegistryTrust.Confianza`, con `socketFactory(context)`
+delegando en ella para no duplicar la caché.
+
+**Medido en el emulador de API 22 contra el registro de producción:**
+
+```
+catalogo.listo origen=RED canales=10 grupos=4 marca=pruebas marcaOrigen=registro
+```
+
+y el logo dibujado en la cabecera, donde antes salía el nombre. Ni
+`marca.logoSinConfianzaAmpliada` ni error de TLS en el registro. El «antes» es
+la medición del 05-oct anotada en el pendiente, no una repetición de hoy: entre
+las dos no hay más cambio que este cargador.
+
+**Si aun así falla, no se ve como un error.** Sin confianza ampliada se usa la
+del sistema —en una caja moderna es la que hacía falta—, y si el logo no carga
+`LogoDeMarca` cae al nombre del proveedor, que es lo diseñado para eso (§8).
+
+**Una observación que no es del código, para Edgar:** el logo que sirve hoy el
+site `pruebas` es el de Jellyfin. Para probar vale, pero §8 prohíbe usar esa
+marca como nuestra, y una ranura de marca es justo donde no debería estar.
+Conviene cambiar esa imagen en el registro antes de que ningún ISP la vea.
 
 ### #43 y #44 — Dos constantes de sintonía que mentían — 2026-10-05
 
