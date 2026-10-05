@@ -15,3 +15,6 @@ jellyfinv3.zip
 # es GPL-2.0 y va a ser público (B7), y redistribuir código de CodeCanyon
 # violaría ambas licencias a la vez.
 streambox-iptv/
+
+# Salida de herramientas/scan-canales.sh: muestras .ts y reportes, se regeneran
+herramientas/out/

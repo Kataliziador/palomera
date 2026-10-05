@@ -541,13 +541,21 @@ cada dispositivo y los casos problemáticos se corrigen con overrides remotos.
 
 ## 7. Cómo regenerar estos datos
 
-El script vive hoy fuera del proyecto, en `/home/scan-canales.sh`. **Traerlo
-al repositorio**: es la herramienta que produce la fuente de verdad y no puede
-estar suelta en el disco.
+`herramientas/scan-canales.sh`, dentro del repositorio desde el 05-oct. Vivía
+suelto en `/home/`, que es mal sitio para la herramienta que produce la fuente
+de verdad.
 
 ```bash
-./scan-canales.sh -t 30 -k
+herramientas/scan-canales.sh -t 30 -k
 ```
+
+**Mide `index.m3u8`, no `mono.m3u8`.** Se corrigió al traerlo: el media
+playlist multiplexa los audios en un solo TS y Media3 sólo expone uno, así que
+medir sobre él daba un inventario de pistas distinto del que ve la app.
+
+**El `CHANNELS.md` que escribe sale en `out/` y es un borrador.** Este de aquí
+lleva análisis escrito a mano que el script no reproduce: se copian datos de
+uno a otro, nunca el archivo entero.
 
 Las muestras `.ts` quedan en `out/samples/` y sirven como golden samples para
 regresión. Capturar una durante lluvia real y guardarla: es la mejor prueba
