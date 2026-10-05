@@ -35,6 +35,7 @@ import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.DeviceLoad
+import org.jellyfin.livetv.diagnostics.Diagnostico
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.source.AudioTrackRef
 import org.jellyfin.livetv.source.ChannelProfile
@@ -160,6 +161,9 @@ class Media3LiveEngine(
 
 	/** El rescate se hace una vez por sesión: si no bastó, no bastará repetirlo. */
 	private var rescateTunneledHecho = false
+
+	/** La última causa de fallo de esta sesión, para el diagnóstico de B6. */
+	private var ultimaCausa: CausaDeFallo? = null
 	private var msToFirstFrame = 0L
 	private var rebufferCount = 0
 	private var bufferingSinceMs = 0L
@@ -238,6 +242,7 @@ class Media3LiveEngine(
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
 		rescateTunneledHecho = false
+		ultimaCausa = null
 		msToFirstFrame = 0
 		rebufferCount = 0
 		bufferingSinceMs = 0
@@ -383,6 +388,27 @@ class Media3LiveEngine(
 		// delataría una fuga es un `prepare` **sin** su `release` previo con
 		// `habiaPlayer=true`.
 		LiveLog.info("engine.release", "canal" to channel?.id, "habiaPlayer" to (player != null))
+
+		// Lo que esta sesión deja para el diagnóstico (B6). Solo si hubo
+		// sesión: `release()` se llama también sobre un motor que nunca
+		// preparó nada, y contar eso como una sesión fallida mentiría.
+		if (prepareAtMs > 0L) {
+			Diagnostico.of(context).anotarSesion(
+				canal = channel?.id,
+				huboImagen = firstFrameAtMs > 0L,
+				msPrimerFotograma = msToFirstFrame,
+				rebuffers = rebufferCount,
+				msReproducidos = if (firstFrameAtMs > 0L) System.currentTimeMillis() - firstFrameAtMs else 0L,
+				tunneledPedido = dev.tunnelingEnabled,
+				tunneledRescatado = rescateTunneledHecho,
+				causaDeFallo = when {
+					firstFrameAtMs == 0L -> "sinImagen"
+					else -> ultimaCausa?.name
+				},
+			)
+			prepareAtMs = 0L
+		}
+
 		pararLatido()
 		player?.release()
 		player = null
@@ -1184,6 +1210,7 @@ class Media3LiveEngine(
 					// honesto: reintentar sin soltar el player.
 					player?.prepare()
 					notify {
+						ultimaCausa = causaDe(error)
 						it.onRecoverableError(error.errorCodeName, error, causaDe(error))
 					}
 				}

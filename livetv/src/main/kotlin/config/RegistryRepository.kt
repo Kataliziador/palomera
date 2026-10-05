@@ -8,6 +8,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.capabilities.DeviceCapabilities
+import org.jellyfin.livetv.diagnostics.Diagnostico
 import org.jellyfin.livetv.diagnostics.LiveLog
 import java.io.File
 import java.net.HttpURLConnection
@@ -150,12 +152,43 @@ class RegistryRepository(context: Context) {
 		put("appVersion", appVersion)
 		put("installId", installId)
 		put("device", dispositivo())
+		// El diagnóstico va **montado aquí** y no en un servicio nuevo: es un
+		// campo más en una conversación que ya existía, así que no añade nada
+		// de lo que el registro pase a depender. Si se pierde, no pasa nada.
+		Diagnostico.of(contexto).resumen()?.let { put("diagnostico", it) }
 	}.toString()
 
+	/**
+	 * Lo que esta caja es, para soporte.
+	 *
+	 * **`decoders` es el campo que justifica todo B6.** La caja mayoritaria del
+	 * cliente solo se instala desde la ficha de Play, así que la primera vez
+	 * que sepamos qué decoders tiene será cuando una nos lo cuente por aquí. De
+	 * ahí sale el `deviceOverrides` que el generador del `config.json` publica
+	 * a todos los sites sin tocar la APK.
+	 *
+	 * Se mandan **sólo los de vídeo**: son los que deciden la cascada, y la
+	 * lista entera de una caja moderna pasa de cien entradas.
+	 */
 	private fun dispositivo(): JsonObject = buildJsonObject {
 		put("manufacturer", android.os.Build.MANUFACTURER)
 		put("model", android.os.Build.MODEL)
+		put("device", android.os.Build.DEVICE)
 		put("sdkInt", JsonPrimitive(android.os.Build.VERSION.SDK_INT))
+		runCatching {
+			val caps = DeviceCapabilities.of(contexto)
+			put("abis", kotlinx.serialization.json.JsonArray(caps.abis.map { JsonPrimitive(it) }))
+			put("ramMb", JsonPrimitive(caps.totalRamMb))
+			put(
+				"decoders",
+				kotlinx.serialization.json.JsonArray(
+					caps.decoders.asSequence()
+						.filter { it.mime.startsWith("video/") }
+						.map { JsonPrimitive("${it.name}|${it.mime}|${if (it.software) "sw" else "hw"}") }
+						.toList()
+				),
+			)
+		}
 	}
 
 	/** La pone quien construye el repositorio; el módulo no conoce `BuildConfig`. */

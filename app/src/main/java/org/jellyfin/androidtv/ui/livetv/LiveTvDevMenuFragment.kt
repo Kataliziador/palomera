@@ -33,6 +33,7 @@ import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import org.jellyfin.livetv.config.RegistryRepository
 import org.jellyfin.livetv.diagnostics.DevOptions
+import org.jellyfin.livetv.diagnostics.Diagnostico
 import org.jellyfin.livetv.diagnostics.LiveLog
 
 /**
@@ -277,6 +278,21 @@ private fun DevMenu() {
 		}
 		item {
 			Info("Un técnico que acaba de dar de alta un site no tiene por qué esperar a que caduque.")
+		}
+
+		item {
+			Row(
+				label = "Olvidar el diagnóstico acumulado",
+				value = "para medir desde cero",
+			) {
+				change {
+					Diagnostico.of(context).olvidar()
+					Toast.makeText(context, "Diagnóstico a cero", Toast.LENGTH_SHORT).show()
+				}
+			}
+		}
+		item {
+			Info("Se acumula desde la instalación y viaja con la consulta al registro. No lleva historial de lo visto.")
 		}
 
 		item { Header("Restablecer") }

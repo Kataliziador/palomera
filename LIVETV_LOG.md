@@ -239,13 +239,71 @@ un frame congelado.
 | 45 | **Rescate del tunneled sin imagen: escrito, sin validar en pantalla** | **M** | hecho el 04-oct, **apagado de fábrica** como pide §3. Hay que mirarlo en la tele con «Fingir tunneled sin imagen» encendido, y si vale, **el valor de fábrica tiene que pasar a activo antes del primer envío a Play** — que es cuando el riesgo deja de ser teórico, porque la ZTE solo se puede medir una vez publicada la app |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
-| 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
+| 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
 
 ---
 
 ## Entradas
+
+### B6: la caja cuenta lo que es, montado en la petición que ya hacía — 2026-10-05
+
+**El problema que resuelve es de secuencia, no de telemetría.** La ZTE B866V2
+solo se instala desde la ficha de Play, así que la primera vez que la veamos
+será con la app publicada. Si ese primer APK no sabe informar, lo que llega es
+una llamada diciendo «no funciona» y seguimos ciegos: el envío se gasta sin
+aprender nada.
+
+**Dónde viaja, y por qué ahí.** Montado en la consulta al registro, **no en un
+servicio nuevo**. Eso respeta la regla 6 del autorizador —nada más puede
+depender de él— porque no añade una dependencia: es un campo más en una
+conversación que ya existía, y si se pierde no pasa nada. Y la cadencia encaja
+con lo que hace falta, que no es telemetría continua sino **un informe por
+modelo de caja**.
+
+**Qué manda:** el inventario de decoders de vídeo con `hw`/`sw`, las ABIs, la
+RAM, el modelo; y un resumen acumulado de reproducción —sesiones, cuántas
+dieron imagen, ms al primer fotograma, rebuffers, si el tunneled hizo falta
+rescatarlo, fallos por causa y por canal.
+
+**La frontera con los datos de abonado está en el diseño, no en la intención**
+(`CLAUDE.md` §8): se cuentan los canales que **fallaron**, sin marcas de
+tiempo, sin orden y sin duraciones individuales. De ahí no se reconstruye un
+historial de visionado. Acumulativo y **nunca se vacía al enviarlo**: vaciar en
+la caja perdería lo acumulado cada vez que falle un envío, justo en las cajas
+con mala conexión, que son las que más interesa medir. Y acotado —12 causas, 40
+canales—, porque sin tope una caja con el headend roto acabaría mandando
+kilobytes en cada consulta.
+
+**Medido en la caja**, con un registro de pruebas que enseña lo que recibe. La
+Skyworth mandó 27 decoders de vídeo y `sesiones=1 conImagen=1
+msPrimerFotogramaMedia=2599 rebuffers=2 tunneledPedido=1 tunneledRescatado=0`.
+
+**Y en la primera corrida ya corrigió un pendiente registrado.** El 26 decía
+que esta caja no tiene decoder de vídeo por software para H.264 **ni** MPEG-2.
+El inventario enseña `OMX.google.h264.decoder` para `video/avc` marcado como
+software —y en API 30 eso lo dice `isHardwareAccelerated()`, que es la API y no
+una heurística de nombres—. Para MPEG-2 el pendiente sigue siendo cierto: ahí
+el único decoder es el de Amlogic, por hardware.
+
+Consecuencia: **el paso 2 de la cascada sí es alcanzable para H.264** en esta
+caja, y el cierre degradado de M3 no depende de libVLC para los cinco canales
+H.264, solo para el mp2v. Con la salvedad que el propio código ya advierte:
+declarado no es funcionando.
+
+**Eso es exactamente para lo que se hizo B6**, y lo hizo el primer día, sobre
+la caja que sí podemos medir. El valor real llega cuando lo haga una ZTE.
+
+**Lo que queda fuera de este bloque:** la capa de datos de abonado, que va
+detrás de un interruptor por proveedor y con contrato. No se toca hasta que
+haya contrato.
+
+**Resultado:** el contrato del registro gana dos campos, compatibles hacia
+atrás, y `INTEGRACION_REGISTRO.md` explica qué hacer con ellos — guardar una
+fila por modelo es lo que alimenta la tabla de `deviceOverrides`.
+
+**Estado:** cerrada la parte de diagnóstico técnico.
 
 ### Los certificados, medidos en una caja de API 22 — 2026-10-05
 

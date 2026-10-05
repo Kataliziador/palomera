@@ -223,6 +223,33 @@ Los dos últimos son la especificación ejecutable de lo que esta página
 describe. Si quieres saber qué hace la app con una respuesta tuya concreta,
 ese es el sitio donde mirarlo sin preguntarme.
 
+### Desde el 05-oct recibes el inventario de la caja y su diagnóstico
+
+Dos campos nuevos en la petición, compatibles hacia atrás: ignóralos y todo
+sigue igual.
+
+**`device.decoders`** es la lista de decoders de vídeo, `nombre|mime|hw o sw`.
+Existe porque la caja mayoritaria del cliente solo se instala desde la ficha de
+Play: la primera vez que sepamos qué trae será cuando una te lo cuente. **Si
+guardas una fila por modelo, con eso se alimenta la tabla de
+`deviceOverrides`** que el generador del `config.json` reparte a todos los
+sites.
+
+**`diagnostico`** es cómo se ha reproducido esa caja, acumulado desde la
+instalación: sesiones, cuántas dieron imagen, ms al primer fotograma,
+rebuffers, si el tunneled hizo falta rescatarlo, y los fallos por causa y por
+canal.
+
+**No se vacía al enviarlo.** Recibes el total cada vez y la diferencia la
+calculas tú. Es deliberado: vaciar en la caja significaría perder lo acumulado
+cada vez que un envío falla, justo en las cajas con mala conexión, que son las
+que más interesa medir.
+
+**Y no es un historial de visionado, por construcción.** Solo se cuentan los
+canales que **fallaron**, sin marcas de tiempo, sin orden y sin duraciones
+individuales. Es la capa de diagnóstico técnico de `CLAUDE.md` §8, no la de
+datos de abonado, y conviene que al guardarlo no lo conviertas en la otra.
+
 ### Las cajas viejas ya validan tu certificado
 
 **Hecho el 05-oct y medido en un emulador de Android TV API 22.** La app

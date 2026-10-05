@@ -53,8 +53,21 @@ Content-Type: application/json
 {
   "host": "redtv.ispjelly.net",
   "appVersion": "1.4.2",
-  "device": { "manufacturer": "Skyworth", "model": "4K Google TV Box", "sdkInt": 30 },
-  "installId": "…"
+  "installId": "…",
+  "device": {
+    "manufacturer": "SkyworthDigital", "model": "4K Google TV Box",
+    "device": "YDA", "sdkInt": 30,
+    "abis": ["armeabi-v7a", "armeabi"], "ramMb": 1990,
+    "decoders": ["OMX.amlogic.avc.decoder.awesome2|video/avc|hw", "…"]
+  },
+  "diagnostico": {
+    "sesiones": 128, "conImagen": 126,
+    "msPrimerFotogramaMedia": 1480, "msPrimerFotogramaMax": 4100,
+    "rebuffers": 9, "minutosReproducidos": 740,
+    "tunneledPedido": 128, "tunneledRescatado": 0,
+    "fallosPorCausa": { "SENAL": 2 },
+    "fallosPorCanal": { "estrellassd": 2 }
+  }
 }
 ```
 
@@ -62,8 +75,40 @@ Content-Type: application/json
 |---|---|
 | `host` | **la clave.** El host que el abonado escribió, normalizado |
 | `appVersion` | para saber qué versiones hay en campo antes de cambiar el esquema |
-| `device` | soporte: saber qué cajas hay en cada ISP sin preguntar |
 | `installId` | identificador opaco por instalación, para contar cajas |
+| `device` | soporte: saber qué cajas hay en cada ISP sin preguntar |
+| `device.decoders` | **el inventario de vídeo**, `nombre\|mime\|hw o sw` |
+| `diagnostico` | cómo se ha reproducido en esa caja, acumulado |
+
+**`device.decoders` y `diagnostico` se añadieron el 05-oct**, y son campos
+nuevos: un registro que los ignore sigue funcionando igual.
+
+### Por qué el inventario de decoders va aquí
+
+Porque es el único sitio donde cabe. La caja mayoritaria del cliente **solo
+admite instalaciones desde la ficha de Play**, así que la primera vez que
+sepamos qué decoders tiene será cuando una nos lo cuente por esta vía. De ahí
+sale el `deviceOverrides` que el generador del `config.json` publica a todos
+los sites **sin tocar la APK**.
+
+Van solo los de vídeo: son los que deciden la cascada, y la lista completa de
+una caja moderna pasa de cien entradas.
+
+### `diagnostico` es técnico, y está construido para no dejar de serlo
+
+Es la capa de **diagnóstico técnico** de `CLAUDE.md` §8, no la de datos de
+abonado, y la frontera está en el diseño, no en la intención:
+
+- Se cuenta **cuántas sesiones fallaron en un canal**, nunca qué se vio ni
+  cuándo. Un canal que no falla no aparece.
+- No hay marcas de tiempo por sesión, ni orden, ni duraciones individuales.
+  **De aquí no se reconstruye un historial de visionado**, que es lo que lo
+  movería bajo la LFPDPPP.
+- Es acumulativo desde la instalación y **no se vacía al enviarse**: el total
+  llega cada vez y la diferencia la calculas tú. Así una caja con mala
+  conexión no pierde lo acumulado cuando un envío falla.
+- Las listas van acotadas —12 causas, 40 canales—: pasado el tope se dejan de
+  descubrir claves nuevas, pero las que ya están siguen contando.
 
 **`host` se normaliza con `ServiceUrl.hostDeServidor`:** se descartan esquema,
 puerto, ruta, consulta, ancla y credenciales; se baja a minúsculas; y **se quita

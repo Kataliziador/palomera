@@ -376,10 +376,12 @@ arreglo debe cubrir las dos conexiones, no solo la del registro.
 ## B6 — Telemetría
 **Dos capas que no se mezclan** (`CLAUDE.md` §8):
 
-- **Diagnóstico técnico**, anónimo y siempre activo: modelo, SoC, canal, plan
-  de reproducción, resultado, error, ms hasta el primer frame, rebuffers. Y el
-  **códec de audio recibido**, que es como se detecta un site con el AAC mal
-  configurado (§2).
+- ~~**Diagnóstico técnico**, anónimo y siempre activo~~ **hecho el 05-oct.**
+  Modelo, ABIs, RAM, **inventario de decoders de vídeo**, sesiones, ms al
+  primer fotograma, rebuffers, rescates del tunneled y fallos por causa y por
+  canal. Viaja montado en la consulta al registro, no en un servicio nuevo.
+  **Falta el códec de audio recibido**, que es como se detecta un site con el
+  AAC mal configurado (§2)
 - **Datos de abonado**, detrás de un interruptor por proveedor y con contrato:
   identidad y qué vio quién. Exige aviso de privacidad y el formulario de
   Seguridad de los datos de Play, y el editor somos nosotros.
