@@ -393,7 +393,7 @@ caja barata se queda sin sonido.
 
 ---
 
-## 5. `epg` *(acordado)*
+## 5. `epg` *(implementado)*
 
 ```json
 "epg": {
@@ -416,7 +416,33 @@ el `channel id` del XMLTV debe coincidir con el `id` de `channels`.
 
 **Un site sin EPG es normal, no un error.** Si `epg` falta, la barra se degrada
 y enseña el canal sin programación. Es el estado esperado mientras la tubería
-de guía de ese site no esté lista.
+de guía de ese site no esté lista. Lo mismo vale para un canal que está en
+`channels` y no en el XMLTV, y para un objeto `epg` sin `url`: se registra y se
+sigue sin guía, nunca se tira la configuración.
+
+**`refreshMinutes` manda sobre la descarga, y se respeta.** La caja guarda el
+XMLTV y no vuelve a pedirlo hasta que caduque: una petición al día con el valor
+de 1440, no una por entrada a la sección. Si falta, se usan 6 h.
+
+**La correspondencia es por `id`, exacta.** El `channel id` del XMLTV tiene que
+ser igual que el `id` de `channels`. Lo que no case se descarta, y si **nada**
+casa se registra `epg.canalesSinCorrespondencia`, que es la pista de que el
+generador está usando otra clave.
+
+**Se acepta `Content-Encoding: gzip`** y se pide siempre. Un XMLTV comprime a
+una décima parte, y es tráfico que cruza la LAN del ISP en cada refresco de
+cada caja.
+
+Detalles que el generador conviene que sepa:
+
+| | |
+|---|---|
+| Formato de las horas | `YYYYMMDDHHMMSS ±HHMM`. Sin desfase se asume UTC y la guía saldría corrida: **emítelo siempre** |
+| `stop` | **obligatorio en la práctica**: sin él no se sabe cuándo acaba y la barra de progreso mentiría, así que ese programa se descarta |
+| `title` | se usa el primero; los demás idiomas se ignoran |
+| `desc`, `icon`, `category` | se ignoran hoy. No estorban |
+| Tope de descarga | 24 MB **descomprimidos** |
+| Qué se conserva | una ventana de unas horas alrededor de ahora, acotada por canal. El fichero entero se guarda en disco |
 
 ---
 

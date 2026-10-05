@@ -249,6 +249,109 @@ un frame congelado.
 
 ## Entradas
 
+### B8 — El EPG, y el fallo que la JVM no podía enseñar — 2026-10-05
+
+La barra llevaba desde M2 con `DummyEpg`: una parrilla inventada, anclada al
+reloj de verdad para que la barra de progreso avanzara mientras se miraba. Ya
+no hace falta — el site sirve `epg.xml` y el `config.json` lo anuncia.
+
+**Lo que hay ahora, en el módulo:** `XmltvParser` recorre el documento con SAX,
+`Guia` guarda lo que se conserva y `EpgRepository` descarga, cachea y relee.
+`DummyEpg` desaparece y `Programa`/`FranjaEpg` se mudan de `app/` al módulo,
+que es donde vive el cliente del servidor del site.
+
+**El fichero no se lee a memoria, se descarga a disco.** Es la diferencia de
+fondo con el `config.json` y la razón de que el tope sea 24 MB en vez de 2: lo
+que nunca cabe en una caja de 2 GB mientras decodifica vídeo es el documento
+entero como `String`. SAX lo recorre y solo retiene la ventana.
+
+**Se pide `gzip` y se descomprime.** El proyecto del servidor preguntaba en
+`PETICION_APK` §3.2 si la app lo acepta y no iba a activarlo hasta tener
+respuesta. La respuesta está ahora en `INTEGRACION_CANALES.md` §4.bis: sí. Un
+XMLTV comprime a una décima parte, y eso cruza la LAN del ISP en cada refresco
+de cada caja.
+
+#### Dos relojes, y no son el mismo
+
+Costó verlo y es la parte menos obvia del diseño. Una guía se vuelve a
+**descargar** cuando caduca `refreshMinutes`. Una guía se vuelve a **leer**
+cuando el tiempo sale de la ventana que hay en memoria — y eso pasa sin que el
+servidor publique nada.
+
+Una caja de salón encendida toda la noche necesita lo segundo y no lo primero:
+a las seis de la mañana la ventana que se leyó a medianoche no tiene nada que
+decir, y con un solo reloj la barra se habría quedado muda hasta que alguien
+reiniciara la app. Por eso `guiaSiHaceFalta()` pregunta si la ventana **cubre
+el presente**, no cuánto hace que se descargó.
+
+#### La guía va en un flujo aparte del catálogo, y no es organización
+
+`LiveCatalog` se compara consigo mismo antes de reemitir, porque reemitirlo
+rehace las tarjetas de la guía y al rehacerlas el foco salta al canal inicial
+—el fallo del 04-oct—. Meter la programación dentro habría obligado a [Guia] a
+participar en esa comparación, y una guía nueva cada pocas horas habría hecho
+saltar el foco de quien estuviera mirando.
+
+Además tienen urgencias distintas: la lista pesa 40 kB y tiene que aparecer ya;
+la guía pesa megas y puede tardar. Quien espera a la segunda para enseñar la
+primera ha elegido mal.
+
+#### El fallo que la JVM no podía enseñar
+
+El parser llevaba, como blindaje contra entidades externas:
+
+```kotlin
+setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+```
+
+Catorce pruebas en verde en la JVM. **En la caja, la guía entera se perdía:**
+
+```
+epg.cacheIlegible … no se pudo leer el XMLTV:
+  http://apache.org/xml/features/disallow-doctype-decl
+```
+
+Esa bandera es de Xerces. La JVM la acepta; el SAX de Android **lanza**. Y el
+`runCatching` que envolvía el análisis la convertía en «XMLTV ilegible», así
+que el síntoma —una barra sin programación— no se parecía en nada a la causa.
+
+**La corrección no fue quitarla, fue cambiar en qué se confía.** Las tres
+banderas de Xerces van ahora cada una en su propio intento y ninguna puede
+tumbar al resto. Lo que de verdad cierra el agujero es el **resolvedor de
+entidades**: sea cual sea el analizador, si decide resolver una entidad lo
+pregunta, y la respuesta es siempre un documento vacío. Eso funciona igual en
+las dos plataformas.
+
+La prueba se reescribió para comprobar **lo que importa y es portable** —que
+una entidad externa no acaba en el título— y no la implementación, que es
+distinta en cada sitio. Es la lección general: una prueba que fija la bandera
+que se usó habría seguido en verde con la caja rota.
+
+#### Medido en la caja
+
+```
+config.epg url=http://192.168.20.249:8097/epg.xml refrescoMin=1440
+epg.descargada bytes=90078 comprimido=false
+epg.interpretada canales=7 programas=59 descartados=0 fueraDeVentana=142 canalesDesconocidos=0
+epg.lista origen=RED canales=7 programas=59 antiguedadMin=0
+```
+
+Y en pantalla: HBO HD 201, «Lluvia de hamburguesas 2: La venganza de las
+sobras», 16:47 – 18:26, «quedan 31 min», barra de progreso y «Luego Kung Fu
+Panda 2». El servidor emite ese programa como `21:47–23:26 +0000`; la caja está
+en UTC-5. **El huso funciona de punta a punta**, que era el riesgo silencioso:
+una guía corrida cinco horas se ve plausible.
+
+También se comprobó la degradación, sin buscarla: `espnsur4abr` está publicado
+y **no** está en el XMLTV, y su barra sale con «En vivo» y sin programación. Un
+canal sin guía es normal (`CONFIG_SCHEMA.md` §5).
+
+#### Lo que no entra
+
+La guía **en rejilla** —varias horas por varios canales— no se ha hecho. La
+barra enseña ahora y luego, que es lo que pedía el plan; una rejilla es otra
+pantalla y otra decisión.
+
 ### Los PNG de marca salen del vector, no de una copia — 2026-10-05
 
 Fuera del APK hacen falta mapas de bits en tres sitios, y los tres los pide

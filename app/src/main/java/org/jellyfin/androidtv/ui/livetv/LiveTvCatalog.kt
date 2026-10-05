@@ -18,7 +18,10 @@ import org.jellyfin.livetv.config.SiteAuthorization
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.config.ConfigRepository
 import org.jellyfin.livetv.config.OperatorMessage
+import org.jellyfin.livetv.config.EpgPointer
 import org.jellyfin.livetv.config.ServiceUrl
+import org.jellyfin.livetv.epg.EpgRepository
+import org.jellyfin.livetv.epg.Guia
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
 import org.jellyfin.livetv.LiveTuning
@@ -72,6 +75,7 @@ data class LiveCatalog(
 class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 
 	private val repository = ConfigRepository(context)
+	private val epgRepository = EpgRepository(context)
 	private val registro = RegistryRepository(context).apply {
 		appVersion = BuildConfig.VERSION_NAME
 	}
@@ -103,6 +107,36 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	/** Cuándo se bajó por última vez, para no dejar la lista congelada. */
 	@Volatile
 	private var ultimaCargaMs: Long = 0L
+
+	/**
+	 * La guía, **en un flujo aparte del catálogo**.
+	 *
+	 * No es organización: es evitar un fallo concreto. `LiveCatalog` se compara
+	 * consigo mismo para no reemitir cuando nada cambió, porque reemitirlo
+	 * rehace las tarjetas de la guía y al rehacerlas el foco salta al canal
+	 * inicial. Meter la programación dentro obligaría a que [Guia] participara
+	 * en esa comparación, y una guía nueva cada pocas horas haría saltar el
+	 * foco de quien estuviera mirando.
+	 *
+	 * Van por caminos distintos además porque tienen urgencias distintas: la
+	 * lista tiene que aparecer ya y pesa 40 kB; la guía puede tardar y pesa
+	 * megas. Quien espera a la segunda para enseñar la primera ha elegido mal.
+	 */
+	private val _guia = MutableStateFlow(Guia.VACIA)
+	val guia: StateFlow<Guia> get() = _guia
+
+	/** Lo último que dijo el `config.json` sobre dónde está la guía. */
+	@Volatile
+	private var punteroEpg: EpgPointer? = null
+
+	@Volatile
+	private var claveEpg: String? = null
+
+	@Volatile
+	private var canalesParaEpg: Set<String> = emptySet()
+
+	@Volatile
+	private var cargandoGuia = false
 
 	/**
 	 * Baja la lista si hace falta: porque la caja cambió de servidor, o porque
@@ -299,7 +333,64 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 			} else {
 				nuevo
 			}
+
+			// La guía va **después** de enseñar los canales y en su propia
+			// corrutina: pesa megas y la lista no tiene por qué esperarla.
+			punteroEpg = config?.epg
+			claveEpg = clave
+			canalesParaEpg = nuevo.channels.map { it.id }.toSet()
+			cargarGuia()
 		}
+	}
+
+	/**
+	 * Trae la guía, si este site publica alguna.
+	 *
+	 * No devuelve nada ni falla hacia fuera: un site sin EPG es normal
+	 * (`CONFIG_SCHEMA.md` §5) y la barra ya sabe enseñar un canal sin
+	 * programación. Lo único que no puede pasar es que esto impida ver
+	 * televisión, y por eso no bloquea a nadie.
+	 */
+	private fun cargarGuia() {
+		val puntero = punteroEpg
+		val clave = claveEpg
+		if (puntero == null || clave == null) {
+			_guia.value = Guia.VACIA
+			return
+		}
+		if (cargandoGuia) return
+		cargandoGuia = true
+		scope.launch {
+			try {
+				_guia.value = epgRepository.load(
+					epgUrl = puntero.url,
+					refreshMinutes = puntero.refreshMinutes,
+					claveDeCache = clave,
+					canalesConocidos = canalesParaEpg,
+				).guia
+			} finally {
+				cargandoGuia = false
+			}
+		}
+	}
+
+	/**
+	 * Relee la guía si la que hay en memoria ya no llega al presente.
+	 *
+	 * **Es un reloj distinto del refresco.** Una guía se vuelve a *descargar*
+	 * cuando caduca lo que dice `refreshMinutes`; se vuelve a *leer* cuando el
+	 * tiempo sale de la ventana que se guardó, y eso pasa sin que el servidor
+	 * publique nada. Una caja encendida toda la noche necesita lo segundo:
+	 * a las seis de la mañana, la ventana que se leyó a medianoche ya no tiene
+	 * nada que decir, y sin esto la barra se quedaría muda hasta que alguien
+	 * reiniciara la app.
+	 *
+	 * Lo llama quien pinta, no un temporizador: si nadie mira, no hace falta.
+	 */
+	fun guiaSiHaceFalta(ahoraMs: Long = System.currentTimeMillis()) {
+		if (punteroEpg == null) return
+		if (_guia.value.cubre(ahoraMs)) return
+		cargarGuia()
 	}
 
 	/**

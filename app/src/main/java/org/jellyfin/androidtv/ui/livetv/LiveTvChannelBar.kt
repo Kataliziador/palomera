@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jellyfin.androidtv.ui.base.Text
+import org.jellyfin.livetv.epg.FranjaEpg
 import org.jellyfin.livetv.source.ChannelProfile
 import java.text.SimpleDateFormat
 import java.util.Date

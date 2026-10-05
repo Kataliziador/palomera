@@ -90,6 +90,20 @@ data class OperatorMessage(
 	fun vigente(ahoraMs: Long): Boolean = untilEpochMs == null || ahoraMs < untilEpochMs
 }
 
+/**
+ * Dónde está la guía de este site y cada cuánto vale la pena volver a por ella.
+ *
+ * **Puntero, no contenido** (`CLAUDE.md` §6). La lista de canales cambia cuando
+ * alguien la cambia; la guía cambia cada día y pesa megas. Metidas en el mismo
+ * archivo, cada caja se bajaría la guía entera para comprobar si cambió un
+ * canal — y además ningún site podría servir canales mientras su tubería de
+ * guía no estuviera lista.
+ */
+data class EpgPointer(
+	val url: String,
+	val refreshMinutes: Int,
+)
+
 data class LiveConfig(
 	val version: Int,
 	val generatedAt: String?,
@@ -103,6 +117,8 @@ data class LiveConfig(
 	val brand: Brand = Brand.NEUTRA,
 	/** Texto libre del ISP para la sección entera. Acotado, sin significado. */
 	val extras: List<ChannelExtra> = emptyList(),
+	/** Dónde está el XMLTV. `null` en un site que aún no sirve guía. */
+	val epg: EpgPointer? = null,
 ) {
 	/**
 	 * Los ajustes que aplican a **esta** caja, del menos al más específico.
@@ -212,7 +228,31 @@ object LiveConfigParser {
 			},
 			defaultChannel = porDefecto,
 			extras = parseExtras(raiz.array("extras"), "raíz"),
+			epg = parseEpg(raiz["epg"] as? JsonObject),
 		)
+	}
+
+	/**
+	 * El puntero a la guía, o `null`.
+	 *
+	 * **Un site sin `epg` es normal, no un error** (`CONFIG_SCHEMA.md` §5): es
+	 * el estado esperado mientras su tubería de guía no esté lista, y la barra
+	 * se degrada a enseñar el canal sin programación. Por eso un objeto `epg`
+	 * mal formado tampoco tira la configuración: se queda sin guía, que es un
+	 * estado que ya sabe manejar.
+	 */
+	private fun parseEpg(objeto: JsonObject?): EpgPointer? {
+		if (objeto == null) return null
+		val url = objeto.str("url")?.trim()?.takeIf { it.isNotEmpty() }
+		if (url == null) {
+			LiveLog.warn("config.epgSinUrl", "detalle" to "hay objeto «epg» pero no dice dónde")
+			return null
+		}
+		val minutos = objeto.int("refreshMinutes")
+			?.takeIf { it > 0 }
+			?: LiveTuning.EPG_REFRESH_DEFAULT_MINUTES
+		LiveLog.info("config.epg", "url" to url, "refrescoMin" to minutos)
+		return EpgPointer(url = url, refreshMinutes = minutos)
 	}
 
 	/**

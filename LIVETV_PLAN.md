@@ -247,8 +247,18 @@ en el módulo.
 
 La navegación de películas y series se conserva tal cual. **Dependencia:** B2.
 
-## B8 — EPG *(fase final, no ahora)*
-Consumo del XMLTV, guía por canal, programa actual y siguiente.
+## B8 — EPG — **cerrado 2026-10-05**
+Consumo del XMLTV, programa actual y siguiente en la barra.
+
+**Hecho y medido en la caja:** `epg.interpretada canales=7 programas=59
+descartados=0 fueraDeVentana=142 canalesDesconocidos=0`, y en pantalla HBO HD
+con «Lluvia de hamburguesas 2», 16:47–18:26, «quedan 31 min», barra de progreso
+y «Luego Kung Fu Panda 2». Las horas coinciden con las `21:47–23:26 +0000` que
+emite el servidor, convertidas al huso de la caja.
+
+**Lo que no entra y queda nombrado:** la guía **en rejilla** —la parrilla de
+varias horas por varios canales— no se ha hecho. La barra enseña ahora y luego,
+que es lo que el plan pedía; una rejilla es otra pantalla.
 
 **Reescrita el 02-oct.** El muro de este bloque no era consumir la guía sino
 producirla, y con el servidor de canales+EPG en cada site (`CLAUDE.md` §1) esa

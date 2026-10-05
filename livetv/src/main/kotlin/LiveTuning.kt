@@ -370,6 +370,66 @@ object LiveTuning {
 	 */
 	const val CONFIG_MAX_BYTES = 2 * 1024 * 1024
 
+	// --- EPG -----------------------------------------------------------------
+	/**
+	 * La guía **no viaja dentro del `config.json`** (`CLAUDE.md` §6): la lista
+	 * cambia cuando alguien la cambia y la guía cambia cada día y pesa megas.
+	 * Juntas, cada caja se bajaría la guía entera para comprobar si cambió un
+	 * canal.
+	 *
+	 * Los tiempos de espera son más largos que los del `config.json` por eso
+	 * mismo: no es un archivo de 40 kB, y una caja en una LAN cargada puede
+	 * tardar.
+	 */
+	const val EPG_CONNECT_TIMEOUT_MS = 8_000
+	const val EPG_READ_TIMEOUT_MS = 30_000
+
+	/**
+	 * Tope de la descarga del XMLTV.
+	 *
+	 * Medido el 05-oct sobre el site de pruebas: 7 canales con un día de
+	 * programación ocupan 96 kB. Extrapolado a 120 canales y una semana, unos
+	 * 12 MB. 24 deja holgura de sobra y sigue siendo un límite que distingue
+	 * «guía grande» de «la URL no apunta a una guía».
+	 *
+	 * **Se descarga a fichero, no a memoria.** Esa es la diferencia de fondo
+	 * con el `config.json`, y es lo que permite que el tope sea tan alto: lo
+	 * que nunca cabe en una caja de 2 GB es el documento entero como `String`.
+	 */
+	const val EPG_MAX_BYTES = 24L * 1024 * 1024
+
+	/** Si el `config.json` no dice `refreshMinutes`. Una guía diaria no cambia más. */
+	const val EPG_REFRESH_DEFAULT_MINUTES = 6 * 60
+
+	/**
+	 * Cuánto futuro se conserva en memoria al interpretar la guía.
+	 *
+	 * La barra solo enseña «ahora» y «luego», pero guardar solo dos haría que
+	 * cada cambio de programa exigiera releer el fichero. Seis horas caben de
+	 * sobra y cubren una tarde entera sin volver a disco.
+	 */
+	const val EPG_WINDOW_HOURS = 6
+
+	/**
+	 * Tope de programas por canal, y de canales con programación.
+	 *
+	 * Un XMLTV mal generado —un bucle, un canal con un programa por minuto— no
+	 * puede llenar la memoria de la caja. Pasado el tope se dejan de añadir y
+	 * se registra: la barra sigue funcionando con lo que entró, que está
+	 * ordenado por hora y por tanto es lo más próximo.
+	 */
+	const val EPG_MAX_PROGRAMAS_POR_CANAL = 64
+	const val EPG_MAX_CANALES = 500
+
+	/**
+	 * Margen hacia atrás al quedarse con los programas.
+	 *
+	 * Sin él, un programa que empezó hace dos horas y dura tres se habría
+	 * descartado y la barra diría que no hay nada dando. Con él entra, y
+	 * `franja()` lo reconoce como el de ahora.
+	 */
+	const val EPG_MARGEN_PASADO_HORAS = 6
+
 	/**
 	 * Topes de los `extras`: los pares etiqueta/valor que un ISP puede añadir
 	 * a un canal —o a la raíz— y que la app pinta **sin saber qué son**

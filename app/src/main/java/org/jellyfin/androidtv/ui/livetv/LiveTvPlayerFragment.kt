@@ -117,6 +117,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	// veinte veces el decodificador.
 	val catalogo = remember { LiveTvCatalog.of(context) }
 	val canales by catalogo.state.collectAsState()
+	val guia by catalogo.guia.collectAsState()
 
 	var enPantalla by remember(channelId) { mutableStateOf(catalogo.byId(channelId)) }
 	var sintonizado by remember(channelId) { mutableStateOf(catalogo.byId(channelId)) }
@@ -406,6 +407,12 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		}
 	}
 
+	// Releer la guía es un efecto, no parte de componer, así que va aquí y no
+	// dentro del `remember` que la consulta. Cada minuto es de sobra: lo que se
+	// vigila es que la ventana guardada siga llegando al presente, que es cosa
+	// de horas, y la llamada no hace nada si ya la cubre.
+	LaunchedEffect(ahoraMs / 60_000) { LiveTvCatalog.of(context).guiaSiHaceFalta(ahoraMs) }
+
 	val favoritos = remember { LiveTvFavorites.of(context) }
 	val favoritosIds by favoritos.ids.collectAsState()
 
@@ -614,9 +621,16 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				channel = mostrado,
 				state = if (sintonizando) "Sintonizando…" else state,
 				detail = detail,
-				// Andamiaje: programación inventada para poder juzgar el
-				// diseño. Se sustituye en cuanto haya una fuente real.
-				epg = remember(mostrado.id, ahoraMs / 30_000) { DummyEpg.para(mostrado, ahoraMs) },
+				// La guía del site. `null` cuando ese canal no tiene
+				// programación o el site no publica EPG, y la barra ya sabe
+				// enseñar el canal sin ella: un site sin guía es normal.
+				//
+				// Se recalcula cada medio minuto, que es la resolución a la que
+				// se mueve una barra de progreso de programa, no cada
+				// recomposición.
+				epg = remember(mostrado.id, guia, ahoraMs / 30_000) {
+					guia.franja(mostrado.id, ahoraMs)
+				},
 				ahoraMs = ahoraMs,
 				favorito = mostrado.id in favoritosIds,
 				idiomaAudio = idiomaCorto(stats),

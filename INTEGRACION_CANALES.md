@@ -173,6 +173,59 @@ sintonía.
 
 ---
 
+## 4.bis La guía (EPG): sí, y con gzip
+
+**Implementado el 05-oct.** Preguntabais en `PETICION_APK` §3.2 si la app
+acepta `Content-Encoding: gzip`: **sí, y lo pide siempre**. Podéis activarlo.
+
+Lo que la app hace con `epg: { url, refreshMinutes }`:
+
+- **Descarga el XMLTV a disco, no a memoria.** Por eso el tope es alto —24 MB
+  ya descomprimidos— y no el de 2 MB del `config.json`. Ese límite no os afecta
+  porque la guía **no viaja dentro** del `config.json`, que era el motivo de
+  separarlos.
+- **Respeta `refreshMinutes`.** Con 1440 es una descarga al día, no una por
+  entrada a la sección. Lo pedíais en §3.1 y está así.
+- **La caché se indexa por servidor.** Una caja que cambia de site no hereda la
+  parrilla del anterior.
+- **Relee lo guardado cuando el tiempo sale de la ventana** que tiene en
+  memoria, sin volver a la red. Una caja encendida toda la noche sigue
+  enseñando programación por la mañana aunque la guía del servidor no haya
+  cambiado.
+
+### Lo que se descarta, y lo que eso significa para vosotros
+
+Nada de esto tira la guía entera: se descarta la entrada y se cuenta.
+
+| Qué | Por qué |
+|---|---|
+| `<programme>` sin `stop` | sin fin no se sabe cuánto queda, y la barra de progreso mentiría. **Emitidlo siempre** |
+| `<programme>` sin título, sin `start` o con fechas ilegibles | no hay nada que enseñar |
+| Un `channel` que no está en `channels` | normal si servís la guía de un lineup mayor. Si **no casa ninguno**, se registra `epg.canalesSinCorrespondencia` y eso significa que la clave no es la que creemos |
+| Lo que cae fuera de la ventana | se cuenta como `fueraDeVentana`, no es un error |
+
+**Las horas sin desfase se toman como UTC.** La especificación de XMLTV dice
+que sin él son hora local del generador, y eso no se puede saber desde la caja:
+puede estar en otro huso que el site. Vuestro `+0000` es lo correcto —**seguid
+emitiéndolo siempre**—; sin él, la guía saldría corrida unas horas, que es
+visible pero molesto.
+
+**`desc`, `icon` y `category` se ignoran** por ahora y no estorban. Emitidlos si
+ya los tenéis.
+
+### Cómo comprobar que llegó
+
+```
+epg.descargada bytes=90078 comprimido=false
+epg.interpretada canales=7 programas=59 descartados=0 fueraDeVentana=142 canalesDesconocidos=0
+epg.lista origen=RED canales=7 programas=59 antiguedadMin=0
+```
+
+`descartados=0` y `canalesDesconocidos=0` son lo que queréis ver. Si
+`canales=0` con `canalesDesconocidos` alto, los `id` no casan.
+
+---
+
 ## 5. Lo que se interpreta pero todavía no se usa
 
 Emítelo de todas formas: el día que se implemente, los sites ya lo traerán y no
@@ -188,6 +241,7 @@ habrá que volver a pasar por ellos.
 | `extras` | **implementado**: barra del canal y cabecera de la sección | — |
 | `aliases` | **implementado**: la búsqueda de la sección los usa | — |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
+| `epg` | **implementado**: programa actual y siguiente en la barra (§4.bis) | la guía por canal en rejilla, no |
 
 **Los `aliases` ya se buscan.** La sección tiene búsqueda: se abre con «Buscar
 canal», filtra mientras se escribe y casa contra el nombre **y** los alias,
