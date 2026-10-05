@@ -240,6 +240,7 @@ un frame congelado.
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | ~~47~~ | ~~**En Android < 7.1.1 el logo de marca del registro no carga**~~ | — | **cerrado 05-oct con un cargador propio** (`LogoLoader`), tal como decía la nota: el `ImageLoader` global no se toca, porque es el del VOD. Verificado en el emulador de API 22 contra el registro de producción: `marcaOrigen=registro` y el logo **en pantalla**, sin `marca.logoSinConfianzaAmpliada` y sin error de TLS |
 | 48 | **Con la búsqueda abierta, ARRIBA no vuelve a la cabecera** | B | medido con `uiautomator` el 05-oct al cerrar el 39: desde el campo de texto, ARRIBA deja el foco donde estaba. La salida que sí funciona es ATRÁS, que cierra la búsqueda, así que nadie se queda encerrado. Es un roce, no un atasco, y es el mismo problema geométrico del 39 en el otro sentido |
+| 49 | **El logo de marca del site `pruebas` es el de Jellyfin** | Edgar | §8 prohíbe esa marca como nuestra, y una ranura de marca es justo donde no debería estar. El sustituto ya está generado: `herramientas/marca/png/palco-logo.png`, 504×144, dentro de lo que valida el autorizador. Se sube desde el panel, en el site, porque la subida pasa por sesión, TOTP y CSRF — no hay camino automático y no debería haberlo |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -247,6 +248,40 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Los PNG de marca salen del vector, no de una copia — 2026-10-05
+
+Fuera del APK hacen falta mapas de bits en tres sitios, y los tres los pide
+alguien que no compila: la ranura `logo` del registro, y el icono y el banner
+de la ficha de Play.
+
+**Lo caro no era dibujarlos, era mantenerlos.** Un PNG exportado a mano y
+guardado al lado del vector se queda atrás en cuanto alguien retoca el
+logotipo, y nadie se entera hasta verlo en la tienda. Así que no hay ninguna
+copia del dibujo: `herramientas/marca/vector-a-svg.py` traduce el
+VectorDrawable a SVG y `generar.sh` lo rasteriza.
+
+El conversor cubre **sólo el subconjunto que usan nuestros vectores**: `path`
+con `pathData`, colores, grosor y extremos, y `group` con traslación. Ante
+cualquier otra cosa —`scale`, `rotation`, degradados, `clip-path`— aborta
+diciendo qué le falta, en vez de dibujar algo distinto en silencio. Un
+logotipo que sale mal sin avisar es peor que uno que no sale.
+
+**Del icono salen dos, y es una decisión, no un descuido.** El icono adaptativo
+encoge su símbolo a la zona segura **circular** de 66 dp sobre 108, porque un
+lanzador puede recortarlo en círculo. Play no recorta así: aplica una esquina
+redondeada suave, y ese mismo icono se ve encogido en la ficha. La variante
+`-ficha` escala el dibujo por 89/66 —de la zona segura circular a la
+rectangular—, que es geometría del formato y no retoque de gusto. El del APK
+no se toca, porque ahí la zona segura es real.
+
+Se escala el dibujo **entero**, fondo incluido: el fondo es un rectángulo que
+llena el lienzo, así que al crecer lo sigue llenando. Eso evita tener que
+componer dos SVG con transformaciones distintas.
+
+Los PNG se guardan en el repositorio aunque sean generados. Pesan 36 KB entre
+los cuatro, y son los bytes exactos que se suben a Play y al registro: saber
+qué se publicó vale más que la pureza de no versionar artefactos.
 
 ### #47 — El logo de marca, ahora también en las cajas viejas — 2026-10-05
 

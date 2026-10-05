@@ -42,6 +42,7 @@ No hay que volver a tocarlo. Está aquí para no repetir trabajo ni dudar.
 |---|---|
 | `applicationId` propio | `mx.kataliziador.palco` |
 | Nombre e icono propios | «Palco», icono y banner en vector, sin rastro de Jellyfin (§8) |
+| PNG de icono, banner y logo de marca | generados desde esos vectores (`herramientas/marca/`) |
 | `LEANBACK_LAUNCHER` | declarado, junto al `LAUNCHER` normal |
 | `leanback`, `touchscreen`, `faketouch`, `microphone` | los cuatro `required="false"` |
 | `targetSdk` | 36 |
@@ -117,8 +118,17 @@ puede distribuir esto.
 ## 6. La ficha, y una decisión que no es técnica
 
 - **Título** (30 caracteres): «Palco — TV en vivo de tu proveedor» cabe.
-- **Icono** 512×512 y **banner de TV** 1280×720. El del APK es vectorial; el de
-  la ficha es un PNG aparte que hay que generar.
+- **Icono** 512×512 y **banner de TV** 1280×720: **ya generados**, en
+  `herramientas/marca/png/`. Salen de los mismos vectores del APK con
+  `herramientas/marca/generar.sh`, así que no hay una copia del dibujo que se
+  pueda quedar atrás.
+
+  Del icono hay **dos**, y hay que elegir. `palco-icono-512.png` es el
+  adaptativo tal cual: su símbolo vive en la zona segura **circular** de 66 dp
+  sobre 108, porque un lanzador puede recortarlo en círculo. Play no recorta
+  así, y ese icono se ve encogido en la tienda. `palco-icono-512-ficha.png` es
+  el mismo con el dibujo escalado hasta el cuadrado que Play respeta, y **es el
+  que conviene subir**. El del APK no se toca: ahí la zona segura es real.
 - **Capturas de TV**, mínimo una, 16:9.
 - **Clasificación de contenido** y **público objetivo**: la app no tiene
   contenido propio, lo sirve el ISP.
