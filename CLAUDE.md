@@ -748,6 +748,25 @@ adb -s 192.168.20.132:5555 logcat -v time | grep -iE "livetv|ExoPlayer|MediaCode
 hardware). No desarrolles solo contra ella. Usa el menú de degradación
 descrito en `LIVETV_ENGINE.md` para simular cajas peores.
 
+### Emulador de Android TV API 22, para lo que la caja no puede probar
+
+```bash
+/opt/android-sdk/emulator/emulator -avd api22tv -no-window -no-audio \
+  -no-snapshot -no-boot-anim -gpu swiftshader_indirect -port 5558
+```
+
+Android 5.1.1, en `emulator-5558`. Existe porque **la caja de pruebas es
+moderna y hay fallos que solo aparecen en las viejas** — el primero, que su
+almacén de certificados no trae ninguna raíz de ISRG (pendiente 35).
+
+Corre a velocidad casi nativa porque el contenedor tiene `/dev/kvm` expuesto
+desde el Proxmox: dos líneas en `/etc/pve/lxc/103.conf` y `chmod 0666` en el
+host, esto último obligatorio por ser un contenedor **no privilegiado**.
+
+**Desactiva el teclado en pantalla antes de automatizar nada** (`adb -s
+emulator-5558 shell ime disable <id>`): el de Leanback se traga ATRÁS y las
+flechas, y `input text` funciona igual sin él.
+
 ---
 
 ## 10. Objetivos numéricos

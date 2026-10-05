@@ -36,6 +36,8 @@ import java.util.UUID
  */
 class RegistryRepository(context: Context) {
 
+	private val contexto = context.applicationContext
+
 	private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
 	private val directorio = File(context.filesDir, "livetv")
@@ -161,6 +163,13 @@ class RegistryRepository(context: Context) {
 
 	private fun postear(url: String, cuerpo: String): String {
 		val conexion = (URL(url).openConnection() as HttpURLConnection).apply {
+			// La confianza ampliada **solo aquí**, y solo si va por TLS. Sin
+			// esto, una caja con Android anterior a 7.1.1 no valida el
+			// certificado del registro y nunca entra a TV en vivo, sin dar
+			// error visible (`RegistryTrust`).
+			if (this is javax.net.ssl.HttpsURLConnection) {
+				RegistryTrust.socketFactory(contexto)?.let { sslSocketFactory = it }
+			}
 			connectTimeout = LiveTuning.REGISTRY_CONNECT_TIMEOUT_MS
 			readTimeout = LiveTuning.REGISTRY_READ_TIMEOUT_MS
 			requestMethod = "POST"

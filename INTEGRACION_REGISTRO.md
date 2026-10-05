@@ -223,6 +223,30 @@ Los dos últimos son la especificación ejecutable de lo que esta página
 describe. Si quieres saber qué hace la app con una respuesta tuya concreta,
 ese es el sitio donde mirarlo sin preguntarme.
 
+### Las cajas viejas ya validan tu certificado
+
+**Hecho el 05-oct y medido en un emulador de Android TV API 22.** La app
+empaqueta ISRG Root X1, X2, Root YR e YE y las usa **solo** para hablar
+contigo, nunca para el resto de su tráfico.
+
+Antes, en esa caja: `CertPathValidatorException: Trust anchor for certification
+path not found`, y la sección entraba por la escalera de degradación sin saber
+nada de ti. Ahora: `registro.respuesta autorizado=true`.
+
+**Lo que esto te permite:** cambiar de autoridad de certificados algún día sin
+dejar fuera a nadie, porque la app acepta por el almacén del sistema **o** por
+las raíces que lleva. Lo que **no** te permite es servir un certificado que no
+encadene a una raíz pública: un autofirmado se sigue rechazando, y hay una
+prueba que lo comprueba con tu propio nombre de dominio.
+
+**Lo que sigue roto en esas cajas, y es cosmético:** el `logoUrl` de tu
+respuesta **no carga** por debajo de Android 7.1.1, porque lo pide otro cliente
+HTTP. La marca cae al `displayName`, que es su respaldo. Si te importa que el
+logo se vea en cajas viejas, la salida más barata es servirlo desde el site por
+HTTP, no desde el registro.
+
+---
+
 Falta por ver en pantalla la pantalla de denegación; su lógica está cubierta
 por las pruebas, pero nadie la ha mirado en una tele todavía.
 

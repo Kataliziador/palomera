@@ -221,7 +221,7 @@ un frame congelado.
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
 | 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. Entre el 5 % y el 30 % de los zapeos con tunneled; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
 | 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
-| 35 | **Cajas con Android < 7.1.1 no validan el certificado del registro** | **B9** | `minSdk` 21 y Let's Encrypt cuelga de ISRG Root X1, que Android no trae hasta 7.1.1. No da error visible: la caja nunca entra a TV en vivo. **Actualizado 03-oct con el primer despliegue:** la cadena real es `YR2 → ISRG Root YR → ISRG Root X1`, así que hay que incluir **X1 y también Root YR y YE**; X2 ya no pinta nada. Y el mismo ancla de confianza hace falta en el OkHttp de Coil, o la autorización entra y el logo no. `autorizador/docs/PETICION_APK.md` §3 y §6 |
+| ~~35~~ | ~~**Cajas con Android < 7.1.1 no validan el certificado del registro**~~ | — | **cerrado 05-oct, medido en un emulador de API 22.** `RegistryTrust` empaqueta ISRG Root X1, X2, YR e YE y las usa **solo** para el registro. Sin el arreglo: `CertPathValidatorException: Trust anchor for certification path not found`. Con él: `registro.respuesta autorizado=true` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
 | ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
 | ~~31~~ | ~~**La fila de inicio depende de un permiso de Jellyfin**~~ | — | **cerrado 03-oct:** `HomeSectionType.LIVE_TV` ya no se condiciona a `enableLiveTvAccess`. Ese permiso es del Jellyfin del ISP y habla de *su* LiveTV. **La caja de pruebas no lo demuestra** —su usuario tiene el permiso—, pero el cambio solo quita una condición: lo que antes salía sigue saliendo |
@@ -238,6 +238,7 @@ un frame congelado.
 | 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
 | 45 | **Rescate del tunneled sin imagen: escrito, sin validar en pantalla** | **M** | hecho el 04-oct, **apagado de fábrica** como pide §3. Hay que mirarlo en la tele con «Fingir tunneled sin imagen» encendido, y si vale, **el valor de fábrica tiene que pasar a activo antes del primer envío a Play** — que es cuando el riesgo deja de ser teórico, porque la ZTE solo se puede medir una vez publicada la app |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
+| 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
 | 26 | **La Skyworth no tiene decoder de vídeo por software para H.264 ni MPEG-2** | **M6** | solo `c2.android` de hevc, vp8, vp9, mpeg4 y h263. El paso 2 de la cascada es inalcanzable aquí para los dos códecs del lineup, así que **libVLC es el único respaldo que existe** y el cierre degradado de M3 depende de él. Medir lo mismo en la ZTE antes de generalizar |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -245,6 +246,73 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Los certificados, medidos en una caja de API 22 — 2026-10-05
+
+**Primero se comprobó la premisa, que llevaba meses escrita sin verificar.** Un
+emulador de Android TV API 22 —Android 5.1.1— tiene **162 certificados en su
+almacén y ninguno de ISRG**. Sí tiene DST Root CA X3, que es la raíz vieja que
+Let's Encrypt dejó de usar. O sea: el pendiente 35 era cierto.
+
+**Cómo se pudo medir:** el contenedor LXC no tenía `/dev/kvm`. Edgar lo expuso
+desde el Proxmox —dos líneas en `103.conf` y `chmod 0666` en el host, que hacía
+falta por ser un contenedor no privilegiado— y a partir de ahí el emulador corre
+a velocidad casi nativa. Queda anotado en `CLAUDE.md` §9.
+
+**Cambio:** `RegistryTrust` empaqueta cuatro raíces —X1, X2, Root YR e YE— y
+construye un `TrustManager` que acepta si valida **el del sistema o el de las
+incluidas**, y rechaza si ninguno. Se aplica **solo a la conexión con el
+registro**, nunca a la confianza global de la app.
+
+Las cuatro y no solo X1: hoy la cadena del registro acaba en X1
+(`YR2 → Root YR → ISRG Root X1`), pero el día que Let's Encrypt deje de servir
+esa firma cruzada X1 ya no bastará, y hasta cajas modernas sin Root YR
+fallarían. Lo avisó el proyecto del autorizador tras su primer despliegue.
+
+**La prueba A/B, en el mismo emulador y contra el registro de producción:**
+
+```
+SIN el arreglo
+  registro.sinRespuesta  motivo=CertPathValidatorException:
+                                Trust anchor for certification path not found.
+  catalogo.destino  procedencia=derivada de Jellyfin
+  catalogo.listo    marcaOrigen=neutra
+
+CON el arreglo
+  registro.respuesta  autorizado=true  channelsUrl=…  marca=pruebas
+  registro.acceso     resultado=permitido motivo=autorizado por el registro
+  catalogo.destino    procedencia=registro
+  catalogo.listo      marcaOrigen=registro
+```
+
+**Y lo que más vale de esta medición no es el arreglo.** Mírese la corrida sin
+él: la caja **entró igual**, por `motivo=sin respuesta y sin autorización
+previa`. Esa fila de la escalera de degradación se añadió ayer, al implementar
+B9, porque el contrato no la tenía. Sin ella, esta caja de API 22 se habría
+quedado fuera de TV en vivo en vez de degradarse. La decisión de diseño se
+validó sola un día después.
+
+**Cinco pruebas de JVM** cubren lo que no necesita dispositivo, que es donde más
+fácil se rompe: que las raíces sean las correctas, que la cadena real valide, y
+—la que importa— que **un autofirmado con el nombre del registro siga siendo
+rechazado**. Si esa deja de fallar, es que el `TrustManager` se volvió
+permisivo, y eso abriría la puerta a que cualquiera en la red del ISP cambie el
+`channelsUrl` de un site.
+
+Dos notas de herramientas: `shouldThrow` y `shouldBeInstanceOf` de kotest no se
+pueden usar —vienen compiladas para JVM 11 y el módulo va a 1.8—, y generar un
+autofirmado con las clases internas del JDK dejó de ser posible en Java 17, así
+que es un PEM capturado.
+
+**Lo que queda, y es cosmético:** el logo de marca del registro **no carga** en
+API 22, porque lo pide Coil con OkHttp. La autorización entra y el logo no —cae
+al nombre, que es su respaldo diseñado—. **No se arregla tocando el
+`ImageLoader` global**, que es el mismo del VOD: ampliar la confianza de todas
+las imágenes para arreglar un logo es mal negocio. Pendiente 47.
+
+**Resultado:** pendiente 35 cerrado con medición, no con teoría.
+
+**Estado:** cerrada.
 
 ### B9, segunda mitad: contra el registro de verdad — 2026-10-04
 
