@@ -390,9 +390,28 @@ Sin dependencia de Google Play Services, porque Fire TV y muchas cajas
 genéricas no lo traen.
 
 ## B7 — Preparación para Play Store
-Manifiesto con `leanback`, `touchscreen` y `faketouch` en `required="false"`;
-banner 320x180; `LEANBACK_LAUNCHER`; AAB con `armeabi-v7a` y `arm64-v8a`;
-target API vigente; política de privacidad; repositorio público del fork.
+
+**La parte de código, hecha el 05-oct.** `PLAY.md` recoge el estado y lo que
+falta.
+
+- ~~Manifiesto con `leanback`, `touchscreen` y `faketouch` en
+  `required="false"`~~ — los cuatro, con `microphone`
+- ~~`LEANBACK_LAUNCHER`~~ — ya venía del upstream
+- ~~AAB con `armeabi-v7a` y `arm64-v8a`~~ — **no había nada que configurar**:
+  sin NDK propio, la única nativa es `libandroidx.graphics.path` y el bundle
+  reparte las cuatro arquitecturas solo
+- ~~target API vigente~~ — 36
+- ~~El registro, nunca en claro~~ — `domain-config` para `authjelly.satmx.net`,
+  que pedía `PETICION_APK` §1
+- Banner de ficha 1280×720 e icono 512×512 — hay que generarlos, el del APK es
+  vectorial
+- **Política de privacidad** y **formulario de Seguridad de los datos**: ahora
+  obligan de verdad, porque la app manda `installId` y diagnóstico (B6)
+- **Repositorio público del fork**, que es la oferta de código de la GPL-2.0
+- **Versión real**: hoy compila como `0.0.0-dev.1` y eso no se publica
+- **Clave de firma y su custodia**, y decidir si se usa Play App Signing
+
+**Cierre:** un AAB firmado, subido, y una ZTE instalándolo desde la ficha.
 
 ---
 

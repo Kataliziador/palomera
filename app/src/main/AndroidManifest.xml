@@ -24,6 +24,14 @@
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
+    <!--
+      Una caja de TV no tiene pantalla táctil pero sí emula los toques con el
+      mando. Declararlo como no obligatorio es lo que mantiene la app elegible
+      para la ficha de TV en Play y para cajas sin digitalizador.
+    -->
+    <uses-feature
+        android:name="android.hardware.faketouch"
+        android:required="false" />
     <uses-feature
         android:name="android.hardware.microphone"
         android:required="false" />

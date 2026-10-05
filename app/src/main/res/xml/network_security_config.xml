@@ -6,4 +6,20 @@
             <certificates src="user" tools:ignore="AcceptsUserCertificates" />
         </trust-anchors>
     </base-config>
+
+    <!--
+      El registro de sites, **nunca en claro**.
+
+      La app permite tráfico sin cifrar de forma global porque lo necesitan el
+      Jellyfin y los streams del ISP, que viven en su LAN. Eso significa que
+      nada impediría por accidente un `http://` hacia el registro, y ése sí va
+      por internet: lo pedía el proyecto del autorizador en `PETICION_APK` §1.
+
+      **Solo surte efecto desde API 24**, así que no sustituye a nada — el
+      `RegistryTrust` del módulo es lo que hace el trabajo de verdad, y encima
+      cubre las cajas viejas, que es donde Android ignora este archivo.
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">authjelly.satmx.net</domain>
+    </domain-config>
 </network-security-config>

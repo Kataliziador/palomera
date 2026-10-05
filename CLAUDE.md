@@ -73,6 +73,9 @@ sube `version` y se dice en el documento de integración.
 - `LIVETV_ENGINE.md` — especificación del motor: cascada, capacidades, sintonía.
 - `LIVETV_PLAN.md` — fases de trabajo y criterios de cierre.
 - `LIVETV_LOG.md` — bitácora. Se actualiza al cerrar cada fase.
+- `PLAY.md` — qué hace falta para publicar y **quién lo hace**. Lo irreversible
+  —nombre de paquete y clave de firma—, el formulario de Seguridad de los datos
+  con lo que la app manda de verdad, y la oferta de código que exige la GPL-2.0.
 
 ---
 
@@ -238,7 +241,7 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      ':!*/flavors/*' ':!*.md'
    ```
 
-   Lo que aparezca aquí son **cinco cosas y ninguna más**, y se justifican una
+   Lo que aparezca aquí son **seis cosas y ninguna más**, y se justifican una
    a una en el commit:
 
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
@@ -259,7 +262,13 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      —no existe una sección de información propia y hacerla costaría más
      diff que reusar la suya—;
    - **utilería fuera de la app** — `herramientas/` y `headend/`, que no se
-     compilan ni viajan en el APK.
+     compilan ni viajan en el APK;
+   - **la conexión con el registro** — `res/xml/network_security_config.xml`.
+     Android obliga a que esa configuración viva ahí, fuera del módulo. Lo
+     único que se le añade es un `domain-config` que **prohíbe el tráfico en
+     claro hacia el registro**, sin tocar la base: el resto de la app sigue
+     pudiendo hablar por HTTP con el Jellyfin y los streams de la LAN del ISP,
+     que es de lo que vive. No afecta al VOD.
 
    Cualquier otra cosa exige justificarse en el commit **y** decirlo aquí.
 

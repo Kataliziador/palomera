@@ -247,6 +247,59 @@ un frame congelado.
 
 ## Entradas
 
+### B7 — La parte de Play que es código, y la que no — 2026-10-05
+
+**Casi todo estaba ya bien**, por ser un fork de una app que se publica. La
+auditoría antes de tocar nada:
+
+| | |
+|---|---|
+| `LEANBACK_LAUNCHER` | ya venía |
+| `leanback`, `touchscreen`, `microphone` en `required="false"` | ya venían |
+| `targetSdk` 36 | ya estaba |
+| `debuggable` en release | ausente, correcto |
+| Firma por propiedades, sin clave en el repositorio | correcto |
+
+**Lo que faltaba y se hizo:** `faketouch` como no obligatorio —lo que mantiene
+la app elegible para la ficha de TV y para cajas sin digitalizador— y el
+`domain-config` que **prohíbe el tráfico en claro hacia el registro**, que
+pedía `PETICION_APK` §1. Eso último solo surte efecto desde API 24, así que no
+sustituye a `RegistryTrust`: lo complementa justo en las cajas donde Android sí
+lee ese archivo.
+
+**Un punto del plan que resultó no existir.** Decía «AAB con `armeabi-v7a` y
+`arm64-v8a`», y **no hay nada que configurar**: al irse la extensión FFmpeg se
+fue el NDK, y la única biblioteca nativa que queda es
+`libandroidx.graphics.path`, que AndroidX reparte en las cuatro arquitecturas.
+Verificado sobre el bundle: `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`. El
+requisito de 64 bits de Play se cumple por construcción.
+
+**El AAB de release compila y es correcto:** 17 MB,
+`package=mx.kataliziador.palco`, `targetSdk 36`, sin `debuggable`, con el
+icono, el banner y el nombre propios. Sin firmar, que es lo que corresponde:
+la clave la pone Edgar.
+
+**Lo que no es código va a `PLAY.md`**, nuevo, y es donde está el trabajo de
+verdad que queda: la clave de firma y su custodia —perderla es perder la ficha
+para siempre—, la versión real, el formulario de Seguridad de los datos y el
+repositorio público que exige la GPL-2.0.
+
+**El formulario de Seguridad de los datos dejó de ser trámite al cerrar B6.**
+La app manda `installId`, modelo, inventario de decoders y diagnóstico de
+reproducción a un servicio nuestro. Eso se declara, y obliga a una política de
+privacidad con URL permanente. `PLAY.md` lleva la tabla de qué se manda y cómo
+se declara cada cosa, incluido por qué **no** es actividad del abonado — y que
+esa frontera está en el diseño, no en la intención.
+
+**§4.7 gana una sexta categoría:** `res/xml/network_security_config.xml`.
+Android obliga a que esa configuración viva fuera del módulo, y lo único que se
+le añade es la prohibición de tráfico en claro hacia el registro. La base no se
+toca: el resto de la app sigue hablando por HTTP con el Jellyfin y los streams
+de la LAN, que es de lo que vive.
+
+**Estado:** cerrada la parte de código. El resto está en `PLAY.md` y es de
+Edgar.
+
 ### M — El rescate del tunneled pasa a activo de fábrica — 2026-10-05
 
 **Validado en pantalla por Edgar**, que lo miró un buen rato en `estrellashd`
