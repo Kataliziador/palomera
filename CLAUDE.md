@@ -412,9 +412,17 @@ servidor que el hardware no puede cumplir.
   Validado en pantalla dos veces y sin penalización de zapping (1.1 a 1.5 s en
   arranque limpio).
 
-  **El riesgo sigue vigente y se asume:** su fallo produce pantalla negra
-  silenciosa, y es la función más dependiente del fabricante de toda la pila.
-  Una caja que lo implemente mal arranca sin imagen.
+  **El riesgo era pantalla negra silenciosa**, y es la función más dependiente
+  del fabricante de toda la pila. Desde el 05-oct hay red: si a los 8 s no ha
+  llegado el primer fotograma estando el reproductor en marcha y la posición
+  avanzando, **el motor apaga el tunneled para esa sesión y rehace la
+  preparación** (`LiveTuning.RESCATE_TUNNELED_DEFAULT`, activo de fábrica,
+  validado en pantalla).
+
+  Eso convierte el fallo de permanente y mudo en un corte de unos segundos que
+  se cura solo, **sin esperar a saber qué modelo falla**. Sigue siendo mejor
+  excluir el modelo por `deviceOverrides` en cuanto se sepa: el rescate cuesta
+  un rebuffer en cada sintonía de esa caja.
 
   **La exclusión va por `deviceOverrides` del `config.json`**, no por
   recompilación: `"tunneling": false` para los modelos que no deban usarlo. El

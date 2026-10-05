@@ -236,7 +236,7 @@ un frame congelado.
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
 | 43 | **`TARGET_OFFSET_SATELLITE_MS` está muerto** | B | documentado en `LiveTuning` como el valor de los canales satelitales, pero `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: 8000` y no lo usa nadie. Hoy no estorba —el servidor calcula el offset por canal desde la ventana medida, que es mejor— pero quien lea `LiveTuning` creerá que los satelitales van a 12 s |
 | 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
-| 45 | **Rescate del tunneled sin imagen: escrito, sin validar en pantalla** | **M** | hecho el 04-oct, **apagado de fábrica** como pide §3. Hay que mirarlo en la tele con «Fingir tunneled sin imagen» encendido, y si vale, **el valor de fábrica tiene que pasar a activo antes del primer envío a Play** — que es cuando el riesgo deja de ser teórico, porque la ZTE solo se puede medir una vez publicada la app |
+| ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
@@ -246,6 +246,55 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### M — El rescate del tunneled pasa a activo de fábrica — 2026-10-05
+
+**Validado en pantalla por Edgar**, que lo miró un buen rato en `estrellashd`
+con la simulación puesta y dio el visto bueno. Con eso, `RESCATE_TUNNELED_DEFAULT`
+sube a `true`.
+
+**La primera pasada no valió, y conviene que quede escrito por qué.** Edgar
+encendió «Fingir tunneled sin imagen» pero dejó «Rescate» apagado. Con esa
+combinación **no pasa nada** —`vigilarImagen()` sale en su primera línea— y en
+pantalla eso se ve exactamente igual que «funciona bien»: reproducción normal,
+sin cortes. Dijo que todo iba bien, y era cierto; lo que no era cierto es que
+hubiera probado algo.
+
+Lo cazaron los interruptores guardados y el log:
+`degradacion=FINGE SIN IMAGEN rescateTunneled=OFF`, y `tunneled.sinImagen`
+cero veces. **Dos estados distintos que se ven igual en la tele es justo lo que
+una validación visual no puede distinguir**, y por eso hay que mirar el
+instrumento antes de dar por buena la vista. Se le dejaron los dos puestos por
+`adb` y repitió.
+
+**La evidencia de la buena**, del acumulador de diagnóstico y no del logcat
+—que se había rotado, pendiente 25—:
+
+```
+sesiones=7  conImagen=7
+tunPedido=7  tunRescate=1
+minutos=6   media al primer fotograma 2044 ms   rebuffers=14
+fallos={"INTERNO":2}
+```
+
+Saltó una vez —la única sesión que tuvo el rescate armado— y **las siete
+sesiones acabaron con imagen**.
+
+**Dos cosas de regalo en esos números.** La primera: `INTERNO: 2` en siete
+sesiones es un 29 %, que cae dentro del 5–30 % que el pendiente 37 tiene
+medido para la aserción del tunneled; es corroboración independiente, recogida
+sin querer. La segunda: el acumulador de B6 sirvió para cerrar una fase de
+Modo A **el día después de escribirlo**, y lo hizo porque sobrevive a la
+rotación del logcat, que es lo que el instrumento de siempre no hizo.
+
+**Qué cambia en producción:** el fallo más caro que tenía el primer envío a
+Play —una ZTE con el tunneled roto, pantalla negra con sonido, en todos los
+canales— pasa de permanente y mudo a un corte de ocho segundos que se cura
+solo, sin esperar a saber qué modelo falla. Sigue siendo mejor excluir el
+modelo por `deviceOverrides` en cuanto se sepa: el rescate cuesta un rebuffer
+en cada sintonía de esa caja.
+
+**Estado:** cerrada.
 
 ### B6: la caja cuenta lo que es, montado en la petición que ya hacía — 2026-10-05
 

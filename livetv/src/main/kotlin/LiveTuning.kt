@@ -228,15 +228,26 @@ object LiveTuning {
 	const val TUNNELED_NO_IMAGE_MS = 8_000L
 
 	/**
-	 * Si el rescate del tunneled está activo de fábrica.
+	 * El rescate del tunneled, **activo de fábrica desde el 05-oct**, validado
+	 * en pantalla por Edgar.
 	 *
-	 * **Falso hasta que Edgar lo valide en pantalla** (`CLAUDE.md` §3): todo
-	 * cambio de comportamiento del motor nace con el valor de fábrica igual al
-	 * anterior. **Tiene que pasar a `true` antes del primer envío a Play**, que
-	 * es cuando el riesgo que cubre deja de ser teórico: la caja mayoritaria
-	 * del cliente solo se puede medir una vez publicada la app.
+	 * Medido en la caja con la simulación puesta: de siete sesiones, la armada
+	 * disparó el rescate y **las siete acabaron con imagen**
+	 * (`tunRescate=1`, `conImagen=7`). Edgar lo miró un buen rato en
+	 * `estrellashd` y el corte le pareció tolerable.
+	 *
+	 * **Por qué se enciende de fábrica y no se deja opcional:** el riesgo que
+	 * cubre deja de ser teórico en el primer envío a Play. La caja mayoritaria
+	 * del cliente solo se puede medir una vez publicada, el tunneled está
+	 * activo de fábrica y se excluye por modelo —o sea, por conocimiento que de
+	 * ella no tenemos—. Si lo implementa mal, el síntoma es pantalla negra con
+	 * sonido, en todos los canales y en la caja que más abonados tiene. Esto lo
+	 * convierte en un hipo de ocho segundos que se cura solo.
+	 *
+	 * El interruptor del menú se queda para reproducir el comportamiento
+	 * anterior si alguna vez hace falta.
 	 */
-	const val RESCATE_TUNNELED_DEFAULT = false
+	const val RESCATE_TUNNELED_DEFAULT = true
 
 	/**
 	 * Espera entre escalones de recuperación.
