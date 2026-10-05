@@ -239,7 +239,7 @@ un frame congelado.
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | ~~47~~ | ~~**En Android < 7.1.1 el logo de marca del registro no carga**~~ | — | **cerrado 05-oct con un cargador propio** (`LogoLoader`), tal como decía la nota: el `ImageLoader` global no se toca, porque es el del VOD. Verificado en el emulador de API 22 contra el registro de producción: `marcaOrigen=registro` y el logo **en pantalla**, sin `marca.logoSinConfianzaAmpliada` y sin error de TLS |
-| 48 | **Con la búsqueda abierta, ARRIBA no vuelve a la cabecera** | B | medido con `uiautomator` el 05-oct al cerrar el 39: desde el campo de texto, ARRIBA deja el foco donde estaba. La salida que sí funciona es ATRÁS, que cierra la búsqueda, así que nadie se queda encerrado. Es un roce, no un atasco, y es el mismo problema geométrico del 39 en el otro sentido |
+| ~~48~~ | ~~**Con la búsqueda abierta, ARRIBA no vuelve a la cabecera**~~ | — | **cerrado 05-oct.** No era geométrico: `BasicTextField` se queda las flechas, igual que ya pasaba con ABAJO. Al arreglarlo salió un fallo mayor —el campo actuaba sobre teclas que no se habían pulsado en él— que es lo que de verdad cerró este pendiente. Medido: el bucle cabecera ↔ campo ↔ guía funciona en los dos sentidos |
 | 49 | **El logo de marca del site `pruebas` es el de Jellyfin** | Edgar | §8 prohíbe esa marca como nuestra, y una ranura de marca es justo donde no debería estar. El sustituto ya está generado: `herramientas/marca/png/palco-logo.png`, 504×144, dentro de lo que valida el autorizador. Se sube desde el panel, en el site, porque la subida pasa por sesión, TOTP y CSRF — no hay camino automático y no debería haberlo |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
@@ -248,6 +248,53 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #48 — El campo de texto actuaba sobre teclas que no se habían pulsado en él — 2026-10-05
+
+Empezó como el simétrico del 39: con la búsqueda abierta, ARRIBA no volvía a la
+cabecera. La causa era la que ya estaba documentada para ABAJO —
+`BasicTextField` se queda las teclas de dirección aunque sea de una sola
+línea—, así que se resolvió igual, interceptando ARRIBA y devolviendo el foco
+al botón «Buscar canal».
+
+**Lo interesante vino después.** Con ARRIBA funcionando, ABAJO desde la
+cabecera seguía saltándose el campo y aterrizando en la guía, aunque el campo
+esté justo debajo y ocupe todo el ancho. Apuntar `down` explícitamente al campo
+**tampoco** cambiaba nada, lo que parecía decir que `focusProperties` se estaba
+ignorando.
+
+No se ignoraba. Se comprobó apuntando `down` **al propio botón**: el foco se
+quedó donde estaba, así que `down` se respetaba perfectamente.
+
+**Lo que pasaba es que la tecla sobrevivía al salto de foco.** El campo actúa al
+**soltar** la tecla, no al pulsarla —así lo pedía ATRÁS, que tiene que cerrar el
+teclado la primera vez y la búsqueda la segunda—. Cuando la cabecera mandaba el
+foco al campo con ABAJO, el foco llegaba con la tecla **todavía pulsada**, y el
+«soltar» aterrizaba en el campo recién enfocado. El campo lo leía como su propio
+ABAJO y se iba a la guía. El mismo ABAJO hacía dos saltos.
+
+La corrección es una guarda de tres líneas: **solo se actúa sobre teclas cuyo
+«pulsar» se vio aquí**. Se apunta la tecla en el `KeyDown` y se exige que
+coincida en el `KeyUp`.
+
+Un mando de verdad manda el mismo par pulsar/soltar que `adb`, así que esto no
+era un artefacto de la prueba: le habría pasado a cualquiera. Y es una clase de
+fallo que conviene recordar porque **no se ve**: lo que se observa es «el foco
+va donde no debe», que manda a mirar la búsqueda de foco, que es justo donde no
+está el problema.
+
+Medido en la caja, el bucle entero:
+
+```
+tarjeta  → ARRIBA → Buscar canal    [1410,230][1614,326]
+         → OK     → campo de texto  [204,350][1788,446]
+         → ARRIBA → Buscar canal    [1410,230][1614,326]
+         → ABAJO  → campo de texto  [204,350][1788,446]   ← antes saltaba aquí
+         → ABAJO  → tarjeta 101     [86,551][442,751]
+```
+
+Y lo que no se rompió al tocar el camino de teclas: ATRÁS sigue cerrando la
+búsqueda, y teclear sigue filtrando —«hbo» deja HBO HD solo—.
 
 ### B8 — El EPG, y el fallo que la JVM no podía enseñar — 2026-10-05
 

@@ -74,10 +74,20 @@ fun BarraDeBusqueda(
 	onCerrar: () -> Unit,
 	/** ABAJO: el campo cede el foco a los resultados. */
 	onBajar: () -> Unit,
+	/** ARRIBA: el campo devuelve el foco a la cabecera. */
+	onSubir: () -> Unit,
 	acento: Color,
+	/**
+	 * El foco del campo, **puesto desde fuera**.
+	 *
+	 * Lo necesita la cabecera para poder apuntar ABAJO aquí. Medido en la caja
+	 * el 05-oct: dejándolo a la búsqueda geométrica de Compose, ABAJO desde
+	 * «Buscar canal» se salta el campo y aterriza en la guía, aunque el campo
+	 * esté justo debajo y ocupe todo el ancho.
+	 */
+	foco: FocusRequester,
 	modifier: Modifier = Modifier,
 ) {
-	val foco = remember { FocusRequester() }
 	val teclado = LocalSoftwareKeyboardController.current
 	var enfocado by remember { mutableStateOf(false) }
 
@@ -85,6 +95,9 @@ fun BarraDeBusqueda(
 	// es si el teclado está en pantalla, sino **si esta pantalla lo pidió**, que
 	// es lo que decide qué hace ATRÁS.
 	var tecladoPedido by remember { mutableStateOf(true) }
+
+	/** La última tecla pulsada **con el campo ya enfocado**. Ver `onPreviewKeyEvent`. */
+	var pulsadaAqui by remember { mutableStateOf<Key?>(null) }
 
 	LaunchedEffect(Unit) {
 		foco.requestFocus()
@@ -144,7 +157,25 @@ fun BarraDeBusqueda(
 					// consume ATRÁS para cerrar el teclado, y sin interceptarlo
 					// antes la primera pulsación no llegaría nunca aquí.
 					.onPreviewKeyEvent { evento ->
+						// **Solo se actúa sobre teclas que se pulsaron aquí.**
+						//
+						// Se actúa al soltar, no al pulsar, y eso abre un
+						// agujero: cuando la cabecera manda el foco a este
+						// campo con ABAJO, el foco llega con la tecla **aún
+						// pulsada** y el «soltar» aterriza aquí. Sin esta
+						// guarda, ese mismo ABAJO que enfocaba el campo lo hacía
+						// bajar otra vez a la guía, y parecía que `down` se
+						// estaba ignorando. Medido en la caja el 05-oct.
+						//
+						// Un mando de verdad manda el mismo par pulsar/soltar
+						// que `adb`, así que no era un artefacto de la prueba.
+						if (evento.type == KeyEventType.KeyDown) {
+							pulsadaAqui = evento.key
+							return@onPreviewKeyEvent false
+						}
 						if (evento.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+						if (pulsadaAqui != evento.key) return@onPreviewKeyEvent false
+						pulsadaAqui = null
 						when (evento.key) {
 							Key.Back -> {
 								if (tecladoPedido) {
@@ -179,6 +210,20 @@ fun BarraDeBusqueda(
 									tecladoPedido = false
 								}
 								onBajar()
+								true
+							}
+							// Y ARRIBA, por lo mismo y en el otro sentido. Sin
+							// esto el campo se quedaba la tecla y no había forma
+							// de volver a la cabecera sin cerrar la búsqueda: no
+							// era un atasco —ATRÁS siempre sale— pero sí un
+							// roce, y es el simétrico del de la cabecera a la
+							// guía.
+							Key.DirectionUp -> {
+								if (tecladoPedido) {
+									teclado?.hide()
+									tecladoPedido = false
+								}
+								onSubir()
 								true
 							}
 							else -> false

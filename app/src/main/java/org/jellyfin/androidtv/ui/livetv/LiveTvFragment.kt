@@ -183,6 +183,8 @@ private fun ChannelRow(
 
 	// El destino de ABAJO desde la cabecera. Se ata a la guía más abajo.
 	val focoGuia = remember { FocusRequester() }
+	val focoBuscar = remember { FocusRequester() }
+	val focoCampo = remember { FocusRequester() }
 	val hayGuia = catalog.acceso !is Acceso.Denegado && secciones.isNotEmpty()
 
 	fun cerrarBusqueda() {
@@ -253,17 +255,20 @@ private fun ChannelRow(
 				modifier = Modifier
 					.fillMaxWidth()
 					.focusProperties {
-						// Dos casos se dejan a Compose. Sin guía —sección
-						// cerrada o sin canales— porque apuntar a un
-						// `FocusRequester` que no está atado a nada lanza. Y
-						// buscando, porque entre la cabecera y la guía está el
-						// campo de texto y saltárselo sería peor que el atasco
-						// que esto viene a arreglar. Medido en la caja: hoy
-						// ARRIBA desde el campo no sube a la cabecera, así que
-						// esa segunda rama no se alcanza con el mando; se deja
-						// escrita para que siga siendo correcta si algún día
-						// sube.
-						down = if (hayGuia && !buscando) focoGuia else FocusRequester.Default
+						// Buscando, ABAJO va al campo de texto, que está entre
+						// la cabecera y la guía. **Hay que decirlo**: medido en
+						// la caja el 05-oct, dejándolo a Compose se salta el
+						// campo y aterriza en la guía, aunque el campo esté
+						// justo debajo y ocupe todo el ancho.
+						//
+						// Sin guía —sección cerrada o sin canales— se deja a
+						// Compose de verdad, porque apuntar a un
+						// `FocusRequester` que no está atado a nada lanza.
+						down = when {
+							buscando -> focoCampo
+							hayGuia -> focoGuia
+							else -> FocusRequester.Default
+						}
 					},
 				verticalAlignment = Alignment.CenterVertically,
 			) {
@@ -306,6 +311,7 @@ private fun ChannelRow(
 				Button(
 					onClick = { buscando = true },
 					contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+					modifier = Modifier.focusRequester(focoBuscar),
 				) {
 					Text(text = "Buscar canal", fontSize = 13.sp)
 				}
@@ -376,6 +382,12 @@ private fun ChannelRow(
 					onConsultaChange = { consulta = it },
 					onCerrar = { cerrarBusqueda() },
 					onBajar = { bajarAResultados++ },
+					// Vuelve al botón que abrió la búsqueda, que es de donde se
+					// venía. Desde ahí ABAJO baja otra vez al campo, porque la
+					// cabecera deja ese caso a Compose y el campo está
+					// justo debajo y ocupa todo el ancho.
+					onSubir = { focoBuscar.requestFocus() },
+					foco = focoCampo,
 					acento = Color(catalog.brand.accent),
 				)
 			}
