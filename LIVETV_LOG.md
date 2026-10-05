@@ -234,8 +234,8 @@ un frame congelado.
 | ~~40~~ | ~~**`REGISTRY_URL` ya se puede fijar**~~ | — | **cerrado 04-oct:** compilada en `BuildConfig`, con override por preferencias para apuntar a un registro de pruebas |
 | ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
-| 43 | **`TARGET_OFFSET_SATELLITE_MS` está muerto** | B | documentado en `LiveTuning` como el valor de los canales satelitales, pero `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: 8000` y no lo usa nadie. Hoy no estorba —el servidor calcula el offset por canal desde la ventana medida, que es mejor— pero quien lea `LiveTuning` creerá que los satelitales van a 12 s |
-| 44 | **`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa** | B / **M** | registra `offset.superaLaVentana` y le pasa a Media3 lo pedido igual. Lo que de verdad impone media ventana es la vuelta al borde, que actúa sobre el offset **real**, no sobre el pedido. Corregir el comentario es Modo B; aplicar el tope de verdad cambia comportamiento y es Modo A |
+| ~~43~~ | ~~**`TARGET_OFFSET_SATELLITE_MS` está muerto**~~ | — | **cerrado 05-oct: retirado.** No lo usaba nadie y además el valor era malo: con la ventana de ~22 s que sirve producción, 12 s pasa del techo de media ventana. Lo que queda en `LiveTuning` es el de fábrica, con la escalera `servidor ?: canal ?: 8000` escrita al lado para que no haga falta abrir `PlanBuilder` para saber quién manda |
+| ~~44~~ | ~~**`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa**~~ | — | **cerrado 05-oct en su mitad de Modo B:** pasa a llamarse `TARGET_OFFSET_WINDOW_WARN_FRACTION`, y el local y la clave del registro dejan de decir «techo». El comportamiento no cambia y no tenía que cambiar: quien protege de verdad es la vuelta al borde, sobre el offset **real**. **Recortar lo pedido sigue sin hacerse y sería Modo A.** Para saber si hace falta, el instrumento ya está puesto: que un site empiece a escribir `offset.superaLaVentana` es la señal, y lo primero que diría es que el `config.json` de ese site pide un offset que su ventana no da |
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
@@ -247,6 +247,51 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #43 y #44 — Dos constantes de sintonía que mentían — 2026-10-05
+
+Las dos salieron de releer `LiveTuning.kt` con la regla 7 delante —«cero
+números mágicos, toda la sintonía aquí»—. El problema es que una constante
+que nadie usa, o que no hace lo que dice, es **peor** que un número mágico:
+el número mágico al menos no promete nada.
+
+**43 — `TARGET_OFFSET_SATELLITE_MS = 12_000L` no lo leía nadie.**
+`PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: TARGET_OFFSET_DEFAULT_MS`,
+y ahí no aparece. Quien abriera el archivo se iba creyendo que los canales
+satelitales van a 12 s cuando van a 8.
+
+Y el valor, además, es **el equivocado para producción**. Medido el 03-oct:
+los streams sin `segment_count` propio —todos menos `mileniosd` y `beisbol`—
+sirven 4 segmentos de ~5,5 s, o sea ~22 s de ventana. Media ventana son 11 s.
+Se retira.
+
+Lo que ocupa su sitio es la escalera escrita en el KDoc del valor de fábrica,
+para no tener que abrir `PlanBuilder` para saber quién manda, y el motivo por
+el que una constante no podía ganar nunca: **la ventana depende del
+`segment_count` de cada stream**, así que el valor bueno lo calcula el
+generador del `config.json` canal por canal desde lo que le dice Flussonic.
+
+**44 — `TARGET_OFFSET_MAX_WINDOW_FRACTION` decía «nunca puede pasar de».**
+Pasa perfectamente: el código registra `offset.superaLaVentana` y le entrega a
+Media3 lo pedido sin tocarlo.
+
+Lo interesante es que **el código estaba bien y la documentación mal**, no al
+revés. Recortar el offset pedido no habría arreglado nada, porque el que rompe
+el canal no es el pedido sino el **real**: tras un corte el reproductor retoma
+donde estaba, el offset crece solo y no vuelve. De eso ya protege la vuelta al
+borde (`LIVE_EDGE_RESYNC_WINDOW_FRACTION`, la misma fracción), que mira el
+offset real y salta al directo antes de salirse de la ventana.
+
+Así que el aviso no sobra: lo que compra es **saber de quién es la culpa**. Un
+offset pedido por encima del umbral señala un `config.json` mal generado para
+ese stream, y eso se arregla en el generador, no en la caja.
+
+Pasa a llamarse `TARGET_OFFSET_WINDOW_WARN_FRACTION`, y con él el local
+`ceiling` → `umbral` y la clave `techoMs` → `umbralMs`. Nada de comportamiento
+cambia; aplicar el recorte de verdad sería Modo A y hoy nada lo pide.
+
+**La mención histórica del 23-sep no se reescribe**, que es una bitácora: se le
+añade entre guiones el nombre de hoy y la aclaración de que no fija nada.
 
 ### #39 — El foco no bajaba de la cabecera a la guía — 2026-10-05
 
@@ -3870,7 +3915,9 @@ reintentos de carga, frames perdidos y `BEHIND_LIVE_WINDOW`.
 
 **Observación para M2:** el offset real quedó en 10.5 s sobre una ventana de
 18.59 s en `beisbol`. Por encima de la mitad de la ventana, que es el techo que
-fija `LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION`. En `beisbol` no molesta;
+fija `LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION` —hoy
+`TARGET_OFFSET_WINDOW_WARN_FRACTION`, y no fija nada: avisa (pendiente 44)—.
+En `beisbol` no molesta;
 en `hbohd`, con 13.88 s de ventana, sí. Refuerza el pendiente 17.
 
 ---

@@ -45,22 +45,53 @@ object LiveTuning {
 	const val READ_TIMEOUT_MS = 30_000
 
 	// --- Live offset --------------------------------------------------------
-	/** Canales sin particularidades (TotalPlay). */
+	/**
+	 * El valor de fábrica, y el último de la escalera.
+	 *
+	 * `PlanBuilder.offsetDe()` resuelve `servidor ?: canal ?: este`, así que
+	 * esto solo gobierna un canal del que nadie dijo nada. **El valor bueno lo
+	 * calcula el generador del `config.json` por canal**, desde la ventana DVR
+	 * que le da la API de Flussonic, y eso es mejor que cualquier constante:
+	 * la ventana depende del `segment_count` de cada stream.
+	 *
+	 * Aquí vivió un `TARGET_OFFSET_SATELLITE_MS = 12_000L` que **no usaba
+	 * nadie**, y se retiró el 05-oct por dos motivos. El primero es que mentía:
+	 * quien leyera este archivo creería que los satelitales van a 12 s cuando
+	 * van a 8. El segundo es que además era un valor equivocado — medido el
+	 * 03-oct sobre producción, los streams sin `segment_count` propio sirven
+	 * 4 segmentos de ~5,5 s, o sea una ventana de ~22 s, y el techo de media
+	 * ventana deja el offset por debajo de ~11 s (`CLAUDE.md` §6).
+	 */
 	const val TARGET_OFFSET_DEFAULT_MS = 8_000L
 
-	/** Satelitales: banda Ku, la lluvia es frecuente y el colchón compra resiliencia. */
-	const val TARGET_OFFSET_SATELLITE_MS = 12_000L
-
 	/**
-	 * El `targetOffsetMs` nunca puede pasar de esta fracción de la ventana DVR
-	 * medida del playlist.
+	 * A partir de esta fracción de la ventana DVR, el offset **pedido** se
+	 * registra como sospechoso.
+	 *
+	 * **Avisa, no recorta**, y el nombre lo dice desde el 05-oct: antes se
+	 * llamaba `…MAX_WINDOW_FRACTION` y su documentación decía «nunca puede
+	 * pasar», que era falso. `offset.superaLaVentana` se escribe en el registro
+	 * y a Media3 se le pasa lo pedido igual.
+	 *
+	 * Eso no es un descuido, porque **el que de verdad protege es otro**: la
+	 * vuelta al borde ([LIVE_EDGE_RESYNC_WINDOW_FRACTION], misma fracción)
+	 * actúa sobre el offset **real** y salta al directo antes de que la
+	 * posición se salga. Lo pedido es una intención; lo real es lo que rompe el
+	 * canal, y es sobre lo real donde hay que actuar.
+	 *
+	 * Lo que este aviso sí compra es saber **de quién es la culpa**: un offset
+	 * pedido por encima del techo señala un `config.json` mal generado para ese
+	 * stream, y eso se arregla en el generador, no en la caja.
+	 *
+	 * Recortar de verdad lo pedido cambiaría el comportamiento de
+	 * reproducción, así que sería Modo A con validación en pantalla.
 	 *
 	 * Medido el 2026-09-22: con `segment_count 6`, `hbohd-70w` daba una ventana
 	 * de 13.88 s. Un offset de 12 s dejaba 1.9 s antes de BEHIND_LIVE_WINDOW: el
 	 * colchón pensado para la lluvia era justo lo que rompía el canal. Ver
 	 * CHANNELS.md §2.bis.
 	 */
-	const val TARGET_OFFSET_MAX_WINDOW_FRACTION = 0.5
+	const val TARGET_OFFSET_WINDOW_WARN_FRACTION = 0.5
 
 	// --- Playlist detenido ---------------------------------------------------
 

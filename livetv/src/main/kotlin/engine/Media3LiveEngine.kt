@@ -962,10 +962,15 @@ class Media3LiveEngine(
 			if (durationMs == C.TIME_UNSET || durationMs <= 0) return
 			windowDurationMs = durationMs
 
-			// El offset tiene un techo y un suelo, y el que manda es el suelo.
+			// El offset pedido se compara contra dos referencias, y **ninguna
+			// de las dos lo recorta aquí**: las dos se registran.
 			//
-			// Techo: más de la mitad de la ventana acaba en BEHIND_LIVE_WINDOW
-			// en cuanto hay un hipo de red (medido en hbohd, CHANNELS.md §2.bis).
+			// Por arriba: más de la mitad de la ventana acaba en
+			// BEHIND_LIVE_WINDOW en cuanto hay un hipo de red (medido en
+			// hbohd, CHANNELS.md §2.bis). Quien de verdad protege de eso es la
+			// vuelta al borde, más abajo, porque actúa sobre el offset **real**
+			// y no sobre lo que alguien pidió. Este aviso dice de quién es la
+			// culpa: un `config.json` mal generado para ese stream.
 			//
 			// Suelo: sin `EXT-X-SERVER-CONTROL` la especificación HLS fija el
 			// margen seguro en 3 × TARGETDURATION y Media3 no baja de ahí. Lo
@@ -973,13 +978,13 @@ class Media3LiveEngine(
 			// alguien perdiera un día preguntándose por qué el config.json no
 			// hace nada.
 			val target = activeTargetOffsetMs
-			val ceiling = (durationMs * LiveTuning.TARGET_OFFSET_MAX_WINDOW_FRACTION).toLong()
-			if (target > ceiling) {
+			val umbral = (durationMs * LiveTuning.TARGET_OFFSET_WINDOW_WARN_FRACTION).toLong()
+			if (target > umbral) {
 				LiveLog.warn(
 					"offset.superaLaVentana",
 					"pedidoMs" to target,
 					"ventanaMs" to durationMs,
-					"techoMs" to ceiling,
+					"umbralMs" to umbral,
 				)
 			}
 
