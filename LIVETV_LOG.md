@@ -230,7 +230,7 @@ un frame congelado.
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. **Queda pendiente en la guía**: las tarjetas siguen sin logo, y con 120 canales es como se reconoce un canal de un vistazo |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
 | ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct: la app se llama Palco.** Logotipo, icono y banner propios en vector, `applicationId` `mx.kataliziador.palco`. Queda **comprobar el nombre en IMPI (clases 38 y 41) y en la Play Console**: está elegido, no verificado |
-| 39 | **De la cabecera de la sección no se puede bajar a la guía** | B | con el foco en «Buscar canal» o «Diagnóstico», ABAJO no hace nada: hay que ir a la izquierda primero. Es anterior a lo de hoy —comprobado contra `8ffaf90`— y no tiene que ver con el refresco. Se arregla con `focusProperties { down = … }` en la fila de cabecera apuntando a la guía |
+| ~~39~~ | ~~**De la cabecera de la sección no se puede bajar a la guía**~~ | — | **cerrado 05-oct.** Era la búsqueda de foco geométrica de Compose: los dos botones viven a la derecha de donde acaba la fila de tarjetas, así que debajo no hay nada que encontrar. `focusProperties { down = … }` en la fila de cabecera, que los hijos heredan. Medido por `uiautomator` en la caja: desde «Buscar canal» y desde «Diagnóstico», ABAJO deja el foco en la tarjeta 101 |
 | ~~40~~ | ~~**`REGISTRY_URL` ya se puede fijar**~~ | — | **cerrado 04-oct:** compilada en `BuildConfig`, con override por preferencias para apuntar a un registro de pruebas |
 | ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
 | 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
@@ -239,6 +239,7 @@ un frame congelado.
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
 | 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
 | 47 | **En Android < 7.1.1 el logo de marca del registro no carga** | B | predicho en `PETICION_APK` §3 y confirmado el 05-oct en API 22: la autorización entra y el logo no, porque lo pide Coil con OkHttp y la confianza del sistema. **Cae con elegancia** —sale el nombre en lugar del logo— y solo afecta a cajas viejas. **No se arregla tocando el `ImageLoader` global**: es el mismo que usa el VOD, y ampliar la confianza de todas las imágenes para arreglar un logo es mal negocio. Si se arregla, con un cargador propio para los logos de marca |
+| 48 | **Con la búsqueda abierta, ARRIBA no vuelve a la cabecera** | B | medido con `uiautomator` el 05-oct al cerrar el 39: desde el campo de texto, ARRIBA deja el foco donde estaba. La salida que sí funciona es ATRÁS, que cierra la búsqueda, así que nadie se queda encerrado. Es un roce, no un atasco, y es el mismo problema geométrico del 39 en el otro sentido |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | 25 | **`engine.attach` se llama ~2 veces por segundo mientras reproduce** | **M5** | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -246,6 +247,52 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #39 — El foco no bajaba de la cabecera a la guía — 2026-10-05
+
+Con el foco en «Buscar canal» o en «Diagnóstico», ABAJO no hacía nada. Para
+volver a los canales había que ir primero a la izquierda. Es el camino que se
+recorre cada vez que se sale del menú de diagnóstico, así que se sufría a
+diario.
+
+**La causa no era el orden de los nodos, era la geometría.** La búsqueda de
+foco de Compose mira hacia dónde apunta la tecla y busca un candidato **en esa
+dirección**. Los dos botones de cabecera están pegados al borde derecho; la
+fila de tarjetas más ancha acaba mucho antes. Debajo de ellos no hay nada, así
+que no hay a qué ir, y no es un fallo: es la regla funcionando sobre una
+disposición que la deja sin candidatos.
+
+**El arreglo es una línea, y aprovecha que las `FocusProperties` se heredan:**
+se declara en la fila que contiene a los dos botones, no en cada uno.
+
+```kotlin
+.focusProperties { down = if (hayGuia && !buscando) focoGuia else FocusRequester.Default }
+```
+
+`hayGuia` no es decoración. Apuntar a un `FocusRequester` que no está atado a
+ningún nodo lanza, y la guía no existe cuando la sección está denegada o el
+catálogo llegó vacío — que son exactamente los dos estados donde la cabecera
+sigue en pantalla.
+
+**Medido en la caja con `uiautomator`, no a ojo**, porque un anillo de foco en
+una captura es fácil de leer mal:
+
+```
+Buscar canal   [1410,230][1614,326]  → ABAJO → [86,424][442,624]   ← tarjeta 101
+Diagnóstico    [1630,230][1824,326]  → ABAJO → [86,424][442,624]   ← tarjeta 101
+```
+
+**Lo que se intentó verificar y no se pudo:** la rama `!buscando`. Con la
+búsqueda abierta, ARRIBA desde el campo de texto no sube a la cabecera —se
+queda en el campo—, así que hoy no hay forma de llegar a esa rama con el mando.
+Se deja escrita porque sigue siendo la respuesta correcta si algún día sube, y
+queda anotada como pendiente 48.
+
+**Y una trampa del entorno que cuesta media hora cada vez que se olvida:** el
+teclado en pantalla de Leanback se traga ARRIBA y ABAJO. La primera tanda de
+pulsaciones no llegó nunca a la app; se las comió el IME. `CLAUDE.md` §9 ya lo
+avisa para el emulador y vale igual para la caja: `adb shell ime disable <id>`
+antes de automatizar nada.
 
 ### B7 — La parte de Play que es código, y la que no — 2026-10-05
 

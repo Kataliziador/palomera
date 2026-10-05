@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -179,6 +181,10 @@ private fun ChannelRow(
 		else -> listOf(ChannelSection("__busqueda", "Resultados", resultados))
 	}
 
+	// El destino de ABAJO desde la cabecera. Se ata a la guía más abajo.
+	val focoGuia = remember { FocusRequester() }
+	val hayGuia = catalog.acceso !is Acceso.Denegado && secciones.isNotEmpty()
+
 	fun cerrarBusqueda() {
 		buscando = false
 		consulta = ""
@@ -234,8 +240,31 @@ private fun ChannelRow(
 			// Diagnóstico del tamaño de una tarjeta— y empujaba los canales
 			// media pantalla hacia abajo. **Lo que la gente viene a ver son los
 			// canales**, así que el resto se aparta a una sola línea.
+			// **ABAJO desde la cabecera vuelve a la guía, y hay que decirlo a
+			// mano.** La búsqueda de foco de Compose es geométrica, y los
+			// botones de la cabecera están a la derecha del todo, más allá de
+			// donde acaba la fila de tarjetas más ancha: debajo de ellos no hay
+			// nada que encontrar. El resultado era un atasco — se subía a
+			// «Diagnóstico» y no se podía volver sin ir primero a la izquierda.
+			//
+			// `focusProperties` se hereda, así que ponerlo en la fila cubre los
+			// dos botones sin repetirlo.
 			Row(
-				modifier = Modifier.fillMaxWidth(),
+				modifier = Modifier
+					.fillMaxWidth()
+					.focusProperties {
+						// Dos casos se dejan a Compose. Sin guía —sección
+						// cerrada o sin canales— porque apuntar a un
+						// `FocusRequester` que no está atado a nada lanza. Y
+						// buscando, porque entre la cabecera y la guía está el
+						// campo de texto y saltárselo sería peor que el atasco
+						// que esto viene a arreglar. Medido en la caja: hoy
+						// ARRIBA desde el campo no sube a la cabecera, así que
+						// esa segunda rama no se alcanza con el mando; se deja
+						// escrita para que siga siendo correcta si algún día
+						// sube.
+						down = if (hayGuia && !buscando) focoGuia else FocusRequester.Default
+					},
 				verticalAlignment = Alignment.CenterVertically,
 			) {
 				LogoDeMarca(catalog.brand)
@@ -385,6 +414,7 @@ private fun ChannelRow(
 					idConFoco = if (buscando) resultados.firstOrNull()?.id else idInicial,
 					tomarFoco = !buscando,
 					enfocar = bajarAResultados,
+					modifier = Modifier.focusRequester(focoGuia),
 				)
 			}
 		}
