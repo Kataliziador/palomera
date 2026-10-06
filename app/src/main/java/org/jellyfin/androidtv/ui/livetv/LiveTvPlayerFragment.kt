@@ -33,6 +33,10 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
@@ -613,17 +617,42 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		// y la vista cambia muy de vez en cuando.
 		var vista by remember { mutableStateOf<SurfaceView?>(null) }
 
-		AndroidView(
-			modifier = Modifier.fillMaxSize(),
-			// SurfaceView, nunca TextureView (CLAUDE.md §6).
-			factory = { ctx -> SurfaceView(ctx).also { vista = it } },
-			update = { view ->
-				// El camino anterior, que el interruptor conserva para poder
-				// comparar en pantalla si algún modelo se queda sin imagen.
-				if (!dev.attachSoloAlCambiar) engine.attach(view)
-				AspectoDeVideo.aplicar(view, aspecto, stats)
-			},
-		)
+		// **La superficie se dimensiona, no se escala.**
+		//
+		// `scaleX`/`scaleY` sobre un `SurfaceView` no llegan a la imagen: la
+		// compone el sistema aparte del árbol de vistas. Lo que sí fija sus
+		// límites es el tamaño que se le da al disponerla, que es lo que hace
+		// el `AspectRatioFrameLayout` del `PlayerView` de Media3 — la pieza que
+		// este módulo no usa.
+		BoxWithConstraints(
+			modifier = Modifier.fillMaxSize().clipToBounds(),
+			contentAlignment = Alignment.Center,
+		) {
+			val tamano = if (dev.superficieDimensionada) {
+				AspectoDeVideo.tamanoDe(aspecto, stats, constraints.maxWidth, constraints.maxHeight)
+			} else {
+				null
+			}
+			val densidad = LocalDensity.current
+
+			AndroidView(
+				modifier = if (tamano == null) {
+					Modifier.fillMaxSize()
+				} else {
+					with(densidad) { Modifier.size(tamano.first.toDp(), tamano.second.toDp()) }
+				},
+				// SurfaceView, nunca TextureView (CLAUDE.md §6).
+				factory = { ctx -> SurfaceView(ctx).also { vista = it } },
+				update = { view ->
+					// El camino anterior, que el interruptor conserva para poder
+					// comparar en pantalla si algún modelo se queda sin imagen.
+					if (!dev.attachSoloAlCambiar) engine.attach(view)
+					// Y el escalado anterior, que solo se aplica cuando no se
+					// dimensiona: mezclar los dos escalaría dos veces.
+					if (!dev.superficieDimensionada) AspectoDeVideo.aplicar(view, aspecto, stats)
+				},
+			)
+		}
 
 		// La superficie se entrega cuando existe; `prepare` no la necesita de
 		// antemano y Media3 la acepta en caliente. Las dos claves importan: el

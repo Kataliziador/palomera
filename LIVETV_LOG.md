@@ -241,7 +241,7 @@ un frame congelado.
 | ~~47~~ | ~~**En Android < 7.1.1 el logo de marca del registro no carga**~~ | — | **cerrado 05-oct con un cargador propio** (`LogoLoader`), tal como decía la nota: el `ImageLoader` global no se toca, porque es el del VOD. Verificado en el emulador de API 22 contra el registro de producción: `marcaOrigen=registro` y el logo **en pantalla**, sin `marca.logoSinConfianzaAmpliada` y sin error de TLS |
 | ~~48~~ | ~~**Con la búsqueda abierta, ARRIBA no vuelve a la cabecera**~~ | — | **cerrado 05-oct.** No era geométrico: `BasicTextField` se queda las flechas, igual que ya pasaba con ABAJO. Al arreglarlo salió un fallo mayor —el campo actuaba sobre teclas que no se habían pulsado en él— que es lo que de verdad cerró este pendiente. Medido: el bucle cabecera ↔ campo ↔ guía funciona en los dos sentidos |
 | ~~49~~ | ~~**El logo de marca del site `pruebas` es el de Jellyfin**~~ | — | **cerrado 06-oct.** Edgar subió `palco-logo.png` desde el panel. Verificado de punta a punta: el registro sirve `marca/9fe751e3e75e6dc6.png`, cuyo SHA-256 coincide con el nuestro —ni recompresión ni recorte por el camino—, y la caja dibuja el logo en vez del nombre con `marcaOrigen=registro` |
-| 50 | **Los modos de imagen no se ven cambiar** | **M5** | Edgar, 06-oct: recorre Ajustar / Llenar / Zoom / 4:3 / 16:9 y la imagen no varía. **Parte es por diseño y conviene no confundirla:** cinco de los seis canales se presentan 16:9 en una pantalla 16:9 —incluido `estrellashd`, que es 1440×1080 con SAR 4:3—, y ahí Ajustar, Llenar y 16:9 calculan escala 1.000, o sea lo mismo. Solo Zoom (×1.12) y 4:3 (×1.33 en Y) deberían verse, y el único canal donde los cinco difieren es `estrellassd`. Lo que falta por saber es si Zoom y 4:3 tampoco hacen nada: si el log dice escalas distintas y la pantalla no cambia, el problema es que la superficie no respeta la transformación de la vista; si dice 1.000 en todo, es el cálculo. Instrumentado el 06-oct con `aspecto.aplicado`, `aspecto.sinVista` y `aspecto.sinVideo` |
+| 50 | **Los modos de imagen no se ven cambiar — y el SAR no se respetaba** | **M5 — pendiente de validación en pantalla** | Edgar, 06-oct: recorre Ajustar / Llenar / Zoom / 4:3 / 16:9 y la imagen no varía. **Parte es por diseño y conviene no confundirla:** cinco de los seis canales se presentan 16:9 en una pantalla 16:9 —incluido `estrellashd`, que es 1440×1080 con SAR 4:3—, y ahí Ajustar, Llenar y 16:9 calculan escala 1.000, o sea lo mismo. Solo Zoom (×1.12) y 4:3 (×1.33 en Y) deberían verse, y el único canal donde los cinco difieren es `estrellassd`. Lo que falta por saber es si Zoom y 4:3 tampoco hacen nada: si el log dice escalas distintas y la pantalla no cambia, el problema es que la superficie no respeta la transformación de la vista; si dice 1.000 en todo, es el cálculo. **Diagnosticado y arreglado el 06-oct detrás de «Dimensionar la superficie», apagado de fábrica.** El log zanjó la duda: las escalas salían bien y distintas —1.333, 1.493, 1.000— y la pantalla no cambiaba, así que la transformación de la vista no llega a la superficie. Y al mirar por qué, salió lo gordo: **nadie fija el modo de escalado del códec**, así que MediaCodec estira el vídeo hasta las dimensiones de la superficie, que siempre era la pantalla entera — los dos anamórficos llevaban saliendo deformados. Ahora se dimensiona la superficie. Medido por `SurfaceFlinger`: `estrellassd` pasa de 1920×1080 a **1440×1080** |
 | 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | 24 | **El decodificador AVC de Amlogic ignora el pulldown de H.264** | **M5 / headend** | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend
@@ -249,6 +249,77 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #50 — El SAR se leía bien y no llegaba a la pantalla — 2026-10-06
+
+Edgar recorrió los cinco modos de imagen y no vio cambiar nada. La primera
+hipótesis —que gran parte fuera por diseño— era cierta pero no era el fallo:
+cinco de los seis canales se presentan 16:9 en una pantalla 16:9, y ahí
+Ajustar, Llenar y 16:9 calculan lo mismo. Lo que había que saber era si Zoom y
+4:3 tampoco hacían nada.
+
+**No se podía mirar.** En esta caja `screencap` devuelve el búfer vacío sobre el
+reproductor, con tunneled y sin él. Así que se instrumentó el cálculo, y el log
+zanjó la pregunta en una pasada sobre `estrellassd`:
+
+```
+FILL        escalaX=1.333  escalaY=1.333
+ZOOM        escalaX=1.493  escalaY=1.493
+RATIO_4_3   escalaX=1.000  escalaY=1.000
+RATIO_16_9  escalaX=1.333  escalaY=1.000
+```
+
+Escalas correctas, distintas entre sí, y un 33 % de estiramiento horizontal que
+es imposible no ver. **La transformación de la vista no llega a la superficie.**
+Un `SurfaceView` lo compone el sistema aparte del árbol de vistas, y `scaleX` /
+`scaleY` no lo alcanzan.
+
+#### Y debajo había algo peor
+
+Al mirar por qué, salió lo que de verdad importa: **nadie fija el modo de
+escalado del códec**. MediaCodec usa el suyo de fábrica, `SCALE_TO_FIT`, que
+estira el vídeo hasta las dimensiones de la superficie **sin respetar la
+proporción**. Con la superficie siempre a pantalla completa, eso significa que
+`estrellassd` llevaba saliendo deformada —4:3 estirado a 16:9— y que «Ajustar»
+no corregía nada.
+
+El comentario de `AspectoDeVideo` decía «el punto de partida ya es correcto:
+con el SAR respetado, los seis canales salen con su proporción real en modo
+FIT». Era una suposición que nadie había comprobado, y era falsa. El SAR se
+leía bien —`sar=1.1764706` en el log— y no se aplicaba a nada.
+
+Vale la pena ver cómo se escondió: el dato correcto estaba en el log desde
+siempre, y eso daba la sensación de que el trabajo estaba hecho. Leer un valor
+y usarlo son cosas distintas, y aquí solo pasaba la primera.
+
+#### El arreglo
+
+No escalar la vista: **dimensionar la superficie**. Es lo que hace el
+`AspectRatioFrameLayout` del `PlayerView` de Media3, que es justo la pieza que
+este módulo no usa. El códec sigue estirando hasta llenar su caja, pero la caja
+ya tiene la forma buena.
+
+`FIT`, `4:3` y `16:9` **caben dentro** de la pantalla; `FILL` y `ZOOM`
+**cubren**, saliéndose por el lado corto, que es lo que pide quien no quiere
+franjas.
+
+Medido con `SurfaceFlinger`, que es el único instrumento que ve la superficie
+en esta caja:
+
+| Canal | Proporción | Superficie antes | Ahora |
+|---|---|---|---|
+| `mileniosd` | 1.778 | 1920×1080 | 1920×1080 |
+| `once` | 1.814 | 1920×1080 | **1920×1058** |
+| `estrellassd` | 1.333 | 1920×1080 | **1440×1080** |
+
+El primero no cambia y es correcto que no cambie: un 16:9 en una pantalla 16:9
+no tiene nada que corregir. Los otros dos son la diferencia entre la imagen
+real y la deformada.
+
+**Queda la validación en pantalla**, que es lo único que distingue «la
+superficie tiene la forma buena» de «la imagen se ve bien»: en particular si
+`FILL` y `ZOOM` se recortan limpiamente al salirse de la pantalla, que es la
+parte que `SurfaceFlinger` no responde.
 
 ### #21 — La etiqueta que no servía para lo que creíamos — 2026-10-06
 

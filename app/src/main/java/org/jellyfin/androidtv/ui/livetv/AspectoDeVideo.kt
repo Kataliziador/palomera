@@ -37,6 +37,86 @@ object AspectoDeVideo {
 	)
 
 	/**
+	 * El tamaño en píxeles que debe tener la superficie, o `null` si aún no se
+	 * sabe.
+	 *
+	 * ## Por qué se dimensiona y no se escala
+	 *
+	 * Escalar la vista **no funciona**. Medido el 06-oct en la caja de pruebas
+	 * sobre `estrellassd`: `scaleX`/`scaleY` se calculaban bien y distintos por
+	 * modo —1.333, 1.493, 1.000— y la imagen no cambiaba. La superficie de un
+	 * `SurfaceView` la compone el sistema aparte del árbol de vistas, y la
+	 * transformación de la vista no la alcanza.
+	 *
+	 * Lo que sí la alcanza es su **tamaño de disposición**, porque es lo que
+	 * fija los límites de la superficie. Es lo mismo que hace el
+	 * `AspectRatioFrameLayout` del `PlayerView` de Media3, que es justo la
+	 * pieza que este módulo no usa.
+	 *
+	 * ## Y por qué esto arregla algo más gordo que los modos manuales
+	 *
+	 * Nadie fija el modo de escalado del códec, así que MediaCodec usa el suyo
+	 * de fábrica: `SCALE_TO_FIT`, que **estira el vídeo hasta las dimensiones
+	 * de la superficie sin respetar la proporción**. Con la superficie siempre
+	 * a pantalla completa, eso significa que un canal 4:3 llevaba saliendo
+	 * deformado a 16:9 — y que «Ajustar» no corregía nada, porque daba por
+	 * hecho que Media3 respetaba la proporción y eso solo lo hace su
+	 * `PlayerView`.
+	 *
+	 * Dimensionar la superficie a la proporción real del vídeo convierte ese
+	 * estiramiento en lo correcto: el códec llena exactamente la caja que se le
+	 * da, y la caja ya tiene la forma buena.
+	 */
+	fun tamanoDe(
+		mode: AspectMode,
+		stats: EngineStats,
+		anchoVista: Int,
+		altoVista: Int,
+	): Pair<Int, Int>? {
+		if (anchoVista <= 0 || altoVista <= 0) return null
+		val anchoVideo = stats.videoWidth * stats.pixelAspectRatio
+		val altoVideo = stats.videoHeight.toFloat()
+		if (anchoVideo <= 0f || altoVideo <= 0f) return null
+
+		val proporcionVideo = anchoVideo / altoVideo
+		val objetivo = when (mode) {
+			// La proporción real, SAR incluido.
+			AspectMode.FIT, AspectMode.FILL, AspectMode.ZOOM -> proporcionVideo
+			// Forzadas: la caja tiene la forma pedida y el códec estira el
+			// vídeo dentro. Es la misma deformación que hacía el escalado, pero
+			// esta sí llega a la pantalla.
+			AspectMode.RATIO_4_3 -> 4f / 3f
+			AspectMode.RATIO_16_9 -> 16f / 9f
+		}
+
+		val proporcionVista = anchoVista.toFloat() / altoVista.toFloat()
+
+		// `FILL` y `ZOOM` **cubren**: la superficie se sale de la pantalla y lo
+		// que sobra se pierde, que es lo que pide quien no quiere franjas. Los
+		// demás **caben dentro**.
+		val cubrir = mode == AspectMode.FILL || mode == AspectMode.ZOOM
+		val masAncho = objetivo > proporcionVista
+		val ajustarPorAncho = if (cubrir) !masAncho else masAncho
+
+		val extra = if (mode == AspectMode.ZOOM) ZOOM_EXTRA else 1f
+
+		val ancho: Float
+		val alto: Float
+		if (ajustarPorAncho) {
+			ancho = anchoVista * extra
+			alto = ancho / objetivo
+		} else {
+			alto = altoVista * extra
+			ancho = alto * objetivo
+		}
+
+		return ancho.toInt().coerceAtLeast(1) to alto.toInt().coerceAtLeast(1)
+	}
+
+	/** El zoom aprieta un poco más: es el modo para quitar las franjas de un 4:3 en un 16:9. */
+	private const val ZOOM_EXTRA = 1.12f
+
+	/**
 	 * Escala la superficie para el modo pedido.
 	 *
 	 * `FIT` no toca nada: la superficie ya ocupa la pantalla y Media3 entrega

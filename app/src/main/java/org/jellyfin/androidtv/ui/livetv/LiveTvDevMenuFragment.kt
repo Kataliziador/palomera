@@ -230,6 +230,16 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Dimensionar la superficie (respeta el SAR)",
+				value = if (dev.superficieDimensionada) "DIMENSIONADA" else "a pantalla completa (fábrica)",
+				changed = dev.superficieDimensionada,
+			) { change { dev.superficieDimensionada = !dev.superficieDimensionada } }
+		}
+		item {
+			Info("De fábrica la superficie llena la pantalla y el códec estira el vídeo hasta ella: un canal 4:3 sale deformado y «Ajustar» no corrige nada. Enciéndelo para que los modos de imagen hagan algo.")
+		}
+		item {
+			Row(
 				label = "Entregar la superficie solo al cambiar",
 				value = if (dev.attachSoloAlCambiar) "solo al cambiar (fábrica)" else "EN CADA RECOMPOSICIÓN",
 				changed = !dev.attachSoloAlCambiar,

@@ -260,6 +260,29 @@ class DevOptions(context: Context) {
 	 * repetidas algún modelo se queda sin imagen, este interruptor lo demuestra
 	 * en diez segundos en vez de costar una tarde.
 	 */
+	/**
+	 * Dar a la superficie **el tamaño** que pide el modo de imagen, en vez de
+	 * escalar la vista.
+	 *
+	 * Escalar la vista no llega a la superficie: medido el 06-oct sobre
+	 * `estrellassd`, las escalas salían bien y distintas por modo y la pantalla
+	 * no cambiaba. Un `SurfaceView` lo compone el sistema aparte del árbol de
+	 * vistas; lo que sí fija sus límites es su tamaño de disposición.
+	 *
+	 * **Lo que arregla no son los modos manuales, es el modo normal.** Nadie
+	 * fija el modo de escalado del códec, así que MediaCodec estira el vídeo
+	 * hasta las dimensiones de la superficie sin respetar la proporción. Con la
+	 * superficie siempre a pantalla completa, los dos canales anamórficos
+	 * llevaban saliendo deformados y «Ajustar» no corregía nada.
+	 *
+	 * De fábrica **apagado**, que es el comportamiento anterior (`CLAUDE.md`
+	 * §3). Afecta a lo que se ve en todos los canales, así que se valida en
+	 * pantalla antes de invertirlo.
+	 */
+	var superficieDimensionada: Boolean
+		get() = prefs.getBoolean(K_SUPERFICIE_DIM, false)
+		set(v) = put { putBoolean(K_SUPERFICIE_DIM, v) }
+
 	var attachSoloAlCambiar: Boolean
 		get() = prefs.getBoolean(K_ATTACH_AL_CAMBIAR, true)
 		set(v) = put { putBoolean(K_ATTACH_AL_CAMBIAR, v) }
@@ -385,6 +408,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
+		if (superficieDimensionada) add("superficie dimensionada")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
@@ -451,6 +475,7 @@ class DevOptions(context: Context) {
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 		const val K_REGISTRY_URL = "registryUrlOverride"
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
+		const val K_SUPERFICIE_DIM = "superficieDimensionada"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -458,6 +483,7 @@ class DevOptions(context: Context) {
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
+			K_SUPERFICIE_DIM,
 		)
 
 		const val OVERLAY_OCULTO = 0
