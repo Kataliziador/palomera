@@ -275,12 +275,14 @@ class DevOptions(context: Context) {
 	 * superficie siempre a pantalla completa, los dos canales anamórficos
 	 * llevaban saliendo deformados y «Ajustar» no corregía nada.
 	 *
-	 * De fábrica **apagado**, que es el comportamiento anterior (`CLAUDE.md`
-	 * §3). Afecta a lo que se ve en todos los canales, así que se valida en
-	 * pantalla antes de invertirlo.
+	 * **Activo de fábrica desde el 06-oct**, validado en pantalla por Edgar:
+	 * `estrellassd` sale con sus franjas y sin deformar, `estrellashd` —que es
+	 * 1440×1080 con SAR 4:3— llena la pantalla sin franjas, y los canales 16:9
+	 * no cambian. El interruptor se queda para reproducir el comportamiento
+	 * anterior.
 	 */
 	var superficieDimensionada: Boolean
-		get() = prefs.getBoolean(K_SUPERFICIE_DIM, false)
+		get() = prefs.getBoolean(K_SUPERFICIE_DIM, true)
 		set(v) = put { putBoolean(K_SUPERFICIE_DIM, v) }
 
 	var attachSoloAlCambiar: Boolean
@@ -408,7 +410,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
-		if (superficieDimensionada) add("superficie dimensionada")
+		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")

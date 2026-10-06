@@ -231,12 +231,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Dimensionar la superficie (respeta el SAR)",
-				value = if (dev.superficieDimensionada) "DIMENSIONADA" else "a pantalla completa (fábrica)",
-				changed = dev.superficieDimensionada,
+				value = if (dev.superficieDimensionada) "dimensionada (fábrica)" else "A PANTALLA COMPLETA",
+				changed = !dev.superficieDimensionada,
 			) { change { dev.superficieDimensionada = !dev.superficieDimensionada } }
 		}
 		item {
-			Info("De fábrica la superficie llena la pantalla y el códec estira el vídeo hasta ella: un canal 4:3 sale deformado y «Ajustar» no corrige nada. Enciéndelo para que los modos de imagen hagan algo.")
+			Info("Apagarlo vuelve al comportamiento anterior: la superficie llena la pantalla y el códec estira el vídeo hasta ella, así que un canal 4:3 sale deformado.")
 		}
 		item {
 			Row(
