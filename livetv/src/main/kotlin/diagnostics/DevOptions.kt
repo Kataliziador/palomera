@@ -241,6 +241,30 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_NO_RESYNC, v) }
 
 	/**
+	 * Entregar la superficie al motor **solo cuando cambia**, en vez de en cada
+	 * recomposición.
+	 *
+	 * El `update` de un `AndroidView` corre cada vez que se recompone, y las
+	 * estadísticas del overlay recomponen cada 500 ms: medido, 206 llamadas a
+	 * `engine.attach` en 115 s. Eso **rota el buffer de logcat en menos de un
+	 * minuto**, y M4 y M5 se juzgan mirando la pantalla y el log a la vez.
+	 *
+	 * De fábrica **apagado**, que es el comportamiento anterior (`CLAUDE.md`
+	 * §3). Se enciende, se valida en pantalla y entonces se invierte el valor
+	 * de fábrica — igual que se hizo con el rescate del tunneled.
+	 *
+	 * **Por qué merece un interruptor y no es un arreglo evidente:** `attach`
+	 * vuelve a entregar la superficie al reproductor, y una caja que recree su
+	 * `Surface` por detrás podría estar dependiendo, sin que nadie lo supiera,
+	 * de que eso ocurriera dos veces por segundo. Si al apagar las llamadas
+	 * repetidas algún modelo se queda sin imagen, este interruptor lo demuestra
+	 * en diez segundos en vez de costar una tarde.
+	 */
+	var attachSoloAlCambiar: Boolean
+		get() = prefs.getBoolean(K_ATTACH_AL_CAMBIAR, false)
+		set(v) = put { putBoolean(K_ATTACH_AL_CAMBIAR, v) }
+
+	/**
 	 * Reproducción **tunneled**: el decodificador entrega directamente al
 	 * hardware de pantalla y el SoC gestiona sincronía, desentrelazado y
 	 * cadencia en su propio pipeline.
@@ -361,6 +385,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
+		if (attachSoloAlCambiar) add("attach al cambiar")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
 		if (simularTunneledSinImagen) add("FINGE SIN IMAGEN")
@@ -425,13 +450,14 @@ class DevOptions(context: Context) {
 		const val K_RESCATE_TUNNELED = "rescateTunneledEnabled"
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 		const val K_REGISTRY_URL = "registryUrlOverride"
+		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
 			K_VETOED, K_FORCE_SW, K_FORCED_ENGINE, K_CONFIG_URL, K_STUCK_DEFAULT, K_NO_RESYNC,
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
-			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL,
+			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 		)
 
 		const val OVERLAY_OCULTO = 0

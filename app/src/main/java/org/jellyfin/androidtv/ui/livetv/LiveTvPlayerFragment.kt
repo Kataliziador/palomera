@@ -602,17 +602,36 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				}
 			}
 	) {
+		// **El `update` de un `AndroidView` corre en cada recomposición**, y las
+		// estadísticas del overlay recomponen cada 500 ms. Con `attach` ahí
+		// dentro eran 206 llamadas en 115 s, y el logcat se daba la vuelta en
+		// menos de un minuto — justo el instrumento que hacen falta para juzgar
+		// M4 y M5.
+		//
+		// `AspectoDeVideo.aplicar` **sí** quiere las estadísticas, porque el
+		// tamaño y el SAR del vídeo llegan ahí. `attach` solo quiere la vista,
+		// y la vista cambia muy de vez en cuando.
+		var vista by remember { mutableStateOf<SurfaceView?>(null) }
+
 		AndroidView(
 			modifier = Modifier.fillMaxSize(),
 			// SurfaceView, nunca TextureView (CLAUDE.md §6).
-			factory = { ctx -> SurfaceView(ctx) },
-			// La superficie se entrega cuando existe; `prepare` no la necesita
-			// de antemano y Media3 la acepta en caliente.
+			factory = { ctx -> SurfaceView(ctx).also { vista = it } },
 			update = { view ->
-				engine.attach(view)
+				// El camino anterior, que es el de fábrica hasta que esto se
+				// valide en pantalla (`CLAUDE.md` §3).
+				if (!dev.attachSoloAlCambiar) engine.attach(view)
 				AspectoDeVideo.aplicar(view, aspecto, stats)
 			},
 		)
+
+		// La superficie se entrega cuando existe; `prepare` no la necesita de
+		// antemano y Media3 la acepta en caliente. Las dos claves importan: el
+		// motor se rehace al cambiar de canal y al rescatar el tunneled, y
+		// entonces hay que volver a entregársela aunque la vista sea la misma.
+		LaunchedEffect(engine, vista, dev.attachSoloAlCambiar) {
+			if (dev.attachSoloAlCambiar) vista?.let { engine.attach(it) }
+		}
 
 		if (barraVisible) {
 			val mostrado = enPantalla ?: channel
