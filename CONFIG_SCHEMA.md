@@ -370,8 +370,31 @@ Media3, que no casaría `esl` con `spa`.
 miente: una pista marcada `spa` trae inglés. El abonado puede cambiarla, y su
 elección manda para el resto de la sintonía. Emítelo en **todos** los canales.
 
-`targetOffsetMs` **nunca por encima de la mitad de la ventana DVR del canal**.
-Con `segment_count 12` la ventana ronda los 30 s, así que 8000–12000 va holgado.
+`targetOffsetMs` tiene **un suelo que no se puede bajar y un techo**, y el que
+manda casi siempre es el suelo.
+
+- **Suelo: `3 × EXT-X-TARGETDURATION` del playlist de ese canal.** Es la
+  especificación HLS, no una decisión de Media3: sin `EXT-X-SERVER-CONTROL`, el
+  margen seguro son tres duraciones-objetivo, y pedir menos no hace nada.
+  Emitir la etiqueta **no ayuda**, porque su `HOLD-BACK` tampoco puede valer
+  menos que eso.
+- **Techo: la mitad de la ventana DVR**, que con `segment_count 12` ronda los
+  30 s y rara vez aprieta.
+
+**Calcúlalo por canal desde su `TARGETDURATION` real**, no desde el
+`segment_duration` que pediste: Flussonic corta en keyframes, así que el
+segmento sale más largo que lo configurado y `TARGETDURATION` redondea hacia
+arriba. Medido el 06-oct sobre los seis de desarrollo con `segment_duration 2`:
+
+| `TARGETDURATION` | Suelo | Canales |
+|---|---|---|
+| 3 | 9 s | `beisbol`, `mileniosd`, `discoveryhd`, `hbohd` |
+| 4 | 12 s | `estrellashd` |
+| 5 | 15 s | `estrellassd` |
+
+Pedir 8000 en un canal cuyo suelo son 9000 no rompe nada —la app registra
+`offset.noSeAplica` y sigue—, pero deja un aviso que nadie puede atender. Pide
+el suelo o más.
 
 `enginesAllowed` es un **filtro duro**: un motor ausente de la lista no se elige
 nunca, ni como último recurso, ni aunque lo pida un `deviceOverride`. Úsalo solo

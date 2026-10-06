@@ -215,7 +215,7 @@ un frame congelado.
 | 17 | ~~Subir `segment_count` de 6 a 12~~ | — | **cerrado 23-sep: hecho.** Ventana medida de 29–36 s en todos los canales. Antes:| ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
 | 18 | ~~Aplicar MP2 → AAC a los canales MP2 del lineup~~ | — | **cerrado 26-sep: hecho y verificado.** Los seis canales entregan `aac 48000 Hz 2ch`, incluido `estrellassd-mp2v`, que era el único MP2. Con ello el módulo no necesita decoder de MP2 en ninguna caja |
 | 19 | ~~El fork base trae `media3-ffmpeg-decoder` (GPL-3.0)~~ | — | **cerrado 22-sep: retirado.** Ver entrada abajo |
-| 21 | **Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic** | headend | sin esa etiqueta el offset real lo fija `3 × TARGETDURATION` y el `targetOffsetMs` por canal no se aplica. Medido el 24-sep |
+| ~~21~~ | ~~**Emitir `EXT-X-SERVER-CONTROL` con `HOLD-BACK` en Flussonic**~~ | — | **cerrado 06-oct: no procede, la premisa era falsa.** `HOLD-BACK` **no puede valer menos que `3 × TARGETDURATION`** (RFC 8216bis), que es exactamente el suelo que ya hay sin la etiqueta: emitirla no baja nada. Lo que fija el suelo es `TARGETDURATION`, y ese lo decide el GOP de la fuente, que no se puede acortar sin transcodificar vídeo (§2). La acción real pasa al generador: que calcule `targetOffsetMs` desde el `TARGETDURATION` de cada canal |
 | ~~20~~ | ~~Traer `scan-canales.sh` al repositorio~~ | — | **cerrado 05-oct:** en `herramientas/`, que no se compila ni viaja en el APK (§4.7). Al traerlo se corrigieron dos desfases que lo habrían hecho medir mal: apuntaba a `mono.m3u8` en vez de al master, y su cabecera seguía recomendando decoders de MP2 nativos. Su salida se ignora en git |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
@@ -248,6 +248,60 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### #21 — La etiqueta que no servía para lo que creíamos — 2026-10-06
+
+El pendiente 21 pedía que Flussonic emitiera `EXT-X-SERVER-CONTROL` con un
+`HOLD-BACK` explícito, para recuperar el control del offset que hoy fija
+`3 × TARGETDURATION`. **No sirve, y conviene que quede escrito por qué.**
+
+La especificación (RFC 8216bis, `EXT-X-SERVER-CONTROL`) dice que el valor de
+`HOLD-BACK` **tiene que ser al menos tres veces la duración objetivo**, y que su
+ausencia implica exactamente ese mismo valor. O sea: la etiqueta sólo puede
+**subir** el suelo, nunca bajarlo. Lo que teníamos sin ella era ya el mínimo
+legal.
+
+**Lo que de verdad fija el suelo es `TARGETDURATION`.** Y ese no se configura:
+Flussonic lo deriva del segmento más largo del playlist, redondeando hacia
+arriba. Los segmentos salen más largos que el `segment_duration 2` pedido porque
+se corta en keyframes, así que acaban siendo dos o tres GOP de la fuente.
+
+Medido el 06-oct sobre los seis, con `segment_duration 2` ya aplicado:
+
+| Canal | `TARGETDURATION` | Suelo | Ventana | Margen |
+|---|---|---|---|---|
+| `beisbol` | 3 | 9 s | 33.6 s | 24.6 s |
+| `mileniosd` | 3 | 9 s | 33.6 s | 24.6 s |
+| `discoveryhd` | 3 | 9 s | 31.3 s | 22.3 s |
+| `hbohd` | 3 | 9 s | 33.2 s | 24.2 s |
+| `estrellashd` | 4 | 12 s | 36.0 s | 24.0 s |
+| `estrellassd` | 5 | 15 s | 46.3 s | 31.3 s |
+
+**Acortar el segmento exigiría acortar el GOP, y eso es transcodificar vídeo**,
+que es justo lo que §2 prohíbe. Así que el suelo es el que es.
+
+**La buena noticia la dan las dos últimas columnas.** El miedo del 22-sep —un
+offset que se come la ventana y provoca `BEHIND_LIVE_WINDOW`— ya no existe: con
+`segment_count 12` las ventanas van de 31 a 46 s y el margen sobre el suelo
+nunca baja de 22 s. No hay nada roto que arreglar.
+
+**La acción se mueve de sitio: del headend al generador del `config.json`.** Que
+calcule `targetOffsetMs` desde el `TARGETDURATION` real de cada canal en vez de
+publicar 8000 a todos. Pedir 8000 donde el suelo son 9000 no rompe nada, pero
+deja a la app escribiendo `offset.noSeAplica` por algo que nadie puede atender,
+y un aviso que no se puede atender acaba ignorándose — incluidos los que sí
+importan. Queda en `CONFIG_SCHEMA.md` §4 con la tabla.
+
+**Lo que la etiqueta sí podría hacer, por si algún día hace falta:** subir el
+suelo a propósito. §6 quería 12 s en los satelitales por resiliencia ante la
+lluvia, y hoy eso sale por accidente del `TARGETDURATION` de cada canal. Si
+alguna vez se quiere determinista, `HOLD-BACK` es la forma — hacia arriba.
+
+**La otra salida, descartada:** Flussonic trae LL-HLS de fábrica, y ese
+manifiesto sí emite `EXT-X-SERVER-CONTROL` con `PART-HOLD-BACK`, que puede ser
+mucho menor. Pero trocea los segmentos en chunks y es otro transporte: más
+peticiones, más carga y una pila que nadie ha medido aquí. Este proyecto no
+persigue latencia baja —persigue que no se corte—, así que queda fuera.
 
 ### #48 — El campo de texto actuaba sobre teclas que no se habían pulsado en él — 2026-10-05
 
