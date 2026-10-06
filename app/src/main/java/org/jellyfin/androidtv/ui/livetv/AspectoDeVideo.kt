@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.ui.livetv
 import android.view.SurfaceView
 import org.jellyfin.livetv.engine.AspectMode
 import org.jellyfin.livetv.engine.EngineStats
+import org.jellyfin.livetv.diagnostics.LiveLog
 
 /**
  * Aplica el modo de ajuste escalando la superficie de vídeo.
@@ -42,13 +43,31 @@ object AspectoDeVideo {
 	 * la imagen con su proporción. Los demás parten de ahí.
 	 */
 	fun aplicar(view: SurfaceView, mode: AspectMode, stats: EngineStats) {
+		// **Las dos salidas tempranas se registran.**
+		//
+		// Son la explicación más probable de «cambio de modo y no pasa nada»:
+		// si se vuelve sin tocar la escala, la vista se queda como estaba y
+		// desde fuera es indistinguible de que el modo no haga nada. Callarlo
+		// manda a buscar el fallo al escalado, que es donde no está.
 		val anchoVista = view.width.toFloat()
 		val altoVista = view.height.toFloat()
-		if (anchoVista <= 0f || altoVista <= 0f) return
+		if (anchoVista <= 0f || altoVista <= 0f) {
+			LiveLog.debug("aspecto.sinVista", "modo" to mode, "ancho" to view.width, "alto" to view.height)
+			return
+		}
 
 		val anchoVideo = stats.videoWidth * stats.pixelAspectRatio
 		val altoVideo = stats.videoHeight.toFloat()
-		if (anchoVideo <= 0f || altoVideo <= 0f) return
+		if (anchoVideo <= 0f || altoVideo <= 0f) {
+			LiveLog.debug(
+				"aspecto.sinVideo",
+				"modo" to mode,
+				"ancho" to stats.videoWidth,
+				"alto" to stats.videoHeight,
+				"sar" to stats.pixelAspectRatio,
+			)
+			return
+		}
 
 		val proporcionVista = anchoVista / altoVista
 		val proporcionVideo = anchoVideo / altoVideo
@@ -86,6 +105,27 @@ object AspectoDeVideo {
 				if (objetivo > proporcionVideo) escalaX = objetivo / proporcionVideo
 				else escalaY = proporcionVideo / objetivo
 			}
+		}
+
+		// Qué se decidió y con qué datos, en una línea.
+		//
+		// Es poco ruido —solo corre cuando alguien toca el botón o cambia el
+		// tamaño del vídeo— y es lo que convierte «no veo diferencia» en un
+		// dato: si la escala sale 1.000 en todos los modos, el problema está en
+		// el cálculo; si sale distinta y la pantalla no cambia, está en que la
+		// superficie no respeta la transformación de la vista.
+		if (view.scaleX != escalaX || view.scaleY != escalaY) {
+			LiveLog.debug(
+				"aspecto.aplicado",
+				"modo" to mode,
+				"video" to "${stats.videoWidth}x${stats.videoHeight}",
+				"sar" to stats.pixelAspectRatio,
+				"vista" to "${view.width}x${view.height}",
+				"proporcionVideo" to "%.3f".format(proporcionVideo),
+				"proporcionVista" to "%.3f".format(proporcionVista),
+				"escalaX" to "%.3f".format(escalaX),
+				"escalaY" to "%.3f".format(escalaY),
+			)
 		}
 
 		view.scaleX = escalaX

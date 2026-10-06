@@ -231,12 +231,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Entregar la superficie solo al cambiar",
-				value = if (dev.attachSoloAlCambiar) "SOLO AL CAMBIAR" else "en cada recomposición (fábrica)",
-				changed = dev.attachSoloAlCambiar,
+				value = if (dev.attachSoloAlCambiar) "solo al cambiar (fábrica)" else "EN CADA RECOMPOSICIÓN",
+				changed = !dev.attachSoloAlCambiar,
 			) { change { dev.attachSoloAlCambiar = !dev.attachSoloAlCambiar } }
 		}
 		item {
-			Info("De fábrica se entrega 2 veces por segundo y el logcat se da la vuelta en menos de un minuto. Enciéndelo antes de medir M4 o M5.")
+			Info("Apagarlo vuelve al comportamiento anterior: 2 entregas por segundo, que dan la vuelta al logcat en menos de un minuto.")
 		}
 
 		item { Header("Flags del extractor TS  (fase M4)") }

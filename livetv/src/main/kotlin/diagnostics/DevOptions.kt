@@ -249,9 +249,9 @@ class DevOptions(context: Context) {
 	 * `engine.attach` en 115 s. Eso **rota el buffer de logcat en menos de un
 	 * minuto**, y M4 y M5 se juzgan mirando la pantalla y el log a la vez.
 	 *
-	 * De fábrica **apagado**, que es el comportamiento anterior (`CLAUDE.md`
-	 * §3). Se enciende, se valida en pantalla y entonces se invierte el valor
-	 * de fábrica — igual que se hizo con el rescate del tunneled.
+	 * **Activo de fábrica desde el 06-oct**, validado en pantalla por Edgar.
+	 * El interruptor se queda para reproducir el comportamiento anterior, que
+	 * es lo que lo hace útil si algún modelo se queda sin imagen.
 	 *
 	 * **Por qué merece un interruptor y no es un arreglo evidente:** `attach`
 	 * vuelve a entregar la superficie al reproductor, y una caja que recree su
@@ -261,7 +261,7 @@ class DevOptions(context: Context) {
 	 * en diez segundos en vez de costar una tarde.
 	 */
 	var attachSoloAlCambiar: Boolean
-		get() = prefs.getBoolean(K_ATTACH_AL_CAMBIAR, false)
+		get() = prefs.getBoolean(K_ATTACH_AL_CAMBIAR, true)
 		set(v) = put { putBoolean(K_ATTACH_AL_CAMBIAR, v) }
 
 	/**
@@ -385,7 +385,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
-		if (attachSoloAlCambiar) add("attach al cambiar")
+		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
 		if (watchdogDisabled) add("sin vigilante")
 		if (simularTunneledSinImagen) add("FINGE SIN IMAGEN")

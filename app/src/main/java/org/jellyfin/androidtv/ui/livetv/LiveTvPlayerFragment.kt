@@ -618,8 +618,8 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 			// SurfaceView, nunca TextureView (CLAUDE.md §6).
 			factory = { ctx -> SurfaceView(ctx).also { vista = it } },
 			update = { view ->
-				// El camino anterior, que es el de fábrica hasta que esto se
-				// valide en pantalla (`CLAUDE.md` §3).
+				// El camino anterior, que el interruptor conserva para poder
+				// comparar en pantalla si algún modelo se queda sin imagen.
 				if (!dev.attachSoloAlCambiar) engine.attach(view)
 				AspectoDeVideo.aplicar(view, aspecto, stats)
 			},
