@@ -135,14 +135,48 @@ recado de su proveedor no sería un intercambio justo. Va bajo la marca, discret
 **Pon siempre `until`.** El fallo previsible no es el texto: es el aviso que
 nadie quitó.
 
-### Un canal no disponible sí hace algo
+### Un canal caído: márcalo, no lo quites
 
-`unavailable: true` **está implementado**: el canal sigue en la guía, y al
-sintonizarlo se enseña su nombre y `unavailableMessage` en vez de intentar
-reproducir. No se abre decodificador ni se toca la red.
+`unavailable: true` **está implementado y completo**:
 
-Lo que **todavía no** hace: atenuar la tarjeta en la guía. El abonado se entera
-al entrar al canal, no antes.
+- **En la guía**, la tarjeta lleva una etiqueta roja de «sin señal» en lugar
+  del distintivo HD. El abonado lo ve **antes** de entrar, que es cuando
+  sirve.
+- **Al sintonizarlo**, se enseña su nombre y `unavailableMessage` en vez de
+  intentar reproducir. No se abre decodificador ni se toca la red.
+
+**Petición concreta: dejad de retirar del lineup el stream que no emite.**
+Publicadlo con `unavailable: true` y, si podéis, un `unavailableMessage` con el
+motivo.
+
+Hoy un stream apagado desaparece del `config.json`, y eso en la caja se ve como
+**un canal que se esfuma del listado sin explicación**. Pasó de verdad el
+07-oct: `estrellashd` cayó en origen y la app pasó de 10 canales a 9 en el
+siguiente refresco. La app hizo lo correcto —enseña lo que publicáis— y aun así
+desconcierta a quien lo mira. Un hueco en la numeración es peor que un canal
+marcado: el abonado cree que lo perdió.
+
+**El motivo por el que lo descartasteis ya no existe.** Vuestra bitácora dice
+que un canal marcado «no disponible» seguiría sin poder verse días después de
+volver, porque *«la APK baja la lista una vez por arranque»*. Eso era cierto y
+dejó de serlo: **la lista se recarga cada 15 minutos** mientras la sección está
+abierta, y entera al arrancar la app. Un canal que vuelve se destapa solo en el
+siguiente ciclo, igual de rápido que se marcaría.
+
+Los dos relojes, para que el cálculo esté a la vista:
+
+| | Cadencia |
+|---|---|
+| Vosotros leéis Flussonic | cada 30 s |
+| La app recarga la lista | cada 15 min, con la sección abierta |
+
+O sea: **como mucho ~15 min desde que el stream vuelve hasta que el abonado lo
+ve normal**, y lo mismo para marcarlo cuando cae. Retirarlo no es más rápido
+—usa exactamente los mismos dos relojes—, solo es más desconcertante.
+
+**Si aun así preferís retirarlo** en algún caso, lo que pedimos es histéresis:
+no retirar hasta que lleve caído un buen rato. Un corte de un minuto no debería
+borrar un canal del listado durante quince.
 
 ### El endpoint es `index.m3u8`, y no es un detalle
 
@@ -242,6 +276,7 @@ habrá que volver a pasar por ellos.
 | `aliases` | **implementado**: la búsqueda de la sección los usa | — |
 | `rating`, `backupUrl` | se leen; sin comportamiento por diseño | — |
 | `epg` | **implementado**: programa actual y siguiente en la barra (§4.bis) | la guía por canal en rejilla, no |
+| `unavailable` | **implementado y completo**: etiqueta «sin señal» en la tarjeta y aviso al entrar | — |
 
 **Los `aliases` ya se buscan.** La sección tiene búsqueda: se abre con «Buscar
 canal», filtra mientras se escribe y casa contra el nombre **y** los alias,

@@ -298,6 +298,15 @@ La segunda existe porque **un canal que desaparece genera una llamada a
 soporte** y uno que dice «fuera de servicio por mantenimiento» no. Si alguien ve
 el 207 todos los días y un martes no está, llama.
 
+**Un stream que deja de emitir va por la segunda, no por la primera.** Retirarlo
+del lineup no llega antes al abonado —usa los mismos dos relojes: 30 s para que
+el generador lo note, hasta 15 min para que la app recargue— y en pantalla se ve
+como un hueco en la numeración. Medido el 07-oct con `estrellashd`, que cayó en
+origen y desapareció del listado: la app hizo lo correcto y aun así desconcierta.
+
+La primera forma es para dar de alta y para retirar de verdad, que son
+decisiones de alguien, no accidentes de la señal.
+
 **Y una advertencia sobre no publicar: no borres el canal del servicio.** El
 `id` es de donde cuelgan los favoritos y el último canal visto del abonado.
 Quítalo de lo publicado, consérvalo en tu base.
