@@ -201,7 +201,7 @@ un canal por una errata en la guía sería desproporcionado.
 |---|---|---|---|
 | `id` | texto | implementado | **el canal se descarta** |
 | `name` | texto | implementado | **el canal se descarta** |
-| `url` | texto | implementado | **el canal se descarta**; debe empezar por `http://` o `https://` |
+| `url` | texto | implementado | **el canal se descarta**, salvo con `unavailable: true`; debe empezar por `http://` o `https://` |
 
 **El orden de la guía es `number`, luego `order`, luego el nombre.** El número
 manda: `order` solo desempata entre canales con el mismo número, o entre los que
@@ -306,6 +306,13 @@ origen y desapareció del listado: la app hizo lo correcto y aun así desconcier
 
 La primera forma es para dar de alta y para retirar de verdad, que son
 decisiones de alguien, no accidentes de la señal.
+
+**Un canal marcado no necesita `url`.** No se va a abrir nunca: la app enseña el
+motivo sin tocar la red. Exigírsela obligaría a inventar una dirección que no
+lleva a ninguna parte —el caso real es un stream que ya no existe en
+Flussonic—, o a retirar el canal, que es justo lo que se quiere evitar. Un canal
+**sin** marcar sigue necesitándola: ahí la falta de `url` es una errata, y
+publicarlo daría pantalla negra sin motivo.
 
 **Y una advertencia sobre no publicar: no borres el canal del servicio.** El
 `id` es de donde cuelgan los favoritos y el último canal visto del abonado.

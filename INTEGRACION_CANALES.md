@@ -145,9 +145,13 @@ nadie quitó.
 - **Al sintonizarlo**, se enseña su nombre y `unavailableMessage` en vez de
   intentar reproducir. No se abre decodificador ni se toca la red.
 
-**Petición concreta: dejad de retirar del lineup el stream que no emite.**
-Publicadlo con `unavailable: true` y, si podéis, un `unavailableMessage` con el
-motivo.
+**Hecho el 07-oct en vuestro proyecto** (`9c13b50`): los cinco motivos que
+venían de Flussonic publican ahora el canal marcado en vez de retirarlo.
+
+Lo que la app pone de su parte: **a un canal marcado no se le exige `url`.** No
+se va a abrir nunca, así que inventarle una dirección que no lleva a ninguna
+parte —el caso del stream que ya no existe— sobraba. Un canal **sin** marcar
+sigue necesitándola.
 
 Hoy un stream apagado desaparece del `config.json`, y eso en la caja se ve como
 **un canal que se esfuma del listado sin explicación**. Pasó de verdad el

@@ -305,9 +305,23 @@ object LiveConfigParser {
 			val o = elemento as? JsonObject ?: return@mapIndexedNotNull descartar(i, "no es un objeto")
 			val id = o.str("id") ?: return@mapIndexedNotNull descartar(i, "sin «id»")
 			val name = o.str("name") ?: return@mapIndexedNotNull descartar(i, "sin «name»", id)
-			val url = o.str("url") ?: return@mapIndexedNotNull descartar(i, "sin «url»", id)
+			// **Un canal marcado como no disponible no necesita URL.**
+			//
+			// Nunca se va a abrir: al sintonizarlo se enseña el motivo y no se
+			// toca la red. Exigírsela obligaba al servidor a inventarse una
+			// dirección que no lleva a ninguna parte —el caso real es un stream
+			// que ya no existe en Flussonic— y, si no se la inventaba, el canal
+			// se perdía en silencio. Eso dejaba un hueco en la numeración justo
+			// cuando el servidor estaba intentando evitarlo.
+			val disponible = o.bool("unavailable") != true
+			val url = o.str("url")
+				?: if (disponible) {
+					return@mapIndexedNotNull descartar(i, "sin «url»", id)
+				} else {
+					""
+				}
 
-			if (!url.startsWith("http://") && !url.startsWith("https://")) {
+			if (url.isNotEmpty() && !url.startsWith("http://") && !url.startsWith("https://")) {
 				return@mapIndexedNotNull descartar(i, "la URL no es http ni https", id)
 			}
 			if (!vistos.add(id)) return@mapIndexedNotNull descartar(i, "«id» repetido", id)

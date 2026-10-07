@@ -66,6 +66,41 @@ class LiveConfigParserTest : StringSpec({
 		c.channels.map { it.id } shouldContainExactly listOf("bueno", "otroBueno")
 	}
 
+	"un canal no disponible sobrevive sin URL" {
+		// Nunca se va a abrir, así que exigirle dirección obligaba al servidor a
+		// inventarse una que no lleva a ninguna parte —el caso real es un stream
+		// que ya no existe en Flussonic— y si no se la inventaba, el canal se
+		// perdía en silencio. El hueco en la numeración es justo lo que el
+		// servidor intentaba evitar al marcarlo.
+		val c = LiveConfigParser.parse(
+			config(
+				""""channels":[
+					$unCanal,
+					{"id":"caido","name":"Caído","unavailable":true,
+					 "unavailableMessage":"El stream no está emitiendo"}
+				]"""
+			)
+		)
+		c.channels.map { it.id } shouldContainExactly listOf("c1", "caido")
+		val caido = c.channels.first { it.id == "caido" }
+		caido.unavailable shouldBe true
+		caido.url shouldBe ""
+	}
+
+	"un canal disponible sin URL se sigue descartando" {
+		// La relajación es **solo** para los marcados: un canal normal sin
+		// dirección es una errata, y enseñarlo daría pantalla negra sin motivo.
+		val c = LiveConfigParser.parse(
+			config(
+				""""channels":[
+					$unCanal,
+					{"id":"sinUrl","name":"Sin URL"}
+				]"""
+			)
+		)
+		c.channels.map { it.id } shouldContainExactly listOf("c1")
+	}
+
 	"una URL que no es http se descarta" {
 		val c = LiveConfigParser.parse(
 			config(
