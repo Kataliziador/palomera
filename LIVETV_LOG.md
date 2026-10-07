@@ -199,7 +199,7 @@ un frame congelado.
 | 2 | ~~Confirmar ABI de la caja~~ | — | **cerrado 22-sep: `armeabi-v7a,armeabi`. Solo 32 bits, sin `arm64-v8a`.** Confirma lo que sugería `/proc/cpuinfo`. `armeabi-v7a` es obligatorio en el AAB o la caja de pruebas no instala; `arm64-v8a` también, porque Play lo exige a toda app con código nativo |
 | 3 | ~~Decidir si el audio MP2 se convierte a AAC~~ | — | **cerrado 22-sep: sí, y elevado a política.** Ver entrada abajo |
 | 4 | Inventario de códecs de la ZTE B866V2 | M1 | la caja mayoritaria del cliente, aún sin medir |
-| 5 | Flags de extractor en Amlogic | M4 | la medición dice OFF/OFF, la experiencia de campo sugiere lo contrario |
+| ~~5~~ | ~~Flags de extractor en Amlogic~~ | — | **cerrado 07-oct: se queda la de fábrica**, `nonIDR=ON` y `AUD=off`. Lo decide un número: con `FLAG_ALLOW_NON_IDR_KEYFRAMES` apagado, `discoveryhd` tardó **6953 ms** en dar imagen contra 1966 ms con él puesto. `FLAG_DETECT_ACCESS_UNITS` no mejora nada medible |
 | 6 | Bajar `source_timeout` de Flussonic a ~10 s | headend | con HTTP, Astra mantiene la conexión abierta sin datos |
 | 7 | ~~Letrero de «sin señal» como fuente de respaldo~~ | — | **cerrado 01-oct: funcionando.** Edgar corta la señal y entra el letrero. La trampa que costó el rato: en `backup <ubicación>/<archivo>`, el prefijo es el **nombre de la ubicación VOD**, no una carpeta, y hay que declararla aparte (`vod fallback { storage … }`). Un nombre que no casa da `enoent`. Ver `headend/letreros/README.md` |
 | 8 | Confirmar si `a095` es el mismo canal que `discoveryhd-70w` | M1 | mismos datos técnicos |
@@ -219,7 +219,7 @@ un frame congelado.
 | ~~20~~ | ~~Traer `scan-canales.sh` al repositorio~~ | — | **cerrado 05-oct:** en `herramientas/`, que no se compila ni viaja en el APK (§4.7). Al traerlo se corrigieron dos desfases que lo habrían hecho medir mal: apuntaba a `mono.m3u8` en vez de al master, y su cabecera seguía recomendando decoders de MP2 nativos. Su salida se ignora en git |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
-| 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. Entre el 5 % y el 30 % de los zapeos con tunneled; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
+| 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M — decisión de Edgar, con dato nuevo** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. **Medido el 07-oct durante M4: 16 fallos en 20 sintonizaciones, un 80 %** —muy por encima del 5–30 % que se había estimado antes, y casi uno por cambio de canal—. Sigue recuperándose: 19 de 20 dieron imagen, y la que no fue un canal caído en origen. Antes se midió entre el 5 % y el 30 % de los zapeos; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
 | 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
 | ~~35~~ | ~~**Cajas con Android < 7.1.1 no validan el certificado del registro**~~ | — | **cerrado 05-oct, medido en un emulador de API 22.** `RegistryTrust` empaqueta ISRG Root X1, X2, YR e YE y las usa **solo** para el registro. Sin el arreglo: `CertPathValidatorException: Trust anchor for certification path not found`. Con él: `registro.respuesta autorizado=true` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
@@ -233,7 +233,7 @@ un frame congelado.
 | ~~39~~ | ~~**De la cabecera de la sección no se puede bajar a la guía**~~ | — | **cerrado 05-oct.** Era la búsqueda de foco geométrica de Compose: los dos botones viven a la derecha de donde acaba la fila de tarjetas, así que debajo no hay nada que encontrar. `focusProperties { down = … }` en la fila de cabecera, que los hijos heredan. Medido por `uiautomator` en la caja: desde «Buscar canal» y desde «Diagnóstico», ABAJO deja el foco en la tarjeta 101 |
 | ~~40~~ | ~~**`REGISTRY_URL` ya se puede fijar**~~ | — | **cerrado 04-oct:** compilada en `BuildConfig`, con override por preferencias para apuntar a un registro de pruebas |
 | ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
-| 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído |
+| 42 | **La caja tarda en enterarse de que un canal cayó, y al revés** | B — **visto en vivo el 07-oct** | medido en el proyecto del servidor de canales: retira de la lista un stream que no emite, y una caída de un minuto vista por una caja que arranca justo entonces deja ese canal ausente durante **un ciclo de refresco**. Con los 15 minutos de hoy ya no son días, pero hay que decidir con datos de un site si el servidor debe esperar antes de retirar un canal caído. **Ocurrió de verdad durante M4:** `estrellashd` cayó en origen, el generador dejó de publicarlo y a las 01:15 la app pasó de 10 canales a 9 (`config.interpretada canales=9`). Volvió solo cuando el stream volvió. La app hizo lo correcto —enseña lo que el site publica— y aun así desconcierta a quien lo ve: un canal desaparece del listado sin explicación |
 | ~~43~~ | ~~**`TARGET_OFFSET_SATELLITE_MS` está muerto**~~ | — | **cerrado 05-oct: retirado.** No lo usaba nadie y además el valor era malo: con la ventana de ~22 s que sirve producción, 12 s pasa del techo de media ventana. Lo que queda en `LiveTuning` es el de fábrica, con la escalera `servidor ?: canal ?: 8000` escrita al lado para que no haga falta abrir `PlanBuilder` para saber quién manda |
 | ~~44~~ | ~~**`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa**~~ | — | **cerrado 05-oct en su mitad de Modo B:** pasa a llamarse `TARGET_OFFSET_WINDOW_WARN_FRACTION`, y el local y la clave del registro dejan de decir «techo». El comportamiento no cambia y no tenía que cambiar: quien protege de verdad es la vuelta al borde, sobre el offset **real**. **Recortar lo pedido sigue sin hacerse y sería Modo A.** Para saber si hace falta, el instrumento ya está puesto: que un site empiece a escribir `offset.superaLaVentana` es la señal, y lo primero que diría es que el `config.json` de ese site pide un offset que su ventana no da |
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
@@ -250,6 +250,75 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### M4 — Los flags del extractor, y dos cosas que salieron de paso — 2026-10-07
+
+Edgar recorrió las cuatro combinaciones de los dos flags sobre los canales
+H.264 y volcó el log en cada vuelta. Su veredicto en pantalla fue que **la de
+fábrica es la que mejor se ve**, y los números lo sostienen.
+
+| Flags | Canal | 1er fotograma | Rebuffers |
+|---|---|---|---|
+| **A — fábrica** | `estrellashd` | 2547 ms | 1 |
+| | `hbohd` | 2132 ms | 0 |
+| | `discoveryhd` | 1966 ms | 0 |
+| | `mileniosd` | 1741 ms | 0 |
+| | `beisbol` | 1740 ms | 0 |
+| **B — AUD on** | `estrellashd` | 2002 ms | 3 |
+| | `hbohd` | 1861 ms | 0 |
+| | `discoveryhd` | 2042 ms | 0 |
+| | `beisbol` | 1765 ms | 0 |
+| **C — nonIDR off** | `discoveryhd` | **6953 ms** | 0 |
+| | `hbohd` | 2599 ms | 0 |
+| | `beisbol` | 1633 ms | 2 |
+| **D — ambos** | `hbohd` | 2716 ms | 0 |
+| | `discoveryhd` | 1752 ms | 0 |
+
+**Los 6953 ms son la decisión.** Con `FLAG_ALLOW_NON_IDR_KEYFRAMES` apagado,
+`discoveryhd` tardó siete segundos en dar imagen contra 1966 ms con el flag
+puesto: más del triple, y por encima del objetivo de arranque de §10. Es
+exactamente para lo que existe ese flag — sin él el extractor espera un IDR de
+verdad, y donde los IDR escasean el arranque se desmorona.
+
+`FLAG_DETECT_ACCESS_UNITS` no aporta nada medible: tiempos equivalentes y algún
+rebuffer de más. Se queda apagado.
+
+**Lo que no está completo, y conviene decirlo:** en C y D faltan `estrellashd`
+—murió en origen a mitad de sesión— y `mileniosd`. La conclusión no depende de
+ellos, porque la penalización de C ya es inequívoca, pero el barrido no se
+terminó.
+
+#### De paso salió el dato que cambia el pendiente 37
+
+**16 fallos de la aserción del tunneled en 20 sintonizaciones. Un 80 %.**
+
+La estimación anterior era «entre el 5 % y el 30 % de los zapeos». Esto es casi
+uno por cada cambio de canal. Sigue recuperándose —19 de 20 dieron imagen, y la
+que no fue el canal caído— pero una cosa es un fallo que aparece a veces y otra
+uno que aparece casi siempre.
+
+Eso no cambia lo que hay que hacer, que sigue siendo decisión de Edgar y de
+Modo A, pero sí el peso de la decisión: el tunneled es lo único medido que quita
+los microcortes del cine en H.264, y ahora se sabe que su contrapartida es
+prácticamente constante.
+
+#### Y se vio en vivo el pendiente 42
+
+`estrellashd` cayó en origen durante la segunda vuelta. A las 01:15 la app pasó
+de 10 canales a 9:
+
+```
+01:15:28  config.interpretada  version=1 canales=9 grupos=4
+01:15:28  catalogo.listo       origen=RED canales=9 ...
+```
+
+**La app no quitó nada: el generador dejó de publicarlo.** No publica un stream
+que no emite, y la caja enseña lo que el site publica. Volvió solo cuando volvió
+el stream.
+
+Es el comportamiento correcto y aun así desconcierta a quien lo mira —un canal
+desaparece del listado sin explicación—, que es justo lo que el pendiente 42
+pedía decidir. Ahora hay un caso real en vez de una suposición.
 
 ### #50 — El SAR se leía bien y no llegaba a la pantalla — 2026-10-06
 
