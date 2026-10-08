@@ -717,7 +717,7 @@ decisión urgente: lo era el paquete.
 
 **La app no usa el nombre ni el logo de Jellyfin.** La pantalla de información
 incluye "no afiliado al proyecto Jellyfin" junto con los avisos de licencia
-GPL-2.0 (fork) y LGPL-2.1 (libVLC, cuando llegue M6). Con una sola app esto es
+GPL-2.0 (fork) y LGPL-2.1 (libVLC, **puesto el 08-oct con M6**). Con una sola app esto es
 **una pantalla**, no N.
 
 **Lo que sí sigue diciendo Jellyfin, y debe seguir diciéndolo:** todo lo que

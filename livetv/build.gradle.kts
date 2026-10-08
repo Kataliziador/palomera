@@ -34,6 +34,14 @@ dependencies {
 	implementation(libs.androidx.media3.exoplayer.hls)
 	implementation(libs.androidx.media3.datasource.okhttp)
 
+	// libVLC — el respaldo de vídeo (M6). Entra por la misma interfaz
+	// `LiveEngine` que Media3 y no se habla con él desde ningún otro sitio.
+	//
+	// **Es LGPL-2.1**, así que la pantalla de Información tiene que decirlo
+	// (`CLAUDE.md` §8). Viene precompilado: no reintroduce el NDK ni la
+	// compilación nativa, que se fueron con la extensión FFmpeg y no vuelven.
+	implementation(libs.libvlc)
+
 	// JSON del servidor de configuración. Se navega el árbol a mano, sin el
 	// plugin de serialización: el parser necesita descartar canal por canal con
 	// su motivo, y la generación de código lo pondría difícil.

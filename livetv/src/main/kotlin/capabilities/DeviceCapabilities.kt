@@ -39,6 +39,37 @@ class DeviceCapabilities private constructor(
 	val device: String,
 	val hasVlcBackend: Boolean,
 ) {
+	/**
+	 * Las mismas capacidades **sin** los decoders vetados por nombre.
+	 *
+	 * El menú de degradación permite vetar un decoder para simular una caja
+	 * peor, y hasta el 08-oct ese veto **no hacía nada**: se guardaba, se
+	 * contaba en la línea de degradación y se enseñaba en el menú, y ninguna
+	 * línea lo leía. Se descubrió al intentar probar M6 con él, que es
+	 * exactamente para lo que existe —«con el MPEG-2 de hardware vetado, el
+	 * canal mp2v reproduce por libVLC» (`LIVETV_PLAN.md` M6)—.
+	 *
+	 * Se aplica aquí y no dentro de la cascada porque la cascada ya tiene una
+	 * sola fuente de verdad sobre lo que la caja puede: esta clase. Un filtro
+	 * paralelo daría dos respuestas distintas a «¿hay decoder para esto?».
+	 *
+	 * Devuelve `this` si no hay nada que quitar, para no construir un objeto
+	 * por recomposición en el caso normal, que es el de fábrica.
+	 */
+	fun excluyendo(nombres: Set<String>): DeviceCapabilities {
+		if (nombres.isEmpty()) return this
+		val quedan = decoders.filterNot { it.name in nombres }
+		if (quedan.size == decoders.size) return this
+		LiveLog.warn(
+			"caps.decodersVetados",
+			"cuantos" to (decoders.size - quedan.size),
+			"nombres" to nombres.joinToString(","),
+		)
+		return DeviceCapabilities(
+			quedan, abis, sdkInt, totalRamMb, manufacturer, model, device, hasVlcBackend,
+		)
+	}
+
 	fun decodersFor(mime: String): List<DecoderInfo> =
 		decoders.filter { it.mime.equals(mime, ignoreCase = true) }
 
@@ -79,12 +110,33 @@ class DeviceCapabilities private constructor(
 		@Volatile
 		private var cached: DeviceCapabilities? = null
 
-		fun of(context: Context, hasVlcBackend: Boolean = false): DeviceCapabilities =
+		fun of(context: Context): DeviceCapabilities =
 			cached ?: synchronized(this) {
-				cached ?: build(context, hasVlcBackend).also { cached = it }
+				cached ?: build(context).also { cached = it }
 			}
 
-		private fun build(context: Context, hasVlcBackend: Boolean): DeviceCapabilities {
+		/**
+		 * Si libVLC viaja en este APK.
+		 *
+		 * **Era un parámetro de `of()` y eso estaba mal.** La caché devuelve lo
+		 * primero que se construyó e ignora los argumentos de las llamadas
+		 * siguientes, así que el valor acababa dependiendo de **quién llamara
+		 * primero**: `RegistryRepository` consulta las capacidades al arrancar,
+		 * antes que el reproductor, y fijaba `false` para toda la vida del
+		 * proceso. Costó un rato el 08-oct, con el motor ya escrito y la
+		 * cascada negándose a elegirlo.
+		 *
+		 * Y el fondo del error es que **no es una propiedad de la caja**: es
+		 * una propiedad del APK. O libVLC está compilado dentro o no está, y
+		 * eso no lo decide quien pregunta. Se mira una vez, por reflexión, para
+		 * que quitar la dependencia no deje la cascada apuntando a un motor
+		 * que no existe.
+		 */
+		private val vlcEnElApk: Boolean by lazy {
+			runCatching { Class.forName("org.videolan.libvlc.LibVLC") }.isSuccess
+		}
+
+		private fun build(context: Context): DeviceCapabilities {
 			val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 			val known = prefs.getString(KEY_FINGERPRINT, null)
 			if (known != Build.FINGERPRINT) {
@@ -104,7 +156,7 @@ class DeviceCapabilities private constructor(
 				manufacturer = Build.MANUFACTURER,
 				model = Build.MODEL,
 				device = Build.DEVICE,
-				hasVlcBackend = hasVlcBackend,
+				hasVlcBackend = vlcEnElApk,
 			)
 
 			LiveLog.info(

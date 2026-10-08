@@ -60,6 +60,7 @@ import org.jellyfin.livetv.engine.EngineStats
 import org.jellyfin.livetv.engine.LiveEngine
 import org.jellyfin.livetv.engine.Media3LiveEngine
 import org.jellyfin.livetv.engine.PlanBuilder
+import org.jellyfin.livetv.engine.VlcLiveEngine
 import org.jellyfin.livetv.source.ChannelProfile
 
 /**
@@ -178,7 +179,9 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 
 	// El plan lo decide la cascada (M3), por canal y por caja. Se rehace si
 	// cambian las capacidades, el canal o lo que diga el servidor.
-	val caps = remember { DeviceCapabilities.of(context) }
+	// Atado a `revision` porque el veto de decoders del menú cambia lo que la
+	// caja «puede», y el plan tiene que rehacerse con la caja ya recortada.
+	val caps = remember(revision) { DeviceCapabilities.of(context).excluyendo(dev.vetoedDecoders) }
 	val plan = remember(channel.id, revision, caps) {
 		PlanBuilder.build(
 			channel = channel,
@@ -187,6 +190,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 			tsFlags = dev.tsFlags,
 			forzarSoftwareLocal = dev.forceSoftwareVideo,
 			motorForzadoLocal = dev.forcedEngine,
+			forzarDeintLocal = dev.forzarDesentrelazado,
 		).also {
 			LiveLog.info(
 				"plan.construido",
@@ -225,12 +229,11 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	val engine: LiveEngine = remember(channel.url, revision, plan.engineId) {
 		when (plan.engineId) {
 			PlanBuilder.MEDIA3_ENGINE_ID -> Media3LiveEngine(context.applicationContext, dev)
+			PlanBuilder.VLC_ENGINE_ID -> VlcLiveEngine(context.applicationContext, dev)
 			else -> {
-				// libVLC es M6 y todavía no existe. La cascada no puede
-				// elegirlo hoy (`hasVlcBackend` es false), así que llegar aquí
-				// significa que alguien añadió un motor y olvidó este punto:
-				// se registra y se sigue reproduciendo, que es mejor que una
-				// pantalla negra.
+				// Llegar aquí significa que alguien añadió un motor y olvidó
+				// este punto: se registra y se sigue reproduciendo con Media3,
+				// que es mejor que una pantalla negra.
 				LiveLog.error(
 					"plan.motorSinImplementacion",
 					null,

@@ -370,6 +370,30 @@ object LiveTuning {
 	 */
 	const val CONFIG_MAX_BYTES = 2 * 1024 * 1024
 
+	// --- libVLC (M6) ---------------------------------------------------------
+	/**
+	 * Colchón de red de libVLC, en ms.
+	 *
+	 * Es su equivalente al `minBuffer` de Media3, y por eso se le da el mismo
+	 * valor: el canal es el mismo y la red es la misma LAN. Más alto solo
+	 * retrasaría el arranque de un camino que ya se elige por necesidad.
+	 */
+	const val VLC_NETWORK_CACHING_MS = MIN_BUFFER_MS
+
+	/**
+	 * El filtro de desentrelazado.
+	 *
+	 * `yadif2x` interpola **y dobla la cadencia**, que es justo lo que le falta
+	 * al caso que trae libVLC aquí: `estrellassd` se presentaba a 15 fps con
+	 * peine, o sea mitad de cadencia *y* sin desentrelazar. `yadif` a secas
+	 * arreglaría el peine y dejaría la mitad de los fotogramas.
+	 *
+	 * Cuesta CPU, y es el precio del único camino que desentrelaza: con
+	 * decodificación por hardware el filtro no llega a ejecutarse
+	 * (`LIVETV_ENGINE.md` §4.4).
+	 */
+	const val VLC_DEINTERLACE_MODE = "yadif2x"
+
 	// --- EPG -----------------------------------------------------------------
 	/**
 	 * La guía **no viaja dentro del `config.json`** (`CLAUDE.md` §6): la lista

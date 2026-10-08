@@ -281,6 +281,25 @@ class DevOptions(context: Context) {
 	 * no cambian. El interruptor se queda para reproducir el comportamiento
 	 * anterior.
 	 */
+	/**
+	 * Tratar el canal como entrelazado aunque el `config.json` diga que no.
+	 *
+	 * Existe porque **el servidor no siempre puede saberlo**. El `interlaced`
+	 * lo calcula el generador desde la API de Flussonic, y para MPEG-2
+	 * Flussonic devuelve `field_order=unknown`: `estrellassd` se publica como
+	 * progresivo siendo 480i medido (pendiente 53). Con el canal marcado
+	 * progresivo, la cascada no pide desentrelazar y libVLC se limita a
+	 * decodificar — o sea, el respaldo entero deja de servir para lo que se
+	 * trajo.
+	 *
+	 * Es un interruptor de diagnóstico, no la solución: la solución es que el
+	 * operador pueda corregir ese campo a mano en el lineup. Mientras tanto,
+	 * esto permite validar M6 en pantalla.
+	 */
+	var forzarDesentrelazado: Boolean
+		get() = prefs.getBoolean(K_FORZAR_DEINT, false)
+		set(v) = put { putBoolean(K_FORZAR_DEINT, v) }
+
 	var superficieDimensionada: Boolean
 		get() = prefs.getBoolean(K_SUPERFICIE_DIM, true)
 		set(v) = put { putBoolean(K_SUPERFICIE_DIM, v) }
@@ -410,6 +429,7 @@ class DevOptions(context: Context) {
 		forcedEngine?.let { add("motor=$it") }
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
+		if (forzarDesentrelazado) add("deint forzado")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -478,6 +498,7 @@ class DevOptions(context: Context) {
 		const val K_REGISTRY_URL = "registryUrlOverride"
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
 		const val K_SUPERFICIE_DIM = "superficieDimensionada"
+		const val K_FORZAR_DEINT = "forzarDesentrelazado"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -485,7 +506,7 @@ class DevOptions(context: Context) {
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
-			K_SUPERFICIE_DIM,
+			K_SUPERFICIE_DIM, K_FORZAR_DEINT,
 		)
 
 		const val OVERLAY_OCULTO = 0

@@ -249,6 +249,17 @@ private fun DevMenu() {
 			Info("Apagarlo vuelve al comportamiento anterior: 2 entregas por segundo, que dan la vuelta al logcat en menos de un minuto.")
 		}
 
+		item {
+			Row(
+				label = "Forzar desentrelazado",
+				value = if (dev.forzarDesentrelazado) "FORZADO" else "lo dice el config.json",
+				changed = dev.forzarDesentrelazado,
+			) { change { dev.forzarDesentrelazado = !dev.forzarDesentrelazado } }
+		}
+		item {
+			Info("Para MPEG-2 Flussonic no sabe si va entrelazado y el canal se publica como progresivo. Sin esto, libVLC decodifica pero no desentrelaza.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(

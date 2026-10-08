@@ -53,6 +53,7 @@ object PlanBuilder {
 		tsFlags: Int,
 		forzarSoftwareLocal: Boolean,
 		motorForzadoLocal: String?,
+		forzarDeintLocal: Boolean = false,
 	): PlaybackPlan {
 		val motivos = mutableListOf<String>()
 
@@ -163,8 +164,14 @@ object PlanBuilder {
 		// `deviceOverrides`. Sin ese dato se asume que sí, porque es lo que
 		// hace cualquier caja de televisión moderna y porque asumir que no
 		// llevaría a desentrelazar dos veces.
+		// `entrelazado` y no `channel.interlaced` a secas: para MPEG-2 la API de
+		// Flussonic devuelve `field_order=unknown` y el generador publica
+		// `interlaced: false` en un canal que está medido 480i (pendiente 53).
+		// Sin esta salida, el respaldo de libVLC se elige y luego no
+		// desentrelaza, que es la mitad inútil del camino.
+		val entrelazado = channel.interlaced || forzarDeintLocal
 		val deinterlace = when {
-			!channel.interlaced -> DeinterlaceMode.NONE
+			!entrelazado -> DeinterlaceMode.NONE
 			engineId == VLC_ENGINE_ID -> DeinterlaceMode.SOFTWARE.also { motivos += "deint por software" }
 			servidor?.vpuDeinterlaces == false -> {
 				// La caja no desentrelaza y no hay libVLC: queda documentado
