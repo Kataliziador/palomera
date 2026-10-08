@@ -75,6 +75,7 @@ el editor somos nosotros (`CLAUDE.md` §8). Lo que la app manda hoy, y a dónde:
 | Qué | A dónde | Para qué |
 |---|---|---|
 | `installId` — identificador opaco **por instalación** | registro propio | contar cajas |
+| Informe de fallo si la app se cierra sola | **el Jellyfin del ISP**, no nosotros | diagnóstico |
 | Modelo, fabricante, ABIs, RAM, versión de Android | registro propio | soporte |
 | Inventario de decoders de vídeo | registro propio | elegir el motor por modelo |
 | Diagnóstico de reproducción acumulado | registro propio | operar: qué falla y dónde |
@@ -82,7 +83,11 @@ el editor somos nosotros (`CLAUDE.md` §8). Lo que la app manda hoy, y a dónde:
 
 Cómo se declara, y por qué:
 
-- **Se recoge, no se comparte.** Va a un servicio nuestro y a nadie más.
+- **Se recoge, no se comparte.** Va a un servicio nuestro y a nadie más —con
+  una excepción que hay que declarar y que no habíamos mirado: **los informes
+  de fallo del upstream van al servidor Jellyfin del propio ISP**
+  (`clientLogApi.logFileUrl()`), activados de fábrica y desactivables en
+  Ajustes. No llegan a nosotros, pero salen de la caja.
 - Es **«Identificadores del dispositivo u otros»** por el `installId`, con
   finalidad de **funcionalidad de la app** y **análisis**.
 - **No es opcional**: va siempre, así que se declara como obligatorio.
@@ -93,7 +98,10 @@ Cómo se declara, y por qué:
   conviene no cruzarla sin volver a mirar este formulario.
 
 **La política de privacidad es obligatoria** y necesita una URL pública
-permanente. Tiene que decir, en español y sin rodeos, qué se recoge de lo de
+permanente. **Redactada el 08-oct en `AVISO_PRIVACIDAD.md`**, verificada campo
+por campo contra el código y con un apéndice que liga cada frase a la línea que
+la sostiene. Le faltan cuatro datos que solo puede poner Edgar —razón social,
+domicilio, plazo de conservación y correo de contacto— y publicarla. Tiene que decir, en español y sin rodeos, qué se recoge de lo de
 arriba, para qué, cuánto se conserva y a quién escribir para pedir su
 eliminación — eso último lo exige la LFPDPPP, y el `installId` basta para
 identificar un envío.

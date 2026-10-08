@@ -5,10 +5,16 @@ import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.preference.dsl.OptionsScreen
 import org.jellyfin.androidtv.ui.preference.dsl.link
+import org.jellyfin.livetv.config.RegistryRepository
 import org.jellyfin.androidtv.ui.preference.screen.LicensesScreen
 
 fun OptionsScreen.aboutCategory() = category {
 	setTitle(R.string.pref_about_title)
+
+	// Se lee una vez, en el ámbito que tiene `context`: el de `link` no lo
+	// expone. Solo toca `SharedPreferences`, así que no hace falta sacarlo del
+	// hilo principal.
+	val identificador = RegistryRepository(context).installId
 
 	// El aviso de no afiliación y la licencia del fork.
 	//
@@ -36,6 +42,22 @@ fun OptionsScreen.aboutCategory() = category {
 		setTitle(R.string.livetv_about_version)
 		content = "jellyfin-androidtv ${BuildConfig.VERSION_NAME} ${BuildConfig.BUILD_TYPE}"
 		icon = R.drawable.ic_tv
+	}
+
+	link {
+		// **El identificador de instalación, a la vista.**
+		//
+		// El aviso de privacidad dice que el abonado puede pedir acceso o
+		// borrado de sus datos indicándolo, y es lo único que los identifica:
+		// no sabemos su nombre. Sin enseñarlo en algún sitio, ese derecho no
+		// se puede ejercer y el aviso sería papel mojado.
+		//
+		// Va aquí y no en el menú de Diagnóstico porque Información es donde
+		// ya viven los avisos legales, y porque mandar a un abonado a un menú
+		// lleno de interruptores de degradación es pedirle que rompa algo.
+		setTitle(R.string.livetv_about_install_id)
+		content = identificador
+		icon = R.drawable.ic_guide
 	}
 
 	link {
