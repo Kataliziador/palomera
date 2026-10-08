@@ -448,11 +448,32 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		alSalir()
 	}
 
+	// **La barra la saca el abonado, no un parpadeo del reproductor.**
+	//
+	// Esto estaba atado a `enVivo`, así que cualquier cambio de estado la
+	// mostraba. Y un rebuffer corriente son **tres** cambios seguidos
+	// —`buffering`, `ready`, `playing`—: medido el 08-oct en `estrellassd`,
+	// 371 ms en total. Invisible en pantalla, y aun así sacaba la barra encima
+	// del vídeo. Edgar lo describió como «aparece a cada rato, a veces sin que
+	// se note ningún microcorte», que es exactamente eso: la barra era más
+	// visible que el fallo del que avisaba.
+	LaunchedEffect(pulsacion) { barraVisible = true }
+
+	// Se esconde sola **solo si el canal está dando imagen**. Con el canal
+	// parado, la barra es lo único que le explica algo al abonado.
 	LaunchedEffect(pulsacion, enVivo) {
-		barraVisible = true
 		if (!enVivo) return@LaunchedEffect
 		delay(CHANNEL_BAR_VISIBLE_MS)
 		barraVisible = false
+	}
+
+	// Y si el parón va en serio, vuelve. El margen es lo que separa «se paró»
+	// de «hubo un hipo»: por debajo de él no hay nada que contar, y contarlo
+	// molesta más que el hipo.
+	LaunchedEffect(enVivo) {
+		if (enVivo) return@LaunchedEffect
+		delay(CHANNEL_BAR_STALL_MS)
+		barraVisible = true
 	}
 
 	fun vecino(paso: Int): ChannelProfile? {
@@ -779,6 +800,15 @@ private const val STATS_REFRESH_MS = 500L
  * decodificador. La barra cambia en el acto; el motor espera a que pares.
  */
 private const val ZAP_SETTLE_MS = 450L
+
+/**
+ * Cuánto tiene que llevar parado el canal para que la barra vuelva sola.
+ *
+ * Dos segundos porque por debajo de eso el abonado no ha llegado a ver nada
+ * raro: el rebuffer medido en `estrellassd` duró 371 ms. Avisar de algo que no
+ * se nota es empeorar la imagen para contar un no-suceso.
+ */
+private const val CHANNEL_BAR_STALL_MS = 2_000L
 
 /** Lo que dura la barra en pantalla cuando el canal va bien. */
 private const val CHANNEL_BAR_VISIBLE_MS = 6_000L
