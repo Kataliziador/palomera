@@ -219,7 +219,7 @@ un frame congelado.
 | ~~20~~ | ~~Traer `scan-canales.sh` al repositorio~~ | — | **cerrado 05-oct:** en `herramientas/`, que no se compila ni viaja en el APK (§4.7). Al traerlo se corrigieron dos desfases que lo habrían hecho medir mal: apuntaba a `mono.m3u8` en vez de al master, y su cabecera seguía recomendando decoders de MP2 nativos. Su salida se ignora en git |
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
-| 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M — decisión de Edgar, con dato nuevo** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. **Medido el 07-oct durante M4: 16 fallos en 20 sintonizaciones, un 80 %** —muy por encima del 5–30 % que se había estimado antes, y casi uno por cambio de canal—. Sigue recuperándose: 19 de 20 dieron imagen, y la que no fue un canal caído en origen. Antes se midió entre el 5 % y el 30 % de los zapeos; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
+| 37 | **El modo tunneled falla una aserción de Media3 al cambiar de canal** | **M — decisión de Edgar, con dato nuevo** | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. **Medido el 07-oct durante M4: 16 fallos en 20 sintonizaciones, un 80 %** —muy por encima del 5–30 % que se había estimado antes, y casi uno por cambio de canal—. Sigue recuperándose: 19 de 20 dieron imagen, y la que no fue un canal caído en origen. **Y el 08-oct salió el otro lado de la balanza, que cambia la pregunta:** apagar el tunneled no sale gratis. En `hbohd`, 1,6 min sin tunneled dieron **15 rebuffers** —uno cada 4 s—, el offset trepó de 10,7 a 20,7 s, saltó la vuelta al borde y se perdieron 74 fotogramas; la misma caja con tunneled puesto, 5,6 min con **1 rebuffer** y el offset clavado en 10,8. Ni red ni CPU: 77 Mbps de media para un canal de 4 Mbps, CPU al 9 %, cero reintentos. Así que la decisión ya no es «¿molesta el fallo del tunneled?» sino «¿molesta más que un canal que se corta cada cuatro segundos?». Antes se midió entre el 5 % y el 30 % de los zapeos; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila |
 | 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
 | ~~35~~ | ~~**Cajas con Android < 7.1.1 no validan el certificado del registro**~~ | — | **cerrado 05-oct, medido en un emulador de API 22.** `RegistryTrust` empaqueta ISRG Root X1, X2, YR e YE y las usa **solo** para el registro. Sin el arreglo: `CertPathValidatorException: Trust anchor for certification path not found`. Con él: `registro.respuesta autorizado=true` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
@@ -254,6 +254,59 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Apagar el tunneled no sale gratis — 2026-10-08
+
+Edgar probó `hbohd` en los dos modos para confirmar si el decodificador de
+Amlogic ignora la cadencia 3:2 (#24). Lo que salió fue otra cosa, y pesa más.
+
+| `hbohd` | con tunneled | sin tunneled |
+|---|---|---|
+| Duración | 5,6 min | 1,6 min |
+| Rebuffers | **1** | **15** |
+| `directo` | 10,5 → 10,8, y plano | 10,7 → **20,7** |
+| Vuelta al borde | no saltó | **saltó** |
+| Fotogramas perdidos | no medibles | 74 |
+| Hueco máximo entre fotogramas | no medible | **1401 ms** |
+
+Quince rebuffers en 70 segundos es uno cada cuatro. Y no es la red ni la caja:
+77 Mbps de media para un canal de 4, CPU al 9 %, **cero reintentos**. Con
+tunneled, en una sesión tres veces más larga, hubo uno.
+
+**Eso explica lo que Edgar describió** —«el vídeo va adelantado al audio y
+parece ir más rápido»—: cada rebuffer dejaba el canal más atrás del directo,
+el offset trepó hasta 20,7 s, cruzó la media ventana (16,7 s de 33,4) y la
+vuelta al borde hizo su trabajo: saltar al directo. Ese salto es el vídeo
+adelantándose de golpe. Los 74 fotogramas perdidos hacen el resto.
+
+#### Lo que esto le hace al pendiente 37
+
+La pregunta era si el fallo de la aserción del tunneled —80 % de los zapeos,
+siempre recuperado— molesta lo bastante como para apagarlo. Ahora hay que
+ponerle precio al otro lado: apagarlo convierte `hbohd` en un canal que se
+corta cada cuatro segundos.
+
+No cambia que el fallo exista. Cambia que ya no hay una opción cómoda.
+
+#### Lo que esto **no** zanja
+
+El pulldown de #24 sigue sin medirse en esta versión. Se esperaba ver ~48 fps
+si el decodificador ignoraba la cadencia, y lo medido fue ~30 — que es la
+cadencia de fotograma del stream, no la de campo. Con 15 rebuffers de por
+medio, esa medición no vale: hay que repetirla en un rato sin cortes.
+
+Y es **una sola sesión de 1,6 minutos**. El tamaño del efecto es tan grande que
+cuesta atribuirlo al ruido —1 contra 15, con los controles limpios— pero antes
+de darlo por cerrado conviene repetirla.
+
+#### Una corrección
+
+El mismo día, con el log anterior, se dijo que los rebuffers de `hbohd` «no
+eran por falta de datos» porque el buffer nunca bajaba de 3,6 s. **Era falso, y
+el error estaba en el instrumento:** el latido muestrea cada 2 s y los valles
+duran menos. En la sesión siguiente se cazó el valle —`bufferS=2.6` en el
+latido inmediatamente anterior al rebuffer, la lectura más baja de toda la
+sesión— y el umbral para seguir reproduciendo son 2 s. Sí era falta de datos.
 
 ### M4 — Los flags del extractor, y dos cosas que salieron de paso — 2026-10-07
 
