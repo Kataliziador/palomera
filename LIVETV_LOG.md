@@ -255,6 +255,60 @@ un frame congelado.
 
 ## Entradas
 
+### Veinte minutos de HBO con tunneled: cero rebuffers — 2026-10-08
+
+La tercera sesión del día sobre `hbohd`, y la que decide.
+
+| | con tunneled | sin tunneled | **con tunneled, largo** |
+|---|---|---|---|
+| Duración | 5,6 min | 1,6 min | **20,4 min** |
+| Rebuffers | 1 | 15 | **0** |
+| Reb/hora | 10,7 | 574 | **0,0** |
+| `directo` | 10,5 → 10,8 | 10,7 → **20,7** | **11,8 → 11,8** |
+| Vuelta al borde | no | **sí** | no |
+| Buffer mínimo | 2,6 s | — | **4,1 s** |
+| `sinAvanzar` máximo | 0 ms | — | **13 ms** |
+
+612 latidos, **todos** en `listo`. El offset no se movió de 11,8–11,9 en veinte
+minutos. El buffer no bajó de 4,1 s ni una vez.
+
+Contra los objetivos de §10: rebuffers por hora **0,0** con objetivo < 1, y
+rebuffer ratio **0 %** con objetivo < 0,3 %. Los dos mejor que el objetivo, no
+que el «aceptable».
+
+Sumando las dos sesiones con tunneled —26 minutos, 1 rebuffer— salen 2,3 por
+hora, que entra en el «aceptable» de §10 pero no en el objetivo. La muestra
+larga sale a cero, así que el que manda es el tamaño de la muestra: hacen falta
+horas, no minutos, y eso es M7.
+
+#### Qué zanja
+
+**El pendiente 37.** La pregunta era si el fallo de la aserción del tunneled
+—80 % de los zapeos, siempre recuperado— justificaba apagarlo. La respuesta
+está en la tabla: apagarlo multiplica los rebuffers por un factor que no admite
+discusión. El fallo del tunneled cuesta un tropiezo al cambiar de canal;
+apagarlo cuesta el canal entero.
+
+El interruptor se queda para los modelos que lo necesiten —se excluyen por
+`deviceOverrides`, no recompilando (§6)— pero **el valor de fábrica no se
+toca**.
+
+#### Qué no zanja, y por qué no se puede
+
+**El pulldown de #24 no es medible en la configuración que se publica.** Hace
+falta ver la entrega de fotogramas, y con tunneled ni el contador propio ni
+`SurfaceFlinger --latency` ven nada (§6). Sin tunneled el canal se cae cada
+cuatro segundos, así que tampoco sirve.
+
+No es un hueco de método: es que **el instrumento y el objeto son
+incompatibles**. Y conviene recordar por qué importa menos de lo que parece:
+el tunneled se adoptó el 01-oct precisamente porque es lo único medido que
+elimina esos microcortes. Con él puesto, #24 ya está mitigado; lo que queda es
+saber si alguna caja futura obliga a apagarlo, y ahí volverá la pregunta.
+
+Lo único que puede decir si quedan microcortes en HBO son los ojos de Edgar
+sobre estos veinte minutos.
+
 ### Apagar el tunneled no sale gratis — 2026-10-08
 
 Edgar probó `hbohd` en los dos modos para confirmar si el decodificador de
