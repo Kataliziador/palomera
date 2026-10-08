@@ -135,7 +135,31 @@ documenta en `LIVETV_LOG.md` cuál queda por defecto para Amlogic.
 
 ---
 
-## M5 — Render: aspecto y entrelazado
+## M5 — Render: aspecto y entrelazado — **cerrado 2026-10-08**
+
+Declarado por Edgar en pantalla: *«no hay peines en ninguno, la imagen se ve
+bien»* y *«llenar y zoom quitan las franjas»*.
+
+**Lo que costó no fue el entrelazado: fue descubrir que el SAR nunca se había
+aplicado.** Los modos de imagen no hacían nada porque escalar un `SurfaceView`
+no llega a la superficie, y debajo había algo peor — nadie fijaba el modo de
+escalado del códec, así que los dos canales anamórficos llevaban saliendo
+deformados desde M2. Se arregló dimensionando la superficie, y se validó.
+
+**Con una excepción, y es la que abre M6:** `estrellassd` se presenta a **15
+fps**, la mitad de su cadencia, con peine. Medido y acotado — no es el render,
+no es la app, no es el stream: es el único decodificador MPEG-2 que tiene la
+caja. Es literalmente el caso que §6 le reserva a libVLC. El plan admite cerrar
+así —«o con la limitación documentada por modelo y el nivel correspondiente
+implementado»— y el nivel es M6.
+
+Las dos decisiones que colgaban de esta fase también quedaron tomadas: el
+**tunneled se queda** (0 rebuffers en 20 min con él, 15 en 1,6 min sin él) y el
+**pulldown se acepta**, porque el tunneled es justo lo que lo mitiga.
+
+---
+
+### Lo que pedía la fase
 
 **Objetivo:** que la imagen se vea bien, no solo que reproduzca.
 
