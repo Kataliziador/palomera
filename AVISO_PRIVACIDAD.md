@@ -93,9 +93,9 @@ Puedes pedirnos **acceder** a tus datos, **rectificarlos** si son incorrectos,
 consentimiento.
 
 Escribe a ⟨correo de contacto⟩ indicando **el identificador de instalación**,
-que puedes ver en la aplicación en TV en vivo → Diagnóstico. Sin él no podemos
-localizar tus datos, porque es lo único que los identifica: no sabemos tu
-nombre.
+que puedes ver en la aplicación en **Ajustes → Información → Identificador de
+esta instalación**. Sin él no podemos localizar tus datos, porque es lo único
+que los identifica: no sabemos tu nombre.
 
 **La forma más rápida de borrarlo todo** es desinstalar la aplicación. El
 identificador se borra con ella y lo que quedase deja de poder asociarse a
@@ -129,6 +129,7 @@ documento también cambia.
 | Resumen de reproducción | `Diagnostico.resumen()` |
 | «qué canales fallaron, no qué viste» | `Diagnostico.anotarSesion()`: solo suma cuando `causaDeFallo != null` |
 | Destino | `BuildConfig.REGISTRY_URL`, hoy `https://authjelly.satmx.net` |
+| Identificador a la vista | `about.kt`, fila «Identificador de esta instalación» |
 | Informes de fallo al ISP | `SessionRepository` fija la URL con `clientLogApi.logFileUrl()`; activados de fábrica en `TelemetryPreferences.crashReportEnabled` |
 
 **Tres cosas que hay que recordar:**
