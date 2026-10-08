@@ -255,6 +255,62 @@ un frame congelado.
 
 ## Entradas
 
+### Dos métricas de §10 que se contradicen, y la que acierta — 2026-10-08
+
+Cuarta sesión sobre `hbohd`, 24,1 minutos con tunneled. Edgar la juzgó en
+pantalla: *«hubo varios rebuffers pero creo que son viables, la imagen dura muy
+poco cortada y el stream se ve limpio mientras está de corrido»*.
+
+Los números dicen las dos cosas a la vez:
+
+| Métrica de §10 | Medido | Objetivo | |
+|---|---|---|---|
+| **Rebuffer ratio** | **0,260 %** | < 0,3 % | **pasa el objetivo** |
+| **Rebuffers por hora** | **24,9** | < 1, aceptable < 3 | **ocho veces el aceptable** |
+
+Las dos están bien calculadas. Lo que pasa es que **miden cosas distintas**, y
+aquí se separan:
+
+```
+11 cortes   mediana 313 ms   mínimo 58 ms   máximo 930 ms   total 3,76 s
+```
+
+#### La que acierta es el ratio, y conviene entender por qué
+
+«Rebuffers por hora» **cuenta eventos sin pesarlos**: un parpadeo de 58 ms vale
+lo mismo que una congelación de quince segundos. Ese objetivo se escribió
+pensando en paradas que se ven; aquí la mediana son 313 ms.
+
+Y que 313 ms no se ven no es una opinión: **está demostrado hoy mismo**. La
+barra de canal salía con cada uno de esos parpadeos, y Edgar la describió como
+molesta sin haber notado el corte que la provocaba. El aviso era más visible
+que el fallo.
+
+El ratio sí los pesa, y por eso coincide con lo que vio una persona mirando la
+pantalla.
+
+**Propuesta, que es decisión de Edgar:** que «rebuffers por hora» cuente solo
+los que pasan de un umbral —medio segundo parece el sitio— y que el ratio siga
+como está. Un objetivo que una sesión buena incumple ocho veces no se puede
+usar para decidir nada: o se afina o se ignora, y lo segundo es peor.
+
+#### Y una variación que no es del cliente
+
+Mismo canal, misma configuración, mismo día:
+
+| | Duración | Rebuffers |
+|---|---|---|
+| Tercera sesión | 20,4 min | **0** |
+| Cuarta sesión | 24,1 min | **10** |
+
+Cero y diez en condiciones idénticas. Eso no lo decide la app: lo decide lo que
+llega del satélite y cómo lo empaqueta Flussonic. Refuerza que lo que queda de
+`hbohd` es trabajo de headend —el `source_timeout` del pendiente 6 y el audio
+duplicado del 36— y no de cliente.
+
+El resto de la sesión, sano: 723 latidos **todos** en `listo`, buffer mínimo
+3,8 s, sin vuelta al borde, y el offset entre 9,7 y 11,9.
+
 ### Veinte minutos de HBO con tunneled: cero rebuffers — 2026-10-08
 
 La tercera sesión del día sobre `hbohd`, y la que decide.
