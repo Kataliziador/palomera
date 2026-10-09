@@ -88,6 +88,9 @@ class VlcLiveEngine(
 	/** Lo último que midió el latido. El overlay lo lee entre latido y latido. */
 	private var ultimaCpu = 0f
 
+	/** El modo pedido, para reaplicarlo cuando se sepa el tamaño del vídeo. */
+	private var modoActual: AspectMode? = null
+
 	private val medidor = DeviceLoad(context)
 	private var latido: Job? = null
 	private val alcance = CoroutineScope(Dispatchers.Main.immediate)
@@ -273,12 +276,24 @@ class VlcLiveEngine(
 	 * «encaja tú» y cualquier otro valor es la escala sobre el tamaño nativo.
 	 */
 	override fun setAspectMode(mode: AspectMode) {
+		modoActual = mode
 		val mp = player ?: return
 		val vista = surface
 		runCatching {
 			when (mode) {
+				// **La proporción se le dice, no se le deja adivinar.**
+				//
+				// Medido el 09-oct sobre `estrellassd`: con `null` —«usa la del
+				// origen»— libVLC renderizaba a 1695×1080, o sea proporción
+				// 1.569. Eso es 4:3 × 1.176, el SAR **aplicado dos veces**:
+				// sobre un tamaño que ya lo traía incorporado. La imagen salía
+				// estirada a lo ancho, y en «Zoom» se salía de la pantalla.
+				//
+				// `anchoVideo`×`altoVideo` es lo que el propio libVLC declara
+				// ya corregido, así que dárselo como proporción cierra el
+				// círculo y le impide corregir otra vez.
 				AspectMode.FIT -> {
-					mp.setAspectRatio(null)
+					mp.setAspectRatio(proporcionDelVideo())
 					mp.scale = 0f
 				}
 				AspectMode.RATIO_4_3 -> {
@@ -293,7 +308,7 @@ class VlcLiveEngine(
 				// alcance la pantalla. Lo que sobra por el otro se recorta, que
 				// es lo que pide quien no quiere franjas.
 				AspectMode.FILL, AspectMode.ZOOM -> {
-					mp.setAspectRatio(null)
+					mp.setAspectRatio(proporcionDelVideo())
 					val extra = if (mode == AspectMode.ZOOM) ZOOM_EXTRA else 1f
 					mp.scale = cubrir(vista) * extra
 				}
@@ -301,6 +316,10 @@ class VlcLiveEngine(
 		}.onFailure { LiveLog.warn("vlc.aspectoNoAplicado", "mode" to mode, "motivo" to it.message) }
 		LiveLog.debug("vlc.setAspectMode", "mode" to mode, "escala" to "%.2f".format(mp.scale))
 	}
+
+	/** `640:480`, o `null` si todavía no se sabe el tamaño. */
+	private fun proporcionDelVideo(): String? =
+		if (anchoVideo > 0 && altoVideo > 0) "$anchoVideo:$altoVideo" else null
 
 	/** Cuánto hay que escalar el vídeo nativo para que no quede ninguna franja. */
 	private fun cubrir(vista: SurfaceView?): Float {
@@ -437,6 +456,9 @@ class VlcLiveEngine(
 				"sar" to sarVideo,
 			)
 			notificar { it.onVideoSizeChanged(anchoVideo, altoVideo, sarVideo) }
+			// El modo se aplicó antes de saber el tamaño, así que la proporción
+			// iba en `null`. Ahora que se sabe, se vuelve a aplicar.
+			modoActual?.let { setAspectMode(it) }
 		}
 
 		// **El idioma sale del medio, no del nombre de la pista.**
