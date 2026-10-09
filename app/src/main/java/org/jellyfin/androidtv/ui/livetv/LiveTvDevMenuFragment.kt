@@ -391,7 +391,15 @@ private fun nextOffset(current: Long?): Long? = when (current) {
 private fun nextBuffer(current: Int?): Int? = when (current) {
 	null -> 2_000
 	2_000 -> 5_000
-	5_000 -> 30_000
+	// 8 000 y 10 000 añadidos el 09-oct. El barrido saltaba de 5 000 a 30 000 y
+	// dejaba sin probar justo el tramo que importa: medido ese día, el cliente
+	// se asienta ~10,3 s por detrás del directo en una ventana de 30-38 s, así
+	// que por delante de su posición hay ~10 s de material publicado. Pedir
+	// 5 000 deja el buffer oscilando entre 3 y 5; pedir 30 000 no cabe. Entre
+	// los dos nunca se midió nada.
+	5_000 -> 8_000
+	8_000 -> 10_000
+	10_000 -> 30_000
 	else -> null
 }
 

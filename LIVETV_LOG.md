@@ -256,10 +256,12 @@ un frame congelado.
 | 62 | ~~**Con libVLC, el ajuste de imagen salía mal en los cinco modos**~~ | — | **cerrado 09-oct.** Los dos motores tienen geometrías distintas y tratarlas como una produjo el fallo: MediaCodec **estira** hasta llenar la caja que se le da —en eso se apoya el dimensionado de superficie de M5— y libVLC **mantiene la proporción dentro** de su ventana, así que agrandar la superficie solo centraba la imagen con franjas más anchas. Ahora el modo se le dice al motor: libVLC usa su propio modelo de proporción y escala, y con libVLC la superficie no se redimensiona. Medido: «Llenar» pide escala 3.00, lo exacto para que un 640×480 cubra 1920×1080.
 
 **Y debajo había un segundo fallo que el primero tapaba.** Con la proporción en «la del origen», libVLC renderizaba `estrellassd` a 1695×1080 — proporción **1.569**, que es 4:3 × 1.176: el SAR **aplicado dos veces**, sobre un tamaño que ya lo traía incorporado. La imagen salía estirada a lo ancho y en «Zoom» se salía de la pantalla, que es lo que Edgar vio. Se le pasa ahora la proporción explícita —la que el propio libVLC declara ya corregida— y se reaplica el modo al conocerse el tamaño, porque el primero llega antes. Medido después: franjas de **240 px** a cada lado y **1440 px** de imagen, que es el 4:3 correcto al píxel |
-| 63 | **`vpuDeinterlaces` es por modelo y esta caja lo necesita por códec** | **M7** | es la llave del nivel 2 de `LIVETV_ENGINE.md` §4.4, y en la Skyworth no se puede girar. Su VPU **sí** desentrelaza H.264 1080i —M5: «sin peine en `discoveryhd` ni `hbohd`»— y **no** entrega bien el MPEG-2 480i (55). Con un solo booleano por modelo, ponerlo en `false` para que `estrellassd` llegue a libVLC arrastra a software los tres canales 1080i que hoy funcionan por hardware. O sea: el respaldo de M6 sigue sin poder dispararse solo en la única caja que tenemos, y ahora se sabe por qué. **La salida más limpia no es afinar este campo sino reusar el veto de decoders** (56), que ya existe y ya desemboca en la rama «sin decoder de plataforma para $mime, libVLC», probada: haría falta poder publicarlo por modelo desde el `config.json`, que es un campo nuevo en `deviceOverrides` y Modo A en la app. Lo de hoy —el barrido corregible (53)— era condición necesaria y no suficiente. **Y ya no es sospecha: medido el 09-oct**, `discoveryhd` por software cuesta el **63 % de CPU** (mediana de 41 latidos) contra el 14 % de `estrellassd`, para llegar a lo que por hardware ya sale perfecto. Girar el booleano por modelo arrastraría a software un canal que no lo necesita, con el margen justo para que cualquier otra carga del sistema se vea en pantalla. **Implementada la salida el 09-oct: `blockedDecoders` en los `deviceOverrides`**, que nombra el decoder que entrega mal en vez de hablar de desentrelazado. La Skyworth ya está en `nuestro.json` con su porqué y el site de pruebas lo sirve. Pendiente de validación en pantalla: con todo de fábrica, `estrellassd` debe irse a libVLC y `discoveryhd` seguir por hardware |
+| ~~63~~ | ~~**`vpuDeinterlaces` es por modelo y esta caja lo necesita por códec**~~ | — | es la llave del nivel 2 de `LIVETV_ENGINE.md` §4.4, y en la Skyworth no se puede girar. Su VPU **sí** desentrelaza H.264 1080i —M5: «sin peine en `discoveryhd` ni `hbohd`»— y **no** entrega bien el MPEG-2 480i (55). Con un solo booleano por modelo, ponerlo en `false` para que `estrellassd` llegue a libVLC arrastra a software los tres canales 1080i que hoy funcionan por hardware. O sea: el respaldo de M6 sigue sin poder dispararse solo en la única caja que tenemos, y ahora se sabe por qué. **La salida más limpia no es afinar este campo sino reusar el veto de decoders** (56), que ya existe y ya desemboca en la rama «sin decoder de plataforma para $mime, libVLC», probada: haría falta poder publicarlo por modelo desde el `config.json`, que es un campo nuevo en `deviceOverrides` y Modo A en la app. Lo de hoy —el barrido corregible (53)— era condición necesaria y no suficiente. **Y ya no es sospecha: medido el 09-oct**, `discoveryhd` por software cuesta el **63 % de CPU** (mediana de 41 latidos) contra el 14 % de `estrellassd`, para llegar a lo que por hardware ya sale perfecto. Girar el booleano por modelo arrastraría a software un canal que no lo necesita, con el margen justo para que cualquier otra carga del sistema se vea en pantalla. **Implementada la salida el 09-oct: `blockedDecoders` en los `deviceOverrides`**, que nombra el decoder que entrega mal en vez de hablar de desentrelazado. La Skyworth ya está en `nuestro.json` con su porqué y el site de pruebas lo sirve. **Cerrado el 09-oct, validado en pantalla con todo de fábrica:** `caps.decodersVetados cuantos=1`, `estrellassd` a libVLC con 0 cortes en su sesión y `discoveryhd` por hardware. Las dos mitades, incluida la que importaba: el veto no casa de más |
 | 64 | **`enginesAllowed` no se respeta contra `media3`** | **A** | el documento dice que un motor fuera de esa lista «no se elige nunca, ni como último recurso», y para libVLC es verdad —tres comprobaciones de `permitido()`—. Para Media3 no hay ninguna: con `enginesAllowed: ["libvlc"]` y decoder de hardware disponible, `videoPath` sale `HW` y el motor derivado es Media3, justo el que el canal prohíbe. Las pruebas solo cubren el sentido contrario (`["media3"]`). Descubierto el 09-oct buscando una palanca por canal para el 63; no hay ninguna hasta que esto se arregle |
 | ~~65~~ | ~~**Con libVLC, `plan.codecDiscrepante` saltaba en toda sesión**~~ | — | **cerrado 09-oct.** `VlcLiveEngine` publicaba como `videoMime` el códec **declarado** en el `config.json`, así que la comprobación se comparaba consigo misma: `declarado=video/mpeg2 observado=mpeg2video` es el mismo códec escrito de dos maneras, y el aviso salía en las dos sesiones del volcado de hoy. Peor que el ruido: así **no podría detectar una discrepancia de verdad**, que es para lo que existe. Es el mismo fallo que el 61 con el audio, dos líneas más arriba en el mismo bloque, y la misma solución: `null`. La ausencia de `plan.codecObservado` en una sesión de libVLC ya significa «no se llegó a comprobar», que es la verdad |
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
+| 67 | **El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana** | **M7** | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Hay que medirlo antes de cambiar el valor de fábrica**, que es Modo A |
+| 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. Huele a orden de efectos en Compose: el `onDispose` del motor anterior corriendo contra la instancia nueva |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -328,6 +330,93 @@ en el `config.json`, o sea comparaba el dato consigo mismo — el fallo del 61
 con el audio, dos líneas más arriba en el mismo bloque de código. Corregido
 (65). Lo que importa no es el ruido: así nunca habría detectado una
 discrepancia real.
+
+### El veto funciona, y los cortes de los 1080i tienen fuente medida — 2026-10-09
+
+Dos cosas en el mismo volcado: 275 minutos, ocho sesiones, la más larga de 2,5 h
+—la más larga del proyecto—.
+
+#### El veto por modelo, validado
+
+Con **todo de fábrica**, sin un solo interruptor:
+
+```
+caps.decodersVetados cuantos=1 nombres=OMX.amlogic.mpeg2.decoder.awesome2
+plan.construido canal=estrellassd motor=libvlc video=SW_VLC deint=SOFTWARE
+plan.construido canal=discoveryhd motor=media3 video=HW
+```
+
+Las dos mitades: `estrellassd` se va a libVLC sola —0 cortes, 16 % de CPU— y
+`discoveryhd` sigue por hardware. El veto **no casa de más**, que era la mitad
+que había que comprobar. Cierra el pendiente 63.
+
+#### Y los cortes que Edgar juzgó no viables
+
+| Canal | Motor | Minutos | Cortes | Por hora | Mediana | Máx | Ratio |
+|---|---|---|---|---|---|---|---|
+| `discoveryhd` | media3 | 106,7 | 26 | 14,6 | 194 ms | 1434 ms | 0,14 % |
+| `discoveryhd` | media3 | 149,7 | 39 | 15,6 | 289 ms | 1656 ms | 0,17 % |
+| `hbohd` | media3 | 15,2 | 6 | 23,6 | 416 ms | 1623 ms | 0,37 % |
+| `estrellassd` | libvlc | 2,1 | 0 | — | — | — | 0 % |
+
+**No es una regresión de nada de hoy**, y conviene decirlo con el número al
+lado: la misma caja y el mismo canal dieron **24,9 cortes/hora** el 08-oct, con
+ratio 0,24 %. Lo que cambió es la duración de la sesión —de 24 minutos a 150—,
+así que el recuento absoluto pasó de 10 a 39. El ratio bajó.
+
+Pero cinco de esos cortes pasan del segundo, y eso sí se ve. El juicio de «no
+viable» es sobre el recuento, y el recuento es real.
+
+#### La forma del fallo, medida por los dos lados
+
+**En la caja**, 7 681 latidos de la sesión larga:
+
+| | buffer |
+|---|---|
+| p1 | 3,6 s |
+| p50 | **6,2 s** |
+| p95 | 8,1 s |
+| máximo | **10,0 s** |
+
+Y la distancia al directo, mediana **11,3 s**. El techo del buffer **es la
+distancia al directo**, no nuestro `LoadControl`: el cliente carga hasta el
+borde de emisión y ahí se queda. Justo antes de cada corte el buffer vale 4,0 s
+de mediana, frente a 6,2 de la sesión entera, o sea que **se vacía
+progresivamente**: es falta de datos, no un tropiezo del decodificador.
+
+**En el origen**, medido desde esta máquina sin tocar la caja: pidiendo el media
+playlist cada segundo durante 5,5 minutos, 156 segmentos nuevos.
+
+```
+segmentos que llegaron >0,5 s tarde: 35 de 156   (22 %)
+el peor: +1,27 s   (uno de 2,04 s llegó 3,01 s después del anterior)
+```
+
+**El origen publica con ~1 s de retraso en uno de cada cinco segmentos.** Un
+cliente con 6 s de margen absorbe uno; tres seguidos se comen la mitad del
+colchón, y el p1 de 3,6 s dice que eso pasa.
+
+#### Por qué el margen es de 6 s y no de 15
+
+Porque sentarse más atrás del directo es lo único que lo agranda, y hoy no se
+está usando el sitio que hay:
+
+| | medido hoy |
+|---|---|
+| Ventana DVR de `discoveryhd` | **34,7 s** (14 segmentos) |
+| Mitad de ventana, el techo del contrato | 17,3 s |
+| `targetOffsetMs` que publica el site | 8 000 |
+| Suelo que impone la falta de `EXT-X-SERVER-CONTROL` | 3 × TARGETDURATION ≈ 10,2 s |
+| Dónde se asienta de verdad | **11,3 s** |
+
+O sea que el 8 000 del `config.json` **es una ficción**: el suelo lo sube a 10,2
+y ahí se queda, a menos de dos tercios de lo que la ventana permite. Subirlo a
+14 000 —que cabe en la mitad de ventana de los cuatro canales medidos— casi
+dobla el colchón sin tocar el headend y sin que el abonado note nada: ya va
+~11 s por detrás del aire.
+
+La otra mitad es del headend y es la de siempre: más segmentos en la ventana
+(`segment_count`) da sitio para sentarse más atrás todavía.
 
 ### M6 — Cerrado — 2026-10-09
 
