@@ -434,6 +434,11 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	var opcionSeleccionada by remember { mutableIntStateOf(0) }
 
 	var aspecto by remember { mutableStateOf(AspectMode.FIT) }
+
+	// El modo se le dice **al motor**, no solo a la vista. libVLC aplica su
+	// propia geometría —mantiene la proporción dentro de su ventana— y sin
+	// esto «Llenar» dejaba franjas. Media3 lo ignora sin coste.
+	LaunchedEffect(engine, aspecto) { engine.setAspectMode(aspecto) }
 	var subtitulosActivos by remember { mutableStateOf(false) }
 	var apagarEnMin by remember { mutableIntStateOf(0) }
 	var reinicios by remember { mutableIntStateOf(0) }
@@ -652,7 +657,14 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 			modifier = Modifier.fillMaxSize().clipToBounds(),
 			contentAlignment = Alignment.Center,
 		) {
-			val tamano = if (dev.superficieDimensionada) {
+			// **Con libVLC la superficie no se dimensiona.** Son dos geometrías
+			// distintas porque son dos decodificadores distintos: MediaCodec
+			// estira hasta llenar la caja que se le da, y libVLC mantiene la
+			// proporción dentro de ella. Agrandar la superficie para «Llenar»
+			// solo dejaba la imagen centrada con franjas más anchas — visto en
+			// pantalla el 09-oct. El modo se lo aplica el propio motor.
+			val mandaVlc = plan.engineId == PlanBuilder.VLC_ENGINE_ID
+			val tamano = if (dev.superficieDimensionada && !mandaVlc) {
 				AspectoDeVideo.tamanoDe(aspecto, stats, constraints.maxWidth, constraints.maxHeight)
 			} else {
 				null

@@ -258,11 +258,59 @@ class VlcLiveEngine(
 	 * imagen —medido el 06-oct—, y eso vale igual con libVLC. Pedirle además a
 	 * libVLC que escale sería escalar dos veces.
 	 */
+	/**
+	 * El ajuste de imagen, aplicado **en libVLC** y no en la vista.
+	 *
+	 * Con Media3 basta dimensionar la superficie, porque MediaCodec estira el
+	 * vídeo hasta llenar la caja que se le da (§M5). **libVLC no hace eso:**
+	 * mantiene la proporción dentro de su ventana, así que agrandar la
+	 * superficie para «Llenar» solo dejaba la imagen centrada con franjas más
+	 * anchas. Visto en pantalla el 09-oct.
+	 *
+	 * Son dos geometrías distintas porque son dos decodificadores distintos, y
+	 * fingir que son la misma es lo que produjo el fallo. Aquí se usa el modelo
+	 * de libVLC: proporción forzada y factor de zoom, donde `0` significa
+	 * «encaja tú» y cualquier otro valor es la escala sobre el tamaño nativo.
+	 */
 	override fun setAspectMode(mode: AspectMode) {
-		// La vista cambia de tamaño al aplicar el modo, y libVLC no se entera
-		// solo: hay que volver a decírselo.
-		surface?.let { dimensionar(it) }
-		LiveLog.debug("vlc.setAspectMode", "mode" to mode, "detalle" to "lo dimensiona la vista")
+		val mp = player ?: return
+		val vista = surface
+		runCatching {
+			when (mode) {
+				AspectMode.FIT -> {
+					mp.setAspectRatio(null)
+					mp.scale = 0f
+				}
+				AspectMode.RATIO_4_3 -> {
+					mp.setAspectRatio("4:3")
+					mp.scale = 0f
+				}
+				AspectMode.RATIO_16_9 -> {
+					mp.setAspectRatio("16:9")
+					mp.scale = 0f
+				}
+				// Cubrir: la escala que hace falta para que el lado corto
+				// alcance la pantalla. Lo que sobra por el otro se recorta, que
+				// es lo que pide quien no quiere franjas.
+				AspectMode.FILL, AspectMode.ZOOM -> {
+					mp.setAspectRatio(null)
+					val extra = if (mode == AspectMode.ZOOM) ZOOM_EXTRA else 1f
+					mp.scale = cubrir(vista) * extra
+				}
+			}
+		}.onFailure { LiveLog.warn("vlc.aspectoNoAplicado", "mode" to mode, "motivo" to it.message) }
+		LiveLog.debug("vlc.setAspectMode", "mode" to mode, "escala" to "%.2f".format(mp.scale))
+	}
+
+	/** Cuánto hay que escalar el vídeo nativo para que no quede ninguna franja. */
+	private fun cubrir(vista: SurfaceView?): Float {
+		val anchoVista = vista?.width ?: 0
+		val altoVista = vista?.height ?: 0
+		if (anchoVista <= 0 || altoVista <= 0 || anchoVideo <= 0 || altoVideo <= 0) return 0f
+		return maxOf(
+			anchoVista.toFloat() / anchoVideo,
+			altoVista.toFloat() / altoVideo,
+		)
 	}
 
 	override fun addListener(listener: EngineListener) { listeners += listener }
@@ -472,3 +520,7 @@ class VlcLiveEngine(
 		)
 	}
 }
+
+/** El mismo apriete extra que usa `AspectoDeVideo`, para que los dos motores
+ * se comporten igual en «Zoom». */
+private const val ZOOM_EXTRA = 1.12f
