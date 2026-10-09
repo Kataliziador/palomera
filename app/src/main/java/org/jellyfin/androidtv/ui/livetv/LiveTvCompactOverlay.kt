@@ -66,8 +66,13 @@ fun LiveTvCompactOverlay(
 				append("cpu ").append("%.0f%%".format(stats.cpuPercent))
 				stats.loadAvg1?.let { append("  carga ").append("%.1f".format(it)) }
 				if (stats.ramAvailableMb > 0) append("  ram ").append(stats.ramAvailableMb).append('M')
-				append("  buf ").append("%.1fs".format(stats.bufferedMs / 1000.0))
-				append("  dir ").append("%.1fs".format(stats.liveOffsetMs / 1000.0))
+				// **Lo que no se mide no se escribe.** libVLC no expone ni el
+				// buffer ni la distancia al directo, y escribirlos en cero los
+				// hace indistinguibles de una medida de cero — que es justo el
+				// valor alarmante. Un hueco se lee como «no lo sé»; un 0.0s se
+				// lee como «se acabó el buffer».
+				if (stats.bufferedMs > 0) append("  buf ").append("%.1fs".format(stats.bufferedMs / 1000.0))
+				if (stats.liveOffsetMs > 0) append("  dir ").append("%.1fs".format(stats.liveOffsetMs / 1000.0))
 				append("  tard ").append(stats.frameGapCount)
 				if (stats.maxFrameGapMs > 0) append('/').append(stats.maxFrameGapMs).append("ms")
 				append("  perd ").append(stats.droppedFrames)

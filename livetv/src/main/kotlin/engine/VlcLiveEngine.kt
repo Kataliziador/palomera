@@ -2,6 +2,13 @@ package org.jellyfin.livetv.engine
 
 import android.content.Context
 import android.view.SurfaceView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import org.jellyfin.livetv.diagnostics.DeviceLoad
 import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.livetv.diagnostics.DevOptions
 import org.jellyfin.livetv.diagnostics.LiveLog
@@ -74,6 +81,16 @@ class VlcLiveEngine(
 	private var pistas: List<AudioTrackRef> = emptyList()
 	private var pistaElegida: AudioTrackRef? = null
 	private var ultimaCausa: CausaDeFallo = CausaDeFallo.SENAL
+
+	/** Para contar flancos y no los 26 avisos de llenado que manda libVLC. */
+	private var enRebuffer = false
+
+	/** Lo último que midió el latido. El overlay lo lee entre latido y latido. */
+	private var ultimaCpu = 0f
+
+	private val medidor = DeviceLoad(context)
+	private var latido: Job? = null
+	private val alcance = CoroutineScope(Dispatchers.Main.immediate)
 
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
@@ -149,6 +166,7 @@ class VlcLiveEngine(
 		player = mp
 
 		surface?.let { attach(it) }
+		arrancarLatido(alcance)
 	}
 
 	/**
@@ -176,6 +194,8 @@ class VlcLiveEngine(
 	}
 
 	override fun release() {
+		latido?.cancel()
+		latido = null
 		soltarReproductor()
 		libVlc?.release()
 		libVlc = null
@@ -252,19 +272,37 @@ class VlcLiveEngine(
 
 	private fun alEvento(evento: MediaPlayer.Event) {
 		when (evento.type) {
+			// **`Buffering` no significa lo mismo que en Media3.**
+			//
+			// libVLC lo emite de continuo mientras reproduce, con el porcentaje
+			// de llenado: medido el 09-oct, 26 veces al 100 % en una sesión
+			// normal. Traducirlo a `onReady()` —que es lo que hacía— dejaba el
+			// estado en «Listo» en vez de «En vivo» una y otra vez, y la barra
+			// de canal no se escondía nunca. El síntoma no se parecía en nada a
+			// la causa.
+			//
+			// Lo que de verdad informa es el **flanco**: caer por debajo de 100
+			// con imagen ya en pantalla es un rebuffer, y volver a 100 después
+			// es haber salido de él.
 			MediaPlayer.Event.Buffering -> {
-				if (evento.buffering >= 100f) {
-					notificar { it.onReady() }
-				} else if (firstFrameAtMs > 0L && evento.buffering < 100f) {
-					// Solo cuenta como rebuffer si ya había imagen: durante el
-					// arranque el buffering es el arranque, no una recaída.
-					rebuffers++
-					LiveLog.warn("player.rebuffer", "numero" to rebuffers, "motor" to id)
-					notificar { it.onBuffering() }
+				val lleno = evento.buffering >= 100f
+				when {
+					!lleno && firstFrameAtMs > 0L && !enRebuffer -> {
+						enRebuffer = true
+						rebuffers++
+						LiveLog.warn("player.rebuffer", "numero" to rebuffers, "motor" to id)
+						notificar { it.onBuffering() }
+					}
+					lleno && enRebuffer -> {
+						enRebuffer = false
+						LiveLog.debug("vlc.rebufferSuperado", "numero" to rebuffers)
+						notificar { it.onPlaying() }
+					}
 				}
 			}
 
 			MediaPlayer.Event.Playing -> {
+				LiveLog.debug("vlc.evento", "tipo" to "Playing")
 				notificar { it.onPlaying() }
 			}
 
@@ -295,6 +333,43 @@ class VlcLiveEngine(
 				// En directo no hay final. Si llega, la fuente se cortó.
 				LiveLog.warn("vlc.finDeMedio", "detalle" to "en directo esto es un corte de la fuente")
 				notificar { it.onRecoverableError("vlcEndReached", null, CausaDeFallo.SENAL) }
+			}
+		}
+	}
+
+	/**
+	 * El latido, también aquí.
+	 *
+	 * **Vivía solo en `Media3LiveEngine`**, así que una sesión con libVLC no
+	 * dejaba ni una línea de diagnóstico: cero latidos en el volcado del
+	 * 09-oct. Todo el método de trabajo de este proyecto se apoya en ese
+	 * rastro —se mide leyendo el volcado, no mirando— y un motor que no lo
+	 * escribe es un motor que no se puede depurar en casa de un abonado.
+	 *
+	 * Lleva menos columnas que el de Media3 y eso es deliberado: solo las que
+	 * libVLC sabe de verdad. Las que no, no se escriben, en vez de escribirse
+	 * en cero y leerse igual que una medida.
+	 */
+	private fun arrancarLatido(alcance: CoroutineScope) {
+		latido?.cancel()
+		latido = alcance.launch {
+			var n = 0
+			while (isActive) {
+				delay(LiveTuning.HEARTBEAT_INTERVAL_MS)
+				val mp = player ?: continue
+				n++
+				val carga = runCatching { medidor.sample() }.getOrNull()
+				carga?.let { ultimaCpu = it.cpuPercent }
+				LiveLog.debug(
+					"latido",
+					"n" to n,
+					"motor" to id,
+					"estado" to if (mp.isPlaying) "reproduciendo" else "parado",
+					"posS" to "%.1f".format(mp.time / 1000.0),
+					"rebuffers" to rebuffers,
+					"cpu" to carga?.let { "%.0f%%".format(it.cpuPercent) },
+					"ramLibreMb" to carga?.ramAvailableMb,
+				)
 			}
 		}
 	}
@@ -376,7 +451,16 @@ class VlcLiveEngine(
 			videoHeight = altoVideo,
 			pixelAspectRatio = sarVideo,
 			videoMime = channel?.videoCodec,
-			audioMime = channel?.audioCodec,
+			// **`null`, no el códec declarado.** Este campo alimenta el aviso
+			// de audio sin normalizar de §2, y ese aviso solo vale si dice lo
+			// que **se está decodificando**. Poniendo aquí lo que el
+			// `config.json` declara, el aviso compararía el dato consigo mismo
+			// y dejaría de detectar justo el caso para el que existe: un site
+			// que declara AAC y entrega MP2. libVLC no nos dice el MIME, así
+			// que no se dice nada — visto en pantalla el 09-oct, donde ponerlo
+			// mal encendía un «⚠AAC» sobre un canal correctamente normalizado.
+			audioMime = null,
+			cpuPercent = ultimaCpu,
 			msToFirstFrame = if (firstFrameAtMs > 0) firstFrameAtMs - prepareAtMs else 0,
 			rebufferCount = rebuffers,
 			sessionUptimeMs = if (sesionDesdeMs > 0) ahora - sesionDesdeMs else 0,
