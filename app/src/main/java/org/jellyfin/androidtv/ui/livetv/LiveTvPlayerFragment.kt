@@ -186,7 +186,10 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		PlanBuilder.build(
 			channel = channel,
 			caps = caps,
-			servidor = dev.ajustesDelServidor,
+			// `ajustesEfectivos` y no `ajustesDelServidor`: el menú puede
+			// simular un modelo cuyo VPU no desentrelaza, que es la única
+			// forma de probar el nivel 2 en esta caja (pendiente 63).
+			servidor = dev.ajustesEfectivos,
 			tsFlags = dev.tsFlags,
 			forzarSoftwareLocal = dev.forceSoftwareVideo,
 			motorForzadoLocal = dev.forcedEngine,
@@ -282,7 +285,10 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 			channel = channel,
 			mimeObservado = observado,
 			caps = caps,
-			servidor = dev.ajustesDelServidor,
+			// `ajustesEfectivos` y no `ajustesDelServidor`: el menú puede
+			// simular un modelo cuyo VPU no desentrelaza, que es la única
+			// forma de probar el nivel 2 en esta caja (pendiente 63).
+			servidor = dev.ajustesEfectivos,
 			tsFlags = dev.tsFlags,
 			forzarSoftwareLocal = dev.forceSoftwareVideo,
 			motorForzadoLocal = dev.forcedEngine,

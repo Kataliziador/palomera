@@ -300,6 +300,40 @@ class DevOptions(context: Context) {
 		get() = prefs.getBoolean(K_FORZAR_DEINT, false)
 		set(v) = put { putBoolean(K_FORZAR_DEINT, v) }
 
+	/**
+	 * Simular un modelo cuyo VPU **no** desentrelaza.
+	 *
+	 * Es la llave del nivel 2 de la cascada (`LIVETV_ENGINE.md` §4.4): un canal
+	 * entrelazado en una caja así va a libVLC por software, aunque haya decoder
+	 * de hardware. En producción ese dato lo publica el `config.json` por
+	 * modelo, y **no hay forma de probarlo desde aquí sin esto**: al contrario
+	 * que el resto de ajustes del servidor, no existe un valor de fábrica que
+	 * el menú pueda pisar — `vpuDeinterlaces` ausente significa «sí
+	 * desentrelaza», que es lo prudente.
+	 *
+	 * Lo pide §9: desarrollar contra esta caja es desarrollar contra el mejor
+	 * caso, y el menú de degradación existe para simular cajas peores. Esta en
+	 * concreto no se puede declarar de verdad —medido en M5, su VPU **sí**
+	 * desentrelaza el H.264 1080i; lo que hace mal es el MPEG-2 (pendiente
+	 * 63)—, así que la alternativa habría sido escribir un dato falso en la
+	 * tabla de modelos que viaja a todos los sites.
+	 */
+	var simularVpuSinDeint: Boolean
+		get() = prefs.getBoolean(K_VPU_SIN_DEINT, false)
+		set(v) = put { putBoolean(K_VPU_SIN_DEINT, v) }
+
+	/**
+	 * Lo que el motor debe obedecer: el servidor, con lo que el menú simule.
+	 *
+	 * Va aparte de `ajustesDelServidor` —que sigue siendo lo que el servidor
+	 * dijo, tal cual— porque el menú enseña las dos cosas y confundirlas haría
+	 * imposible saber si un `vpuDeinterlaces: false` lo publicó el site o lo
+	 * puso un dedo.
+	 */
+	val ajustesEfectivos: ServerDeviceSettings?
+		get() = if (!simularVpuSinDeint) delServidor
+		else (delServidor ?: ServerDeviceSettings()).copy(vpuDeinterlaces = false)
+
 	var superficieDimensionada: Boolean
 		get() = prefs.getBoolean(K_SUPERFICIE_DIM, true)
 		set(v) = put { putBoolean(K_SUPERFICIE_DIM, v) }
@@ -430,6 +464,7 @@ class DevOptions(context: Context) {
 		if (configUrlOverride != null) add("config=manual")
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (forzarDesentrelazado) add("deint forzado")
+		if (simularVpuSinDeint) add("VPU sin deint (simulado)")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -499,6 +534,7 @@ class DevOptions(context: Context) {
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
 		const val K_SUPERFICIE_DIM = "superficieDimensionada"
 		const val K_FORZAR_DEINT = "forzarDesentrelazado"
+		const val K_VPU_SIN_DEINT = "simularVpuSinDeint"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -506,7 +542,7 @@ class DevOptions(context: Context) {
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
-			K_SUPERFICIE_DIM, K_FORZAR_DEINT,
+			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT,
 		)
 
 		const val OVERLAY_OCULTO = 0

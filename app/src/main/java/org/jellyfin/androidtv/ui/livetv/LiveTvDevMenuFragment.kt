@@ -260,6 +260,17 @@ private fun DevMenu() {
 			Info("Para MPEG-2 Flussonic no sabe si va entrelazado y el canal se publica como progresivo. Sin esto, libVLC decodifica pero no desentrelaza.")
 		}
 
+		item {
+			Row(
+				label = "Simular VPU que no desentrelaza",
+				value = if (dev.simularVpuSinDeint) "SIMULADO" else "lo dice el config.json",
+				changed = dev.simularVpuSinDeint,
+			) { change { dev.simularVpuSinDeint = !dev.simularVpuSinDeint } }
+		}
+		item {
+			Info("Hace creer al motor que el chip de esta caja no desentrelaza. Con el canal marcado entrelazado, la cascada lo manda a libVLC por software. Es la única forma de probar aquí lo que en un site publica el config.json por modelo.")
+		}
+
 		item { Header("Flags del extractor TS  (fase M4)") }
 		item {
 			Row(
