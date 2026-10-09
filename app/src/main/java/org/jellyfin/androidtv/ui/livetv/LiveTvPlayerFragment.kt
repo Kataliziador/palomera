@@ -181,7 +181,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	// cambian las capacidades, el canal o lo que diga el servidor.
 	// Atado a `revision` porque el veto de decoders del menú cambia lo que la
 	// caja «puede», y el plan tiene que rehacerse con la caja ya recortada.
-	val caps = remember(revision) { DeviceCapabilities.of(context).excluyendo(dev.vetoedDecoders) }
+	val caps = remember(revision) { DeviceCapabilities.of(context).excluyendo(dev.decodersDescartados) }
 	val plan = remember(channel.id, revision, caps) {
 		PlanBuilder.build(
 			channel = channel,

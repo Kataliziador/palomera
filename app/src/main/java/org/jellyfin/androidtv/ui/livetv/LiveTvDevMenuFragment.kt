@@ -354,11 +354,23 @@ private fun DevMenu() {
 		if (verDecoders) {
 			item { Info("El de MPEG-2 es el que ejercita el camino de respaldo.") }
 			items(videoDecoders, key = { it.name }) { d ->
+				// Un veto del servidor no se puede quitar desde aquí: es
+				// conocimiento de un modelo entero, y si hay que volver a
+				// probar ese decoder se quita del `config.json`, que es donde
+				// se escribió. Enseñarlo aparte importa — «VETADO» y «lo veta
+				// el servidor» se arreglan en sitios distintos.
+				val delServidor = dev.ajustesDelServidor?.blockedDecoders.orEmpty()
+					.any { it.equals(d.name, ignoreCase = true) }
 				Row(
 					label = "${if (d.hardware) "HW" else "SW"}  ${d.name}",
-					value = if (dev.isVetoed(d.name)) "VETADO" else "activo",
-					changed = dev.isVetoed(d.name),
+					value = when {
+						delServidor -> "VETADO POR EL SERVIDOR"
+						dev.isVetoed(d.name) -> "VETADO"
+						else -> "activo"
+					},
+					changed = delServidor || dev.isVetoed(d.name),
 				) {
+					if (delServidor) return@Row
 					change { if (dev.isVetoed(d.name)) dev.unveto(d.name) else dev.veto(d.name) }
 				}
 			}

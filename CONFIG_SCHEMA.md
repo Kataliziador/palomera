@@ -584,6 +584,22 @@ segundo lo que ya decía el primero.
 | `tsDetectAccessUnits` | booleano | flag del extractor TS |
 | `targetOffsetMs` | entero | pisa el del canal |
 | `vpuDeinterlaces` | booleano | si el VPU del modelo desentrelaza; se valida en pantalla, no por API |
+| `blockedDecoders` | lista de texto | nombres exactos de decoders que este modelo **no debe usar** |
+
+**`blockedDecoders` es para un decoder que existe y funciona mal**, que no es lo
+mismo que uno que falta. La caja declara su decoder por `MediaCodecList` y la
+cascada se lo cree; cuando el decoder está ahí y entrega mal —medido en la
+Skyworth: `OMX.amlogic.mpeg2.decoder.awesome2` da la mitad de la cadencia en
+MPEG-2— no hay nada en la API que lo delate, así que se nombra aquí.
+
+Quitado ese decoder, la cascada sigue su curso normal: busca otro de plataforma
+y, si no hay, cae al reproductor de respaldo. **No fuerza un motor**, que es la
+diferencia con `engine`: dice qué no sirve, no qué usar.
+
+Es la misma lista que el veto del menú de desarrollador, y se suman: lo que
+nombre el servidor no se puede «desvetar» desde la caja. Los nombres son
+exactos e insensibles a mayúsculas; uno que no exista en ese modelo no hace
+nada y se registra.
 
 **El servidor sugiere, la caja verifica.** Nada de esto se obedece a ciegas:
 pedir `libvlc` donde no está compilado se registra y se ignora, y la cascada

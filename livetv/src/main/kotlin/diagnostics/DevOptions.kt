@@ -39,6 +39,13 @@ data class ServerDeviceSettings(
 	 * mirando la pantalla una vez por modelo y el resultado se publica aquí.
 	 */
 	val vpuDeinterlaces: Boolean? = null,
+	/**
+	 * Decoders que este modelo no debe usar, por nombre exacto.
+	 *
+	 * **Se suma al veto del menú, no lo sustituye**, y por eso es un conjunto y
+	 * no un `null`able: vetar es restar, y dos capas que restan no se pisan.
+	 */
+	val blockedDecoders: Set<String> = emptySet(),
 )
 
 class DevOptions(context: Context) {
@@ -74,6 +81,8 @@ class DevOptions(context: Context) {
 			"AUD" to ajustes?.tsDetectAccessUnits,
 			"software" to ajustes?.forceSoftwareVideo,
 			"motor" to ajustes?.engine,
+			"vpuDeint" to ajustes?.vpuDeinterlaces,
+			"decodersVetados" to ajustes?.blockedDecoders?.size,
 		)
 		_revision.value++
 	}
@@ -107,6 +116,18 @@ class DevOptions(context: Context) {
 	var vetoedDecoders: Set<String>
 		get() = prefs.getStringSet(K_VETOED, emptySet()).orEmpty()
 		set(v) = put { putStringSet(K_VETOED, v) }
+
+	/**
+	 * Los decoders que el motor debe descartar: los del menú **y** los que el
+	 * servidor veta para este modelo.
+	 *
+	 * Suma, no elección. El del servidor es conocimiento de un modelo entero
+	 * —«este decoder entrega mal»— y no tiene sentido que una caja concreta lo
+	 * contradiga desde el menú: si hay que volver a probarlo, se quita del
+	 * `config.json`, que es donde se escribió.
+	 */
+	val decodersDescartados: Set<String>
+		get() = vetoedDecoders + delServidor?.blockedDecoders.orEmpty()
 
 	fun veto(decoder: String) { vetoedDecoders = vetoedDecoders + decoder }
 	fun unveto(decoder: String) { vetoedDecoders = vetoedDecoders - decoder }

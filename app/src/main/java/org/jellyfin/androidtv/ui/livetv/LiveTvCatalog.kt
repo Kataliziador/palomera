@@ -273,6 +273,12 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					tsDetectAccessUnits = o.tsDetectAccessUnits,
 					forceSoftwareVideo = o.forceSoftwareVideo,
 					targetOffsetMs = o.targetOffsetMs,
+					// **`vpuDeinterlaces` no estaba aquí**, así que el campo
+					// viajaba en el `config.json`, se interpretaba y se quedaba
+					// en el camino: el nivel 2 de la cascada no podía
+					// dispararse en producción ni publicándolo (pendiente 66).
+					vpuDeinterlaces = o.vpuDeinterlaces,
+					blockedDecoders = o.blockedDecoders,
 				)
 			})
 

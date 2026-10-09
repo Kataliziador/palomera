@@ -182,6 +182,50 @@ class LiveConfigParserTest : StringSpec({
 		c.deviceOverrides.shouldBeEmptyList()
 	}
 
+	"los decoders vetados por modelo se leen, y la basura se descarta" {
+		val c = LiveConfigParser.parse(
+			config(
+				""""channels":[$unCanal],
+				   "deviceOverrides":[{"match":{"model":"X"},
+				     "vpuDeinterlaces":false,
+				     "blockedDecoders":["OMX.amlogic.mpeg2.decoder.awesome2","  ","  OMX.otro  ",7]}]"""
+			)
+		)
+		val o = c.deviceOverrides.single()
+		o.vpuDeinterlaces shouldBe false
+		// Se recortan los espacios y se tiran los vacíos. Un número se lee
+		// como su texto, igual que en `aliases` y `enginesAllowed`: ningún
+		// decoder se llama «7», así que no veta nada. Más valía dejarlo pasar
+		// que inventar aquí una regla de tipos que el resto del parser no
+		// tiene.
+		o.blockedDecoders shouldBe setOf("OMX.amlogic.mpeg2.decoder.awesome2", "OMX.otro", "7")
+	}
+
+	"sin «blockedDecoders» el conjunto está vacío, no es nulo" {
+		val c = LiveConfigParser.parse(
+			config(""""channels":[$unCanal],"deviceOverrides":[{"match":{"model":"X"}}]""")
+		)
+		c.deviceOverrides.single().blockedDecoders shouldBe emptySet()
+	}
+
+	"dos ajustes que casan suman sus vetos en vez de pisarse" {
+		// Vetar es restar: «este fabricante no debe usar X» y «y este modelo
+		// tampoco Y» son dos defectos, no una corrección del primero.
+		val c = LiveConfigParser.parse(
+			config(
+				""""channels":[$unCanal],
+				   "deviceOverrides":[
+				     {"match":{"manufacturer":"A"},"blockedDecoders":["X"]},
+				     {"match":{"manufacturer":"A","model":"B"},"blockedDecoders":["Y"]}]"""
+			)
+		)
+		c.deviceOverrides.size shouldBe 2
+		// La fusión se prueba aquí y no por `settingsForThisDevice()`, que
+		// depende de `Build` y no existe en la JVM.
+		val fundido = c.deviceOverrides[0].blockedDecoders + c.deviceOverrides[1].blockedDecoders
+		fundido shouldBe setOf("X", "Y")
+	}
+
 	"la especificidad cuenta los criterios impuestos" {
 		DeviceMatch(model = "X").specificity shouldBe 1
 		DeviceMatch(manufacturer = "A", model = "X", sdkInt = 30).specificity shouldBe 3

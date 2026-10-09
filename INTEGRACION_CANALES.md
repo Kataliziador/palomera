@@ -209,6 +209,27 @@ sintonía.
   igual**: la cascada decide antes de abrir el stream.
 - **El aspecto** sale del SAR del stream, nunca del `config.json`.
 
+### Un decoder que existe y entrega mal: `blockedDecoders`
+
+Nuevo el 09-oct, en los `deviceOverrides` (`CONFIG_SCHEMA.md` §7). Es **nuestro**,
+no del ISP, y lo inyecta el generador como el resto de esa tabla.
+
+Sale de medir la Skyworth: su único decoder de MPEG-2 declara estar ahí y
+entrega **la mitad de la cadencia** —15,0 fps sobre una fuente de 29,97, con
+cero fotogramas perdidos—, que en pantalla se ve como peine e imagen lenta.
+Nada en `MediaCodecList` lo delata, así que la caja no lo puede descubrir sola.
+
+Vetado por nombre, ese códec se queda sin decoder de plataforma y la cascada
+cae al reproductor de respaldo por el camino que ya existía. **Lo que no se usa
+para esto es `vpuDeinterlaces: false`**, y conviene entender por qué, porque es
+el error que parecía la solución: el chip de esa caja **sí** desentrelaza el
+H.264 1080i, y declararlo al revés se llevaría a software tres canales que van
+perfectos por hardware — medido, del 14 % de CPU al 63 %.
+
+La regla general: **`vpuDeinterlaces` habla de una capacidad del modelo;
+`blockedDecoders` habla de una pieza concreta que funciona mal.** Un defecto de
+un códec se nombra por el decoder.
+
 ### `interlaced` es el único campo que no podéis calcular
 
 Y es el único que la app **no puede medir ni corregir por su cuenta**, al

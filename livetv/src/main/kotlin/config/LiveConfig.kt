@@ -68,6 +68,16 @@ data class DeviceOverride(
 	val targetOffsetMs: Long? = null,
 	/** Si el VPU de este modelo desentrelaza. Se valida en pantalla, no por API. */
 	val vpuDeinterlaces: Boolean? = null,
+	/**
+	 * Decoders que este modelo **no debe usar**, por nombre exacto.
+	 *
+	 * Para un decoder que existe y entrega mal, que no es lo mismo que uno que
+	 * falta: `MediaCodecList` lo declara igual y nada en la API lo delata.
+	 * Quitado de las capacidades, la cascada sigue su curso —otro de
+	 * plataforma, o el respaldo—, así que esto dice **qué no sirve**, nunca qué
+	 * usar.
+	 */
+	val blockedDecoders: Set<String> = emptySet(),
 )
 
 /**
@@ -153,6 +163,10 @@ data class LiveConfig(
 				forceSoftwareVideo = mas.forceSoftwareVideo ?: menos.forceSoftwareVideo,
 				targetOffsetMs = mas.targetOffsetMs ?: menos.targetOffsetMs,
 				vpuDeinterlaces = mas.vpuDeinterlaces ?: menos.vpuDeinterlaces,
+				// Se **suman**, no se pisan: dos ajustes que casan con la misma
+				// caja hablan de dos defectos distintos, y el más específico no
+				// es un desmentido del general. Vetar es siempre restar.
+				blockedDecoders = menos.blockedDecoders + mas.blockedDecoders,
 			)
 		}
 	}
@@ -422,6 +436,11 @@ object LiveConfigParser {
 				forceSoftwareVideo = o.bool("forceSoftwareVideo"),
 				targetOffsetMs = o.long("targetOffsetMs"),
 				vpuDeinterlaces = o.bool("vpuDeinterlaces"),
+				blockedDecoders = o.array("blockedDecoders")
+					?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank) }
+					?.map { it.trim() }
+					?.toSet()
+					.orEmpty(),
 			)
 		}
 	}

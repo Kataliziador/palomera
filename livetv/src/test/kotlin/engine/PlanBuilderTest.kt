@@ -136,6 +136,54 @@ class PlanBuilderTest : StringSpec({
 		p.reason shouldContain "servidor"
 	}
 
+	// --- El veto de decoders por modelo ------------------------------------
+	//
+	// Es la salida del pendiente 63: el defecto de la Skyworth no es que su VPU
+	// no desentrelace —sí lo hace en H.264, medido en M5— sino que su decoder
+	// de MPEG-2 entrega la mitad de la cadencia. Vetarlo por nombre deja ese
+	// códec sin decoder de plataforma y la cascada cae al respaldo **sin tocar
+	// el H.264**, que es lo que un `vpuDeinterlaces: false` por modelo no sabe
+	// hacer: se llevaría a software los tres canales 1080i de la caja.
+
+	"vetar el decoder de un códec desde el servidor lleva ese canal a libVLC" {
+		val caja = caja(listOf(avcHw, mpeg2Hw), vlc = true)
+			.excluyendo(setOf("OMX.amlogic.mpeg2.decoder"))
+		val p = plan(mpeg2, caja)
+		p.videoPath shouldBe DecodePath.SW_VLC
+		p.engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+		p.reason shouldContain "sin decoder de plataforma"
+	}
+
+	"y no toca a los demás códecs de la misma caja" {
+		val caja = caja(listOf(avcHw, mpeg2Hw), vlc = true)
+			.excluyendo(setOf("OMX.amlogic.mpeg2.decoder"))
+		val p = plan(h264.copy(interlaced = true), caja)
+		p.videoPath shouldBe DecodePath.HW
+		p.engineId shouldBe PlanBuilder.MEDIA3_ENGINE_ID
+		p.deinterlace shouldBe DeinterlaceMode.VPU
+	}
+
+	"un nombre con otras mayúsculas también veta" {
+		// El nombre viaja en el `config.json` y lo escribe una persona. Un veto
+		// que no casa por una mayúscula no hace nada y no se nota hasta que
+		// alguien mira la tele.
+		val caja = caja(listOf(mpeg2Hw), vlc = true)
+			.excluyendo(setOf("omx.AMLOGIC.mpeg2.DECODER"))
+		plan(mpeg2, caja).engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+	}
+
+	"un nombre que esa caja no tiene no cambia nada" {
+		val caja = caja(listOf(mpeg2Hw)).excluyendo(setOf("OMX.otra.marca.mpeg2"))
+		plan(mpeg2, caja).videoPath shouldBe DecodePath.HW
+	}
+
+	"si se veta el único decoder y no hay libVLC, el canal queda sin camino" {
+		// Y se dice. Es el precio de un veto mal escrito, y tiene que verse en
+		// el log en vez de salir como pantalla negra sin explicación.
+		val caja = caja(listOf(mpeg2Hw)).excluyendo(setOf("OMX.amlogic.mpeg2.decoder"))
+		plan(mpeg2, caja).unsupported shouldBe true
+	}
+
 	// --- `enginesAllowed` es un filtro duro ---------------------------------
 
 	"un motor fuera de enginesAllowed no se elige ni como último recurso" {

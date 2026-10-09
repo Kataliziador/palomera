@@ -58,7 +58,11 @@ class DeviceCapabilities private constructor(
 	 */
 	fun excluyendo(nombres: Set<String>): DeviceCapabilities {
 		if (nombres.isEmpty()) return this
-		val quedan = decoders.filterNot { it.name in nombres }
+		// Insensible a mayúsculas, como todo lo que se compara contra un
+		// nombre que viene del `config.json`: un veto que no casa por una
+		// mayúscula no hace nada y no se nota hasta que alguien mira la tele.
+		val vetados = nombres.map { it.trim().lowercase() }.toSet()
+		val quedan = decoders.filterNot { it.name.lowercase() in vetados }
 		if (quedan.size == decoders.size) return this
 		LiveLog.warn(
 			"caps.decodersVetados",
