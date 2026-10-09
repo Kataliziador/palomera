@@ -179,7 +179,41 @@ documentada por modelo y el nivel correspondiente implementado.
 
 ---
 
-## M6 — Backend libVLC
+## M6 — Backend libVLC — **cerrado 2026-10-09**
+
+Declarado por Edgar: *«probé los cinco modos, todos se ven correctos»*, sin
+peine y con cadencia normal.
+
+Entró porque hubo un caso medido, no por si acaso: `estrellassd` se presentaba
+a 15 fps con peine y la caja no tiene otro decodificador de MPEG-2. Con libVLC
+—software forzado y yadif2x— se ve bien y cuesta menos del 16 % de CPU.
+
+**Lo que costó no fue el motor: fueron seis cosas que no hacían lo que decían.**
+El veto de decoders del menú, que nadie leía. `hasVlcBackend`, que dependía de
+quién preguntara primero. El canal publicado como progresivo siendo 480i. El
+latido, que vivía solo en el otro motor. El `audioMime`, que encendía un aviso
+falso. Y el SAR, que libVLC aplicaba dos veces.
+
+**Precio:** la descarga por caja pasa de ~20 MB a ~47 MB.
+
+### Lo que queda abierto, y conviene no olvidarlo
+
+El respaldo existe y está probado, pero **todavía no se dispara solo en casa de
+un abonado**. La regla que lo activa —nivel 2 de `LIVETV_ENGINE.md` §4.4, SD
+entrelazado sin VPU que desentrelace— ya está implementada y gobernada por
+`vpuDeinterlaces: false` en los `deviceOverrides`. Le falta el otro dato:
+
+- **`interlaced` llega mal para MPEG-2** (pendiente 53). Flussonic devuelve
+  `field_order=unknown` y el generador publica `false`, así que la regla no
+  reconoce el canal como entrelazado. Hoy se suple con «Forzar
+  desentrelazado» del menú, que es un interruptor de diagnóstico, no una
+  solución: hace falta que el operador pueda corregir ese campo en el lineup.
+
+Hasta entonces, libVLC es una capacidad demostrada y una palanca manual.
+
+---
+
+### Lo que pedía la fase
 
 **Solo si M3 o M5 lo requieren.** Si la caja de pruebas cubre todo por
 hardware y desentrelaza, esta fase se pospone para cuando aparezca la primera

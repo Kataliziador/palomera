@@ -246,7 +246,7 @@ un frame congelado.
 | 52 | ~~**La barra de canal salía sola con cada parpadeo del reproductor**~~ | — | **cerrado 08-oct.** El efecto que la muestra estaba atado a `enVivo`, y un rebuffer corriente son tres cambios de estado seguidos: medido en `estrellassd`, `buffering → ready → playing` en **371 ms**. Invisible en pantalla, y aun así sacaba la barra encima del vídeo. Ahora la saca la pulsación, y vuelve sola solo si el canal lleva parado más de 2 s. **Pendiente de validación en pantalla** |
 | 53 | **`estrellassd` se publica como progresivo y es 480i** | B / headend | el `config.json` del site trae `interlaced: false` para un canal medido 480i (`CHANNELS.md`). El generador lo saca de la API de Flussonic, que para MPEG-2 no lo declara. **Hoy no cambia nada** —ver 54— pero es un dato falso en el contrato, y el día que algo lo use decidirá mal. Al revés también: `estrellashd` sale `interlaced: true` y es cine progresivo con cadencia 3:2 |
 | 54 | **El modo de desentrelazado se calcula, se registra y no lo usa nadie** | **M5** | `PlanBuilder` resuelve `deinterlace` en cuatro valores y el único consumidor es la línea del log. El motor nunca le dice nada a Media3 ni al VPU. O sea: **la app no tiene hoy ninguna palanca sobre el desentrelazado**, y `deint=NONE` en un canal con peine no es la causa, es una etiqueta. Descubierto el 08-oct al investigar el peine de `estrellassd` |
-| 55 | **`estrellassd` se presenta a 15 fps, la mitad de su cadencia — es el caso de libVLC** | **M5 → M6** | medido el 08-oct con el tunneled **apagado**, que es la única forma de que los contadores vean algo: `fps=15.0` estable en una fuente de 29.97, `huecoMaxMs=100`, **`perdidos=0`** —o sea el decodificador no entrega más, no es que se tiren—. Explica los dos síntomas de Edgar a la vez: el peine y «la imagen está lenta». La caja declara **un solo** decodificador para `video/mpeg2`, `OMX.amlogic.mpeg2.decoder.awesome2`, así que no hay alternativa que probar (confirma el 26). **Los dos descartes, hechos el 08-oct.** La superficie no es: con ella a 1920×1080 —verificado por `SurfaceFlinger`— siguen 15.0 fps. El canal tampoco está solo: `discoveryhd`, 1080i H.264 en las mismas condiciones, da **29.9 fps** limpios en 170 latidos. Y el stream entrega lo que declara: **600 fotogramas en 20 s medidos con `ffprobe`**, 30000/1001. Así que es el decodificador MPEG-2 de la caja, y no hay otro. **Es literalmente el caso que `CLAUDE.md` §6 le reserva a libVLC** —«MPEG-2 sin decoder en la caja, y desentrelazado por software de SD»—, o sea M6 |
+| ~~55~~ | ~~**`estrellassd` se presenta a 15 fps, la mitad de su cadencia**~~ | — | medido el 08-oct con el tunneled **apagado**, que es la única forma de que los contadores vean algo: `fps=15.0` estable en una fuente de 29.97, `huecoMaxMs=100`, **`perdidos=0`** —o sea el decodificador no entrega más, no es que se tiren—. Explica los dos síntomas de Edgar a la vez: el peine y «la imagen está lenta». La caja declara **un solo** decodificador para `video/mpeg2`, `OMX.amlogic.mpeg2.decoder.awesome2`, así que no hay alternativa que probar (confirma el 26). **Los dos descartes, hechos el 08-oct.** La superficie no es: con ella a 1920×1080 —verificado por `SurfaceFlinger`— siguen 15.0 fps. El canal tampoco está solo: `discoveryhd`, 1080i H.264 en las mismas condiciones, da **29.9 fps** limpios en 170 latidos. Y el stream entrega lo que declara: **600 fotogramas en 20 s medidos con `ffprobe`**, 30000/1001. Así que es el decodificador MPEG-2 de la caja, y no hay otro. **Es literalmente el caso que `CLAUDE.md` §6 le reserva a libVLC** —«MPEG-2 sin decoder en la caja, y desentrelazado por software de SD»—, o sea M6 | **Cerrado 09-oct con M6:** por libVLC se ve bien, sin peine y a cadencia normal, con menos del 16 % de CPU. **Con la salvedad del 53:** la regla que lo elegiría sola necesita que el canal llegue marcado como entrelazado, y no llega |
 | 56 | ~~**El veto de decoders del menú no lo leía nadie**~~ | — | **cerrado 08-oct.** Se guardaba, se contaba en la línea de degradación y se enseñaba en el menú, y **ninguna línea lo aplicaba**. Descubierto al intentar probar M6 con él, que es exactamente para lo que existe. Ahora `DeviceCapabilities.excluyendo()` lo aplica, y las capacidades se recalculan con `revision` |
 | 57 | ~~**`hasVlcBackend` dependía de quién preguntara primero**~~ | — | **cerrado 08-oct.** Era un parámetro de `DeviceCapabilities.of()`, y la caché devuelve lo primero que se construyó ignorando los argumentos siguientes: `RegistryRepository` pregunta al arrancar, antes que el reproductor, y fijaba `false` para todo el proceso. Con el motor ya escrito, la cascada se negaba a elegirlo. El fondo del error es que **no es una propiedad de la caja sino del APK**: ahora se mira por reflexión, una vez |
 | 58 | **El idioma de las pistas de audio de libVLC sale vacío** | M6 | `MediaPlayer.audioTracks` incluye la pseudo-pista «Disable» de libVLC, que la barra pintaba como un idioma llamado «DI». Filtrada. Pero leyendo el idioma del medio en su lugar, viene `null`: la barra ya no miente, pero tampoco dice. Afecta poco hoy —el único canal que usa libVLC tiene una sola pista— y afectaría de verdad a un MPEG-2 con doble audio |
@@ -256,13 +256,80 @@ un frame congelado.
 | 62 | ~~**Con libVLC, el ajuste de imagen salía mal en los cinco modos**~~ | — | **cerrado 09-oct.** Los dos motores tienen geometrías distintas y tratarlas como una produjo el fallo: MediaCodec **estira** hasta llenar la caja que se le da —en eso se apoya el dimensionado de superficie de M5— y libVLC **mantiene la proporción dentro** de su ventana, así que agrandar la superficie solo centraba la imagen con franjas más anchas. Ahora el modo se le dice al motor: libVLC usa su propio modelo de proporción y escala, y con libVLC la superficie no se redimensiona. Medido: «Llenar» pide escala 3.00, lo exacto para que un 640×480 cubra 1920×1080.
 
 **Y debajo había un segundo fallo que el primero tapaba.** Con la proporción en «la del origen», libVLC renderizaba `estrellassd` a 1695×1080 — proporción **1.569**, que es 4:3 × 1.176: el SAR **aplicado dos veces**, sobre un tamaño que ya lo traía incorporado. La imagen salía estirada a lo ancho y en «Zoom» se salía de la pantalla, que es lo que Edgar vio. Se le pasa ahora la proporción explícita —la que el propio libVLC declara ya corregida— y se reaplica el modo al conocerse el tamaño, porque el primero llega antes. Medido después: franjas de **240 px** a cada lado y **1440 px** de imagen, que es el 4:3 correcto al píxel |
-| 26 | **La Skyworth no tiene decoder por software para MPEG-2** | **M6** | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando |
+| ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
 
 ---
 
 ## Entradas
+
+### M6 — Cerrado — 2026-10-09
+
+Declarado por Edgar: **«probé los cinco modos, todos se ven correctos»**, sin
+peine y con cadencia normal.
+
+#### Entró por un número, no por si acaso
+
+El plan decía «solo si M3 o M5 lo requieren». M5 lo requirió: `estrellassd` se
+presentaba a **15 fps con peine**, acotado hasta el final —no el render, no la
+app, no el stream— y la caja no tiene otro decodificador de MPEG-2. Con libVLC,
+software forzado y yadif2x, se ve bien y cuesta **menos del 16 % de CPU**, que
+era la duda razonable.
+
+Primer fotograma en 443 ms, más rápido que Media3.
+
+#### Lo que costó no fue el motor
+
+Fueron seis cosas que existían y no hacían lo que decían:
+
+| | |
+|---|---|
+| El veto de decoders del menú | se guardaba y nadie lo leía — y es la palanca con la que el plan dice que se prueba M6 |
+| `hasVlcBackend` | dependía de quién llamara primero a una caché que ignora argumentos |
+| El canal | publicado como progresivo siendo 480i medido |
+| El latido | vivía solo en el otro motor: una sesión con libVLC no dejaba rastro |
+| `audioMime` | devolvía el códec declarado, así que el aviso de §2 se comparaba consigo mismo |
+| El SAR | libVLC lo aplicaba dos veces: 1695×1080 donde tocaban 1440×1080 |
+
+Tres de las seis se descubrieron **intentando probar**, no escribiendo. Y dos
+—el latido y el `audioMime`— no las habría encontrado nadie mirando la
+pantalla: la primera porque su síntoma es la ausencia de un log, y la segunda
+porque su síntoma era un aviso encendido donde todo estaba bien, que es más
+fácil de creer que de dudar.
+
+#### Dos geometrías, no una
+
+Lo que más tiempo llevó fue entender que **los dos motores no se parecen**.
+MediaCodec estira el vídeo hasta llenar la caja que se le da —en eso se apoya
+todo el dimensionado de superficie de M5— y libVLC mantiene la proporción
+dentro de su ventana. Tratarlos igual producía franjas donde no debía haberlas
+y recortes donde no tocaba.
+
+Ahora el modo de imagen se le dice al motor y cada uno lo resuelve a su manera.
+Medido tras el arreglo: franjas de 240 px y 1440 px de imagen, el 4:3 exacto.
+
+#### Lo que queda abierto, dicho sin adornos
+
+**El respaldo todavía no se dispara solo en casa de un abonado.** La regla que
+lo activaría —nivel 2 de `LIVETV_ENGINE.md` §4.4— quedó implementada en esta
+fase y gobernada por `vpuDeinterlaces: false` en los `deviceOverrides`, con
+tres pruebas. Pero necesita el otro dato, y ese llega mal: **`interlaced` viene
+`false` para MPEG-2** porque Flussonic responde `field_order=unknown`
+(pendiente 53).
+
+Hoy se suple con «Forzar desentrelazado», que es un interruptor de diagnóstico.
+La solución de verdad es que el operador pueda corregir ese campo en el lineup
+de su site, y eso es trabajo del otro proyecto.
+
+**Así que M6 entrega una capacidad demostrada y una palanca manual, no un
+arreglo automático.** Conviene que quede escrito así y no como «libVLC
+resuelve los MPEG-2», que es lo que se leería dentro de tres meses.
+
+#### Precio
+
+La descarga por caja pasa de ~20 MB a ~47 MB. VideoLAN solo publica el
+artefacto con las cuatro arquitecturas; con el AAB cada caja se baja la suya.
 
 ### M5 — Cerrado — 2026-10-08
 

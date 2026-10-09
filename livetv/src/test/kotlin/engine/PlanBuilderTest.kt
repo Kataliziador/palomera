@@ -85,6 +85,44 @@ class PlanBuilderTest : StringSpec({
 		p.reason shouldContain "sin decoder"
 	}
 
+	// --- Nivel 2: SD entrelazado sin VPU que desentrelace -------------------
+
+	"con el VPU que no desentrelaza, el SD entrelazado va por libVLC aunque haya hardware" {
+		// Es la única rama que descarta hardware **teniendo** hardware, y sin
+		// ella M6 solo servía con el decoder vetado a mano desde el menú: o
+		// sea, nunca en casa de un abonado. Lo gobierna `vpuDeinterlaces`, que
+		// es conocimiento nuestro por modelo.
+		val p = plan(
+			mpeg2.copy(interlaced = true),
+			caja(listOf(mpeg2Hw), vlc = true),
+			servidor = ServerDeviceSettings(vpuDeinterlaces = false),
+		)
+		p.engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+		p.videoPath shouldBe DecodePath.SW_VLC
+		p.deinterlace shouldBe DeinterlaceMode.SOFTWARE
+	}
+
+	"si el VPU sí desentrelaza, el mismo canal se queda en hardware" {
+		val p = plan(
+			mpeg2.copy(interlaced = true),
+			caja(listOf(mpeg2Hw), vlc = true),
+			servidor = ServerDeviceSettings(vpuDeinterlaces = true),
+		)
+		p.videoPath shouldBe DecodePath.HW
+		p.deinterlace shouldBe DeinterlaceMode.VPU
+	}
+
+	"un canal progresivo no se desvía a libVLC aunque el VPU no desentrelace" {
+		// La regla es para entrelazado. Mandar lo progresivo a software sería
+		// pagar CPU por nada y perder el camino de hardware que funciona.
+		val p = plan(
+			mpeg2,
+			caja(listOf(mpeg2Hw), vlc = true),
+			servidor = ServerDeviceSettings(vpuDeinterlaces = false),
+		)
+		p.videoPath shouldBe DecodePath.HW
+	}
+
 	// --- El servidor sugiere, la caja verifica ------------------------------
 
 	"el servidor no puede imponer libVLC donde no está compilado" {

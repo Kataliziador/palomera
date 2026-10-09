@@ -57,6 +57,13 @@ object PlanBuilder {
 	): PlaybackPlan {
 		val motivos = mutableListOf<String>()
 
+		// `entrelazado` y no `channel.interlaced` a secas: para MPEG-2 la API
+		// de Flussonic devuelve `field_order=unknown` y el generador publica
+		// `interlaced: false` en un canal que está medido 480i (pendiente 53).
+		// Sin esta salida, el respaldo de libVLC se elegiría y luego no
+		// desentrelazaría, que es la mitad inútil del camino.
+		val entrelazado = channel.interlaced || forzarDeintLocal
+
 		// --- Filtro duro del canal -----------------------------------------
 		//
 		// `enginesAllowed` no es una preferencia: un motor ausente de esa lista
@@ -117,6 +124,27 @@ object PlanBuilder {
 				DecodePath.HW
 			}
 
+			// **Nivel 2 de la cascada de entrelazado** (`LIVETV_ENGINE.md`
+			// §4.4): SD entrelazado en una caja cuyo VPU no desentrelaza va
+			// por libVLC con software + yadif, **aunque haya decoder de
+			// hardware**.
+			//
+			// Es la única rama donde el hardware se descarta teniendo hardware,
+			// y hace falta porque «hay decoder» y «decodifica bien» son cosas
+			// distintas: en la Skyworth, el de MPEG-2 entrega `estrellassd` a
+			// la mitad de cadencia y con peine (pendiente 55). Sin esto, M6
+			// solo servía con el decoder vetado a mano desde el menú, o sea
+			// nunca en casa de un abonado.
+			//
+			// Lo gobierna `vpuDeinterlaces: false` en los `deviceOverrides`,
+			// que es conocimiento nuestro por modelo y ya significaba
+			// exactamente esto (§6).
+			entrelazado && servidor?.vpuDeinterlaces == false &&
+				caps.hasVlcBackend && permitido(VLC_ENGINE_ID) -> {
+				motivos += "el VPU de este modelo no desentrelaza, libVLC por software"
+				DecodePath.SW_VLC
+			}
+
 			caps.hasHardwareFor(mime) -> {
 				motivos += "hw para $mime"
 				DecodePath.HW
@@ -164,12 +192,6 @@ object PlanBuilder {
 		// `deviceOverrides`. Sin ese dato se asume que sí, porque es lo que
 		// hace cualquier caja de televisión moderna y porque asumir que no
 		// llevaría a desentrelazar dos veces.
-		// `entrelazado` y no `channel.interlaced` a secas: para MPEG-2 la API de
-		// Flussonic devuelve `field_order=unknown` y el generador publica
-		// `interlaced: false` en un canal que está medido 480i (pendiente 53).
-		// Sin esta salida, el respaldo de libVLC se elige y luego no
-		// desentrelaza, que es la mitad inútil del camino.
-		val entrelazado = channel.interlaced || forzarDeintLocal
 		val deinterlace = when {
 			!entrelazado -> DeinterlaceMode.NONE
 			engineId == VLC_ENGINE_ID -> DeinterlaceMode.SOFTWARE.also { motivos += "deint por software" }
