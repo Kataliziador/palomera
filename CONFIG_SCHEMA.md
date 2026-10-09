@@ -372,6 +372,15 @@ el stream: la app rehace el plan de reproducción y registra
 `plan.codecDiscrepante`. Emítelos igual — la cascada los necesita **antes** de
 abrir el stream, cuando aún no hay pistas que inspeccionar.
 
+**`interlaced` quiere decir «este canal necesita desentrelazado»**, no el
+`field_order` del flujo; son cosas distintas y está medido que discrepan en tres
+de los seis canales de referencia (`CHANNELS.md` §3.quinquies). Es el único
+campo de esta tabla que la app no puede medir ni corregir por su cuenta, y la
+única entrada que manda un canal al reproductor de respaldo en las cajas cuyo
+chip no desentrelaza. **No se puede derivar de la API de Flussonic**, que
+declara progresivo todo el MPEG-2: tiene que poder corregirlo quien ve el canal
+en una tele (`INTEGRACION_CANALES.md` §4).
+
 Valores que la app reconoce en `videoCodec`: `h264`/`avc`, `hevc`/`h265`,
 `mpeg2video`/`mpeg2`, `mpeg4`, `vp9`, `av1`. También acepta el MIME directo
 (`video/avc`). Lo que no reconoce se trata como «sin declarar».

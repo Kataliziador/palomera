@@ -209,6 +209,51 @@ sintonía.
   igual**: la cascada decide antes de abrir el stream.
 - **El aspecto** sale del SAR del stream, nunca del `config.json`.
 
+### `interlaced` es el único campo que no podéis calcular
+
+Y es el único que la app **no puede medir ni corregir por su cuenta**, al
+contrario que los tres de arriba. Si llega mal, se queda mal.
+
+**Qué significa, exactamente:** «este canal necesita que alguien lo
+desentrelace». No es el `field_order` del flujo. Lo decimos así porque son
+cosas distintas y lo tenemos medido: de los seis canales de desarrollo, tres
+declaran entrelazado y llevan cine progresivo con cadencia 3:2 —`CHANNELS.md`
+§3.quinquies, 286 imágenes analizadas por canal—. El flujo dice una cosa y el
+contenido es otra.
+
+**Para qué lo usa la app.** Es la única entrada que hace que la cascada pida
+desentrelazado, y con ella que un canal vaya al reproductor de respaldo
+(libVLC, por software) en las cajas cuyo chip no desentrelaza —nivel 2 de
+`LIVETV_ENGINE.md` §4.4, gobernado por `vpuDeinterlaces: false` en
+`deviceOverrides`—. **Publicado como progresivo, ese respaldo no se activa
+nunca**, y en esas cajas el abonado ve peine en los movimientos.
+
+**No lo saquéis solo de la API de Flussonic.** Medido el 09-oct contra el
+headend de pruebas, con `select=stats.media_info`:
+
+```
+test-sat77w-estrellassd-mp2v  mp2v 480   is_progressive=true    ← medido 480i tt
+test-sat77w-estrellashd-mp4   h264 1080  is_progressive=false   ← cine progresivo 3:2
+```
+
+No es que el dato falte y se pueda tratar como «no se sabe»: **afirma lo
+contrario de lo que hay**, y en MPEG-2 pasa siempre. `field_order` no viene en
+la respuesta de la API v3.
+
+**Lo que pedimos, y ya está hecho:** que el operador pueda corregir ese campo a
+mano en el lineup de su site, aunque el canal salga de un `stream`. El servicio
+de canales lo implementó el 09-oct —en el panel es «Barrido», dentro de «La
+señal»— y lo escrito gana sobre Flussonic; vacío sigue siendo lo que diga la
+API. Los otros tres campos calculados (`url`, `videoCodec`, `audioCodec`) siguen
+siendo un error escritos a mano, y ahí tienen razón: Flussonic sí los sabe.
+
+**La regla para decidirlo es de pantalla:** si en la tele se ve peine, va
+entrelazado. No hay forma de contestarlo desde una API, y por eso es la primera
+pregunta del `config.json` que exige mirar un canal.
+
+Si falta, sigue siendo `false` y no cambia nada de lo que ya funciona: la app
+lee el campo igual que antes y no hay que subir `version`.
+
 ---
 
 ## 4.bis La guía (EPG): sí, y con gzip
