@@ -520,7 +520,14 @@ class VlcLiveEngine(
 			videoWidth = anchoVideo,
 			videoHeight = altoVideo,
 			pixelAspectRatio = sarVideo,
-			videoMime = channel?.videoCodec,
+			// **`null` por lo mismo que el audio, justo debajo.** Aquí había
+			// el códec declarado, y con él la comprobación de discrepancia se
+			// comparaba consigo misma: `plan.codecDiscrepante` saltaba en
+			// **toda** sesión con libVLC —`declarado=video/mpeg2`
+			// `observado=mpeg2video`, que es el mismo códec escrito de dos
+			// maneras— y por tanto no podría haber detectado una discrepancia
+			// de verdad. Un aviso que salta siempre tapa al que importa.
+			videoMime = null,
 			// **`null`, no el códec declarado.** Este campo alimenta el aviso
 			// de audio sin normalizar de §2, y ese aviso solo vale si dice lo
 			// que **se está decodificando**. Poniendo aquí lo que el
