@@ -262,7 +262,7 @@ un frame congelado.
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
 | 67 | **El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana** | **M7** | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Medido el 09-oct con 14 000 publicado desde el panel: buffer p5 de 4,3 a 9,1 s, mediana de 6,2 a 11,1 s y cero cortes en 16 minutos sanos.** Falta una sesión larga sin caída de origen antes de cambiar el valor de fábrica, que es Modo A |
 | 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. Huele a orden de efectos en Compose: el `onDispose` del motor anterior corriendo contra la instancia nueva |
-| ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Pendiente de validación en pantalla** |
+| ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Cerrado y validado en pantalla el 09-oct con los dos cortes provocados por Edgar:** reiniciando el canal en Flussonic se curó en 16 s por el escalón 2, y desconectando el cable en 26 s por el escalón 3 —11 s desde que la red volvió—, las dos veces con el aviso en pantalla |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -499,6 +499,80 @@ no está pegado a su límite.
 
 Queda medir una sesión larga **sin** caída de origen antes de tocar el valor de
 fábrica, que es Modo A.
+
+### El rescate, validado en pantalla con dos cortes provocados — 2026-10-09
+
+Edgar provocó los dos fallos a propósito y **los dos se curaron solos**, con el
+cartel de «sin señal, reconectando» en pantalla mientras duraba. Es la
+validación del pendiente 69 y la primera vez que la escalera del vigilante se
+ve funcionar entera.
+
+#### A1 — reiniciar el canal en Flussonic
+
+```
+21:14:44  player.error ERROR_CODE_IO_UNSPECIFIED Source error  bufferedMs=0
+21:14:44  offset.superaLaVentana ventanaMs=6506     ← Flussonic reconstruyendo su playlist
+21:14:53  offset.superaLaVentana ventanaMs=13046
+21:14:54  vigilante.atascado estado=almacenando posS=28.2 bufferS=0.0 directoS=-9.4 sinAvanzarMs=10958
+21:14:54  vigilante.saltaAlBorde intento=1
+21:15:05  offset.superaLaVentana ventanaMs=26357
+21:15:06  vigilante.rehacePreparacion intento=2
+21:15:08  player.playing liveOffsetMs=13048
+21:15:10  vigilante.recuperado segundosAtascado=16 escalonAlcanzado=2
+```
+
+**16 s de atasco, curado en el escalón 2.** Y el límite no es nuestro: las
+líneas de `offset.superaLaVentana` miden a Flussonic rehaciendo su ventana de
+6,5 a 26,4 s, o sea **21 s para volver a tener DVR**. El cliente no puede
+recuperarse antes que el origen, que es justo lo que advierte la nota de §10.
+
+#### A2 — cable de red desconectado hasta que paró
+
+```
+21:16:11  load.retry attempt=1 delayMs=1000 cause=HttpDataSourceException
+21:16:18  load.retry attempt=4 delayMs=8000
+21:16:28  vigilante.atascado estado=almacenando posS=29.8 bufferS=2.8 directoS=25.2 sinAvanzarMs=10905
+21:16:28  vigilante.saltaAlBorde intento=1
+21:16:40  vigilante.rehacePreparacion intento=2
+21:16:43  load.retry attempt=5 cause=InvalidResponseCodeException   ← la red ya contesta
+21:16:52  vigilante.reconstruye intento=3
+21:16:54  frames.first msDesdePrepare=1575
+21:16:54  vigilante.recuperado segundosAtascado=26 escalonAlcanzado=3
+```
+
+**26 s de atasco, y hubo que llegar al escalón 3** —reconstruir el reproductor
+desde dentro—, que nunca se había visto hacer falta de verdad. Los dos primeros
+escalones fracasaron porque la red seguía caída; el tercero cayó justo después
+de volver.
+
+El cambio de excepción marca el instante del regreso: `HttpDataSourceException`
+es «no hay red» y `InvalidResponseCodeException` es «hay red y el servidor
+contesta». **De ahí a la imagen, 11 s**, que sí entra en el «aceptable» de §10.
+
+#### Lo que se aprende de los dos
+
+- **La política de reintentos funciona y es visible**: 1, 2, 4, 8 s de espera
+  creciente, sin cerrar el reproductor, que es lo que exige §6.
+- **Los tres escalones sirven y están bien espaciados.** No hubo saltos
+  encadenados ni rescates en falso.
+- **Detectar cuesta 10 s por diseño** (`WATCHDOG_STALL_MS`) y cada escalón otros
+  12. Para un corte corto no importa —de eso se encargan los reintentos de
+  ExoPlayer— pero significa que el vigilante nunca va a recuperar en menos de
+  diez segundos. Con el objetivo «aceptable» de §10 en 15 s, el margen es de
+  cinco: conviene no tocar esos dos números sin volver a medir esto.
+- **El aviso en pantalla llegó**, que es la otra mitad de §6: el abonado vio
+  «sin señal, reconectando» y no una pantalla negra muda.
+
+#### Y una confirmación del pendiente 36, de paso
+
+```
+tracks.crudo grupos=7 detalle=video[?/avc*] | audio[es/mp4a-latm] | audio[es/mp4a-latm*] | audio[en/mp4a-latm] | …
+audio.pistas cuantas=3 idiomas=[spa, spa, eng]
+```
+
+`discoveryhd` entrega **tres** pistas de audio y dos son español. El audio
+duplicado del master está medido y le llega al abonado como una opción de más
+en la barra. Es del headend.
 
 ### M6 — Cerrado — 2026-10-09
 
