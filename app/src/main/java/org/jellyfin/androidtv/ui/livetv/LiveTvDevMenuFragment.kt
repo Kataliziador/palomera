@@ -263,12 +263,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Preparar tras tener la superficie",
-				value = if (dev.prepararConSuperficie) "ON" else "off (como antes)",
-				changed = dev.prepararConSuperficie,
+				value = if (dev.prepararConSuperficie) "sí (fábrica)" else "NO, COMO ANTES",
+				changed = !dev.prepararConSuperficie,
 			) { change { dev.prepararConSuperficie = !dev.prepararConSuperficie } }
 		}
 		item {
-			Info("Encendido, el motor espera la superficie antes de preparar. Apagado —lo de siempre— prepara ya y la acepta en caliente, y eso deja un error de Media3 en cada sintonía del que se recupera volviendo a preparar. Se mide en el primer fotograma: mira «1er frame» en el overlay al cambiar de canal.")
+			Info("Apagarlo vuelve al comportamiento anterior: preparar antes de tener la superficie y aceptarla en caliente, que lanzaba una aserción de Media3 en 9 de cada 11 sintonías y obligaba a preparar otra vez. No cambia el tiempo del primer fotograma.")
 		}
 
 		item {

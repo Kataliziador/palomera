@@ -107,16 +107,23 @@ object LiveTuning {
 	/**
 	 * Preparar el reproductor **después** de tener la superficie.
 	 *
-	 * `false` mantiene lo anterior: preparar en cuanto se construye y aceptar
-	 * la superficie en caliente. Eso costaba un
-	 * `ERROR_CODE_FAILED_RUNTIME_CHECK` en **cada** sintonía (pendiente 68) —
-	 * medido el 09-oct: el error cae entre 3 y 9 ms después de `engine.attach`,
-	 * siempre—, del que el motor se recupera volviendo a preparar. Se nota en
-	 * el primer fotograma: 1 725-2 054 ms con `attach`, y **1 575 ms** en la
-	 * única sintonía del volcado que no lo llamó, la del escalón 3 del
-	 * vigilante, que reusa la superficie que ya tenía.
+	 * **Activo de fábrica desde el 10-oct**, validado en pantalla por Edgar.
+	 * Lo anterior era preparar en cuanto se construye y aceptar la superficie
+	 * en caliente, y eso lanzaba una aserción interna de Media3 —
+	 * `Assertions.checkState` desde `ExoPlayerImplInternal.handleMessage`— que
+	 * obligaba a preparar el reproductor una segunda vez entera. Medido con 17
+	 * sintonías: **9 errores de 11** apagado, **0 de 6** encendido.
+	 *
+	 * **No es más rápido, y conviene no esperarlo:** el primer fotograma sale
+	 * igual, 1 794 ms de mediana contra 1 784. Lo que se gana es que la caja
+	 * deje de hacer un trabajo que no sirve y que el log deje de llevar un
+	 * `ERROR` por canal tapando los de verdad. La estimación de que costaba
+	 * 400-800 ms de zapeo salió de una sola muestra mal comparada y era falsa
+	 * (pendiente 68).
+	 *
+	 * El interruptor se queda para reproducir el comportamiento anterior.
 	 */
-	const val PREPARAR_CON_SUPERFICIE_DEFAULT = false
+	const val PREPARAR_CON_SUPERFICIE_DEFAULT = true
 
 	// --- Playlist detenido ---------------------------------------------------
 
