@@ -275,6 +275,55 @@ un frame congelado.
 
 ## Entradas
 
+### Tres de cada nueve vueltas al borde iban hacia atrás — 2026-10-10
+
+**Síntoma:** con el salto calculado ya activo, el primer salto de cada ráfaga
+deja el offset en 80 s y no recupera nada. Los otros dos sí. Pendiente 73.
+
+**Hipótesis, y esta vez verificada antes de escribir código:** el salto no
+falla, **va en dirección contraria**. Las tres instancias son idénticas:
+
+```
+pos antes 26 843 · ventana 33 267 · destino 19 267 → 7,6 s HACIA ATRÁS
+```
+
+Pasa porque el offset que dispara el salto está inflado por una lista que no
+avanza —`currentLiveOffset` es reloj de pared contra `EXT-X-PROGRAM-DATE-TIME`—
+mientras la posición ya está a 6,4 s del final de la ventana. No hay a dónde
+saltar, y el salto cuesta un rebuffer: 3 de los 19 de la sesión.
+
+**Cambio:** la decisión sale de `onTimelineChanged` a
+`engine/VueltaAlBorde.kt`, que recibe aritmética y devuelve
+`Salta` / `NoAdelanta` / `NoHaceFalta`. Las tres guardas que dependen del
+estado del reproductor —primer fotograma, `STATE_READY`, enfriamiento— se
+quedan en el motor. Con `NoAdelanta` no se salta: sale
+`offset.saltoNoAdelanta` con la ganancia negativa a la vista y **se gasta el
+enfriamiento igual**, así que se vuelve a mirar a los 30 s, que es exactamente
+cuando llegaba el salto que sí servía. La recuperación no se retrasa; lo que se
+ahorra es el corte.
+
+Detrás de «Volver al borde solo si el salto adelanta», **apagado de fábrica**:
+con el interruptor apagado el salto se da igual que antes, y lo único que se
+gana es la columna `gananciaMs` en el log.
+
+**Lo que esto se llevó de paso:** la línea `offset.noSeAplica` publica ahora
+`sueloMs`, medido de la posición por defecto de la ventana en vez de afirmado.
+La causa que escribía antes —«sin `EXT-X-SERVER-CONTROL` el suelo es
+3×TARGETDURATION»— era una atribución y en `mileniosd` es falsa: ese suelo son
+9 s y pidiendo 14 000 el offset real fue 16 674.
+
+**Nueve pruebas con los nueve saltos medidos**
+(`VueltaAlBordeTest`), incluida la que fija el margen del pendiente 72: con la
+sesión sana en 19,0-19,5 s y el umbral en 19,8, quien toque la fracción o el
+margen va a ver aquí a quién rompe.
+
+**Prueba:** pendiente. Criterio dicho antes de medir: en cada ráfaga
+`offset.saltoNoAdelanta` **en lugar del primer** `offset.vuelveAlBorde`, los
+saltos restantes dejando `trasElSalto` en 17-19 s, los cortes por ráfaga de ~6
+a ~4 y cero `BEHIND_LIVE_WINDOW`.
+
+**Estado:** abierta, pendiente de validación en pantalla.
+
 ### El salto calculado sirve, y el offset que lo dispara miente — 2026-10-10
 
 **Síntoma:** la noche anterior, 547 vueltas al borde en 9,3 h que no devolvían

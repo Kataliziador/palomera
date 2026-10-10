@@ -349,6 +349,17 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_RESYNC_CALC, v) }
 
 	/**
+	 * Volver al borde **solo si el salto adelanta**
+	 * (`LiveTuning.RESYNC_SOLO_SI_ADELANTA_DEFAULT`, pendiente 73).
+	 *
+	 * Apagado reproduce el comportamiento anterior: saltar aunque el destino
+	 * esté detrás de la posición actual.
+	 */
+	var resyncSoloSiAdelanta: Boolean
+		get() = tresCapas(K_RESYNC_ADELANTA, null, LiveTuning.RESYNC_SOLO_SI_ADELANTA_DEFAULT)
+		set(v) = put { putBoolean(K_RESYNC_ADELANTA, v) }
+
+	/**
 	 * Preparar el reproductor después de tener la superficie (pendiente 68).
 	 *
 	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
@@ -525,6 +536,7 @@ class DevOptions(context: Context) {
 		if (simularVpuSinDeint) add("VPU sin deint (simulado)")
 		if (prefs.contains(K_PREP_SUPERFICIE)) add("prepTrasSuperficie=${if (prepararConSuperficie) "ON" else "OFF"}")
 		if (prefs.contains(K_RESYNC_CALC)) add("resyncCalculado=${if (resyncCalculando) "ON" else "OFF"}")
+		if (prefs.contains(K_RESYNC_ADELANTA)) add("resyncSoloSiAdelanta=${if (resyncSoloSiAdelanta) "ON" else "OFF"}")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -599,6 +611,7 @@ class DevOptions(context: Context) {
 		const val K_SIM_DENEGADO = "simularDenegacion"
 		const val K_PREP_SUPERFICIE = "prepararConSuperficie"
 		const val K_RESYNC_CALC = "resyncCalculando"
+		const val K_RESYNC_ADELANTA = "resyncSoloSiAdelanta"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -607,7 +620,7 @@ class DevOptions(context: Context) {
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
-			K_PREP_SUPERFICIE, K_RESYNC_CALC,
+			K_PREP_SUPERFICIE, K_RESYNC_CALC, K_RESYNC_ADELANTA,
 		)
 
 		const val OVERLAY_OCULTO = 0

@@ -294,6 +294,31 @@ pidiendo 4000 se **aleja** hasta 11752. La causa es que el playlist no emite
 `EXT-X-SERVER-CONTROL`, y sin esa etiqueta la especificación HLS fija el margen
 seguro en **3 × TARGETDURATION**. Media3 no baja de ahí.
 
+> **Corregido el 2026-10-10: el suelo existe pero no siempre es el que manda.**
+> En `mileniosd`, con `TARGETDURATION 3`, ese suelo son 9 s y el offset real fue
+> **16 674** pidiendo 14 000. Con las tres medidas juntas lo que encaja es
+> `real ≈ max(pedido, 3 × TARGETDURATION) + un segmento`, porque la reproducción
+> empieza en un límite de segmento. Atribuirlo todo al suelo mandaba a arreglar
+> el headend, y el 06-oct quedó cerrado que emitir `EXT-X-SERVER-CONTROL` no
+> baja nada: `HOLD-BACK` tampoco puede valer menos que 3 × TARGETDURATION.
+
+#### Qué mide `currentLiveOffset`, y por qué miente cuando el playlist se para
+
+Costó dos pendientes (70 y 71) y una noche de diagnóstico equivocado, así que
+queda escrito. `currentLiveOffset` es **reloj de pared contra
+`EXT-X-PROGRAM-DATE-TIME`**: no mide la distancia a lo último que hay
+descargable, mide cuánto se ha retrasado la reproducción respecto a la hora en
+que se emitió lo que se está viendo.
+
+Mientras el origen publica, las dos cosas coinciden. Cuando el playlist deja de
+crecer, **el offset sigue subiendo** —medido el 10-oct: 39 → 53 → 72 → 81 s—
+aunque el reproductor esté pegado al final de todos los datos que existen, con
+la posición a 6,4 s del final de una ventana de 33,3.
+
+Consecuencia para cualquiera que decida algo con ese número: **un offset grande
+no significa que haya a dónde saltar.** Para eso hay que mirar la posición
+contra la duración de la ventana, que es lo que hace `VueltaAlBorde`.
+
 Consecuencia: **el `targetOffsetMs` por canal del `config.json` no se aplica**
 mientras el headend no emita un `HOLD-BACK` explícito (pendiente 21). El valor
 real lo decide el `TARGETDURATION` de cada canal — 3 o 4, o sea 9 o 12 s.

@@ -214,6 +214,7 @@ class Media3LiveEngine(
 	private var offsetMismatchReported = false
 	private var lastResyncAtMs = 0L
 	private var resyncCount = 0
+	private var resyncDeclinadas = 0
 
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
@@ -275,6 +276,7 @@ class Media3LiveEngine(
 		offsetMismatchReported = false
 		lastResyncAtMs = 0
 		resyncCount = 0
+		resyncDeclinadas = 0
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
 		rescateTunneledHecho = false
@@ -1064,31 +1066,68 @@ class Media3LiveEngine(
 				player?.playbackState == Player.STATE_READY &&
 				ahoraMs - lastResyncAtMs > LiveTuning.LIVE_EDGE_RESYNC_COOLDOWN_MS
 
+			val antesMs = player?.currentPosition ?: C.TIME_UNSET
+			// A dónde se salta. `seekToDefaultPosition()` era lo anterior y
+			// **no devolvía al directo**: medido la noche del 10-oct, 547
+			// saltos y el offset seguía en 37 s tras cada uno. Calcularlo
+			// de la ventana da una posición comprobable, y además permite
+			// preguntar lo que importa de verdad: si el salto adelanta.
+			val decision = if (dev.resyncCalculando) {
+				VueltaAlBorde.decidir(real, durationMs, antesMs, activeTargetOffsetMs)
+			} else {
+				null
+			}
 			val limite = (durationMs * LiveTuning.LIVE_EDGE_RESYNC_WINDOW_FRACTION).toLong()
-			if (puedeResincronizar && real != C.TIME_UNSET &&
+
+			// Sin el cálculo activo no hay destino, así que tampoco hay ganancia
+			// que medir: se queda el disparador de siempre y el salto a ciegas.
+			val disparaSinCalculo = decision == null && real != C.TIME_UNSET &&
 				real - limite > LiveTuning.LIVE_EDGE_RESYNC_MIN_EXCESS_MS
-			) {
+			val noAdelanta = decision as? VueltaAlBorde.Decision.NoAdelanta
+			// Y con el interruptor apagado, un salto que no adelanta se da
+			// igual: el valor de fábrica tiene que ser el comportamiento
+			// anterior (`CLAUDE.md` §3). Lo que se gana de todas formas es la
+			// columna `gananciaMs`, que lo deja ver en el log.
+			val dispara = disparaSinCalculo ||
+				decision is VueltaAlBorde.Decision.Salta ||
+				(noAdelanta != null && !dev.resyncSoloSiAdelanta)
+
+			if (puedeResincronizar && noAdelanta != null && dev.resyncSoloSiAdelanta) {
+				// Aquí no hay nada que recuperar: la lista del origen no avanza y
+				// el destino está detrás de donde ya estamos. Se gasta el
+				// enfriamiento igual, que es lo que limita esto a una línea cada
+				// 30 s y lo que hace que se vuelva a mirar justo cuando llegaba
+				// el salto que sí servía.
+				lastResyncAtMs = ahoraMs
+				resyncDeclinadas++
+				LiveLog.warn(
+					"offset.saltoNoAdelanta",
+					"offsetMs" to real,
+					"ventanaMs" to durationMs,
+					"posMs" to antesMs,
+					"destinoMs" to noAdelanta.destinoMs,
+					"gananciaMs" to noAdelanta.gananciaMs,
+					"numero" to resyncDeclinadas,
+				)
+				return
+			}
+
+			if (puedeResincronizar && dispara) {
 				lastResyncAtMs = ahoraMs
 				resyncCount++
-				val antesMs = player?.currentPosition ?: C.TIME_UNSET
-				// A dónde se salta. `seekToDefaultPosition()` era lo anterior y
-				// **no devolvía al directo**: medido la noche del 10-oct, 547
-				// saltos y el offset seguía en 37 s tras cada uno. Calcularlo
-				// de la ventana da una posición comprobable.
-				val destinoMs = if (dev.resyncCalculando && durationMs != C.TIME_UNSET) {
-					(durationMs - activeTargetOffsetMs).coerceAtLeast(0L)
-				} else {
-					C.TIME_UNSET
-				}
+				val salta = decision as? VueltaAlBorde.Decision.Salta
+				val destinoMs = salta?.destinoMs ?: noAdelanta?.destinoMs ?: C.TIME_UNSET
 				LiveLog.warn(
 					"offset.vuelveAlBorde",
 					"offsetMs" to real,
 					"ventanaMs" to durationMs,
 					"limiteMs" to limite,
-					// Las tres columnas que faltaban para saber si el salto
-					// sirve de algo: de dónde, a dónde y qué pasó después.
+					// Las cuatro columnas que faltaban para saber si el salto
+					// sirve de algo: de dónde, a dónde, cuánto adelanta y qué
+					// pasó después.
 					"posAntesMs" to antesMs,
 					"destinoMs" to destinoMs.takeIf { it != C.TIME_UNSET },
+					"gananciaMs" to (salta?.gananciaMs ?: noAdelanta?.gananciaMs),
 					"numero" to resyncCount,
 				)
 				if (destinoMs != C.TIME_UNSET) {
@@ -1112,11 +1151,24 @@ class Media3LiveEngine(
 				real - target > OFFSET_MISMATCH_TOLERANCE_MS
 			) {
 				offsetMismatchReported = true
+				// El suelo que impone HLS, medible: la posición por defecto de
+				// la ventana está justo a `3 × TARGETDURATION` del final cuando
+				// el playlist no emite `EXT-X-SERVER-CONTROL`.
+				//
+				// Se publica porque **la causa que iba aquí antes era una
+				// atribución, no una medida**, y mandaba a arreglar el headend
+				// sin razón: en `mileniosd` (`TARGETDURATION 3`) ese suelo son
+				// 9 s y pidiendo 14 000 el offset real fue 16 674, o sea lo
+				// pedido más un segmento. Con las dos cifras en la línea se ve
+				// cuál de los dos límites pesa.
+				val sueloMs = (durationMs - window.defaultPositionMs).takeIf { it > 0 }
 				LiveLog.warn(
 					"offset.noSeAplica",
 					"pedidoMs" to target,
 					"realMs" to real,
-					"causa" to "sin EXT-X-SERVER-CONTROL el suelo es 3xTARGETDURATION",
+					"sueloMs" to sueloMs,
+					"causa" to "la reproducción empieza en un límite de segmento, " +
+						"y sin EXT-X-SERVER-CONTROL el suelo es 3xTARGETDURATION",
 				)
 			}
 		}

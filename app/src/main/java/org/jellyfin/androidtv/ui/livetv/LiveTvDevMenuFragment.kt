@@ -273,6 +273,17 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Volver al borde solo si el salto adelanta",
+				value = if (dev.resyncSoloSiAdelanta) "ON" else "off (como antes)",
+				changed = dev.resyncSoloSiAdelanta,
+			) { change { dev.resyncSoloSiAdelanta = !dev.resyncSoloSiAdelanta } }
+		}
+		item {
+			Info("Tres de cada nueve vueltas al borde saltan HACIA ATRÁS: el offset está inflado porque la lista del origen se paró, y la posición ya está pegada al final de la ventana. Encendido, esa vez no se salta y sale «offset.saltoNoAdelanta» en el log; se vuelve a mirar 30 s después, que es cuando llega el salto que sí sirve.")
+		}
+
+		item {
+			Row(
 				label = "Preparar tras tener la superficie",
 				value = if (dev.prepararConSuperficie) "sí (fábrica)" else "NO, COMO ANTES",
 				changed = !dev.prepararConSuperficie,

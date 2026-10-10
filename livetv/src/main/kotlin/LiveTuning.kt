@@ -204,6 +204,21 @@ object LiveTuning {
 	const val LIVE_EDGE_RESYNC_MIN_EXCESS_MS = 3_000L
 
 	/**
+	 * Cuánto tiene que **adelantar** un salto para que valga el corte que cuesta.
+	 *
+	 * Medido el 10-oct: de los nueve saltos de la sesión, tres iban de 26 843 a
+	 * 19 267, o sea **7,6 s hacia atrás**, alejándose del directo. Pasaba porque
+	 * el offset que los dispara está inflado por una lista congelada mientras la
+	 * posición ya está a 6,4 s del final de la ventana: no hay a dónde ir. Los
+	 * seis que sirven adelantaban +61 444 y +19 274.
+	 *
+	 * Tres segundos es algo más que un segmento de cualquiera de los canales
+	 * medidos (2,0 a 2,8 s). Por debajo de un segmento el salto reinicia el
+	 * almacenamiento para ganar menos de lo que tira.
+	 */
+	const val LIVE_EDGE_RESYNC_MIN_GAIN_MS = 3_000L
+
+	/**
 	 * Tiempo mínimo entre dos vueltas al borde.
 	 *
 	 * Un salto tarda en surtir efecto. Sin esta espera, la siguiente
@@ -236,6 +251,21 @@ object LiveTuning {
 	 * [LIVE_EDGE_RESYNC_MIN_GAIN_MS].
 	 */
 	const val RESYNC_CALCULANDO_DEFAULT = true
+
+	/**
+	 * No volver al borde cuando el salto no adelantaría (pendiente 73).
+	 *
+	 * `false` mantiene lo anterior: saltar siempre que el offset pase del umbral,
+	 * aunque el destino calculado esté **detrás** de donde ya está el
+	 * reproductor. Medido el 10-oct, eso son 3 de los 19 cortes de la sesión, uno
+	 * al principio de cada ráfaga, y ninguno recupera nada.
+	 *
+	 * Encendido, esa vez no se salta: se registra `offset.saltoNoAdelanta` y se
+	 * vuelve a mirar al terminar el enfriamiento, que es exactamente cuando
+	 * llegaba el salto que sí sirve. **La recuperación no se retrasa**; lo que se
+	 * ahorra es el corte.
+	 */
+	const val RESYNC_SOLO_SI_ADELANTA_DEFAULT = false
 
 	// --- Reintentos ---------------------------------------------------------
 	/**
