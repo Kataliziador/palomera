@@ -161,11 +161,32 @@ agregarlo como canal de prueba, porque probablemente también viene entrelazado.
 
 | Canal | Dificultades |
 |---|---|
-| `beisbol`, `mileniosd` | ninguna |
+| `beisbol`, `mileniosd` | ninguna en el stream; la **fuente** de `mileniosd` para (ver abajo) |
 | `estrellashd-mp4` | 1080i `tt` + anamórfico 4:3 + audio intermitente + lang `esl` |
 | `estrellassd-mp2v` | MPEG-2 + MP2 + 480i `tt` + anamórfico 20:17 + lang `esl` |
 | `discoveryhd-70w` | 1080i `tt` + dos pistas de audio spa/eng |
 | `hbohd-70w` | 1080i **`bb`** + dos pistas de audio spa/eng + la ventana DVR más corta |
+
+### La fuente de `mileniosd` se para, y no es del cliente
+
+Medido el 10-oct en dos sesiones del mismo día. `mileniosd` y `beisbol` son los
+únicos que llegan por **multicast de un proveedor de fibra** en vez de la antena,
+y eso se nota en el log:
+
+| Sesión | Duración | Paradas de la fuente |
+|---|---|---|
+| noche (00:38 → 10:00) | 9,3 h | continuas; 579 cortes, la red del proveedor con problemas |
+| día (11:02 → 14:26) | 3,4 h | **tres**, a las 11:57, 12:12 y 12:29, y nada en los 115 minutos siguientes |
+
+La firma en el log es inconfundible y sirve para reconocerlas en cualquier canal:
+el buffer **cae 2 s por cada 2 s de reloj** durante los diez segundos previos al
+corte —en marcha normal oscila entre 11 y 15 s— y unos 50 s después Media3 lanza
+`PlaylistStuckException`. O sea que el origen dejó de entregar segmentos.
+
+Importa al elegir canal para una prueba larga: **una sesión de `mileniosd` no
+distingue un fallo del motor de un bache del proveedor** si no se vigila el
+playlist en paralelo (`herramientas/vigilar-playlist.py`). Los satelitales no
+tienen este problema, pero tienen los suyos.
 
 ### Alerta abierta: pistas que aparecen y desaparecen
 

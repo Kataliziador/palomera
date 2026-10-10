@@ -263,12 +263,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Volver al borde calculando la posición",
-				value = if (dev.resyncCalculando) "ON" else "off (como antes)",
-				changed = dev.resyncCalculando,
+				value = if (dev.resyncCalculando) "sí (fábrica)" else "NO, COMO ANTES",
+				changed = !dev.resyncCalculando,
 			) { change { dev.resyncCalculando = !dev.resyncCalculando } }
 		}
 		item {
-			Info("La vuelta al borde usaba la «posición por defecto» del reproductor y medido una noche entera no devolvía al directo: 547 saltos y el offset seguía en 37 s. Encendido, salta a ventana menos retraso objetivo. El log dice ahora de dónde, a dónde y qué pasó después.")
+			Info("La vuelta al borde usaba la «posición por defecto» del reproductor y medido una noche entera no devolvía al directo: 547 saltos y el offset seguía en 37 s. Ahora salta a ventana menos retraso objetivo, y medido de día eso bajó a 9 saltos en 3,4 h con el directo en 17-19 s. Apagarlo vuelve al comportamiento anterior.")
 		}
 
 		item {

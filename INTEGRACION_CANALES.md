@@ -222,9 +222,19 @@ recomendación**. Medido en la caja el 09-oct sobre un canal con ventana DVR de
 
 Dos cosas que explican la tabla:
 
-1. **Pedir 8000 no da 8000.** Sin `EXT-X-SERVER-CONTROL` en el playlist, el
-   suelo del reproductor es `3 × TARGETDURATION` y empuja la posición hasta
-   donde quiera ese número. Lo veréis en `offset.noSeAplica`.
+1. **Lo que pidáis no es donde se asienta.** Medido dos veces —8000 → 11,3 s el
+   09-oct, 14000 → 16,7 s el 10-oct—, lo que encaja es:
+
+   ```
+   real ≈ max(pedido, 3 × TARGETDURATION) + un segmento
+   ```
+
+   El suelo está ahí porque sin `EXT-X-SERVER-CONTROL` la especificación HLS lo
+   fija así, pero **no siempre es el que manda**: en `mileniosd`
+   (`TARGETDURATION 3`) ese suelo son 9 s y el offset real fue 16,7, o sea los
+   14 000 pedidos más un segmento de 2,8. La reproducción solo puede empezar en
+   un límite de segmento. Lo veréis en `offset.noSeAplica`, que desde el 10-oct
+   publica también el suelo real para que se sepa cuál de los dos pesa.
 2. **El techo del buffer es la distancia al directo**, no la configuración de la
    app: no se puede tener cargado más de lo que hay publicado por delante. Un
    offset pequeño es un colchón pequeño, y entonces cualquier jitter del origen
@@ -235,6 +245,15 @@ mida**. El servicio de canales lo hace desde el 09-oct: el 45 % de la ventana,
 con suelo en 8000 y techo en 14000. El 45 % y no la mitad porque **la app vuelve
 al borde por encima de media ventana más tres segundos**: un valor pegado a ese
 límite lo dispara cualquier parpadeo, y entonces sale `offset.vuelveAlBorde`.
+
+> **Y ese 45 % no basta, por el segmento de más.** Medido el 10-oct en
+> `mileniosd`: ventana 33,6 s, pedido 14 000 —el techo—, real **19,0-19,5 s**, y
+> el umbral de la vuelta al borde en 16,8 + 3 = 19,8. Quedan entre 300 y 800 ms.
+> **No bajéis el offset por esto:** subirlo a 14 000 es lo que llevó los cortes
+> de 15 por hora a cero, y estrecharlo para esquivar nuestro umbral cambiaría un
+> problema real por uno nuestro. **El arreglo es de la app** y está apuntado
+> (pendiente 72 de `LIVETV_LOG.md`): el umbral debe medirse contra el offset
+> alcanzable, no contra una fracción de la ventana.
 
 ### Un decoder que existe y entrega mal: `blockedDecoders`
 

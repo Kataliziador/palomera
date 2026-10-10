@@ -227,8 +227,15 @@ object LiveTuning {
 	 *
 	 * Encendido, el salto va a `duración de la ventana − offset objetivo`, que
 	 * es una posición que se puede comprobar en el log antes y después.
+	 *
+	 * **Invertido a `true` el 10-oct tras medirlo**, con 203 minutos de
+	 * `mileniosd` de día: de 547 saltos en 9,3 h a **9 en 3,4 h**, y seis de
+	 * los nueve dejan el directo en 17-19 s, comprobado con la columna
+	 * `offset.trasElSalto` que se añadió para esto. Los tres que no sirven
+	 * saltan **hacia atrás**, y de eso se ocupa
+	 * [LIVE_EDGE_RESYNC_MIN_GAIN_MS].
 	 */
-	const val RESYNC_CALCULANDO_DEFAULT = false
+	const val RESYNC_CALCULANDO_DEFAULT = true
 
 	// --- Reintentos ---------------------------------------------------------
 	/**

@@ -341,6 +341,24 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_FORZAR_DEINT, v) }
 
 	/**
+	 * Volver al borde calculando la posición en vez de usar la del reproductor
+	 * (`LiveTuning.RESYNC_CALCULANDO_DEFAULT`).
+	 */
+	var resyncCalculando: Boolean
+		get() = tresCapas(K_RESYNC_CALC, null, LiveTuning.RESYNC_CALCULANDO_DEFAULT)
+		set(v) = put { putBoolean(K_RESYNC_CALC, v) }
+
+	/**
+	 * Preparar el reproductor después de tener la superficie (pendiente 68).
+	 *
+	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
+	 * en cada sintonía.
+	 */
+	var prepararConSuperficie: Boolean
+		get() = tresCapas(K_PREP_SUPERFICIE, null, LiveTuning.PREPARAR_CON_SUPERFICIE_DEFAULT)
+		set(v) = put { putBoolean(K_PREP_SUPERFICIE, v) }
+
+	/**
 	 * Simular un modelo cuyo VPU **no** desentrelaza.
 	 *
 	 * Es la llave del nivel 2 de la cascada (`LIVETV_ENGINE.md` §4.4): un canal
@@ -358,24 +376,6 @@ class DevOptions(context: Context) {
 	 * 63)—, así que la alternativa habría sido escribir un dato falso en la
 	 * tabla de modelos que viaja a todos los sites.
 	 */
-	/**
-	 * Preparar el reproductor después de tener la superficie (pendiente 68).
-	 *
-	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
-	 * en cada sintonía.
-	 */
-	/**
-	 * Volver al borde calculando la posición en vez de usar la del reproductor
-	 * (`LiveTuning.RESYNC_CALCULANDO_DEFAULT`).
-	 */
-	var resyncCalculando: Boolean
-		get() = tresCapas(K_RESYNC_CALC, null, LiveTuning.RESYNC_CALCULANDO_DEFAULT)
-		set(v) = put { putBoolean(K_RESYNC_CALC, v) }
-
-	var prepararConSuperficie: Boolean
-		get() = tresCapas(K_PREP_SUPERFICIE, null, LiveTuning.PREPARAR_CON_SUPERFICIE_DEFAULT)
-		set(v) = put { putBoolean(K_PREP_SUPERFICIE, v) }
-
 	var simularVpuSinDeint: Boolean
 		get() = prefs.getBoolean(K_VPU_SIN_DEINT, false)
 		set(v) = put { putBoolean(K_VPU_SIN_DEINT, v) }
