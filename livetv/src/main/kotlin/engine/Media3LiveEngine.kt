@@ -1070,14 +1070,41 @@ class Media3LiveEngine(
 			) {
 				lastResyncAtMs = ahoraMs
 				resyncCount++
+				val antesMs = player?.currentPosition ?: C.TIME_UNSET
+				// A dónde se salta. `seekToDefaultPosition()` era lo anterior y
+				// **no devolvía al directo**: medido la noche del 10-oct, 547
+				// saltos y el offset seguía en 37 s tras cada uno. Calcularlo
+				// de la ventana da una posición comprobable.
+				val destinoMs = if (dev.resyncCalculando && durationMs != C.TIME_UNSET) {
+					(durationMs - activeTargetOffsetMs).coerceAtLeast(0L)
+				} else {
+					C.TIME_UNSET
+				}
 				LiveLog.warn(
 					"offset.vuelveAlBorde",
 					"offsetMs" to real,
 					"ventanaMs" to durationMs,
 					"limiteMs" to limite,
+					// Las tres columnas que faltaban para saber si el salto
+					// sirve de algo: de dónde, a dónde y qué pasó después.
+					"posAntesMs" to antesMs,
+					"destinoMs" to destinoMs.takeIf { it != C.TIME_UNSET },
 					"numero" to resyncCount,
 				)
-				player?.seekToDefaultPosition()
+				if (destinoMs != C.TIME_UNSET) {
+					player?.seekTo(destinoMs)
+				} else {
+					player?.seekToDefaultPosition()
+				}
+				// Y el resultado, medido en el mismo sitio: sin esto, «el salto
+				// no sirvió» se deduce de que el aviso vuelve a salir treinta
+				// segundos después, que es una conclusión a la que se llega
+				// después de una noche entera.
+				LiveLog.warn(
+					"offset.trasElSalto",
+					"posMs" to (player?.currentPosition ?: C.TIME_UNSET),
+					"offsetMs" to (player?.currentLiveOffset ?: C.TIME_UNSET),
+				)
 				return
 			}
 

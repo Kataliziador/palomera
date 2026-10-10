@@ -364,6 +364,14 @@ class DevOptions(context: Context) {
 	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
 	 * en cada sintonía.
 	 */
+	/**
+	 * Volver al borde calculando la posición en vez de usar la del reproductor
+	 * (`LiveTuning.RESYNC_CALCULANDO_DEFAULT`).
+	 */
+	var resyncCalculando: Boolean
+		get() = tresCapas(K_RESYNC_CALC, null, LiveTuning.RESYNC_CALCULANDO_DEFAULT)
+		set(v) = put { putBoolean(K_RESYNC_CALC, v) }
+
 	var prepararConSuperficie: Boolean
 		get() = tresCapas(K_PREP_SUPERFICIE, null, LiveTuning.PREPARAR_CON_SUPERFICIE_DEFAULT)
 		set(v) = put { putBoolean(K_PREP_SUPERFICIE, v) }
@@ -516,6 +524,7 @@ class DevOptions(context: Context) {
 		if (forzarDesentrelazado) add("deint forzado")
 		if (simularVpuSinDeint) add("VPU sin deint (simulado)")
 		if (prefs.contains(K_PREP_SUPERFICIE)) add("prepTrasSuperficie=${if (prepararConSuperficie) "ON" else "OFF"}")
+		if (prefs.contains(K_RESYNC_CALC)) add("resyncCalculado=${if (resyncCalculando) "ON" else "OFF"}")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -589,6 +598,7 @@ class DevOptions(context: Context) {
 		const val K_VPU_SIN_DEINT = "simularVpuSinDeint"
 		const val K_SIM_DENEGADO = "simularDenegacion"
 		const val K_PREP_SUPERFICIE = "prepararConSuperficie"
+		const val K_RESYNC_CALC = "resyncCalculando"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -597,7 +607,7 @@ class DevOptions(context: Context) {
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
-			K_PREP_SUPERFICIE,
+			K_PREP_SUPERFICIE, K_RESYNC_CALC,
 		)
 
 		const val OVERLAY_OCULTO = 0

@@ -263,6 +263,8 @@ un frame congelado.
 | ~~67~~ | ~~**El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana**~~ | — | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Cerrado el 09-oct, y no en la app.** Medido con 14 000: buffer p5 de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora cumpliendo §10 por primera vez en una sesión larga. El valor de fábrica de la app no se toca —sería Modo A y es el sitio equivocado—: lo calcula el generador del 45 % de la ventana que mide, con suelo 8000 y techo 14000 (`servidor-canales@e29f980`), así que cada canal de cada site recibe lo que su segmentación permite |
 | ~~68~~ | ~~**Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`**~~ | — | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. **Diagnosticado y arreglado el 10-oct, y la mitad de su descripción era falsa.** El `engine.release` de 1 ms después no es un fallo: lo hace `prepare()` para construir sobre limpio. El fallo es que `exo.prepare()` corre **antes** de que exista la superficie, que la crea la vista unos milisegundos después; aceptarla en caliente reconfigura el renderer con la reproducción ya pedida y dispara `Assertions.checkState`. Medido con 17 sintonías: con el arreglo, 0 errores de 6 frente a 9 de 11. **Y no cuesta lo que dije:** el primer fotograma es el mismo (1 794 contra 1 784 ms de mediana); los «400-800 ms» los deduje de una sola muestra que era un reinicio en caliente. **Cerrado el 10-oct y activo de fábrica**, validado en pantalla por Edgar: «sí vi bien todo sin problemas». El interruptor se queda para reproducir el comportamiento anterior |
 | ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Cerrado y validado en pantalla el 09-oct con los dos cortes provocados por Edgar:** reiniciando el canal en Flussonic se curó en 16 s por el escalón 2, y desconectando el cable en 26 s por el escalón 3 —11 s desde que la red volvió—, las dos veces con el aviso en pantalla |
+| 70 | **La vuelta al borde no vuelve al borde, y cada intento cuesta un corte** | **A** | medido en 9,3 h de `mileniosd` la noche del 10-oct: **547 saltos** y después de cada uno el offset seguía en 37 s con una ventana de 33,6. **549 de los 579 cortes de la noche ocurren en el segundo siguiente a un salto**, o sea que el 95 % los provoca el mecanismo de recuperación, no la red. Mediana de 142 ms —invisible, Edgar vio la imagen perfecta— pero el ratio sube a 1,12 % cuando una sesión limpia da 0 %. Descartado el origen: publica a 0,997× y 1,002× tiempo real, y el reloj de la caja va a 2 s. La posición viene de los reinicios: dos de cuatro reconstrucciones de la noche dejaron el reproductor pegado a la cola de la ventana (64 y 66 s de offset). **Arreglo propuesto el 10-oct**: saltar a `ventana − offset objetivo` en vez de a la «posición por defecto» del reproductor, con el log diciendo de dónde, a dónde y qué pasó después. Detrás de interruptor, pendiente de medir una noche |
+| 71 | **Un reinicio puede dejar el reproductor en la cola de la ventana** | **A** | la otra mitad del 70. Dos de las cuatro reconstrucciones de la noche del 10-oct arrancaron con 64 y 66 s de offset en una ventana de 33,6 s; las otras dos, con 15,8 s. Desde la cola, a 1× no se recupera nunca. Si el 70 arregla el síntoma, esto sigue siendo la causa: habría que entender por qué `prepare()` tras un fallo no arranca en la posición por defecto. **Sin diagnosticar** |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -932,6 +934,95 @@ Ningún canal del lineup usa ese campo, así que no hay diferencia en pantalla. 
 que se arregla es una promesa del contrato: el día que alguien escriba «este
 canal con Media3 no, pase lo que pase» —y ese día llega con la ZTE, cuando se
 sepa qué no sabe hacer— va a funcionar.
+
+### La noche: sin fugas de memoria, y 549 de 579 cortes eran nuestros — 2026-10-10
+
+Nueve horas y veinte minutos de `mileniosd` —el canal de fibra, el más estable—
+con todo de fábrica. 16 820 latidos. Edgar: *«la imagen se veía perfecta y
+fluida»*, y tenía razón: la mediana de los cortes fue de **142 ms**.
+
+#### Lo que M8 preguntaba: no hay fuga
+
+```
+RAM libre por tramos:  737 → 735 → 728 → 747 → 734 → 732 → 705 → 715 → 731 MB
+cpu mediana 7 %, máximo 41 %
+```
+
+Plana en nueve horas. **La app no pierde memoria**, que era la pregunta de M8 y
+la que no se podía contestar con sesiones de veinte minutos.
+
+#### Y lo que nadie preguntaba
+
+| | |
+|---|---|
+| Cortes | **579** (62 por hora) |
+| Mediana | 142 ms · p95 400 ms · máximo 36 s |
+| Cortes de más de 2 s | 20 |
+| Ratio de rebuffer | **1,12 %** (objetivo 0,3 %, aceptable 1 %) |
+| `offset.vuelveAlBorde` | **547** |
+| Atascos del vigilante | 12, recuperados 12 |
+
+**549 de los 579 cortes ocurren en el segundo siguiente a un
+`offset.vuelveAlBorde`.** O sea: el 95 % de los rebuffers de la noche **los
+provocó nuestra propia vuelta al borde**, no la red. Y no sirvió para nada:
+
+```
+05:00:48  offset.vuelveAlBorde offsetMs=37970 ventanaMs=33600 limiteMs=16800
+05:00:48  player.rebuffer numero=10
+05:00:48  player.playing liveOffsetMs=36924      ← tras el salto, sigue a 37 s
+```
+
+El salto cuesta un corte y deja el offset donde estaba. A los 30 s —el
+enfriamiento— vuelve a dispararse. Cincuenta y siete veces por hora en las
+horas malas.
+
+#### Descartado el origen, con medición
+
+Lo primero era saber si el origen se quedaba atrás, porque eso explicaría la
+deriva sin más. **No es eso.** Pidiendo el playlist cada segundo durante cinco
+minutos, lo que publica cada stream por cada segundo de reloj:
+
+```
+mileniosd  ritmo=0.997x      beisbol  ritmo=1.002x       (1.000 = tiempo real)
+```
+
+Y el reloj de la caja va a 2 s del real, con `EXT-X-PROGRAM-DATE-TIME` en el
+playlist, así que `directoS` no miente: el reproductor **estaba** 38 s detrás,
+pegado al segmento más viejo de una ventana de 33,6 s. Desde ahí, a 1× no se
+recupera nunca sin saltar.
+
+#### De dónde sale esa posición
+
+De los reinicios. Mirando el offset en los primeros latidos de cada
+reconstrucción de la noche:
+
+```
+02:17  tras arrancar  15,8 s   ← bien
+07:58  tras arrancar  15,8 s   ← bien
+04:57  tras arrancar  64,4 s   ← pegado a la cola
+09:26  tras arrancar  65,7 s   ← pegado a la cola
+```
+
+Dos de cuatro reconstrucciones dejan el reproductor en la cola de la ventana. Y
+el mecanismo que debería corregirlo es justo el que no corrige.
+
+#### Lo que se cambia
+
+La vuelta al borde deja de pedirle al reproductor su «posición por defecto» y
+salta a **duración de la ventana − retraso objetivo**, que es una posición
+comprobable. Detrás de «Volver al borde calculando la posición», apagado de
+fábrica.
+
+Y el aviso pasa a decir **de dónde, a dónde y qué pasó después**
+(`posAntesMs`, `destinoMs`, y un `offset.trasElSalto` inmediato). Sin esas tres
+columnas, «el salto no sirve» solo se deduce de que el aviso vuelve a salir
+treinta segundos más tarde — una conclusión que ha costado una noche entera.
+
+#### Nota de método
+
+El dato que lo resolvió no fue ninguna lectura del código: fue que **los cortes
+y los saltos coincidían 549 veces de 579**. Dos columnas contadas por hora. Y lo
+que impidió perseguir al origen fue medirlo desde fuera en cinco minutos.
 
 ### M6 — Cerrado — 2026-10-09
 

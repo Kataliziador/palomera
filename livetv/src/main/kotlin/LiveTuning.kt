@@ -212,6 +212,24 @@ object LiveTuning {
 	 */
 	const val LIVE_EDGE_RESYNC_COOLDOWN_MS = 30_000L
 
+	/**
+	 * Volver al borde **calculando la posición**, en vez de pedirle al
+	 * reproductor su «posición por defecto».
+	 *
+	 * `false` mantiene lo anterior: `seekToDefaultPosition()`. Medido en la
+	 * noche del 10-oct, eso **no devuelve al directo**: la vuelta al borde
+	 * disparó **547 veces en 9,3 h** y después de cada salto el offset seguía
+	 * en 37 s con una ventana de 33,6. Y cada salto cuesta un rebuffer, así que
+	 * **549 de los 579 cortes de esa noche los provocó este mecanismo**, no la
+	 * red: la mediana fue de 142 ms, invisible en pantalla, pero el ratio de
+	 * rebuffer subió a 1,12 % cuando la sesión limpia de 38 minutos había dado
+	 * 0 %.
+	 *
+	 * Encendido, el salto va a `duración de la ventana − offset objetivo`, que
+	 * es una posición que se puede comprobar en el log antes y después.
+	 */
+	const val RESYNC_CALCULANDO_DEFAULT = false
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un
