@@ -261,7 +261,7 @@ un frame congelado.
 | ~~65~~ | ~~**Con libVLC, `plan.codecDiscrepante` saltaba en toda sesión**~~ | — | **cerrado 09-oct.** `VlcLiveEngine` publicaba como `videoMime` el códec **declarado** en el `config.json`, así que la comprobación se comparaba consigo misma: `declarado=video/mpeg2 observado=mpeg2video` es el mismo códec escrito de dos maneras, y el aviso salía en las dos sesiones del volcado de hoy. Peor que el ruido: así **no podría detectar una discrepancia de verdad**, que es para lo que existe. Es el mismo fallo que el 61 con el audio, dos líneas más arriba en el mismo bloque, y la misma solución: `null`. La ausencia de `plan.codecObservado` en una sesión de libVLC ya significa «no se llegó a comprobar», que es la verdad |
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
 | ~~67~~ | ~~**El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana**~~ | — | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Cerrado el 09-oct, y no en la app.** Medido con 14 000: buffer p5 de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora cumpliendo §10 por primera vez en una sesión larga. El valor de fábrica de la app no se toca —sería Modo A y es el sitio equivocado—: lo calcula el generador del 45 % de la ventana que mide, con suelo 8000 y techo 14000 (`servidor-canales@e29f980`), así que cada canal de cada site recibe lo que su segmentación permite |
-| 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. Huele a orden de efectos en Compose: el `onDispose` del motor anterior corriendo contra la instancia nueva |
+| 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. **Diagnosticado y arreglado el 10-oct, y la mitad de su descripción era falsa.** El `engine.release` de 1 ms después no es un fallo: lo hace `prepare()` para construir sobre limpio. El fallo es que `exo.prepare()` corre **antes** de que exista la superficie, que la crea la vista unos milisegundos después; aceptarla en caliente reconfigura el renderer con la reproducción ya pedida y dispara `Assertions.checkState`. Medido con 17 sintonías: con el arreglo, 0 errores de 6 frente a 9 de 11. **Y no cuesta lo que dije:** el primer fotograma es el mismo (1 794 contra 1 784 ms de mediana); los «400-800 ms» los deduje de una sola muestra que era un reinicio en caliente. Detrás de «Preparar tras tener la superficie», **pendiente de subirlo a valor de fábrica** |
 | ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Cerrado y validado en pantalla el 09-oct con los dos cortes provocados por Edgar:** reiniciando el canal en Flussonic se curó en 16 s por el escalón 2, y desconectando el cable en 26 s por el escalón 3 —11 s desde que la red volvió—, las dos veces con el aviso en pantalla |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
@@ -836,6 +836,64 @@ el envoltorio con el que Media3 tapa cualquier aserción: con eso no se puede
 diagnosticar nada sin reproducirlo con `logcat` delante, y eso exige la caja de
 alguien. Ahora el log escribe **la cadena de causas**, tres niveles, con la
 clase y la línea donde nació cada una. Sirve para este error y para el próximo.
+
+### El error se va, el zapeo no mejora, y yo me había inventado el precio — 2026-10-10
+
+Diecisiete sintonías de Edgar, once con el interruptor apagado y seis con él
+encendido, cambiando entre los mismos canales.
+
+| | Sintonías por Media3 | Con error | 1.er fotograma (mediana) |
+|---|---|---|---|
+| Apagado (lo de siempre) | 11 | **9 de 11** | 1 784 ms |
+| **Encendido** | 6 | **0 de 6** | 1 794 ms |
+
+**El arreglo funciona: el error desaparece.** Y **mi predicción era falsa**: dije
+que costaba entre 400 y 800 ms de zapeo y no cuesta nada medible. Los mismos
+canales, uno a uno, dan `+131, +27, −169, +25, +164, −134` ms: ruido.
+
+#### De dónde salió el número que me inventé
+
+De **una** muestra. La reconstrucción del vigilante del 09-oct dio 1 575 ms sin
+`attach` y de ahí concluí que el resto perdía ese tiempo por el error. Pero esa
+sintonía era un reinicio en caliente —reproductor ya construido, superficie ya
+entregada, playlist en caché— y no se podía comparar con un arranque normal. La
+comparación buena, la de hoy, dice que no hay diferencia.
+
+**Lo que queda escrito:** el error no era el precio del zapeo. Los ~1,8 s se los
+come otra cosa —descarga del primer segmento, inicialización del decodificador y
+el punto de arranque que impone `3 × TARGETDURATION`— y eso sigue sin
+desglosarse. Que `LIVETV_ENGINE.md` §6 hable de «1,1 a 1,5 s» viene de otra
+medición, en otras condiciones, y no es el objetivo de esta.
+
+Para §10 da igual: el zapeo p50 sale en **1,8 s**, por debajo del objetivo de
+2 s, con el interruptor y sin él.
+
+#### Lo que sí se gana, y la causa exacta
+
+Nueve de cada once sintonías dejan de lanzar una aserción interna de Media3 y de
+preparar el reproductor una segunda vez entera. No es velocidad: es que la caja
+deje de hacer un trabajo que no sirve, y que el log deje de tener un `ERROR` por
+canal que tapa los de verdad.
+
+Y la cadena de causas, añadida ayer, nombra el sitio exacto en la primera
+lectura:
+
+```
+ExoPlaybackException:Unexpected runtime error en
+  androidx.media3.exoplayer.ExoPlayerImplInternal.handleMessage(ExoPlayerImplInternal.java:911)
+  <- IllegalStateException:null en androidx.media3.common.util.Assertions.checkState(Assertions.java:85)
+```
+
+**El error era intermitente ya apagado** —9 de 11, no 11 de 11—, que es lo que
+cabe esperar de una carrera: cuando la superficie llega lo bastante pronto, no
+salta. Encendido, el orden deja de ser una carrera.
+
+#### Y el instrumento costó una línea
+
+La espera de la superficie se ve y se mide: `engine.esperaSuperficie` y
+`engine.preparaTrasSuperficie` salen separados por **140 a 190 ms** en las seis
+sintonías. La red de 1,5 s no entró ni una vez, y `engine.superficieNoLlego` no
+aparece.
 
 ### M6 — Cerrado — 2026-10-09
 
