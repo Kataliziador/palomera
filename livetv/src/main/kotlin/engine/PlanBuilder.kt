@@ -72,6 +72,17 @@ object PlanBuilder {
 		val permitidos = channel.enginesAllowed
 		fun permitido(motor: String) = permitidos == null || motor in permitidos
 
+		// **Los dos caminos de plataforma implican Media3**, así que si el canal
+		// lo prohíbe no se pueden elegir. Hasta el 10-oct esto no se
+		// comprobaba: `permitido()` se consultaba tres veces y las tres eran
+		// para libVLC, de modo que un canal con `enginesAllowed: ["libvlc"]` y
+		// decoder de hardware recibía Media3 igual —justo el motor que estaba
+		// prohibiendo— y el filtro «duro» solo lo era en un sentido
+		// (pendiente 64). Las pruebas tampoco lo veían: cubrían el caso
+		// contrario.
+		val conMedia3 = permitido(MEDIA3_ENGINE_ID)
+
+
 		// --- 1. Lo que manda el operador -----------------------------------
 		val motorPedido = motorForzadoLocal ?: servidor?.engine
 		val motorElegido = when {
@@ -101,12 +112,35 @@ object PlanBuilder {
 
 		// --- 2. El camino de decodificación de vídeo ------------------------
 		val mime = mimeDe(channel.videoCodec)
+		fun sinCamino(porQue: String): PlaybackPlan {
+			LiveLog.error(
+				"plan.sinCamino",
+				null,
+				"canal" to channel.id,
+				"mime" to mime,
+				"decodersConocidos" to caps.decoders.size,
+				// Sin esto, «esta caja no puede» y «este canal no lo permite»
+				// se leen igual, y se arreglan en sitios distintos: una es el
+				// hardware y la otra una línea del `config.json`.
+				"enginesAllowed" to permitidos,
+			)
+			return PlaybackPlan(
+				engineId = MEDIA3_ENGINE_ID,
+				videoPath = DecodePath.HW,
+				audioPath = DecodePath.HW,
+				deinterlace = DeinterlaceMode.NONE,
+				targetOffsetMs = offsetDe(channel, servidor),
+				tsFlags = tsFlags,
+				reason = porQue,
+				unsupported = true,
+			)
+		}
 		val forzarSoftware = forzarSoftwareLocal || servidor?.forceSoftwareVideo == true
 
 		val videoPath = when {
 			// Forzar software es una herramienta de diagnóstico y de rescate:
 			// manda sobre la detección, pero no sobre la realidad.
-			forzarSoftware && mime != null && caps.decodersFor(mime).any { it.software } -> {
+			forzarSoftware && conMedia3 && mime != null && caps.decodersFor(mime).any { it.software } -> {
 				motivos += "software forzado"
 				DecodePath.SW_PLATFORM
 			}
@@ -119,10 +153,20 @@ object PlanBuilder {
 			// El canal no declara códec: no se puede decidir de antemano, así
 			// que se empieza por hardware y el plan se rehace al descubrir las
 			// pistas de verdad (§4.6).
-			mime == null -> {
+			mime == null && conMedia3 -> {
 				motivos += "códec sin declarar, se asume hardware"
 				DecodePath.HW
 			}
+
+			// Sin códec declarado **y** con Media3 prohibido no hay nada que
+			// asumir: el único motor que queda es el respaldo.
+			mime == null && caps.hasVlcBackend && permitido(VLC_ENGINE_ID) -> {
+				motivos += "códec sin declarar y media3 no permitido, libVLC"
+				DecodePath.SW_VLC
+			}
+
+			// Y sin códec, sin Media3 y sin respaldo no queda nada que probar.
+			mime == null -> return sinCamino("este canal no permite media3 y no hay respaldo")
 
 			// **Nivel 2 de la cascada de entrelazado** (`LIVETV_ENGINE.md`
 			// §4.4): SD entrelazado en una caja cuyo VPU no desentrelaza va
@@ -145,12 +189,12 @@ object PlanBuilder {
 				DecodePath.SW_VLC
 			}
 
-			caps.hasHardwareFor(mime) -> {
+			conMedia3 && caps.hasHardwareFor(mime) -> {
 				motivos += "hw para $mime"
 				DecodePath.HW
 			}
 
-			caps.decodersFor(mime).any { it.software } -> {
+			conMedia3 && caps.decodersFor(mime).any { it.software } -> {
 				motivos += "sin hw para $mime, software de plataforma"
 				DecodePath.SW_PLATFORM
 			}
@@ -160,25 +204,13 @@ object PlanBuilder {
 				DecodePath.SW_VLC
 			}
 
-			else -> {
-				LiveLog.error(
-					"plan.sinCamino",
-					null,
-					"canal" to channel.id,
-					"mime" to mime,
-					"decodersConocidos" to caps.decoders.size,
-				)
-				return PlaybackPlan(
-					engineId = MEDIA3_ENGINE_ID,
-					videoPath = DecodePath.HW,
-					audioPath = DecodePath.HW,
-					deinterlace = DeinterlaceMode.NONE,
-					targetOffsetMs = offsetDe(channel, servidor),
-					tsFlags = tsFlags,
-					reason = "sin decoder para $mime en esta caja",
-					unsupported = true,
-				)
-			}
+			else -> return sinCamino(
+				if (!conMedia3) {
+					"este canal no permite media3 y no hay respaldo para $mime"
+				} else {
+					"sin decoder para $mime en esta caja"
+				}
+			)
 		}
 
 		// El camino de vídeo decide el motor cuando nadie lo impuso.

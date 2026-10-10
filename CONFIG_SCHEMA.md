@@ -425,6 +425,18 @@ el suelo o más.
 nunca, ni como último recurso, ni aunque lo pida un `deviceOverride`. Úsalo solo
 cuando sepas que un canal concreto no funciona con un motor concreto.
 
+**Y desde el 10-oct lo es de verdad en los dos sentidos.** Hasta entonces la app
+respetaba la lista para descartar `libvlc` pero no para descartar `media3`: un
+canal con `enginesAllowed: ["libvlc"]` recibía Media3 igual si la caja tenía
+decoder de hardware. Si lo habías usado así, antes no hacía nada; ahora sí.
+
+Prohibir `media3` deja el canal en manos del respaldo, y el respaldo decodifica
+por software: en 1080i cuesta **63 % de CPU** en la caja medida frente al 14 % de
+un SD (`INTEGRACION_CANALES.md` §4). Si no queda ningún motor permitido que la
+caja pueda cumplir, el canal sale como no reproducible y la app registra
+`plan.sinCamino` **con la lista**, para que se distinga «esta caja no puede» de
+«este canal no lo permite».
+
 ### El audio tiene que llegar en AAC
 
 `CLAUDE.md` §2: **todo el audio se normaliza a AAC en Flussonic.** La app no

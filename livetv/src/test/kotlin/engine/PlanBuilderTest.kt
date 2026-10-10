@@ -193,6 +193,41 @@ class PlanBuilderTest : StringSpec({
 		p.unsupported shouldBe true
 	}
 
+	"un canal que prohíbe media3 se va a libVLC teniendo hardware" {
+		// El pendiente 64: esto elegía Media3, que es justo el motor prohibido.
+		// El filtro era duro en un sentido y blando en el otro.
+		val canal = h264.copy(enginesAllowed = setOf("libvlc"))
+		val p = plan(canal, caja(listOf(avcHw), vlc = true))
+		p.engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+		p.videoPath shouldBe DecodePath.SW_VLC
+	}
+
+	"y si no hay libVLC, se queda sin camino en vez de usar el prohibido" {
+		val canal = h264.copy(enginesAllowed = setOf("libvlc"))
+		plan(canal, caja(listOf(avcHw), vlc = false)).unsupported shouldBe true
+	}
+
+	"prohibir media3 también descarta el software de plataforma" {
+		val canal = h264.copy(enginesAllowed = setOf("libvlc"))
+		val p = plan(canal, caja(listOf(avcSw), vlc = true))
+		p.videoPath shouldBe DecodePath.SW_VLC
+	}
+
+	"forzar software desde el menú no salta por encima de enginesAllowed" {
+		val canal = h264.copy(enginesAllowed = setOf("libvlc"))
+		val p = plan(canal, caja(listOf(avcHw, avcSw), vlc = true), software = true)
+		p.engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+	}
+
+	"sin códec declarado y con media3 prohibido, el respaldo" {
+		// La rama de «se asume hardware» también implicaba Media3.
+		val canal = ChannelProfile(id = "c3", name = "X", url = "http://e/3.m3u8", videoCodec = null)
+			.copy(enginesAllowed = setOf("libvlc"))
+		val p = plan(canal, caja(listOf(avcHw), vlc = true))
+		p.engineId shouldBe PlanBuilder.VLC_ENGINE_ID
+		p.reason shouldContain "códec sin declarar y media3 no permitido"
+	}
+
 	"enginesAllowed gana incluso al servidor" {
 		val canal = h264.copy(enginesAllowed = setOf("media3"))
 		val p = plan(canal, caja(listOf(avcHw), vlc = true), ServerDeviceSettings(engine = "libvlc"))

@@ -257,7 +257,7 @@ un frame congelado.
 
 **Y debajo había un segundo fallo que el primero tapaba.** Con la proporción en «la del origen», libVLC renderizaba `estrellassd` a 1695×1080 — proporción **1.569**, que es 4:3 × 1.176: el SAR **aplicado dos veces**, sobre un tamaño que ya lo traía incorporado. La imagen salía estirada a lo ancho y en «Zoom» se salía de la pantalla, que es lo que Edgar vio. Se le pasa ahora la proporción explícita —la que el propio libVLC declara ya corregida— y se reaplica el modo al conocerse el tamaño, porque el primero llega antes. Medido después: franjas de **240 px** a cada lado y **1440 px** de imagen, que es el 4:3 correcto al píxel |
 | ~~63~~ | ~~**`vpuDeinterlaces` es por modelo y esta caja lo necesita por códec**~~ | — | es la llave del nivel 2 de `LIVETV_ENGINE.md` §4.4, y en la Skyworth no se puede girar. Su VPU **sí** desentrelaza H.264 1080i —M5: «sin peine en `discoveryhd` ni `hbohd`»— y **no** entrega bien el MPEG-2 480i (55). Con un solo booleano por modelo, ponerlo en `false` para que `estrellassd` llegue a libVLC arrastra a software los tres canales 1080i que hoy funcionan por hardware. O sea: el respaldo de M6 sigue sin poder dispararse solo en la única caja que tenemos, y ahora se sabe por qué. **La salida más limpia no es afinar este campo sino reusar el veto de decoders** (56), que ya existe y ya desemboca en la rama «sin decoder de plataforma para $mime, libVLC», probada: haría falta poder publicarlo por modelo desde el `config.json`, que es un campo nuevo en `deviceOverrides` y Modo A en la app. Lo de hoy —el barrido corregible (53)— era condición necesaria y no suficiente. **Y ya no es sospecha: medido el 09-oct**, `discoveryhd` por software cuesta el **63 % de CPU** (mediana de 41 latidos) contra el 14 % de `estrellassd`, para llegar a lo que por hardware ya sale perfecto. Girar el booleano por modelo arrastraría a software un canal que no lo necesita, con el margen justo para que cualquier otra carga del sistema se vea en pantalla. **Implementada la salida el 09-oct: `blockedDecoders` en los `deviceOverrides`**, que nombra el decoder que entrega mal en vez de hablar de desentrelazado. La Skyworth ya está en `nuestro.json` con su porqué y el site de pruebas lo sirve. **Cerrado el 09-oct, validado en pantalla con todo de fábrica:** `caps.decodersVetados cuantos=1`, `estrellassd` a libVLC con 0 cortes en su sesión y `discoveryhd` por hardware. Las dos mitades, incluida la que importaba: el veto no casa de más |
-| 64 | **`enginesAllowed` no se respeta contra `media3`** | **A** | el documento dice que un motor fuera de esa lista «no se elige nunca, ni como último recurso», y para libVLC es verdad —tres comprobaciones de `permitido()`—. Para Media3 no hay ninguna: con `enginesAllowed: ["libvlc"]` y decoder de hardware disponible, `videoPath` sale `HW` y el motor derivado es Media3, justo el que el canal prohíbe. Las pruebas solo cubren el sentido contrario (`["media3"]`). Descubierto el 09-oct buscando una palanca por canal para el 63; no hay ninguna hasta que esto se arregle |
+| ~~64~~ | ~~**`enginesAllowed` no se respeta contra `media3`**~~ | — | el documento dice que un motor fuera de esa lista «no se elige nunca, ni como último recurso», y para libVLC es verdad —tres comprobaciones de `permitido()`—. Para Media3 no hay ninguna: con `enginesAllowed: ["libvlc"]` y decoder de hardware disponible, `videoPath` sale `HW` y el motor derivado es Media3, justo el que el canal prohíbe. Las pruebas solo cubren el sentido contrario (`["media3"]`). Descubierto el 09-oct buscando una palanca por canal para el 63; no hay ninguna hasta que esto se arregle | **Cerrado el 10-oct.** Las tres ramas que implican Media3 —hardware, software de plataforma y «códec sin declarar»— pasan a exigir que el canal lo permita; con Media3 prohibido el plan cae al respaldo y, si no hay, el canal sale no reproducible en vez de usar el motor vetado. Cinco comprobaciones nuevas, incluida la del menú: forzar software a mano tampoco salta por encima. Lo que más conviene recordar es que **la prueba que debía cubrirlo existía y solo cubría el sentido que funcionaba** |
 | ~~65~~ | ~~**Con libVLC, `plan.codecDiscrepante` saltaba en toda sesión**~~ | — | **cerrado 09-oct.** `VlcLiveEngine` publicaba como `videoMime` el códec **declarado** en el `config.json`, así que la comprobación se comparaba consigo misma: `declarado=video/mpeg2 observado=mpeg2video` es el mismo códec escrito de dos maneras, y el aviso salía en las dos sesiones del volcado de hoy. Peor que el ruido: así **no podría detectar una discrepancia de verdad**, que es para lo que existe. Es el mismo fallo que el 61 con el audio, dos líneas más arriba en el mismo bloque, y la misma solución: `null`. La ausencia de `plan.codecObservado` en una sesión de libVLC ya significa «no se llegó a comprobar», que es la verdad |
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
 | ~~67~~ | ~~**El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana**~~ | — | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Cerrado el 09-oct, y no en la app.** Medido con 14 000: buffer p5 de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora cumpliendo §10 por primera vez en una sesión larga. El valor de fábrica de la app no se toca —sería Modo A y es el sitio equivocado—: lo calcula el generador del 45 % de la ventana que mide, con suelo 8000 y techo 14000 (`servidor-canales@e29f980`), así que cada canal de cada site recibe lo que su segmentación permite |
@@ -894,6 +894,44 @@ La espera de la superficie se ve y se mide: `engine.esperaSuperficie` y
 `engine.preparaTrasSuperficie` salen separados por **140 a 190 ms** en las seis
 sintonías. La red de 1,5 s no entró ni una vez, y `engine.superficieNoLlego` no
 aparece.
+
+### `enginesAllowed` era duro en un sentido y blando en el otro — 2026-10-10
+
+El pendiente 64, el último de la app. `CONFIG_SCHEMA.md` lo describe como un
+filtro duro —«un motor ausente de la lista no se elige nunca, ni como último
+recurso»— y para `libvlc` lo era: tres comprobaciones de `permitido()` en la
+cascada. Para `media3` **no había ninguna**.
+
+Así que un canal con `enginesAllowed: ["libvlc"]` recibía Media3 en cuanto la
+caja tenía decoder de hardware: justo el motor que estaba prohibiendo. El camino
+de vídeo salía `HW` y el motor se deriva de él.
+
+**Las pruebas tampoco lo veían**, y eso es lo que más conviene recordar: había
+una que se llamaba «un motor fuera de enginesAllowed no se elige ni como último
+recurso» y solo cubría el sentido que funcionaba (`["media3"]` en una caja sin
+hardware). La simetría no estaba probada, y por eso el agujero sobrevivió a una
+prueba con ese nombre.
+
+#### El arreglo
+
+Las tres ramas que implican Media3 —hardware, software de plataforma y «códec
+sin declarar, se asume hardware»— pasan a exigir que el canal lo permita. Con
+Media3 prohibido, el plan cae al respaldo; si tampoco está disponible, el canal
+sale no reproducible en vez de usar el motor vetado.
+
+Cinco comprobaciones nuevas, una por rama y una para el menú de degradación:
+forzar software a mano tampoco salta por encima de la lista del canal.
+
+Y `plan.sinCamino` registra ahora **la lista**, porque «esta caja no puede» y
+«este canal no lo permite» se leían igual y se arreglan en sitios distintos: una
+es el hardware y la otra una línea del `config.json`.
+
+#### Lo que esto no cambia hoy
+
+Ningún canal del lineup usa ese campo, así que no hay diferencia en pantalla. Lo
+que se arregla es una promesa del contrato: el día que alguien escriba «este
+canal con Media3 no, pase lo que pase» —y ese día llega con la ZTE, cuando se
+sepa qué no sabe hacer— va a funcionar.
 
 ### M6 — Cerrado — 2026-10-09
 
