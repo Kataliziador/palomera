@@ -249,7 +249,7 @@ un frame congelado.
 | ~~55~~ | ~~**`estrellassd` se presenta a 15 fps, la mitad de su cadencia**~~ | — | medido el 08-oct con el tunneled **apagado**, que es la única forma de que los contadores vean algo: `fps=15.0` estable en una fuente de 29.97, `huecoMaxMs=100`, **`perdidos=0`** —o sea el decodificador no entrega más, no es que se tiren—. Explica los dos síntomas de Edgar a la vez: el peine y «la imagen está lenta». La caja declara **un solo** decodificador para `video/mpeg2`, `OMX.amlogic.mpeg2.decoder.awesome2`, así que no hay alternativa que probar (confirma el 26). **Los dos descartes, hechos el 08-oct.** La superficie no es: con ella a 1920×1080 —verificado por `SurfaceFlinger`— siguen 15.0 fps. El canal tampoco está solo: `discoveryhd`, 1080i H.264 en las mismas condiciones, da **29.9 fps** limpios en 170 latidos. Y el stream entrega lo que declara: **600 fotogramas en 20 s medidos con `ffprobe`**, 30000/1001. Así que es el decodificador MPEG-2 de la caja, y no hay otro. **Es literalmente el caso que `CLAUDE.md` §6 le reserva a libVLC** —«MPEG-2 sin decoder en la caja, y desentrelazado por software de SD»—, o sea M6 | **Cerrado 09-oct con M6:** por libVLC se ve bien, sin peine y a cadencia normal, con menos del 16 % de CPU. **Con la salvedad del 53:** la regla que lo elegiría sola necesita que el canal llegue marcado como entrelazado, y no llega |
 | 56 | ~~**El veto de decoders del menú no lo leía nadie**~~ | — | **cerrado 08-oct.** Se guardaba, se contaba en la línea de degradación y se enseñaba en el menú, y **ninguna línea lo aplicaba**. Descubierto al intentar probar M6 con él, que es exactamente para lo que existe. Ahora `DeviceCapabilities.excluyendo()` lo aplica, y las capacidades se recalculan con `revision` |
 | 57 | ~~**`hasVlcBackend` dependía de quién preguntara primero**~~ | — | **cerrado 08-oct.** Era un parámetro de `DeviceCapabilities.of()`, y la caché devuelve lo primero que se construyó ignorando los argumentos siguientes: `RegistryRepository` pregunta al arrancar, antes que el reproductor, y fijaba `false` para todo el proceso. Con el motor ya escrito, la cascada se negaba a elegirlo. El fondo del error es que **no es una propiedad de la caja sino del APK**: ahora se mira por reflexión, una vez |
-| 58 | **El idioma de las pistas de audio de libVLC sale vacío** | M6 | `MediaPlayer.audioTracks` incluye la pseudo-pista «Disable» de libVLC, que la barra pintaba como un idioma llamado «DI». Filtrada. Pero leyendo el idioma del medio en su lugar, viene `null`: la barra ya no miente, pero tampoco dice. Afecta poco hoy —el único canal que usa libVLC tiene una sola pista— y afectaría de verdad a un MPEG-2 con doble audio | **Arreglado el 10-oct.** El idioma está en el manifiesto —medido con `ffprobe`: `spa`, `eng`, `spa`— pero libVLC no lo propaga en HLS; sí da la descripción, y Flussonic la escribe con el código delante (`NAME="spa a1"`). Cuando el declarado viene vacío se rescata del texto con una regla estrecha —palabra suelta de dos o tres letras, sin dígitos—, con nueve comprobaciones. Se añade `vlc.pistasCrudas` para poder ver qué devuelve libVLC de verdad. **Pendiente de que un volcado lo confirme en la caja** |
+| 58 | **El idioma de las pistas de audio de libVLC sale vacío** | M6 | `MediaPlayer.audioTracks` incluye la pseudo-pista «Disable» de libVLC, que la barra pintaba como un idioma llamado «DI». Filtrada. Pero leyendo el idioma del medio en su lugar, viene `null`: la barra ya no miente, pero tampoco dice. Afecta poco hoy —el único canal que usa libVLC tiene una sola pista— y afectaría de verdad a un MPEG-2 con doble audio | **Arreglado el 10-oct.** El idioma está en el manifiesto —medido con `ffprobe`: `spa`, `eng`, `spa`— pero libVLC no lo propaga en HLS; sí da la descripción, y Flussonic la escribe con el código delante (`NAME="spa a1"`). Cuando el declarado viene vacío se rescata del texto con una regla estrecha —palabra suelta de dos o tres letras, sin dígitos—, con nueve comprobaciones. Se añade `vlc.pistasCrudas` para poder ver qué devuelve libVLC de verdad. **Y el volcado lo desmintió, el 10-oct: el diagnóstico de este pendiente era otro.** libVLC sí da el idioma de la pista buena (`esl`); lo que daba además era **una pista fantasma** sin idioma, sin descripción y sin canales, y de ahí venían el `cuantas=2` de un canal con un audio y la opción vacía de la barra. Se descartan las pistas sin idioma y sin descripción. El rescate del texto se queda para los masters con `EXT-X-MEDIA` separados, donde el idioma viaja en `NAME`. **Cerrado, pendiente de ver la barra en pantalla** |
 | 59 | ~~**La barra de canal no se escondía con libVLC**~~ | — | **cerrado 09-oct.** `Buffering` no significa lo mismo en los dos motores: libVLC lo emite de continuo con el porcentaje de llenado —26 veces al 100 % en una sesión normal— y se traducía a `onReady()`, que deja el estado en «Listo» y no en «En vivo». La barra se mostraba una y otra vez y nunca se escondía. Ahora se mira el **flanco**: bajar de 100 con imagen es un rebuffer, volver a 100 es salir de él |
 | 60 | ~~**Una sesión con libVLC no dejaba rastro de diagnóstico**~~ | — | **cerrado 09-oct.** El latido vivía solo en `Media3LiveEngine`: cero líneas en el volcado de una sesión entera con el respaldo. Todo el método de este proyecto se apoya en ese rastro. `VlcLiveEngine` lo escribe ahora con las columnas que libVLC sabe de verdad, y **sin las que no** |
 | 61 | ~~**El overlay enseñaba un «⚠AAC» falso y ceros que parecían medidas**~~ | — | **cerrado 09-oct.** El motor publicaba como `audioMime` el códec **declarado** en el `config.json`, así que el aviso de audio sin normalizar de §2 se comparaba consigo mismo: encendía la alarma en un canal correcto y, peor, habría callado en uno que declarase AAC y entregase MP2. Ahora es `null`. Y el overlay deja de escribir `buf 0.0s dir 0.0s` cuando no hay medida: un hueco se lee «no lo sé», un cero se lee «se acabó el buffer» |
@@ -700,6 +700,59 @@ De paso, `LIVETV_ENGINE.md` §4.4 deja escrito que el nivel 2 cubre también HD
 pero que **el precio lo hace inviable** —63 % de CPU contra 14 %, medido—, y que
 para un decoder que existe y entrega mal la llave es `blockedDecoders` y no esa
 tabla.
+
+### El volcado en bruto encontró una pista fantasma, y el simulador no simulaba — 2026-10-10
+
+Dos correcciones del bloque B, las dos del mismo volcado de la caja.
+
+#### La pista de audio que no existía
+
+Esto es lo que el instrumento nuevo —`vlc.pistasCrudas`, añadido horas antes—
+enseñó en `estrellassd`, un canal con **un solo** audio:
+
+```
+vlc.pistasCrudas delMedio=/ | esl/?  descripciones=-1:Disable | 1:Track 2 - [esl]
+audio.pistas cuantas=2 idiomas=?,esl motor=libvlc
+```
+
+**El pendiente 58 estaba mal diagnosticado.** No era que libVLC devolviera el
+idioma nulo: devuelve `esl` perfectamente en la pista buena —y por eso el
+rescate del texto, que también se escribió ayer, no hacía falta aquí—. Lo que
+devuelve además es **una pista fantasma sin idioma, sin descripción y sin
+canales**, y eso explica de una vez las dos cosas raras que se arrastraban:
+el `cuantas=2` sobre un canal de un audio, y la opción vacía que la barra
+ofrecía y nadie podía nombrar.
+
+Se descartan las pistas sin idioma **y** sin descripción, que es lo que las hace
+inservibles: no se pueden etiquetar ni elegir. Queda `vlc.pistasFantasma` para
+que se vea cuántas se tiran.
+
+El rescate del texto se queda, porque el caso al que apunta sigue siendo real
+—los masters con `EXT-X-MEDIA` separados traen el idioma en `NAME`— y la
+descripción de esta caja (`Track 2 - [esl]`) confirma que ahí viene.
+
+#### Y el simulador de denegación no simulaba nada
+
+Edgar activó el interruptor y la sección siguió abriendo. El log lo dice sin
+ambigüedad:
+
+```
+22:28:26  dev.changed opciones=FINGE DENEGADO=1
+22:28:52  plan.construido canal=estrellassd …      ← reproduciendo, con el simulador puesto
+```
+
+La causa es que el acceso se decide dentro de `refresh()`, y
+`refreshSiHaceFalta()` **no refresca**: vuelve en cuanto ve que no cambió de
+servidor y que no han pasado quince minutos. Una decisión correcta para la red y
+equivocada para una pregunta que no necesita red.
+
+Ahora el catálogo escucha la revisión del menú y, cuando ese interruptor cambia,
+recalcula **solo el acceso** y lo emite. Sin red y sin rehacer la lista.
+
+**Lección del par:** las dos cosas que se arreglan aquí las encontró el log, no
+el razonamiento. La fantasma porque se añadió el volcado en bruto antes de
+tocar el código, y el simulador porque Edgar probó el interruptor en vez de
+creerse que funcionaba.
 
 ### M6 — Cerrado — 2026-10-09
 

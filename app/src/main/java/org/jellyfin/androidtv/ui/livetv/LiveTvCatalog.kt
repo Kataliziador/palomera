@@ -97,6 +97,25 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	)
 	val state: StateFlow<LiveCatalog> get() = _state
 
+	init {
+		// **El simulador de denegación tiene que notarse sin esperar.**
+		// `refreshSiHaceFalta()` solo rehace el catálogo si cambió de servidor
+		// o si pasaron quince minutos, así que encender el interruptor del menú
+		// no hacía nada visible: medido el 09-oct en la caja, Edgar lo activó y
+		// la sección siguió abriendo. No es un refresco completo —no hace
+		// falta red para contestar una pregunta del menú—: se recalcula el
+		// acceso y se emite.
+		scope.launch {
+			var anterior = dev.simularDenegacion
+			dev.revision.collect {
+				val ahora = dev.simularDenegacion
+                if (ahora == anterior) return@collect
+				anterior = ahora
+				_state.value = _state.value.copy(acceso = comprobarAcceso())
+			}
+		}
+	}
+
 	/**
 	 * La última URL servida, para no repetir la descarga en cada entrada a la
 	 * sección **pero sí** rehacerla si la caja cambia de servidor.

@@ -487,8 +487,28 @@ class VlcLiveEngine(
 				.joinToString(" | ") { "${it.id}:${it.name}" }.ifEmpty { "(vacío)" },
 		)
 
-		pistas = if (delMedio.isNotEmpty()) {
-			delMedio.map { t ->
+		// **Una pista sin idioma y sin descripción no es una pista.** Medido en
+		// la caja el 09-oct con el volcado de arriba: `estrellassd`, que lleva
+		// un solo audio, daba dos entradas —`delMedio=/ | esl/?`— y la barra
+		// enseñaba una opción vacía que no se podía nombrar ni distinguir. Era
+		// el fondo del pendiente 58: el idioma no «venía null» en general,
+		// venía una pista fantasma además de la buena.
+		//
+		// El filtro es por lo que la hace inservible, no por su posición: no se
+		// puede etiquetar ni elegir, así que no se ofrece.
+		val utiles = delMedio.filter {
+			!it.language.isNullOrBlank() || !it.description.isNullOrBlank()
+		}
+		if (utiles.size != delMedio.size) {
+			LiveLog.debug(
+				"vlc.pistasFantasma",
+				"descartadas" to (delMedio.size - utiles.size),
+				"utiles" to utiles.size,
+			)
+		}
+
+		pistas = if (utiles.isNotEmpty()) {
+			utiles.map { t ->
 				AudioTrackRef(
 					// Si libVLC no declara el idioma —y en HLS no lo hace—, se
 					// rescata de la descripción (pendiente 58). Derivado es
