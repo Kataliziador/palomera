@@ -143,8 +143,13 @@ class Media3LiveEngine(
 	private var droppedFrames = 0
 	private var bytesLoaded = 0L
 	private var loadingSinceMs = 0L
-	private var lastPositionMs = C.TIME_UNSET
-	private var lastProgressAtMs = 0L
+	/**
+	 * El avance de la posición, que es de lo que vive el vigilante.
+	 *
+	 * Va en su propia clase porque la definición de «avanzar» tiene miga y se
+	 * prueba sin emulador: ver [RelojDeAvance].
+	 */
+	private val avance = RelojDeAvance()
 
 	// Métricas de los objetivos de CLAUDE.md §10
 	private var prepareAtMs = 0L
@@ -234,8 +239,7 @@ class Media3LiveEngine(
 		val inicio = System.currentTimeMillis()
 		bytesLoaded = 0
 		loadingSinceMs = inicio
-		lastPositionMs = C.TIME_UNSET
-		lastProgressAtMs = inicio
+		avance.reiniciar(inicio)
 		offsetMismatchReported = false
 		lastResyncAtMs = 0
 		resyncCount = 0
@@ -620,6 +624,10 @@ class Media3LiveEngine(
             LiveLog.warn(
 				"vigilante.atascado",
 				"estado" to estadoLegible(exo.playbackState),
+				// La posición, porque en negativo dice algo que ninguna otra
+				// columna dice: el reproductor se quedó en un punto que la
+				// ventana ya dejó atrás.
+				"posS" to "%.1f".format(exo.currentPosition / 1000.0),
 				"bufferS" to "%.1f".format(s.bufferedMs / 1000.0),
 				"directoS" to "%.1f".format(s.liveOffsetMs / 1000.0),
 				"sinAvanzarMs" to s.msSinceProgress,
@@ -782,10 +790,7 @@ class Media3LiveEngine(
 		// exactamente el dato que el watchdog de M7 no puede permitirse falso.
 		val pos = exo?.currentPosition ?: C.TIME_UNSET
 		val ahora = System.currentTimeMillis()
-		if (pos != lastPositionMs) {
-			lastPositionMs = pos
-			lastProgressAtMs = ahora
-		}
+		val sinAvanzarMs = avance.observar(pos, exo?.isPlaying == true, ahora)
 
 		val segundos = (ahora - loadingSinceMs).coerceAtLeast(1L) / 1000.0
 
@@ -799,7 +804,7 @@ class Media3LiveEngine(
 			bitrateBps = if (bytesLoaded > 0) (bytesLoaded * 8 / segundos).toLong() else 0,
 			bandwidthBps = bandwidthMeter.bitrateEstimate,
 			droppedFrames = droppedFrames,
-			msSinceProgress = ahora - lastProgressAtMs,
+			msSinceProgress = sinAvanzarMs,
 			liveOffsetMs = exo?.currentLiveOffset?.takeIf { it != C.TIME_UNSET } ?: 0,
 			windowMs = windowDurationMs.takeIf { it != C.TIME_UNSET } ?: 0,
 			targetOffsetMs = activeTargetOffsetMs,

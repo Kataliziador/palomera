@@ -260,8 +260,9 @@ un frame congelado.
 | 64 | **`enginesAllowed` no se respeta contra `media3`** | **A** | el documento dice que un motor fuera de esa lista «no se elige nunca, ni como último recurso», y para libVLC es verdad —tres comprobaciones de `permitido()`—. Para Media3 no hay ninguna: con `enginesAllowed: ["libvlc"]` y decoder de hardware disponible, `videoPath` sale `HW` y el motor derivado es Media3, justo el que el canal prohíbe. Las pruebas solo cubren el sentido contrario (`["media3"]`). Descubierto el 09-oct buscando una palanca por canal para el 63; no hay ninguna hasta que esto se arregle |
 | ~~65~~ | ~~**Con libVLC, `plan.codecDiscrepante` saltaba en toda sesión**~~ | — | **cerrado 09-oct.** `VlcLiveEngine` publicaba como `videoMime` el códec **declarado** en el `config.json`, así que la comprobación se comparaba consigo misma: `declarado=video/mpeg2 observado=mpeg2video` es el mismo códec escrito de dos maneras, y el aviso salía en las dos sesiones del volcado de hoy. Peor que el ruido: así **no podría detectar una discrepancia de verdad**, que es para lo que existe. Es el mismo fallo que el 61 con el audio, dos líneas más arriba en el mismo bloque, y la misma solución: `null`. La ausencia de `plan.codecObservado` en una sesión de libVLC ya significa «no se llegó a comprobar», que es la verdad |
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
-| 67 | **El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana** | **M7** | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Hay que medirlo antes de cambiar el valor de fábrica**, que es Modo A |
+| 67 | **El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana** | **M7** | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Medido el 09-oct con 14 000 publicado desde el panel: buffer p5 de 4,3 a 9,1 s, mediana de 6,2 a 11,1 s y cero cortes en 16 minutos sanos.** Falta una sesión larga sin caída de origen antes de cambiar el valor de fábrica, que es Modo A |
 | 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. Huele a orden de efectos en Compose: el `onDispose` del motor anterior corriendo contra la instancia nueva |
+| ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Pendiente de validación en pantalla** |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -417,6 +418,87 @@ dobla el colchón sin tocar el headend y sin que el abonado note nada: ya va
 
 La otra mitad es del headend y es la de siempre: más segmentos en la ventana
 (`segment_count`) da sitio para sentarse más atrás todavía.
+
+### 98 minutos de pantalla muerta, y el rescate que nunca empezó — 2026-10-09
+
+Edgar: *«solo visualicé un canal durante un largo tiempo, parece que se quedó
+detenido»*. Se quedó detenido, y el log dice exactamente eso durante **98
+minutos seguidos**:
+
+```
+19:19:49  estado=almacenando reproduciendo=false posS=-37.9    sinAvanzarMs=1637 bufferS=35.8 directoS=73.6
+20:57:27  estado=almacenando reproduciendo=false posS=-5895.1  sinAvanzarMs=1312 bufferS=35.8 directoS=5932.0
+```
+
+2 927 latidos iguales. El reproductor parado en un punto que la ventana DVR ya
+había dejado atrás —de ahí la posición negativa—, **con 35,8 s de datos delante
+sin consumir**, y a 99 minutos del directo. Ni un error, ni un reintento, ni un
+escalón del vigilante. La escalera de rescate de tres escalones, escrita,
+probada y activa de fábrica, **no llegó a empezar**.
+
+#### Por qué no empezó
+
+`atascado` se definía como `msSinceProgress > 10 s`, y el progreso se medía así:
+
+```kotlin
+if (pos != lastPositionMs) { lastPositionMs = pos; lastProgressAtMs = ahora }
+```
+
+**Cualquier cambio de la posición contaba como avance.** Y en ese estado la
+posición cambiaba sin parar: caía dos segundos por cada dos segundos de reloj,
+porque la ventana corría y el reproductor no. `sinAvanzarMs` nunca pasó de
+2 636 ms. Visto desde el vigilante, ese canal estaba progresando.
+
+El otro mecanismo que podría haberlo salvado tampoco podía: la vuelta al borde
+exige `STATE_READY`, y el reproductor estaba en `STATE_BUFFERING` todo el
+tiempo. Disparó **una vez** a los 42 s de offset —cuando aún estaba listo— y
+nunca más.
+
+#### El arreglo, y el que estuvo a punto de salir mal
+
+Lo primero que escribí fue «progresar es que la posición **suba**». La prueba
+de la clase nueva lo tumbó antes de salir del repositorio, con los números de
+la propia sesión sana: en un directo la posición se mide desde el principio de
+la ventana y la ventana corre al mismo ritmo que la reproducción, así que **la
+posición no sube: se queda quieta oscilando** —banda de 19,1 a 23,6 s durante
+minutos—. Ese arreglo habría despertado al vigilante cada veinte segundos en
+todos los canales.
+
+La definición que sí distingue los dos fallos conocidos es **progresar es estar
+reproduciendo y que la posición cambie**:
+
+| | reproduciendo | posición | ¿atasco? |
+|---|---|---|---|
+| Directo sano | sí | oscila | no |
+| Rebuffer corriente (194 ms de mediana) | no, un instante | cualquiera | no, no llega a 10 s |
+| **El fallo del 09-oct** | **no, para siempre** | cambia | **sí** |
+| **El fallo del 30-sep** | sí | clavada | **sí** |
+
+Cada mitad de la frase viene de uno de los dos, y ninguna sola los ve los dos.
+Está en `RelojDeAvance`, con siete comprobaciones que llevan los números
+medidos de las dos sesiones.
+
+#### Y lo que la misma sesión dice del pendiente 67: el offset funcionó
+
+Esa sesión era la prueba de subir `targetOffsetMs` a 14 000 desde el panel, y
+en sus 16 minutos sanos salió exactamente lo previsto:
+
+| | 8 000 (antes) | 14 000 |
+|---|---|---|
+| Buffer p5 | 4,3 s | **9,1 s** |
+| Buffer mediana | 6,2 s | **11,1 s** |
+| Distancia al directo | 11,3 s | 16,0 s |
+| Cortes | ~15/hora | **0 en 16 min** |
+
+El colchón se dobla y los cortes desaparecen. Los 12 rebuffers de la sesión
+están **todos** dentro de una ventana de 63 s que abre un
+`ERROR_CODE_IO_UNSPECIFIED ... Source error`: no son el goteo de antes, es el
+origen cayéndose. Y 16,0 s de offset quedan 3 s por debajo del punto en que la
+vuelta al borde se dispararía (media ventana + 3 s = 19,0 s), así que el valor
+no está pegado a su límite.
+
+Queda medir una sesión larga **sin** caída de origen antes de tocar el valor de
+fábrica, que es Modo A.
 
 ### M6 — Cerrado — 2026-10-09
 
