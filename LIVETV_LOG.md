@@ -260,7 +260,7 @@ un frame congelado.
 | 64 | **`enginesAllowed` no se respeta contra `media3`** | **A** | el documento dice que un motor fuera de esa lista «no se elige nunca, ni como último recurso», y para libVLC es verdad —tres comprobaciones de `permitido()`—. Para Media3 no hay ninguna: con `enginesAllowed: ["libvlc"]` y decoder de hardware disponible, `videoPath` sale `HW` y el motor derivado es Media3, justo el que el canal prohíbe. Las pruebas solo cubren el sentido contrario (`["media3"]`). Descubierto el 09-oct buscando una palanca por canal para el 63; no hay ninguna hasta que esto se arregle |
 | ~~65~~ | ~~**Con libVLC, `plan.codecDiscrepante` saltaba en toda sesión**~~ | — | **cerrado 09-oct.** `VlcLiveEngine` publicaba como `videoMime` el códec **declarado** en el `config.json`, así que la comprobación se comparaba consigo misma: `declarado=video/mpeg2 observado=mpeg2video` es el mismo códec escrito de dos maneras, y el aviso salía en las dos sesiones del volcado de hoy. Peor que el ruido: así **no podría detectar una discrepancia de verdad**, que es para lo que existe. Es el mismo fallo que el 61 con el audio, dos líneas más arriba en el mismo bloque, y la misma solución: `null`. La ausencia de `plan.codecObservado` en una sesión de libVLC ya significa «no se llegó a comprobar», que es la verdad |
 | ~~66~~ | ~~**`vpuDeinterlaces` del `config.json` no llegaba al motor**~~ | — | **cerrado 09-oct.** El campo se documentaba, se interpretaba y se fundía por especificidad, y la conversión de `DeviceOverride` a `ServerDeviceSettings` en `LiveTvCatalog` **no lo copiaba**: se quedaba ahí. O sea que el nivel 2 de la cascada no se habría disparado en producción ni publicándolo, y la validación de hoy con el interruptor de simulación habría dado una falsa sensación de que el camino estaba completo. Es el tercero de la misma familia en dos días —el 56 con el veto, el 57 con `hasVlcBackend`—: código escrito, probado por unidades y sin conectar al final del cable |
-| 67 | **El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana** | **M7** | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Medido el 09-oct con 14 000 publicado desde el panel: buffer p5 de 4,3 a 9,1 s, mediana de 6,2 a 11,1 s y cero cortes en 16 minutos sanos.** Falta una sesión larga sin caída de origen antes de cambiar el valor de fábrica, que es Modo A |
+| ~~67~~ | ~~**El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana**~~ | — | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Cerrado el 09-oct, y no en la app.** Medido con 14 000: buffer p5 de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora cumpliendo §10 por primera vez en una sesión larga. El valor de fábrica de la app no se toca —sería Modo A y es el sitio equivocado—: lo calcula el generador del 45 % de la ventana que mide, con suelo 8000 y techo 14000 (`servidor-canales@e29f980`), así que cada canal de cada site recibe lo que su segmentación permite |
 | 68 | **Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`** | **A** | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. Huele a orden de efectos en Compose: el `onDispose` del motor anterior corriendo contra la instancia nueva |
 | ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Cerrado y validado en pantalla el 09-oct con los dos cortes provocados por Edgar:** reiniciando el canal en Flussonic se curó en 16 s por el escalón 2, y desconectando el cable en 26 s por el escalón 3 —11 s desde que la red volvió—, las dos veces con el aviso en pantalla |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
@@ -573,6 +573,66 @@ audio.pistas cuantas=3 idiomas=[spa, spa, eng]
 `discoveryhd` entrega **tres** pistas de audio y dos son español. El audio
 duplicado del master está medido y le llega al abonado como una opción de más
 en la barra. Es del headend.
+
+### 38 minutos sin un corte, y los objetivos de §10 cumplidos — 2026-10-09
+
+La prueba B, y la primera sesión larga limpia del proyecto. Con todo de fábrica
+y `targetOffsetMs: 14000` publicado por el site:
+
+```
+latidos=1152  (38 min)
+buffer    mín=6.9  p1=7.9  p5=8.8  p50=10.5  p95=12.6  máx=13.5
+directo   15.9 s, constante
+posición  16.6 a 27.1   (nunca negativa: nunca salió de la ventana)
+cpu       mediana 8 %
+```
+
+**Cero `player.rebuffer`, cero `load.retry`, cero escalones del vigilante.** El
+único `ERROR` del volcado es el del cambio de canal al arrancar la sesión, que
+es el pendiente 68 y no afecta a la reproducción.
+
+| Métrica de §10 | Objetivo | Medido |
+|---|---|---|
+| Rebuffer ratio | < 0,3 % | **0 %** |
+| Rebuffers por hora | < 1 | **0** |
+| Uptime continuo | > 48 h | 38 min limpios (sin medir más) |
+
+#### Lo que esto zanja
+
+**La pregunta abierta del 08-oct sobre §10 ya no hace falta contestarla.** Ese
+día «rebuffers por hora» incumplía ocho veces el objetivo mientras el ratio lo
+cumplía, y se propuso contar solo los cortes de más de 500 ms. No hay que
+cambiar la definición: lo que fallaba era el colchón, y arreglado el colchón la
+métrica pasa tal como está escrita. Una métrica que incomoda suele estar
+midiendo algo.
+
+#### Y la validación del arreglo del vigilante, por su lado seguro
+
+```
+sinAvanzarMs  mediana=0  p95=0  MÁXIMO=8 ms     (umbral: 10 000)
+```
+
+Ocho milisegundos en 1 152 latidos. La definición nueva de progreso —reproducir
+**y** moverse— no produce ni un falso positivo en 38 minutos, que era el riesgo
+del arreglo y la razón de que el primer intento se descartara.
+
+#### El arreglo vive en el servidor, no en la app
+
+Con esto, **no hace falta subir el valor de fábrica de la app**, que era lo que
+iba a proponer y es Modo A. El sitio correcto es el generador, porque la ventana
+DVR la mide él y es distinta en cada site: desde `servidor-canales@e29f980`
+publica el 45 % de la ventana medida, con suelo en 8000 y techo en 14000. Lo que
+sirve hoy el site de pruebas:
+
+```
+discoveryhd 14000   hbohd 14000   estrellassd 14000   beisbol 14000
+espnsur4abr 13000   once 10000    canal22sd 10000     espn 9400
+```
+
+Los cuatro últimos son los streams de producción con ventanas cortas: cada canal
+recibe lo que su propia segmentación permite, sin que nadie escriba un número.
+El 8000 de `LiveTuning` se queda como lo que debe ser, el último recurso para un
+canal que no lo declare.
 
 ### M6 — Cerrado — 2026-10-09
 

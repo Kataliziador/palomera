@@ -209,6 +209,33 @@ sintonía.
   igual**: la cascada decide antes de abrir el stream.
 - **El aspecto** sale del SAR del stream, nunca del `config.json`.
 
+### `targetOffsetMs`: no mandéis 8000 a ciegas, calculadlo de la ventana
+
+Nuestro valor de fábrica es 8000 y **es un último recurso, no una
+recomendación**. Medido en la caja el 09-oct sobre un canal con ventana DVR de
+32 s, misma caja y mismo origen en las dos columnas:
+
+| `targetOffsetMs` | Dónde se asienta la app | Buffer | Cortes |
+|---|---|---|---|
+| 8000 | **11,3 s** del directo | 3,6 a 10 s | **15 por hora** |
+| 14000 | 15,9 s | 6,9 a 13,5 s | **0 en 38 minutos** |
+
+Dos cosas que explican la tabla:
+
+1. **Pedir 8000 no da 8000.** Sin `EXT-X-SERVER-CONTROL` en el playlist, el
+   suelo del reproductor es `3 × TARGETDURATION` y empuja la posición hasta
+   donde quiera ese número. Lo veréis en `offset.noSeAplica`.
+2. **El techo del buffer es la distancia al directo**, no la configuración de la
+   app: no se puede tener cargado más de lo que hay publicado por delante. Un
+   offset pequeño es un colchón pequeño, y entonces cualquier jitter del origen
+   —medido: uno de cada cinco segmentos llega ~1 s tarde— se nota.
+
+Así que el generador debería publicarlo **por canal, calculado de la ventana que
+mida**. El servicio de canales lo hace desde el 09-oct: el 45 % de la ventana,
+con suelo en 8000 y techo en 14000. El 45 % y no la mitad porque **la app vuelve
+al borde por encima de media ventana más tres segundos**: un valor pegado a ese
+límite lo dispara cualquier parpadeo, y entonces sale `offset.vuelveAlBorde`.
+
 ### Un decoder que existe y entrega mal: `blockedDecoders`
 
 Nuevo el 09-oct, en los `deviceOverrides` (`CONFIG_SCHEMA.md` §7). Es **nuestro**,
