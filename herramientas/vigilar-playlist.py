@@ -66,8 +66,14 @@ def main() -> int:
 		umbral = float(sys.argv[sys.argv.index("--umbral") + 1])
 
 	url = resolver(sys.argv[1])
-	print(f"# vigilando {url}")
-	print(f"# aviso cuando un segmento tarde más de {umbral:.1f} s sobre lo que declara")
+	# Con `flush`, porque esto se deja corriendo horas redirigido a un archivo y
+	# una cabecera que no aparece hasta el final no sirve para comprobar que está
+	# vigilando el stream correcto.
+	print(f"# vigilando {url}", flush=True)
+	print(
+		f"# aviso cuando un segmento tarde más de {umbral:.1f} s sobre lo que declara",
+		flush=True,
+	)
 
 	visto: set[str] = set()
 	anterior: tuple[float, float] | None = None  # (instante, duración declarada)
