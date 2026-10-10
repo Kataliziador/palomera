@@ -237,7 +237,7 @@ un frame congelado.
 | ~~43~~ | ~~**`TARGET_OFFSET_SATELLITE_MS` está muerto**~~ | — | **cerrado 05-oct: retirado.** No lo usaba nadie y además el valor era malo: con la ventana de ~22 s que sirve producción, 12 s pasa del techo de media ventana. Lo que queda en `LiveTuning` es el de fábrica, con la escalera `servidor ?: canal ?: 8000` escrita al lado para que no haga falta abrir `PlanBuilder` para saber quién manda |
 | ~~44~~ | ~~**`TARGET_OFFSET_MAX_WINDOW_FRACTION` dice «nunca puede pasar» y solo avisa**~~ | — | **cerrado 05-oct en su mitad de Modo B:** pasa a llamarse `TARGET_OFFSET_WINDOW_WARN_FRACTION`, y el local y la clave del registro dejan de decir «techo». El comportamiento no cambia y no tenía que cambiar: quien protege de verdad es la vuelta al borde, sobre el offset **real**. **Recortar lo pedido sigue sin hacerse y sería Modo A.** Para saber si hace falta, el instrumento ya está puesto: que un site empiece a escribir `offset.superaLaVentana` es la señal, y lo primero que diría es que el `config.json` de ese site pide un offset que su ventana no da |
 | ~~45~~ | ~~**Rescate del tunneled sin imagen**~~ | — | **cerrado 05-oct, validado en pantalla por Edgar y activo de fábrica.** Medido con la simulación: `tunRescate=1`, `conImagen=7` de 7 sesiones. El interruptor del menú se queda para reproducir el comportamiento anterior |
-| 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú |
+| 46 | **La pantalla de denegación no se ha visto en una tele** | **B9** | su lógica tiene nueve pruebas y el camino autorizado está medido contra el registro de producción, pero el `SeccionCerrada` no lo ha mirado nadie. Para verlo: apuntar a un registro que deniegue y usar «Olvidar la autorización guardada» del menú. **Desde el 10-oct basta un interruptor del menú** —«Fingir que el registro deniega»—, con los dos textos posibles: el genérico y el de caducada, que es el largo y el que puede desbordar. Sigue abierto hasta que alguien lo mire en una tele |
 | ~~47~~ | ~~**En Android < 7.1.1 el logo de marca del registro no carga**~~ | — | **cerrado 05-oct con un cargador propio** (`LogoLoader`), tal como decía la nota: el `ImageLoader` global no se toca, porque es el del VOD. Verificado en el emulador de API 22 contra el registro de producción: `marcaOrigen=registro` y el logo **en pantalla**, sin `marca.logoSinConfianzaAmpliada` y sin error de TLS |
 | ~~48~~ | ~~**Con la búsqueda abierta, ARRIBA no vuelve a la cabecera**~~ | — | **cerrado 05-oct.** No era geométrico: `BasicTextField` se queda las flechas, igual que ya pasaba con ABAJO. Al arreglarlo salió un fallo mayor —el campo actuaba sobre teclas que no se habían pulsado en él— que es lo que de verdad cerró este pendiente. Medido: el bucle cabecera ↔ campo ↔ guía funciona en los dos sentidos |
 | ~~49~~ | ~~**El logo de marca del site `pruebas` es el de Jellyfin**~~ | — | **cerrado 06-oct.** Edgar subió `palco-logo.png` desde el panel. Verificado de punta a punta: el registro sirve `marca/9fe751e3e75e6dc6.png`, cuyo SHA-256 coincide con el nuestro —ni recompresión ni recorte por el camino—, y la caja dibuja el logo en vez del nombre con `marcaOrigen=registro` |
@@ -245,11 +245,11 @@ un frame congelado.
 | ~~51~~ | ~~**`FILL` y `ZOOM`: la superficie se sale de la pantalla**~~ | — | con la superficie dimensionada, esos dos modos la hacen mayor que la pantalla a propósito — es lo que quita las franjas. Que el recorte salga limpio no lo puede responder `SurfaceFlinger` y no se ve en `screencap`, que devuelve el búfer vacío sobre el reproductor. Los demás modos están validados; estos dos solo se han mirado de pasada. Riesgo bajo —el borde de la pantalla recorta solo— pero no medido | **Cerrado 08-oct, validado por Edgar: «llenar y zoom quitan las franjas».** El recorte sale limpio; la superficie puede exceder la pantalla sin artefactos. Nota: en un 4:3 de verdad los dos modos se parecen —`FILL` recorta el 25 % del alto y `ZOOM` el 33 %— porque `FILL` ya quita las franjas él solo. `ZOOM` gana sentido en lo contrario: un 16:9 con las barras negras incrustadas en la propia imagen, donde `FILL` no tiene nada que recortar |
 | 52 | ~~**La barra de canal salía sola con cada parpadeo del reproductor**~~ | — | **cerrado 08-oct.** El efecto que la muestra estaba atado a `enVivo`, y un rebuffer corriente son tres cambios de estado seguidos: medido en `estrellassd`, `buffering → ready → playing` en **371 ms**. Invisible en pantalla, y aun así sacaba la barra encima del vídeo. Ahora la saca la pulsación, y vuelve sola solo si el canal lleva parado más de 2 s. **Pendiente de validación en pantalla** |
 | ~~53~~ | ~~**`estrellassd` se publica como progresivo y es 480i**~~ | B / headend | el `config.json` del site trae `interlaced: false` para un canal medido 480i (`CHANNELS.md`). El generador lo saca de la API de Flussonic, que para MPEG-2 no lo declara. **Hoy no cambia nada** —ver 54— pero es un dato falso en el contrato, y el día que algo lo use decidirá mal. Al revés también: `estrellashd` sale `interlaced: true` y es cine progresivo con cadencia 3:2. **Dejó de no cambiar nada con M6:** es lo único que elegiría libVLC solo. **Y la premisa era peor de lo escrito aquí**, medido el 09-oct contra el headend: Flussonic no omite el dato, responde `is_progressive: true` sobre el 480i. No había «no se sabe» que propagar, había un dato falso, así que ninguna heurística del generador podía distinguirlo de un progresivo de verdad. **Arreglado por el lado del servidor el 09-oct** (`servidor-canales`): `interlaced` se escribe a mano en el lineup aunque el canal salga de un `stream`, lo escrito gana, y el panel enseña el barrido que publica en vez del que dice la API. **Cerrado el 09-oct, validado en pantalla por Edgar.** Corrigió los cuatro canales en el panel —`estrellassd` a entrelazado, `estrellashd` y `hbohd` a progresivo— y la cascada eligió libVLC sola, con «Forzar desentrelazado» apagado: `plan.construido canal=estrellassd motor=libvlc motivo=el VPU de este modelo no desentrelaza`. La imagen, «fluida». Es la primera vez que el respaldo se elige por un dato del `config.json` y no por un interruptor |
-| 54 | **El modo de desentrelazado se calcula, se registra y no lo usa nadie** | **M5** | `PlanBuilder` resuelve `deinterlace` en cuatro valores y el único consumidor es la línea del log. El motor nunca le dice nada a Media3 ni al VPU. O sea: **la app no tiene hoy ninguna palanca sobre el desentrelazado**, y `deint=NONE` en un canal con peine no es la causa, es una etiqueta. Descubierto el 08-oct al investigar el peine de `estrellassd` |
+| ~~54~~ | ~~**El modo de desentrelazado se calcula, se registra y no lo usa nadie**~~ | — | `PlanBuilder` resuelve `deinterlace` en cuatro valores y el único consumidor es la línea del log. El motor nunca le dice nada a Media3 ni al VPU. O sea: **la app no tiene hoy ninguna palanca sobre el desentrelazado**, y `deint=NONE` en un canal con peine no es la causa, es una etiqueta. Descubierto el 08-oct al investigar el peine de `estrellassd` | **Cerrado el 10-oct, en dos mitades y sin cambiar comportamiento.** `SOFTWARE` dejó de ser una etiqueta con M6: libVLC lo aplica de verdad. De los otros dos, `GPU_SHADER` se retira del `enum` —ninguna rama podía devolverlo, y un valor así se lee como una capacidad que la app tiene— y `VPU` pasa a decir en el motivo del plan «se espera que lo desentrelace el VPU (sin verificar)», que es lo que significa |
 | ~~55~~ | ~~**`estrellassd` se presenta a 15 fps, la mitad de su cadencia**~~ | — | medido el 08-oct con el tunneled **apagado**, que es la única forma de que los contadores vean algo: `fps=15.0` estable en una fuente de 29.97, `huecoMaxMs=100`, **`perdidos=0`** —o sea el decodificador no entrega más, no es que se tiren—. Explica los dos síntomas de Edgar a la vez: el peine y «la imagen está lenta». La caja declara **un solo** decodificador para `video/mpeg2`, `OMX.amlogic.mpeg2.decoder.awesome2`, así que no hay alternativa que probar (confirma el 26). **Los dos descartes, hechos el 08-oct.** La superficie no es: con ella a 1920×1080 —verificado por `SurfaceFlinger`— siguen 15.0 fps. El canal tampoco está solo: `discoveryhd`, 1080i H.264 en las mismas condiciones, da **29.9 fps** limpios en 170 latidos. Y el stream entrega lo que declara: **600 fotogramas en 20 s medidos con `ffprobe`**, 30000/1001. Así que es el decodificador MPEG-2 de la caja, y no hay otro. **Es literalmente el caso que `CLAUDE.md` §6 le reserva a libVLC** —«MPEG-2 sin decoder en la caja, y desentrelazado por software de SD»—, o sea M6 | **Cerrado 09-oct con M6:** por libVLC se ve bien, sin peine y a cadencia normal, con menos del 16 % de CPU. **Con la salvedad del 53:** la regla que lo elegiría sola necesita que el canal llegue marcado como entrelazado, y no llega |
 | 56 | ~~**El veto de decoders del menú no lo leía nadie**~~ | — | **cerrado 08-oct.** Se guardaba, se contaba en la línea de degradación y se enseñaba en el menú, y **ninguna línea lo aplicaba**. Descubierto al intentar probar M6 con él, que es exactamente para lo que existe. Ahora `DeviceCapabilities.excluyendo()` lo aplica, y las capacidades se recalculan con `revision` |
 | 57 | ~~**`hasVlcBackend` dependía de quién preguntara primero**~~ | — | **cerrado 08-oct.** Era un parámetro de `DeviceCapabilities.of()`, y la caché devuelve lo primero que se construyó ignorando los argumentos siguientes: `RegistryRepository` pregunta al arrancar, antes que el reproductor, y fijaba `false` para todo el proceso. Con el motor ya escrito, la cascada se negaba a elegirlo. El fondo del error es que **no es una propiedad de la caja sino del APK**: ahora se mira por reflexión, una vez |
-| 58 | **El idioma de las pistas de audio de libVLC sale vacío** | M6 | `MediaPlayer.audioTracks` incluye la pseudo-pista «Disable» de libVLC, que la barra pintaba como un idioma llamado «DI». Filtrada. Pero leyendo el idioma del medio en su lugar, viene `null`: la barra ya no miente, pero tampoco dice. Afecta poco hoy —el único canal que usa libVLC tiene una sola pista— y afectaría de verdad a un MPEG-2 con doble audio |
+| 58 | **El idioma de las pistas de audio de libVLC sale vacío** | M6 | `MediaPlayer.audioTracks` incluye la pseudo-pista «Disable» de libVLC, que la barra pintaba como un idioma llamado «DI». Filtrada. Pero leyendo el idioma del medio en su lugar, viene `null`: la barra ya no miente, pero tampoco dice. Afecta poco hoy —el único canal que usa libVLC tiene una sola pista— y afectaría de verdad a un MPEG-2 con doble audio | **Arreglado el 10-oct.** El idioma está en el manifiesto —medido con `ffprobe`: `spa`, `eng`, `spa`— pero libVLC no lo propaga en HLS; sí da la descripción, y Flussonic la escribe con el código delante (`NAME="spa a1"`). Cuando el declarado viene vacío se rescata del texto con una regla estrecha —palabra suelta de dos o tres letras, sin dígitos—, con nueve comprobaciones. Se añade `vlc.pistasCrudas` para poder ver qué devuelve libVLC de verdad. **Pendiente de que un volcado lo confirme en la caja** |
 | 59 | ~~**La barra de canal no se escondía con libVLC**~~ | — | **cerrado 09-oct.** `Buffering` no significa lo mismo en los dos motores: libVLC lo emite de continuo con el porcentaje de llenado —26 veces al 100 % en una sesión normal— y se traducía a `onReady()`, que deja el estado en «Listo» y no en «En vivo». La barra se mostraba una y otra vez y nunca se escondía. Ahora se mira el **flanco**: bajar de 100 con imagen es un rebuffer, volver a 100 es salir de él |
 | 60 | ~~**Una sesión con libVLC no dejaba rastro de diagnóstico**~~ | — | **cerrado 09-oct.** El latido vivía solo en `Media3LiveEngine`: cero líneas en el volcado de una sesión entera con el respaldo. Todo el método de este proyecto se apoya en ese rastro. `VlcLiveEngine` lo escribe ahora con las columnas que libVLC sabe de verdad, y **sin las que no** |
 | 61 | ~~**El overlay enseñaba un «⚠AAC» falso y ceros que parecían medidas**~~ | — | **cerrado 09-oct.** El motor publicaba como `audioMime` el códec **declarado** en el `config.json`, así que el aviso de audio sin normalizar de §2 se comparaba consigo mismo: encendía la alarma en un canal correcto y, peor, habría callado en uno que declarase AAC y entregase MP2. Ahora es `null`. Y el overlay deja de escribir `buf 0.0s dir 0.0s` cuando no hay medida: un hueco se lee «no lo sé», un cero se lee «se acabó el buffer» |
@@ -633,6 +633,73 @@ Los cuatro últimos son los streams de producción con ventanas cortas: cada can
 recibe lo que su propia segmentación permite, sin que nadie escriba un número.
 El 8000 de `LiveTuning` se queda como lo que debe ser, el último recurso para un
 canal que no lo declare.
+
+### Bloque B: tres etiquetas que mentían — 2026-10-10
+
+Las tres piezas de este bloque son lo mismo visto tres veces: **un dato que la
+app enseña y que no es verdad**. Ninguna cambia cómo se reproduce nada.
+
+#### 58 — el idioma de las pistas de libVLC
+
+La barra decía «sin idioma» en los canales de doble audio, que son justo los que
+necesitan que el abonado pueda elegir: en algunos satélites la etiqueta miente y
+cambiar de pista es el único remedio (`CLAUDE.md` §6).
+
+El dato **sí está en el manifiesto**. Medido con `ffprobe` sobre el master de
+`discoveryhd`:
+
+```
+stream|index=0|codec_name=aac|tag:language=spa
+stream|index=1|codec_name=aac|tag:language=eng
+stream|index=2|codec_name=aac|tag:language=spa
+```
+
+Lo que pasa es que libVLC no lo propaga a `IMedia.AudioTrack.language` en HLS.
+Lo que sí da es la descripción, y los masters de Flussonic la escriben con el
+código delante — `NAME="spa a1"`, `NAME="eng a2"`—. Así que cuando el idioma
+declarado viene vacío, se rescata del texto: `LanguageNormalizer.enTexto()`.
+
+**La regla es a propósito estrecha**: una palabra suelta de dos o tres letras,
+sin dígitos. Lo que no se podía hacer es pasar el texto entero por `normalize`,
+que devuelve tal cual lo que no conoce y habría convertido «audio» en un idioma.
+Así `spa a1` da `spa`, y `Track 1`, `Disable`, `a1` y `5.1 surround` no dan nada.
+Nueve comprobaciones, incluido el límite conocido: `xyz pista` da `xyz`, y se
+acepta porque el daño es una etiqueta rara frente a dejar fuera idiomas de
+verdad.
+
+Y se añade `vlc.pistasCrudas`, el volcado en bruto de las dos fuentes que
+libVLC ofrece, para que «la barra no dice el idioma» y «libVLC no lo sabe» dejen
+de parecerse en el log. Es el equivalente del `tracks.crudo` de Media3.
+
+#### 46 — la sección cerrada, por fin mirable
+
+Su lógica tiene nueve comprobaciones y el camino autorizado está medido contra
+el registro de producción, pero **la pantalla no la había visto nadie en una
+tele**, y es la que ve un abonado al que le acaban de cortar el servicio. Para
+llegar a ella había que levantar un registro que denegase.
+
+Ahora hay un interruptor en el menú, apagado de fábrica, con **dos textos**: el
+genérico, corto, y el de la autorización caducada, que son dos frases largas y
+es el que puede desbordar a 10 pies de distancia. Lo que hay que mirar es la
+maquetación, no el camino.
+
+#### 54 — el modo de desentrelazado
+
+Dos arreglos, ninguno de comportamiento:
+
+- **`GPU_SHADER` retirado del `enum`.** Era el nivel 3 de la cascada y
+  `PlanBuilder` no lo devolvía en ninguna rama. Un valor que nadie puede
+  producir, puesto en un `enum`, se lee como una capacidad que la app tiene.
+- **`VPU` dice ahora lo que significa.** El plan añade el motivo «se espera que
+  lo desentrelace el VPU (sin verificar)», porque `deint=VPU` a secas se lee
+  como «hay desentrelazado» cuando lo que quiere decir es «la app no ha hecho
+  nada y confía». Esa lectura es la que confundió el diagnóstico del peine de
+  `estrellassd` durante M5.
+
+De paso, `LIVETV_ENGINE.md` §4.4 deja escrito que el nivel 2 cubre también HD
+pero que **el precio lo hace inviable** —63 % de CPU contra 14 %, medido—, y que
+para un decoder que existe y entrega mal la llave es `blockedDecoders` y no esa
+tabla.
 
 ### M6 — Cerrado — 2026-10-09
 

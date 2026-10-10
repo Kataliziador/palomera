@@ -7,7 +7,25 @@ import org.jellyfin.livetv.source.ChannelProfile
 /** Cómo se decodifica. Lo elige la cascada de LIVETV_ENGINE.md §4.2. */
 enum class DecodePath { HW, SW_PLATFORM, SW_VLC }
 
-enum class DeinterlaceMode { NONE, VPU, SOFTWARE, GPU_SHADER }
+/**
+ * Quién desentrelaza, si alguien.
+ *
+ * - [NONE] — nadie, porque el canal no lo necesita.
+ * - [VPU] — se espera que lo haga el chip de la caja. **No se puede verificar**
+ *   (`LIVETV_ENGINE.md` §4.4): no hay API que lo diga, se mira en pantalla una
+ *   vez por modelo y el resultado se publica en `deviceOverrides`. Leer
+ *   `deint=VPU` en el log significa «la app no ha hecho nada y confía», no «hay
+ *   desentrelazado».
+ * - [SOFTWARE] — lo hace libVLC con yadif. Es el único valor en el que la app
+ *   ejecuta algo, y existe desde M6.
+ *
+ * **Había un cuarto, `GPU_SHADER`, retirado el 09-oct** (pendiente 54). Era el
+ * nivel 3 de la cascada —un shader en la GPU para el 1080i sin VPU— y
+ * `PlanBuilder` no lo producía en ninguna rama: un valor que nadie podía
+ * devolver y que, puesto en un `enum`, se leía como una capacidad que esta app
+ * tiene. Si algún día se escribe, se añade entonces.
+ */
+enum class DeinterlaceMode { NONE, VPU, SOFTWARE }
 
 enum class AspectMode { FIT, FILL, ZOOM, RATIO_4_3, RATIO_16_9 }
 

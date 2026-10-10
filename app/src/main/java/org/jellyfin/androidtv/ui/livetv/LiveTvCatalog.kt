@@ -202,6 +202,18 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 	 * lo que le permite ser un servicio modesto.
 	 */
 	private suspend fun comprobarAcceso(): Acceso {
+		// El simulador del menú va primero y no toca la red: lo que se quiere
+		// mirar es la pantalla, no el camino que lleva a ella (pendiente 46).
+		dev.simularDenegacion.takeIf { it > 0 }?.let { cual ->
+			val mensaje = if (cual == 2) {
+				DecisorDeAcceso.DENEGADO_CADUCADA
+			} else {
+				DecisorDeAcceso.DENEGADO_GENERICO
+			}
+			LiveLog.warn("registro.denegacionSimulada", "texto" to cual)
+			return Acceso.Denegado(mensaje = mensaje, motivo = "simulada desde el menú")
+		}
+
 		val host = ServiceUrl.hostDeServidor(servidores.currentServer.value?.address)
 		if (host == null) {
 			// Sin sesión no hay host que preguntar. Pasa en builds de

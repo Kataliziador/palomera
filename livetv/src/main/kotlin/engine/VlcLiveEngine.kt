@@ -475,10 +475,28 @@ class VlcLiveEngine(
 			lista
 		}.getOrDefault(emptyList())
 
+		// El volcado crudo, como el `tracks.crudo` de Media3. Sin esto, «la
+		// barra no dice el idioma» y «libVLC no lo sabe» se parecen demasiado:
+		// hay que poder ver qué devuelve cada una de las dos fuentes.
+		LiveLog.debug(
+			"vlc.pistasCrudas",
+			"delMedio" to delMedio.joinToString(" | ") {
+				"${it.language ?: "?"}/${it.description ?: "?"}"
+			}.ifEmpty { "(vacío)" },
+			"descripciones" to mp.audioTracks.orEmpty()
+				.joinToString(" | ") { "${it.id}:${it.name}" }.ifEmpty { "(vacío)" },
+		)
+
 		pistas = if (delMedio.isNotEmpty()) {
 			delMedio.map { t ->
 				AudioTrackRef(
-					language = t.language,
+					// Si libVLC no declara el idioma —y en HLS no lo hace—, se
+					// rescata de la descripción (pendiente 58). Derivado es
+					// peor que declarado, pero «sin idioma» deja al abonado sin
+					// poder elegir, que es el único remedio cuando el headend
+					// etiqueta mal (`CLAUDE.md` §6).
+					language = t.language?.takeIf { it.isNotBlank() }
+						?: LanguageNormalizer.enTexto(t.description),
 					// **No hay PID.** libVLC no lo expone, y el PID tampoco
 					// identificaba nada: Flussonic los renumera al remuxar y
 					// entrega todos los canales con los mismos (§4.6). Se deja
@@ -491,11 +509,23 @@ class VlcLiveEngine(
 			}
 		} else {
 			mp.audioTracks.orEmpty().filter { it.id >= 0 }.map { t ->
-				AudioTrackRef(language = null, pid = 0, channels = 0, label = t.name)
+				AudioTrackRef(
+					language = LanguageNormalizer.enTexto(t.name),
+					pid = 0,
+					channels = 0,
+					label = t.name,
+				)
 			}
 		}
 		if (pistas.isNotEmpty()) {
-			LiveLog.info("audio.pistas", "cuantas" to pistas.size, "motor" to id)
+			LiveLog.info(
+				"audio.pistas",
+				"cuantas" to pistas.size,
+				// Declarado por libVLC, derivado del texto o ninguno: son tres
+				// cosas distintas y la barra se comporta distinto en cada una.
+				"idiomas" to pistas.joinToString(",") { it.language ?: "?" },
+				"motor" to id,
+			)
 			notificar { it.onAudioTracksChanged(pistas) }
 		}
 	}

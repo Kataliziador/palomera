@@ -120,4 +120,32 @@ object LanguageNormalizer {
 			else -> key
 		}
 	}
+
+	/**
+	 * Rescata un código de idioma de un texto escrito para que lo lea una
+	 * persona. Devuelve `null` si no hay nada que parezca uno.
+	 *
+	 * **Es un último recurso y existe porque libVLC no declara el idioma de las
+	 * pistas de un HLS** (pendiente 58): el manifiesto lo trae en
+	 * `EXT-X-MEDIA:LANGUAGE` —medido con `ffprobe` el 09-oct sobre
+	 * `discoveryhd`: `spa`, `eng`, `spa`— pero el reproductor de respaldo solo
+	 * nos da la descripción de la pista. En los masters de Flussonic esa
+	 * descripción empieza por el código: `NAME="spa a1"`.
+	 *
+	 * La regla es deliberadamente estrecha: **una palabra suelta de dos o tres
+	 * letras, sin dígitos**. Así `spa a1` da `spa` y `a1` no da nada, `Track 1`
+	 * no da nada y `Disable` tampoco. Lo que no se puede hacer es pasar el
+	 * texto entero por [normalize], que devuelve tal cual lo que no conoce y
+	 * convertiría «audio» en un idioma.
+	 */
+	fun enTexto(texto: String?): String? {
+		val palabras = texto?.split(' ', '-', '[', ']', '(', ')', ',', '/', '.') ?: return null
+		for (palabra in palabras) {
+			val limpia = palabra.trim()
+			if (limpia.length !in 2..3) continue
+			if (!limpia.all { it.isLetter() }) continue
+			normalize(limpia)?.let { return it }
+		}
+		return null
+	}
 }

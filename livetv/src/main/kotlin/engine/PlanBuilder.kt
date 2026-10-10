@@ -203,7 +203,13 @@ object PlanBuilder {
 				motivos += "el VPU no desentrelaza en este modelo"
 				DeinterlaceMode.NONE
 			}
-			else -> DeinterlaceMode.VPU
+			// Y aquí la app **no hace nada**: confía en que el chip lo haga.
+			// Se dice en el motivo porque `deint=VPU` a secas se lee como si
+			// hubiera desentrelazado, y es lo que confundió al diagnóstico del
+			// peine de `estrellassd` durante M5 (pendiente 54).
+			else -> DeinterlaceMode.VPU.also {
+				motivos += "se espera que lo desentrelace el VPU (sin verificar)"
+			}
 		}
 
 		return PlaybackPlan(

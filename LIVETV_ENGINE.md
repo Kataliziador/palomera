@@ -189,8 +189,21 @@ que se resuelve por niveles:
 |---|---|---|---|
 | 1 | El VPU de la caja desentrelaza | Media3 normal | ideal |
 | 2 | SD entrelazado, sin VPU | libVLC con decodificación **por software** + yadif | viable |
-| 3 | HD 1080i, sin VPU | shader de desentrelazado en GPU (Media3 effects) | incierta |
+| 3 | HD 1080i, sin VPU | shader de desentrelazado en GPU (Media3 effects) | **no implementado** |
 | 4 | Nivel 3 no viable en ese modelo | limitación documentada del dispositivo | último recurso |
+
+**El nivel 3 no existe en el código, y su hueco se retiró del `enum`** el
+09-oct (pendiente 54): `DeinterlaceMode` tenía un `GPU_SHADER` que ninguna rama
+de `PlanBuilder` podía devolver, y un valor así se lee como una capacidad que la
+app tiene. Si se escribe algún día, se añade entonces.
+
+**Y el nivel 2 cubre más de lo que dice esta tabla.** Pone «SD entrelazado»
+porque se escribió pensando en el coste de desentrelazar por software, pero
+medido el 09-oct en la Skyworth, el 1080i por software cuesta **63 % de CPU**
+frente al 14 % del 480i. La regla implementada no distingue resolución: la
+gobierna `vpuDeinterlaces` por modelo, y lo que hace inviable el HD es el
+precio, no el código. Para un decoder que existe y entrega mal —el caso real de
+esa caja— la llave es `blockedDecoders`, no esta tabla.
 
 **Trampa:** un backend que decodifica por MediaCodec con render directo a
 superficie **no aplica filtros**. Para desentrelazar con libVLC hay que
@@ -206,7 +219,7 @@ data class PlaybackPlan(
     val engineId: String,
     val videoPath: DecodePath,     // HW | SW_PLATFORM | SW_VLC
     val audioPath: DecodePath,
-    val deinterlace: DeinterlaceMode,  // NONE | VPU | SOFTWARE | GPU_SHADER
+    val deinterlace: DeinterlaceMode,  // NONE | VPU | SOFTWARE
     val targetOffsetMs: Long,
     val tsFlags: Int,
     val reason: String             // se muestra en el overlay de stats

@@ -225,6 +225,25 @@ class DevOptions(context: Context) {
 	val registryUrlOverride: String?
 		get() = prefs.getString(K_REGISTRY_URL, null)?.trim()?.takeIf { it.isNotEmpty() }
 
+	/**
+	 * Fingir que el registro deniega, para poder **ver** la sección cerrada.
+	 *
+	 * Su lógica tiene nueve comprobaciones y el camino autorizado está medido
+	 * contra el registro de producción, pero **la pantalla no la había visto
+	 * nadie en una tele** (pendiente 46), y es la que ve un abonado al que le
+	 * acaban de cortar el servicio. Llegar a ella de verdad exige levantar un
+	 * registro que deniegue.
+	 *
+	 * Dos textos y no uno porque lo que hay que mirar es la maquetación: el
+	 * genérico es corto y el de la autorización caducada son dos frases largas,
+	 * que es el que puede desbordar en una pantalla de 10 pies.
+	 *
+	 * `0` apagado · `1` el texto genérico · `2` el de caducada fuera de gracia.
+	 */
+	var simularDenegacion: Int
+		get() = prefs.getInt(K_SIM_DENEGADO, 0)
+		set(v) = put { putInt(K_SIM_DENEGADO, v.coerceIn(0, 2)) }
+
 	var rescateTunneledEnabled: Boolean
 		get() = prefs.getBoolean(K_RESCATE_TUNNELED, LiveTuning.RESCATE_TUNNELED_DEFAULT)
 		set(v) = put { putBoolean(K_RESCATE_TUNNELED, v) }
@@ -492,6 +511,7 @@ class DevOptions(context: Context) {
 		if (watchdogDisabled) add("sin vigilante")
 		if (simularTunneledSinImagen) add("FINGE SIN IMAGEN")
 		if (registryUrlOverride != null) add("registro=manual")
+		if (simularDenegacion > 0) add("FINGE DENEGADO=$simularDenegacion")
 		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
@@ -556,6 +576,7 @@ class DevOptions(context: Context) {
 		const val K_SUPERFICIE_DIM = "superficieDimensionada"
 		const val K_FORZAR_DEINT = "forzarDesentrelazado"
 		const val K_VPU_SIN_DEINT = "simularVpuSinDeint"
+		const val K_SIM_DENEGADO = "simularDenegacion"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -563,7 +584,7 @@ class DevOptions(context: Context) {
 			K_TUNNELING, K_WATCHDOG_OFF, K_WIDE_SEARCH, K_TS_AUD, K_TS_NONIDR,
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
-			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT,
+			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
 		)
 
 		const val OVERLAY_OCULTO = 0

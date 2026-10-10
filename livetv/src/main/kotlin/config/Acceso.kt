@@ -34,6 +34,15 @@ object DecisorDeAcceso {
 	const val DENEGADO_GENERICO =
 		"Este servidor no está disponible para TV en vivo. Contacta a tu proveedor."
 
+	/**
+	 * El otro texto que puede ver un abonado: la autorización caducó y el
+	 * registro no contesta. Es el más largo de los dos y el que puede desbordar
+	 * en una pantalla, así que el simulador del menú necesita nombrarlo.
+	 */
+	const val DENEGADO_CADUCADA =
+		"No se ha podido verificar este servidor en varios días. " +
+			"Comprueba la conexión a internet de tu caja o contacta a tu proveedor."
+
 	fun decidir(
 		guardada: SiteAuthorization?,
 		respuesta: SiteAuthorization?,
@@ -65,8 +74,7 @@ object DecisorDeAcceso {
 				)
 			}
 			return Acceso.Denegado(
-				mensaje = "No se ha podido verificar este servidor en varios días. " +
-					"Comprueba la conexión a internet de tu caja o contacta a tu proveedor.",
+				mensaje = DENEGADO_CADUCADA,
 				motivo = "caducada hace ${vencidaHaceMs / 86_400_000} d, fuera de la gracia",
 			)
 		}

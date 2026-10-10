@@ -325,6 +325,21 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Fingir que el registro deniega",
+				value = when (dev.simularDenegacion) {
+					1 -> "TEXTO GENÉRICO"
+					2 -> "TEXTO DE CADUCADA"
+					else -> "no"
+				},
+				changed = dev.simularDenegacion > 0,
+			) { change { dev.simularDenegacion = (dev.simularDenegacion + 1) % 3 } }
+		}
+		item {
+			Info("Enseña la sección cerrada sin levantar un registro que deniegue. Dos textos porque lo que hay que mirar es la maquetación: el de caducada son dos frases largas. Volver a la sección y salir para que se note.")
+		}
+
+		item {
+			Row(
 				label = "Olvidar el diagnóstico acumulado",
 				value = "para medir desde cero",
 			) {
