@@ -247,8 +247,11 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
      `HomeFragmentLiveTVRow.kt`, `HomeRowsFragment.kt`;
    - **archivos de compilación** — `app/build.gradle.kts`,
-     `settings.gradle.kts`, `.gitignore`. El primero lleva además el
-     `applicationId`, que es identidad publicada y no configuración (§8);
+     `settings.gradle.kts`, `.gitignore` y `gradle/libs.versions.toml`. El
+     primero lleva además el `applicationId`, que es identidad publicada y no
+     configuración (§8); el último es donde §5.11 obliga a fijar las versiones,
+     así que añadir libVLC o Media3 pasa por ahí **(añadido a esta lista el
+     10-oct: llevaba en el diff desde el principio y la lista no lo nombraba)**;
    - **la excepción registrada de `deviceProfile.kt`** (§6, retirada de
      nextlib);
    - **marca y avisos legales** — `ui/preference/category/about.kt`,
@@ -261,8 +264,12 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      legal el envío a Play, y vive por fuerza en las pantallas del upstream
      —no existe una sección de información propia y hacerla costaría más
      diff que reusar la suya—;
-   - **utilería fuera de la app** — `herramientas/` y `headend/`, que no se
-     compilan ni viajan en el APK;
+   - **utilería fuera de la app** — `herramientas/`, `headend/` y `.claude/`,
+     que no se compilan ni viajan en el APK. `.claude/` son las skills y
+     agentes del repositorio **(añadido el 10-oct)**: viven aquí y no en la
+     configuración de la máquina porque son conocimiento del proyecto —qué hay
+     que comprobar antes de afirmar algo, por dónde pasa el cable de un
+     interruptor— y se pierde si vive fuera;
    - **la conexión con el registro** — `res/xml/network_security_config.xml`.
      Android obliga a que esa configuración viva ahí, fuera del módulo. Lo
      único que se le añade es un `domain-config` que **prohíbe el tráfico en

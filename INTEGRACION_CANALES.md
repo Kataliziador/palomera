@@ -222,19 +222,22 @@ recomendación**. Medido en la caja el 09-oct sobre un canal con ventana DVR de
 
 Dos cosas que explican la tabla:
 
-1. **Lo que pidáis no es donde se asienta.** Medido dos veces —8000 → 11,3 s el
-   09-oct, 14000 → 16,7 s el 10-oct—, lo que encaja es:
+1. **Lo que pidáis no es donde se asienta: siempre sale algo más.** Medido dos
+   veces —8000 → 11,3 s el 09-oct, 14000 → 16,7 s el 10-oct— y confirmado en la
+   fuente del reproductor:
 
    ```
-   real ≈ max(pedido, 3 × TARGETDURATION) + un segmento
+   real ≈ pedido + hasta un segmento
    ```
 
-   El suelo está ahí porque sin `EXT-X-SERVER-CONTROL` la especificación HLS lo
-   fija así, pero **no siempre es el que manda**: en `mileniosd`
-   (`TARGETDURATION 3`) ese suelo son 9 s y el offset real fue 16,7, o sea los
-   14 000 pedidos más un segmento de 2,8. La reproducción solo puede empezar en
-   un límite de segmento. Lo veréis en `offset.noSeAplica`, que desde el 10-oct
-   publica también el suelo real para que se sepa cuál de los dos pesa.
+   El arranque se calcula como `duración − pedido` y luego **se redondea hacia
+   atrás al principio del segmento que lo contiene**, así que cuanto más largos
+   sean vuestros segmentos, más se aleja del valor pedido. Con segmentos de
+   2,8 s, pedir 14 000 puede dar 16 800.
+
+   Consecuencia para el generador: **el margen hay que dejarlo en el cálculo**,
+   restando una duración de segmento, no esperando que el cliente lo ajuste.
+   Lo veréis en `offset.noSeAplica`.
 2. **El techo del buffer es la distancia al directo**, no la configuración de la
    app: no se puede tener cargado más de lo que hay publicado por delante. Un
    offset pequeño es un colchón pequeño, y entonces cualquier jitter del origen

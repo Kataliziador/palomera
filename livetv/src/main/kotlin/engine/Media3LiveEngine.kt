@@ -1151,24 +1151,27 @@ class Media3LiveEngine(
 				real - target > OFFSET_MISMATCH_TOLERANCE_MS
 			) {
 				offsetMismatchReported = true
-				// El suelo que impone HLS, medible: la posición por defecto de
-				// la ventana está justo a `3 × TARGETDURATION` del final cuando
-				// el playlist no emite `EXT-X-SERVER-CONTROL`.
+				// Dónde puso Media3 la posición por defecto, medido desde el
+				// final de la ventana. **No es un suelo**, y llamarlo así duró
+				// una hora: con los 14 000 pedidos esto sale 14 000 clavados.
 				//
-				// Se publica porque **la causa que iba aquí antes era una
-				// atribución, no una medida**, y mandaba a arreglar el headend
-				// sin razón: en `mileniosd` (`TARGETDURATION 3`) ese suelo son
-				// 9 s y pidiendo 14 000 el offset real fue 16 674, o sea lo
-				// pedido más un segmento. Con las dos cifras en la línea se ve
-				// cuál de los dos límites pesa.
-				val sueloMs = (durationMs - window.defaultPositionMs).takeIf { it > 0 }
+				// Leído en la fuente de Media3 1.8.0
+				// (`HlsMediaSource.getLiveWindowDefaultStartPositionUs`), el
+				// arranque es `duración − objetivo` **redondeado hacia atrás al
+				// principio del segmento que lo contiene**. De ahí sale todo el
+				// desajuste: pedir 14 000 con segmentos de 2,8 s da hasta 2,8 s
+				// de más, y lo medido fue 16 674 y 16 707.
+				//
+				// El `3 × TARGETDURATION` de la especificación **no recorta lo
+				// que pedimos**: es el objetivo de reserva que Media3 usa cuando
+				// el `MediaItem` no trae ninguno.
+				val objetivoAplicadoMs = (durationMs - window.defaultPositionMs).takeIf { it > 0 }
 				LiveLog.warn(
 					"offset.noSeAplica",
 					"pedidoMs" to target,
 					"realMs" to real,
-					"sueloMs" to sueloMs,
-					"causa" to "la reproducción empieza en un límite de segmento, " +
-						"y sin EXT-X-SERVER-CONTROL el suelo es 3xTARGETDURATION",
+					"objetivoAplicadoMs" to objetivoAplicadoMs,
+					"causa" to "el arranque se redondea al principio de un segmento",
 				)
 			}
 		}

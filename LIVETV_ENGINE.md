@@ -294,13 +294,24 @@ pidiendo 4000 se **aleja** hasta 11752. La causa es que el playlist no emite
 `EXT-X-SERVER-CONTROL`, y sin esa etiqueta la especificación HLS fija el margen
 seguro en **3 × TARGETDURATION**. Media3 no baja de ahí.
 
-> **Corregido el 2026-10-10: el suelo existe pero no siempre es el que manda.**
-> En `mileniosd`, con `TARGETDURATION 3`, ese suelo son 9 s y el offset real fue
-> **16 674** pidiendo 14 000. Con las tres medidas juntas lo que encaja es
-> `real ≈ max(pedido, 3 × TARGETDURATION) + un segmento`, porque la reproducción
-> empieza en un límite de segmento. Atribuirlo todo al suelo mandaba a arreglar
-> el headend, y el 06-oct quedó cerrado que emitir `EXT-X-SERVER-CONTROL` no
-> baja nada: `HOLD-BACK` tampoco puede valer menos que 3 × TARGETDURATION.
+> **Corregido el 2026-10-10, leyendo la fuente de Media3 1.8.0 en vez de
+> deducirlo de las medidas. El párrafo de arriba atribuye el desajuste a quien
+> no es.**
+>
+> `HlsMediaSource.getLiveWindowDefaultStartPositionUs` coloca el arranque en
+> `duración − objetivo` y después lo **redondea hacia atrás al principio del
+> segmento que lo contiene**. Ahí está todo el desajuste: con segmentos de
+> 2,8 s, pedir 14 000 da hasta 2,8 s de más. Medido, 16 674 y 16 707.
+>
+> Y `3 × TARGETDURATION` **no recorta lo que pedimos**: en
+> `getTargetLiveOffsetUs` es la rama de reserva —«Fallback, see RFC 8216»— que
+> se usa solo cuando no hay `startOffset`, ni `HOLD-BACK`, ni objetivo en el
+> `MediaItem`. Nosotros sí mandamos objetivo, así que esa rama ni se toca.
+>
+> Lo que sí sigue en pie del 06-oct: emitir `EXT-X-SERVER-CONTROL` no mejora
+> nada. Pero la razón no es un suelo que nos clava, sino que no hay nada que
+> desclavar; lo que compra `HOLD-BACK` es **otra cosa**, y está en el
+> pendiente 74.
 
 #### Qué mide `currentLiveOffset`, y por qué miente cuando el playlist se para
 

@@ -267,6 +267,7 @@ un frame congelado.
 | ~~71~~ | ~~**Un reinicio puede dejar el reproductor en la cola de la ventana**~~ | — | **cerrado el 10-oct, y el enunciado era falso.** Se dedujo de los offsets de 64 y 66 s de dos de las cuatro reconstrucciones de la noche, sin ver la posición. Con la columna `posAntesMs` puesta, el mismo síntoma —offsets de 72 y 80 s— aparece **con la posición a 26,8 s de una ventana de 33,3**: el reproductor no estaba en la cola de nada. `currentLiveOffset` es reloj de pared contra `EXT-X-PROGRAM-DATE-TIME`, así que con el playlist congelado ese número crece sin límite aunque el reproductor esté pegado al final de todos los datos que existen. **No hay defecto en `prepare()`**; lo que había era un instrumento mal leído |
 | 72 | **El disparador de la vuelta al borde está a 300 ms de dispararse en un canal sano** | **A** | medido el 10-oct: el disparador compara el offset real con **la mitad de la ventana** —16,8 s de 33,6— y exige 3 s de exceso, mientras el directo sano de `mileniosd` se asienta en **19,0-19,5 s**. Son 300-800 ms de margen: cualquier canal con la ventana un poco más corta resincronizaría cada 30 segundos para siempre sin que nada esté mal. Y el offset al que se asienta no lo elegimos: medido contra 8 000 → 10 200 (09-oct) y 14 000 → 16 674 (10-oct), el modelo que encaja es `real ≈ max(pedido, 3 × TARGETDURATION) + un segmento`, porque la reproducción empieza en un límite de segmento. El arreglo del 73 lo neutraliza de refilón —ese salto iría hacia atrás— pero el disparador sigue mal elegido: debería medirse contra el offset **alcanzable**, no contra una fracción de la ventana. **Sin arreglar**, y es el candidato siguiente |
 | 73 | **Tres de cada nueve vueltas al borde saltan hacia atrás** | **A** | la mitad que queda del 70. Medido el 10-oct, el primer salto de cada ráfaga va de 26 843 a 19 267 —**7,6 s hacia atrás**, alejándose del directo— porque el offset está inflado por una lista congelada y la posición ya está a 6,4 s del final de la ventana. No hay a dónde saltar y el salto cuesta un corte: 3 de los 19 de la sesión. **Arreglo del 10-oct:** no saltar si el destino calculado no adelanta al menos un segmento, registrar `offset.saltoNoAdelanta` y volver a evaluar al terminar el enfriamiento —que es exactamente cuando llega el salto que sí sirve, así que la recuperación no se retrasa—. Detrás de «Volver al borde solo si el salto adelanta», apagado de fábrica. **Pendiente de medir en pantalla** |
+| 74 | **El reproductor sabe corregir el offset solo, y lo llevamos apagado** | **A** | leído el 10-oct en la fuente de Media3 1.8.0, `HlsMediaSource.updateLiveConfiguration`: la corrección por velocidad se desactiva cuando el `MediaItem` no trae `minPlaybackSpeed` ni `maxPlaybackSpeed` **y** el playlist no trae `HOLD-BACK`. Se cumplen las cuatro: construimos la `LiveConfiguration` solo con `targetOffsetMs` (`Media3LiveEngine.kt:372`) y Flussonic no emite `EXT-X-SERVER-CONTROL`. Con eso, `minPlaybackSpeed` y `maxPlaybackSpeed` quedan en `1f` y **el offset nunca vuelve solo**: de ahí sale la familia entera 70/71/73. Corregir variando la velocidad un 2 % no cuesta ningún corte, mientras que cada salto cuesta uno. **Candidato a sustituir la vuelta al borde en el caso normal**, dejándola solo para cuando la posición se sale de la ventana. Riesgo a validar en pantalla: el cambio de velocidad lo absorbe `SonicAudioProcessor` sin alterar el tono, pero eso hay que oírlo. Y conviene medirlo junto al 72, porque si el offset se corrige solo, el disparador a media ventana deja de importar. **Sin empezar** |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -274,6 +275,61 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### Tener la fuente de Media3 contesta en diez minutos lo que costó dos noches — 2026-10-10
+
+Entrada de herramientas, no de motor, pero los dos hallazgos son de motor.
+
+Se clonó `androidx/media` en la etiqueta **1.8.0** —la fijada en
+`libs.versions.toml`— en `/home/proyectos/referencia/`, **fuera del
+repositorio** para no tocar el diff contra upstream. Hasta hoy solo teníamos
+los AAR compilados y todo lo del live offset se venía deduciendo de medidas.
+
+#### Lo que corrige: el «suelo» no existe
+
+`LIVETV_ENGINE.md` lleva desde el 2026-09-24 diciendo que sin
+`EXT-X-SERVER-CONTROL` el reproductor impone un suelo de `3 × TARGETDURATION` y
+que «Media3 no baja de ahí». Leído el código, es falso dos veces:
+
+- **El arranque es `duración − objetivo` redondeado hacia atrás al principio
+  del segmento que lo contiene** (`getLiveWindowDefaultStartPositionUs`). Ahí
+  está el desajuste entero: con segmentos de 2,8 s, pedir 14 000 da hasta
+  16 800. Medido: 16 674 y 16 707.
+- **`3 × TARGETDURATION` es la rama de reserva** de `getTargetLiveOffsetUs`
+  —«Fallback, see RFC 8216»—, y solo se usa cuando el `MediaItem` no trae
+  objetivo. Nosotros sí lo traemos, así que nunca se ejecuta.
+
+De paso cae la columna `sueloMs` que yo mismo había añadido una hora antes: no
+medía un suelo, medía el objetivo aplicado, y salió 14 000 clavados. Pasa a
+llamarse `objetivoAplicadoMs`. **Dos afirmaciones mías sobre el mismo número en
+el mismo día, las dos deducidas de dos puntos**, y las dos las tumbó leer un
+método.
+
+#### Lo que destapa: el reproductor tiene corrección de offset y la llevamos apagada
+
+En `updateLiveConfiguration`:
+
+```java
+boolean disableSpeedAdjustment =
+    mediaItemLiveConfiguration.minPlaybackSpeed == C.RATE_UNSET
+        && mediaItemLiveConfiguration.maxPlaybackSpeed == C.RATE_UNSET
+        && playlist.serverControl.holdBackUs == C.TIME_UNSET
+        && playlist.serverControl.partHoldBackUs == C.TIME_UNSET;
+```
+
+Nosotros construimos la `LiveConfiguration` **solo con `targetOffsetMs`**
+(`Media3LiveEngine.kt:372`) y nuestros playlists no traen `HOLD-BACK`. Se
+cumplen las cuatro condiciones: `minPlaybackSpeed` y `maxPlaybackSpeed` quedan
+en `1f` y **ExoPlayer no corrige el offset nunca**.
+
+O sea que toda la familia 70/71/73 —el offset que se va y no vuelve, el salto
+que lo devuelve a costa de un corte, el salto que iba hacia atrás— existe
+porque el mecanismo que el reproductor trae para esto está desactivado por
+omisión. Va como **pendiente 74**, y si funciona hace innecesaria la vuelta al
+borde en el caso normal: corregir variando la velocidad un 2 % no cuesta
+ningún rebuffer.
+
+**Estado:** cerrada en lo de herramientas; abre el 74.
 
 ### Tres de cada nueve vueltas al borde iban hacia atrás — 2026-10-10
 
@@ -306,11 +362,16 @@ Detrás de «Volver al borde solo si el salto adelanta», **apagado de fábrica*
 con el interruptor apagado el salto se da igual que antes, y lo único que se
 gana es la columna `gananciaMs` en el log.
 
-**Lo que esto se llevó de paso:** la línea `offset.noSeAplica` publica ahora
-`sueloMs`, medido de la posición por defecto de la ventana en vez de afirmado.
-La causa que escribía antes —«sin `EXT-X-SERVER-CONTROL` el suelo es
-3×TARGETDURATION»— era una atribución y en `mileniosd` es falsa: ese suelo son
-9 s y pidiendo 14 000 el offset real fue 16 674.
+**Lo que esto se llevó de paso:** la línea `offset.noSeAplica` publica una
+columna más. La causa que escribía antes —«sin `EXT-X-SERVER-CONTROL` el suelo
+es 3×TARGETDURATION»— era una atribución, y falsa.
+
+> **Y la primera versión de esta corrección también lo era.** Llamé `sueloMs` a
+> la columna nueva y publiqué que el suelo de `mileniosd` eran 9 s. La columna
+> salió **14 000 clavados**, que es justo lo que pedíamos: no medía ningún
+> suelo. Lo que mide es dónde pone Media3 el arranque, y la respuesta está en
+> `HlsMediaSource.getLiveWindowDefaultStartPositionUs`, no en una regresión
+> sobre dos puntos. Se llama `objetivoAplicadoMs`. Ver la entrada siguiente.
 
 **Nueve pruebas con los nueve saltos medidos**
 (`VueltaAlBordeTest`), incluida la que fija el margen del pendiente 72: con la
