@@ -262,6 +262,17 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Preparar tras tener la superficie",
+				value = if (dev.prepararConSuperficie) "ON" else "off (como antes)",
+				changed = dev.prepararConSuperficie,
+			) { change { dev.prepararConSuperficie = !dev.prepararConSuperficie } }
+		}
+		item {
+			Info("Encendido, el motor espera la superficie antes de preparar. Apagado —lo de siempre— prepara ya y la acepta en caliente, y eso deja un error de Media3 en cada sintonía del que se recupera volviendo a preparar. Se mide en el primer fotograma: mira «1er frame» en el overlay al cambiar de canal.")
+		}
+
+		item {
+			Row(
 				label = "Simular VPU que no desentrelaza",
 				value = if (dev.simularVpuSinDeint) "SIMULADO" else "lo dice el config.json",
 				changed = dev.simularVpuSinDeint,

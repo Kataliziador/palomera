@@ -172,7 +172,34 @@ object LiveLog {
 		entry.context.forEach { (k, v) ->
 			if (k !in session) append(' ').append(k).append('=').append(v)
 		}
-		entry.error?.let { append(" error=").append(it::class.java.simpleName).append(':').append(it.message) }
+		entry.error?.let { append(" error=").append(descripcionDe(it)) }
+	}
+
+	/**
+	 * La excepción y **su cadena de causas**, con el sitio donde nació.
+	 *
+	 * Antes se escribía solo la de arriba, y las de arriba no dicen nada:
+	 * `ExoPlaybackException:Unexpected runtime error` es el envoltorio con el
+	 * que Media3 tapa cualquier aserción interna. Con eso en el volcado, el
+	 * `ERROR_CODE_FAILED_RUNTIME_CHECK` que sale en **cada cambio de canal**
+	 * (pendiente 68) no se puede diagnosticar sin reproducirlo con `logcat`
+	 * delante, y reproducirlo exige la caja de alguien.
+	 *
+	 * Tres niveles y un solo marco de pila por nivel: lo que hace falta es el
+	 * nombre de la clase que lanzó y la línea, no una traza de cuarenta líneas
+	 * que llene el anillo y se lleve por delante el contexto de la sesión.
+	 */
+	private fun descripcionDe(error: Throwable): String = buildString {
+		var actual: Throwable? = error
+		var nivel = 0
+		while (actual != null && nivel < 3) {
+			if (nivel > 0) append(" <- ")
+			append(actual::class.java.simpleName).append(':').append(actual.message)
+			actual.stackTrace.firstOrNull()?.let { append(" en ").append(it) }
+			val siguiente = actual.cause
+			actual = if (siguiente === actual) null else siguiente
+            nivel++
+		}
 	}
 
 	fun snapshot(): List<Entry> = synchronized(lock) { ring.toList() }

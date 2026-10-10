@@ -93,6 +93,31 @@ object LiveTuning {
 	 */
 	const val TARGET_OFFSET_WINDOW_WARN_FRACTION = 0.5
 
+	/**
+	 * Cuánto espera `prepare()` a que llegue la superficie antes de arrancar
+	 * sin ella (`PREPARAR_CON_SUPERFICIE_DEFAULT`).
+	 *
+	 * Es una red, no un plazo de verdad: la superficie llega en el mismo
+	 * fotograma de composición, unos milisegundos. Existe para que un cambio
+	 * futuro en la interfaz que nunca la entregue dé un arranque igual al de
+	 * antes en vez de una pantalla negra para siempre.
+	 */
+	const val ESPERA_SUPERFICIE_MS = 1_500L
+
+	/**
+	 * Preparar el reproductor **después** de tener la superficie.
+	 *
+	 * `false` mantiene lo anterior: preparar en cuanto se construye y aceptar
+	 * la superficie en caliente. Eso costaba un
+	 * `ERROR_CODE_FAILED_RUNTIME_CHECK` en **cada** sintonía (pendiente 68) —
+	 * medido el 09-oct: el error cae entre 3 y 9 ms después de `engine.attach`,
+	 * siempre—, del que el motor se recupera volviendo a preparar. Se nota en
+	 * el primer fotograma: 1 725-2 054 ms con `attach`, y **1 575 ms** en la
+	 * única sintonía del volcado que no lo llamó, la del escalón 3 del
+	 * vigilante, que reusa la superficie que ya tenía.
+	 */
+	const val PREPARAR_CON_SUPERFICIE_DEFAULT = false
+
 	// --- Playlist detenido ---------------------------------------------------
 
 	/**

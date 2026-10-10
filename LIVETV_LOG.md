@@ -771,6 +771,72 @@ otras pruebas y ninguno visible para el abonado todavía: el **68** —un
 y 800 ms de zapeo— y el **64** —`enginesAllowed` no se respeta contra Media3—.
 Los dos son Modo A, uno por APK.
 
+### El error de cada sintonía: la superficie llega tarde — 2026-10-10
+
+El pendiente 68, diagnosticado **sin tocar la caja**, con dos lecturas del
+volcado del 09-oct y una del código.
+
+#### Lo que no era
+
+La secuencia sospechosa era esta, y la primera lectura la leyó mal:
+
+```
+engine.prepare engine=media3 …
+engine.release canal=discoveryhd habiaPlayer=false    ← 2 ms después
+engine.play
+```
+
+Ese `release` **no es un fallo**: lo hace `prepare()` como primera línea, para
+construir sobre limpio, y está documentado en el propio método —«salen dos por
+sintonía y eso es correcto»—. Conviene dejarlo escrito porque esa lectura
+equivocada es la que hay que no repetir.
+
+#### Lo que es
+
+```
+engine.attach                                              (.388)
+player.error FAILED_RUNTIME_CHECK videoDecoder=null bufferedMs=0   (.397)
+player.idle
+player.buffering                                           ← se prepara otra vez
+```
+
+**El error cae siempre entre 3 y 9 ms después de `engine.attach`**, en las cinco
+sintonías del volcado. Y el experimento natural lo confirma sin necesidad de
+provocar nada: la **única** sintonía del volcado que no llamó a `attach` —la del
+escalón 3 del vigilante, que reconstruye el motor reusando la superficie que ya
+tenía— es también la única **sin** error. Y la más rápida:
+
+| | `engine.attach` | Error | 1.er fotograma |
+|---|---|---|---|
+| Sintonías normales (5) | sí | sí, siempre | 1 725 – 2 054 ms |
+| Reconstrucción del vigilante | no | **no** | **1 575 ms** |
+
+La causa está en el orden. `prepare()` construye el reproductor, le da el
+`MediaItem` y llama a `exo.prepare()`; la superficie no existe todavía —la crea
+la vista de Compose unos milisegundos después— y llega luego por `attach()`. El
+comentario del código decía «Media3 la acepta en caliente», y la acepta: a
+cambio de reconfigurar el renderer de vídeo con la reproducción ya pedida, lo
+que dispara una aserción interna y obliga a preparar entero otra vez.
+
+#### El arreglo
+
+`prepare()` deja el `exo.prepare()` para cuando llegue la superficie, y
+`attach()` lo dispara. Detrás de **«Preparar tras tener la superficie»**,
+apagado de fábrica, que reproduce el comportamiento anterior.
+
+Con una red: si la superficie no llega en 1,5 s se prepara igual
+(`engine.superficieNoLlego`). Sin ella, un cambio futuro en la interfaz que
+dejara de entregarla daría pantalla negra permanente en vez del arranque de
+siempre, y nadie lo relacionaría con esta espera.
+
+#### Y un instrumento que faltaba
+
+El volcado decía `error=ExoPlaybackException:Unexpected runtime error`, que es
+el envoltorio con el que Media3 tapa cualquier aserción: con eso no se puede
+diagnosticar nada sin reproducirlo con `logcat` delante, y eso exige la caja de
+alguien. Ahora el log escribe **la cadena de causas**, tres niveles, con la
+clase y la línea donde nació cada una. Sirve para este error y para el próximo.
+
 ### M6 — Cerrado — 2026-10-09
 
 Declarado por Edgar: **«probé los cinco modos, todos se ven correctos»**, sin

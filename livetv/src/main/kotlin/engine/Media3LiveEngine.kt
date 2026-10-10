@@ -99,6 +99,12 @@ class Media3LiveEngine(
 	// el hilo que suelta los frames.
 
 	private val carga = DeviceLoad(context)
+	/**
+	 * `prepare()` construyó el reproductor y **dejó para después** el
+	 * `exo.prepare()`, esperando la superficie (pendiente 68).
+	 */
+	private var esperandoSuperficie = false
+
 	private val latido = Handler(Looper.getMainLooper())
 	private var muestreo: HandlerThread? = null
 	private var muestreoHandler: Handler? = null
@@ -213,6 +219,32 @@ class Media3LiveEngine(
 		this.surface = surface
 		player?.setVideoSurfaceView(surface)
 		LiveLog.debug("engine.attach")
+
+		// Lo que `prepare()` dejó pendiente. Entregar la superficie **antes**
+		// de preparar es lo que evita el error de cada sintonía: Media3 la
+		// acepta en caliente, pero reconfigurar el renderer de vídeo con la
+		// reproducción ya pedida cuesta un `FAILED_RUNTIME_CHECK` y una
+		// preparación entera de más.
+		if (esperandoSuperficie) {
+			esperandoSuperficie = false
+			latido.removeCallbacks(prepararSinSuperficie)
+			LiveLog.debug("engine.preparaTrasSuperficie")
+			player?.prepare()
+		}
+	}
+
+	/**
+	 * La red por si la superficie no llega nunca: se prepara igual.
+	 *
+	 * Sin esto, un cambio en la interfaz que dejara de entregar la superficie
+	 * daría pantalla negra permanente en vez del arranque de siempre, y nadie
+	 * lo relacionaría con esta espera.
+	 */
+	private val prepararSinSuperficie = Runnable {
+		if (!esperandoSuperficie) return@Runnable
+		esperandoSuperficie = false
+		LiveLog.warn("engine.superficieNoLlego", "esperaMs" to LiveTuning.ESPERA_SUPERFICIE_MS)
+		player?.prepare()
 	}
 
 	override fun prepare(channel: ChannelProfile, plan: PlaybackPlan) {
@@ -366,7 +398,18 @@ class Media3LiveEngine(
 				}
 				surface?.let(exo::setVideoSurfaceView)
 				exo.setMediaItem(mediaItem)
-				exo.prepare()
+
+				// En la primera sintonía la superficie todavía no existe: la
+				// crea la vista de Compose unos milisegundos después. Preparar
+				// ahora y aceptarla en caliente es lo que deja el error del
+				// pendiente 68 en cada canal.
+				if (dev.prepararConSuperficie && surface == null) {
+					esperandoSuperficie = true
+					LiveLog.debug("engine.esperaSuperficie")
+					latido.postDelayed(prepararSinSuperficie, LiveTuning.ESPERA_SUPERFICIE_MS)
+				} else {
+					exo.prepare()
+				}
 			}
 	}
 
@@ -382,6 +425,8 @@ class Media3LiveEngine(
 	}
 
 	override fun release() {
+		esperandoSuperficie = false
+		latido.removeCallbacks(prepararSinSuperficie)
 		// Se registra porque una fuga de reproductores sería invisible sin esto:
 		// un `ExoPlayer` por zapeo que nadie suelta no da error, solo se come la
 		// memoria y pelea por recursos del decodificador.

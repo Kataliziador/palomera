@@ -358,6 +358,16 @@ class DevOptions(context: Context) {
 	 * 63)—, así que la alternativa habría sido escribir un dato falso en la
 	 * tabla de modelos que viaja a todos los sites.
 	 */
+	/**
+	 * Preparar el reproductor después de tener la superficie (pendiente 68).
+	 *
+	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
+	 * en cada sintonía.
+	 */
+	var prepararConSuperficie: Boolean
+		get() = tresCapas(K_PREP_SUPERFICIE, null, LiveTuning.PREPARAR_CON_SUPERFICIE_DEFAULT)
+		set(v) = put { putBoolean(K_PREP_SUPERFICIE, v) }
+
 	var simularVpuSinDeint: Boolean
 		get() = prefs.getBoolean(K_VPU_SIN_DEINT, false)
 		set(v) = put { putBoolean(K_VPU_SIN_DEINT, v) }
@@ -505,6 +515,7 @@ class DevOptions(context: Context) {
 		if (playlistStuckMedia3Default) add("stuck=3.5")
 		if (forzarDesentrelazado) add("deint forzado")
 		if (simularVpuSinDeint) add("VPU sin deint (simulado)")
+		if (prefs.contains(K_PREP_SUPERFICIE)) add("prepTrasSuperficie=${if (prepararConSuperficie) "ON" else "OFF"}")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -577,6 +588,7 @@ class DevOptions(context: Context) {
 		const val K_FORZAR_DEINT = "forzarDesentrelazado"
 		const val K_VPU_SIN_DEINT = "simularVpuSinDeint"
 		const val K_SIM_DENEGADO = "simularDenegacion"
+		const val K_PREP_SUPERFICIE = "prepararConSuperficie"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -585,6 +597,7 @@ class DevOptions(context: Context) {
 			K_TARGET_OFFSET, K_MIN_BUFFER, K_MAX_BUFFER, K_AUDIO_DEFAULT,
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
+			K_PREP_SUPERFICIE,
 		)
 
 		const val OVERLAY_OCULTO = 0
