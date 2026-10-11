@@ -125,38 +125,25 @@ render o recuperación, es vía M. **Estado:** cerrada.
 
 ## Instrucciones de headend
 
-Los cuatro cambios pendientes, en orden de lo que desbloquean. Flussonic
+Lo que queda por hacer en el headend, en orden de lo que desbloquea. Flussonic
 **Streamer 24.03**.
+
+> **Revisado el 11-oct.** Esta sección pedía dos cosas que ya estaban hechas
+> —la normalización a AAC, cerrada el 26-sep (pendiente 18), y el letrero de
+> respaldo, cerrado el 01-oct (pendiente 7)— y **no nombraba dos que sí
+> faltan**, el 36 y el 11, que vivían solo en la tabla de pendientes. Una hoja
+> de trabajo con tareas ya hechas se deja de leer entera, que es peor.
 
 Advertencia previa: **el video nunca se transcodifica** (`CLAUDE.md` §2). En
 cualquier pantalla de transcoder, el video va en **Copy**. Si se toca el video,
 se rompe el principio rector del proyecto.
 
-### 1. MP2 → AAC en `test-sat77w-estrellassd-mp2v` — gatea M3
+### 1. Bajar `source_timeout` a ~10 s — gatea el objetivo de recuperación
 
-En la interfaz de Flussonic, en ese stream, sección **Transcoder**:
-video **Copy**, audio **AAC**, 128 kbps, 48 kHz.
-
-En fichero de configuración el equivalente es del estilo
-`transcoder vb=copy ab=128k acodec=aac;`, pero **la directiva exacta varía
-entre versiones y la interfaz es más segura**. No la doy por buena sin verla.
-
-*Verificación:* la hago yo desde aquí con `ffprobe` — el códec de audio debe
-pasar de `mp2` a `aac`. Avísame y lo compruebo en un minuto.
-
-### 2. Pasar `a093` por Flussonic — añade un canal de prueba
-
-Es el único SD H.264 satelital y probablemente viene entrelazado, así que
-aporta un caso que hoy no tenemos. Mismos ajustes que el resto:
-`segment_duration 2` y `segment_count 12`.
-
-*Verificación:* lo caracterizo y lo añado a `CHANNELS.md`.
-
-### 3. Bajar `source_timeout` a ~10 s — gatea el objetivo de recuperación de M7
-
-Medido: cuando la fuente cae, Flussonic tarda **~15 s** en reconstruir el
-playlist, y el cliente no puede recuperarse antes que él. Es lo que hace
-inalcanzable el objetivo de < 8 s de `CLAUDE.md` §10.
+Pendiente **6**. Es lo único de esta lista que desbloquea un número de
+`CLAUDE.md` §10: medido, cuando la fuente cae Flussonic tarda **~15 s** en
+reconstruir el playlist, y el cliente no puede recuperarse antes que él. Por eso
+el objetivo de < 8 s está hoy declarado inalcanzable en el propio documento.
 
 ```
 stream <nombre> {
@@ -164,30 +151,55 @@ stream <nombre> {
 }
 ```
 
+Con HTTP, Astra mantiene la conexión abierta sin datos, así que sin este valor
+Flussonic no se entera de que la fuente se fue hasta que agota el suyo.
+
 *Verificación:* detengo un stream desde la interfaz y cronometro la
-reconstrucción, igual que se midió el 22-sep.
+reconstrucción, igual que se midió el 22-sep. Avísame y lo mido en cinco
+minutos.
 
-### 4. Letrero de "sin señal" como fuente de respaldo — M7
+### 2. Que la variante no lleve audio multiplexado cuando hay grupo `AUDIO`
 
-Evita que un rain fade largo deje la imagen congelada, que es lo que el
-suscriptor interpreta como «se rompió la tele».
+Pendiente **36**. HBO y Discovery ofrecen al abonado **«Español, Español,
+Inglés»**: el master declara los audios como `EXT-X-MEDIA` y además la variante
+los lleva dentro del TS, así que la misma pista aparece dos veces.
 
-El archivo ya está hecho: **`/home/proyectos/apks-livetv/sin-senal.mp4`** —
-1280x720, H.264 + AAC, 10 s, fondo oscuro con «Sin señal / Restableciendo la
-transmisión». Cópialo al servidor y referéncialo:
+No se arregla en la app a propósito: distinguir «esta es la duplicada» sería
+adivinar, y una regla que se equivoque **esconde una pista que el abonado
+necesitaba** — que es justo el caso del 02-oct, cuando se pasó a `index.m3u8`
+porque en algunos satélites la etiqueta de idioma miente.
 
-```
-stream <nombre> {
-  input ...;
-  backup /opt/flussonic/priv/sin-senal.mp4;
-}
-```
+*Verificación:* la hago desde aquí leyendo el master; la app además registra
+`tracks.crudo` con lo que ve.
 
-Cuando haya marca por ISP (B5) se sustituye por uno con su logo; este sirve
-para todos mientras tanto.
+### 3. `estrellashd-mp4`: el audio desaparece y vuelve
 
-*Verificación:* corto la fuente y compruebo que aparece el letrero en vez de
-un frame congelado.
+Pendiente **11**, y arrastra el **12**. Revisar errores PES en Astra. Importa
+más de lo que parece porque es el caso real que destapó que ExoPlayer tolera
+mal un cambio en el número de pistas a mitad de stream.
+
+*Verificación:* un remojo del canal con el contador de pistas en el log.
+
+### 4. Pasar `a093` por Flussonic — añade un canal de prueba
+
+Pendiente **9**. Es el único SD H.264 satelital y probablemente viene
+entrelazado, así que aporta un caso que los seis actuales no tienen. Mismos
+ajustes que el resto: `segment_duration 2` y `segment_count 12`.
+
+*Verificación:* lo caracterizo y lo añado a `CHANNELS.md`.
+
+---
+
+### Ya hechos, para no volver a pedirlos
+
+| | qué | cerrado |
+|---|---|---|
+| 18 | MP2 → AAC en todos los canales del lineup | 26-sep, verificado: los seis entregan `aac 48000 Hz 2ch` |
+| 7 | letrero «sin señal» como fuente de respaldo | 01-oct, Edgar cortó la señal y entró el letrero |
+
+La trampa del letrero, que costó un rato: en `backup <ubicación>/<archivo>` el
+prefijo es el **nombre de la ubicación VOD**, no una carpeta, y hay que
+declararla.
 
 ---
 
