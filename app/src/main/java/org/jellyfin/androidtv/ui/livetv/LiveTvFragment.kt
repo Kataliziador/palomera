@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
 import kotlinx.coroutines.delay
+import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.R
 import org.jellyfin.livetv.LiveTuning
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
@@ -322,11 +323,29 @@ private fun ChannelRow(
 				// Diagnóstico sigue a mano —se veta un decoder y se entra al
 				// canal sin salir de la sección— pero deja de ocupar el sitio
 				// del primer canal.
-				Button(
-					onClick = onDiagnosticsClick,
-					contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-				) {
-					Text(text = "Diagnóstico", fontSize = 13.sp)
+				//
+				// **Solo en compilaciones de depuración** (decisión de Edgar,
+				// 11-oct). En el APK de Play cualquier abonado tenía a un toque
+				// forzar software, vetar decoders y, sobre todo,
+				// `registryUrlOverride`, que salta la puerta del registro
+				// entera. §8 ya acepta que esa puerta no es un candado técnico,
+				// pero heredarlo por descuido no es lo mismo que decidirlo.
+				//
+				// La puerta es `DEBUG` y no `DEVELOPMENT`: lo segundo se define
+				// como `versionCode < 100` (`app/build.gradle.kts`), así que en
+				// cuanto se fije el esquema de versiones real se apagaría
+				// **también en depuración** y perderíamos el menú en la caja de
+				// pruebas.
+				//
+				// El caso de campo —una caja de un abonado que falla— lo cubre
+				// la telemetría anónima de B6, que para eso existe.
+				if (BuildConfig.DEBUG) {
+					Button(
+						onClick = onDiagnosticsClick,
+						contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+					) {
+						Text(text = "Diagnóstico", fontSize = 13.sp)
+					}
 				}
 			}
 

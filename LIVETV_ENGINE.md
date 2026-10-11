@@ -440,6 +440,34 @@ El menú de desarrollador debe permitir:
 - Ver el plan de reproducción activo con su motivo
 - Exportar el log a archivo
 
+### Y solo en compilaciones de depuración
+
+Decidido el 11-oct. Hasta entonces el menú viajaba en el APK de release, así
+que cualquier abonado tenía a un toque forzar software, vetar decoders y, sobre
+todo, `registryUrlOverride`, que **salta la puerta del registro entera** desde
+la interfaz. `CLAUDE.md` §8 ya acepta que esa puerta no es un candado técnico
+—el fork es GPL-2.0 y cualquiera puede compilar una versión sin ella—, pero
+heredar la exposición por descuido no es lo mismo que decidirla.
+
+Tres detalles que conviene no perder:
+
+- **La puerta es `BuildConfig.DEBUG`, no `DEVELOPMENT`.** Lo segundo se define
+  en `app/build.gradle.kts` como `versionCode < 100`, así que en cuanto se fije
+  el esquema de versiones real para Play se apagaría **también en depuración** y
+  perderíamos el menú en la caja de pruebas, que es donde hace falta.
+- **Se comprueba en los dos sitios**, el botón de la sección y el contenido del
+  destino. Esconder solo el botón deja el destino alcanzable por navegación.
+- **El caso de campo no se queda sin cubrir.** Una caja de un abonado que falla
+  informa por la telemetría anónima de B6 —modelo, decoders, fallos por canal,
+  y desde el 11-oct el códec de audio recibido—, que existe precisamente porque
+  a esas cajas no se puede entrar.
+
+El release **sigue conteniendo el código y sus cadenas**, porque upstream
+compila con `isMinifyEnabled = false` y nada se elimina. Lo que desaparece es
+el camino para llegar: el menú no se dibuja. Y buscar `registryUrlOverride` en
+el APK nunca fue una comprobación válida, porque esa misma cadena es la clave
+de preferencias que `DevOptions` lee en producción.
+
 ---
 
 ## 8. El `config.json`

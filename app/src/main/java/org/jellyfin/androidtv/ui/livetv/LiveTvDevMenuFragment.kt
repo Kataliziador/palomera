@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
+import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.base.button.Button
@@ -44,6 +45,12 @@ import org.jellyfin.livetv.diagnostics.LiveLog
  * respaldo llegarían a producción sin haberse ejercitado nunca.
  *
  * Todo lo de aquí arranca en el valor de fábrica: abrir el menú no cambia nada.
+ *
+ * **Solo en compilaciones de depuración** (decisión de Edgar, 11-oct). La
+ * comprobación está aquí **además** de en el botón que lleva aquí: el botón es
+ * lo que se ve, y esto es lo que cierra la puerta si alguien llega al destino
+ * por otro camino. Un menú que puede vetar decoders y reapuntar el registro no
+ * se protege solo escondiendo su botón.
  */
 class LiveTvDevMenuFragment : Fragment() {
 
@@ -55,7 +62,7 @@ class LiveTvDevMenuFragment : Fragment() {
 		JellyfinTheme {
 			Column(modifier = Modifier.fillMaxSize()) {
 				MainToolbar(MainToolbarActiveButton.LiveTv)
-				DevMenu()
+				if (BuildConfig.DEBUG) DevMenu()
 			}
 		}
 	}
