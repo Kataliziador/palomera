@@ -178,7 +178,8 @@ def main() -> int:
 
 	# --- la vuelta al borde -------------------------------------------------
 	saltos = [(l[:12], campos(l)) for l in cuerpo
-	          if "offset.vuelveAlBorde" in l or "offset.saltoNoAdelanta" in l]
+	          if "offset.vuelveAlBorde" in l or "offset.saltoNoAdelanta" in l
+	          or "offset.margenCorto" in l]
 	# `trasElSalto` se emparejaba por índice, y eso se rompió el 11-oct en
 	# cuanto hubo un salto **declinado**: el declinado no deja medida posterior,
 	# así que la columna «después» de la primera fila mostraba la medida del
@@ -216,6 +217,12 @@ def main() -> int:
 				"—",
 			)
 			pos = "posAntesMs" if "posAntesMs" in d else "posMs"
+			# `offset.margenCorto` (pendiente 75) mide el colchón que gana el
+			# salto —hacia atrás— donde los otros dos miden la ganancia hacia
+			# el directo. Es el mismo número con el signo al revés, así que se
+			# normaliza para que la columna se pueda leer de un vistazo.
+			if "colchonMs" in d and "gananciaMs" not in d:
+				d["gananciaMs"] = str(-int(d["colchonMs"]))
 			marca = "*" if "gananciaDerivada" in d else " "
 			print(f"  {hora} {n('offsetMs')} {n('ventanaMs')} {n(pos)} {n('destinoMs')} {n('gananciaMs')}{marca} {despues:>8}")
 
@@ -231,7 +238,8 @@ def main() -> int:
 	# causa: una caída dentro de los 30 s siguientes a un salto es del salto.
 	TRAS_UN_SALTO_S = 30.0
 	saltos_s = [segundos(l) for l in cuerpo
-	            if "offset.vuelveAlBorde" in l or "vigilante.saltaAlBorde" in l]
+	            if "offset.vuelveAlBorde" in l or "vigilante.saltaAlBorde" in l
+	            or "offset.margenCorto" in l]
 
 	paradas: list[int] = []
 	racha = 0
@@ -310,7 +318,8 @@ def main() -> int:
 	# --- lo que no encaja en ninguna sección --------------------------------
 	avisos = {t: n for t, n in tipos.items()
 	          if t.startswith(("vigilante.", "player.error", "codec.", "abr.", "audio.noNorm",
-	                           "offset.noSeEvalua", "offset.superaLaVentana", "canal.noDisponible"))}
+	                           "offset.noSeEvalua", "offset.superaLaVentana",
+	                           "offset.sinSitioDetras", "canal.noDisponible"))}
 	if avisos:
 		print(f"\n{NEGRITA}Avisos{FIN}")
 		for t, n in sorted(avisos.items(), key=lambda x: -x[1]):

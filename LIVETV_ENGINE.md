@@ -366,6 +366,67 @@ error de reproducción, que es lo que §6 de `CLAUDE.md` prohíbe.
 `DefaultHlsPlaylistTracker`, con interruptor en el menú para volver al 3.5 de
 Media3 y poder comparar en pantalla.
 
+### El margen de buffer, que es lo que de verdad protege
+
+Implementado el 11-oct (pendiente 75), **apagado de fábrica hasta que Edgar lo
+valide**: interruptor «Alejar del borde si el buffer no aguanta».
+
+El `targetOffsetMs` decide dónde arranca la reproducción, y hasta aquí todo lo
+de esta sección habla de eso. Lo que ninguna de esas palancas cubre es **qué
+pasa con la posición después**, cuando el origen se para y vuelve.
+
+Medido el 10-oct, dos veces en cinco horas: al pararse el origen el reproductor
+consume hasta el final de los datos y se queda ahí, a 1,5 s del borde. Cuando el
+origen vuelve, publica más despacio que el reloj durante medio minuto, y el
+reproductor —que ya está pegado al borde— se queda sin nada cada tres segundos:
+
+```
+19:57:42  listo        true   buffer 3.3     19:57:46  almacenando  false  buffer 2.7  → corte
+19:57:44  listo        true   buffer 4.4     19:57:48  listo        true   buffer 3.7  → corte
+```
+
+**12 cortes en 33 s y 13 en 38 s: 25 de los 35 de la sesión.** El resto de la
+sesión da 2,0 cortes/h y cumple §10.
+
+**Ninguno de los dos mecanismos que ya existen puede verlo:**
+
+- el **vigilante** pregunta si la posición avanza, y avanza: se reproducen dos
+  segundos de cada tres;
+- la **vuelta al borde** vive en `onTimelineChanged`, y con la lista del origen
+  congelada ese método no se llama. Medido, 38 segundos sin una sola evaluación.
+
+Por eso se mira **en el latido**, que es el único reloj que no depende del
+origen: si el buffer lleva cuatro latidos seguidos por debajo de
+`MARGEN_MINIMO_MS`, la posición se mueve a `ventana − objetivo`.
+
+**Y se mueve hacia atrás, que es lo que cuesta de aceptar.** En el latido que lo
+motivó la ventana tenía 33,6 s de datos y el reproductor no tenía nada por
+delante, porque solo almacena hacia adelante y estaba al final. Moverse a 19,6 s
+le pone **12,5 s ya publicados delante**, por un corte. Es lo que el
+comportamiento viejo hacía por accidente y el pendiente 73 quitó creyéndolo
+desperdicio: medido, ese salto llevó el buffer de 3,9 a 12,9 s y compró treinta
+segundos seguidos sin un corte.
+
+Tres cosas que vienen de la medida y conviene no deshacer:
+
+- **No se exige estar reproduciendo.** La guarda «solo reproduciendo» de la
+  vuelta al borde existe porque saltar *hacia adelante* mientras se almacena no
+  adelanta nada. Aquí es al revés: los cinco momentos medidos en que esto debía
+  actuar tenían `reproduciendo=false`, que es exactamente cuando hay datos
+  detrás sin consumir.
+- **El umbral no es delicado**, al contrario que el disparador por fracción de
+  ventana (pendiente 72). Probado contra los dos volcados con 5, 6 y 7 s
+  cruzado con 3, 4 y 5 latidos: las nueve combinaciones dan los mismos disparos,
+  y ninguna dispara en las 4 h 10 min limpias. Esta señal no tiene zona
+  intermedia.
+- **Comparte el enfriamiento con la vuelta al borde**, mismo reloj: son dos
+  mecanismos sobre la misma posición y con relojes separados se pelearían.
+
+**Cuando la ventana no da para apartarse** —`oncesd` y `canal22sd` sirven 22 s—
+no se salta: se registra `offset.sinSitioDetras` una vez por sesión. Ese no es
+un problema del cliente sino del `segment_count` del site, y el servicio de
+canales ya lo señala en su `/health`.
+
 ### Errores y su respuesta
 
 | Error | Respuesta |

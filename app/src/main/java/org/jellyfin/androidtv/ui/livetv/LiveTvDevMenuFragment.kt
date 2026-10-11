@@ -286,6 +286,17 @@ private fun DevMenu() {
 			) { change { dev.resyncSoloSiAdelanta = !dev.resyncSoloSiAdelanta } }
 		}
 		item {
+			Row(
+				label = "Alejar del borde si el buffer no aguanta",
+				value = if (dev.resyncPorMargen) "ON" else "off (como antes)",
+				changed = dev.resyncPorMargen,
+			) { change { dev.resyncPorMargen = !dev.resyncPorMargen } }
+		}
+		item {
+			Info("Cuando el origen deja de publicar, el reproductor se queda a 1,5 s del final de los datos y entra en un bucle de un corte cada tres segundos: 25 de los 35 cortes de la sesión del 10-oct. Encendido, el latido lo detecta en 8 s y mueve la posición hacia atrás, donde SI hay datos ya publicados: un corte en vez de doce. Sale «offset.margenCorto» en el log.")
+		}
+
+		item {
 			Info("REFUTADO el 11-oct: déjalo apagado. Se puso creyendo que un salto que se aleja del directo era un corte desperdiciado, y medido en pantalla es lo contrario: ese salto deja la posición 9 s más adentro del buffer y es la única cura cuando el origen publica más despacio que el reloj. Encenderlo costó 12 cortes en 33 s donde el comportamiento de fábrica costaba 1. Se conserva solo para reproducir la medición.")
 		}
 

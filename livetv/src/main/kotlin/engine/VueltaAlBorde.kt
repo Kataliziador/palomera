@@ -90,7 +90,7 @@ internal object VueltaAlBorde {
 			return Decision.NoHaceFalta
 		}
 
-		val destinoMs = (ventanaMs - objetivoMs).coerceAtLeast(0L)
+		val destinoMs = destino(ventanaMs, objetivoMs)
 
 		// Sin posición no se inventa un bloqueo: se conserva lo que hacía antes.
 		// Es la misma regla que [RelojDeAvance] con su caso ciego — un
@@ -105,4 +105,17 @@ internal object VueltaAlBorde {
 			Decision.NoAdelanta(destinoMs, gananciaMs)
 		}
 	}
+
+	/**
+	 * A dónde se vuelve: el punto de la ventana que deja el retraso pedido.
+	 *
+	 * Una sola definición porque la usan dos mecanismos —esta clase y
+	 * [MargenDeBuffer]— y dos versiones del mismo número acabarían
+	 * divergiendo. El `coerceAtLeast` es por un `config.json` que pida más
+	 * retraso que ventana: el motor ya lo avisa aparte con
+	 * `offset.superaLaVentana`, y aquí lo que importa es no mandar el salto a
+	 * una posición negativa.
+	 */
+	fun destino(ventanaMs: Long, objetivoMs: Long): Long =
+		(ventanaMs - objetivoMs).coerceAtLeast(0L)
 }

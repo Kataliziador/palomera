@@ -165,6 +165,13 @@ class Media3LiveEngine(
 	 */
 	private val avance = RelojDeAvance()
 
+	/**
+	 * Si la posición aguanta donde está. Pendiente 75, y se mira **aquí y no en
+	 * `onTimelineChanged`** porque con la lista del origen congelada ese método
+	 * no se llama: medido, 38 segundos de bucle sin una sola evaluación.
+	 */
+	private val margen = MargenDeBuffer()
+
 	// Métricas de los objetivos de CLAUDE.md §10
 	private var prepareAtMs = 0L
 	private var firstFrameAtMs = 0L
@@ -223,6 +230,10 @@ class Media3LiveEngine(
 	private var lastResyncAtMs = 0L
 	private var resyncCount = 0
 	private var resyncDeclinadas = 0
+
+	/** Cuántas veces se ha alejado la posición del borde. Pendiente 75. */
+	private var margenCorto = 0
+	private var sinSitioAvisado = false
 
 	/** Cuántas veces ha llegado un playlist nuevo. Pendiente 76. */
 	private var cambiosDeTimeline = 0
@@ -292,10 +303,13 @@ class Media3LiveEngine(
 		lastResyncAtMs = 0
 		resyncCount = 0
 		resyncDeclinadas = 0
+		margenCorto = 0
+		sinSitioAvisado = false
 		// `cambiosDeTimeline` se reinicia con la sesión a propósito: lo que se
 		// quiere leer en el latido es «cuántos playlists ha visto **esta**
 		// sintonía», no un acumulado de la app.
 		cambiosDeTimeline = 0
+		margen.reiniciar()
 		ultimoMotivoSinEvaluar = null
 		ultimoNoSeEvaluaAtMs = 0L
 		prepareAtMs = inicio
@@ -561,6 +575,7 @@ class Media3LiveEngine(
 
 		vigilar(exo, s)
 		vigilarImagen(exo)
+		vigilarMargen(exo, s)
 
 		val c = ultimaCarga
 		// La carga del sistema solo se anota donde el kernel la deja leer: en
@@ -654,6 +669,79 @@ class Media3LiveEngine(
 			exo.seekToDefaultPosition()
 			exo.prepare()
 		}.onFailure { LiveLog.error("tunneled.rescateFallido", it) }
+	}
+
+	/**
+	 * Alejar la posición del borde cuando el buffer no sobrevive (pendiente 75).
+	 *
+	 * Vive en el latido porque es el único reloj que no depende del origen. Las
+	 * guardas son las mínimas y **ninguna de ellas es «estar reproduciendo»**:
+	 * los cinco momentos medidos en que esto debía actuar tenían
+	 * `reproduciendo=false`, que es justo cuando hay datos detrás sin consumir.
+	 *
+	 * El enfriamiento es **el mismo** que el de la vuelta al borde, y a
+	 * propósito: son dos mecanismos sobre la misma posición y si cada uno
+	 * llevara su reloj se pelearían.
+	 */
+	private fun vigilarMargen(exo: ExoPlayer, s: EngineStats) {
+		if (!dev.resyncPorMargen || dev.liveEdgeResyncDisabled) return
+		// Durante el arranque el buffer está corto por definición. Sin esta
+		// guarda, mover la posición ahí reinicia el almacenamiento y vuelve a
+		// leer corto: el bucle que costó que `hbohd` tardara cuatro minutos en
+		// dar el primer fotograma.
+		if (firstFrameAtMs <= 0L || exo.playbackState == Player.STATE_IDLE) return
+
+		val decision = margen.observar(
+			bufferMs = s.bufferedMs,
+			ventanaMs = windowDurationMs,
+			posMs = exo.currentPosition,
+			objetivoMs = activeTargetOffsetMs,
+		)
+
+		val ahoraMs = System.currentTimeMillis()
+		when (decision) {
+			is MargenDeBuffer.Decision.Alejarse -> {
+				if (ahoraMs - lastResyncAtMs <= LiveTuning.LIVE_EDGE_RESYNC_COOLDOWN_MS) return
+				lastResyncAtMs = ahoraMs
+				margenCorto++
+				LiveLog.warn(
+					"offset.margenCorto",
+					"bufferMs" to s.bufferedMs,
+					"ventanaMs" to windowDurationMs,
+					"posAntesMs" to exo.currentPosition,
+					"destinoMs" to decision.destinoMs,
+					"colchonMs" to decision.colchonMs,
+					"numero" to margenCorto,
+				)
+				exo.seekTo(decision.destinoMs)
+				LiveLog.warn(
+					"offset.trasElSalto",
+					"posMs" to exo.currentPosition,
+					"offsetMs" to exo.currentLiveOffset,
+				)
+			}
+
+			is MargenDeBuffer.Decision.SinSitioDetras -> {
+				// No es un fallo nuestro y el cliente no puede arreglarlo: la
+				// ventana no da para apartarse. Se dice una vez por sesión
+				// porque lo que hay que tocar es el `segment_count` del site.
+				if (sinSitioAvisado) return
+				sinSitioAvisado = true
+				LiveLog.warn(
+					"offset.sinSitioDetras",
+					"bufferMs" to s.bufferedMs,
+					"ventanaMs" to windowDurationMs,
+					"posMs" to exo.currentPosition,
+					"destinoMs" to decision.destinoMs,
+					"colchonMs" to decision.colchonMs,
+					"causa" to "la ventana del origen no da para apartarse del borde",
+				)
+			}
+
+			MargenDeBuffer.Decision.HayMargen,
+			MargenDeBuffer.Decision.NoSeSabe,
+			-> Unit
+		}
 	}
 
 	private fun vigilar(exo: ExoPlayer, s: EngineStats) {

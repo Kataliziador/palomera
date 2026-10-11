@@ -276,6 +276,51 @@ object LiveTuning {
 	 */
 	const val RESYNC_SOLO_SI_ADELANTA_DEFAULT = false
 
+	/**
+	 * Por debajo de cuánto buffer se considera que la posición no sobrevive
+	 * (pendiente 75).
+	 *
+	 * Medido el 10-oct sobre dos volcados: en el bucle de inanición el buffer
+	 * oscila entre **1,5 y 5 s**, y en las 4 h 10 min limpias de la misma
+	 * sesión el p5 es **8,4 s** y la mediana 10,7. Seis segundos cae en medio y
+	 * son más de dos segmentos de cualquiera de los canales medidos.
+	 *
+	 * **Y no es delicado**, al contrario que [LIVE_EDGE_RESYNC_WINDOW_FRACTION]
+	 * (pendiente 72): probado con 5, 6 y 7 s cruzado con 3, 4 y 5 latidos, las
+	 * nueve combinaciones dan exactamente los mismos disparos en los dos
+	 * volcados. Esta señal no tiene zona intermedia.
+	 */
+	const val MARGEN_MINIMO_MS = 6_000L
+
+	/**
+	 * Cuántos latidos seguidos con el buffer corto antes de actuar.
+	 *
+	 * Cuatro latidos son **ocho segundos**, que es lo que separa un bache de un
+	 * problema. En el bucle medido el buffer estuvo corto durante 16 latidos
+	 * seguidos, así que no hace falta más paciencia; y en las horas sanas no hay
+	 * ni una racha de cuatro.
+	 */
+	const val MARGEN_LATIDOS_SEGUIDOS = 4
+
+	/**
+	 * Alejar la posición del borde cuando el buffer no sobrevive (pendiente 75).
+	 *
+	 * `false` mantiene lo anterior: nadie mira el margen, y el bucle de
+	 * inanición corre hasta que el origen se recupera —medido, 12 y 13 cortes
+	 * en poco más de medio minuto, 25 de los 35 de la sesión—.
+	 *
+	 * Encendido, el latido mira cada dos segundos si la posición está pegada al
+	 * final de los datos **habiendo datos detrás**, y en ese caso se mueve a
+	 * `ventana − objetivo`. Eso cuesta **un** corte y pone por delante lo que ya
+	 * estaba publicado: en el latido que lo motivó, 12,5 s de margen donde había
+	 * 1,5.
+	 *
+	 * Comparte el enfriamiento con la vuelta al borde a propósito
+	 * ([LIVE_EDGE_RESYNC_COOLDOWN_MS] y el mismo reloj), para que los dos
+	 * mecanismos no se peleen por la misma posición.
+	 */
+	const val RESYNC_POR_MARGEN_DEFAULT = false
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un
