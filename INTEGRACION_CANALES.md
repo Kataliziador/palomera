@@ -454,6 +454,25 @@ No lo pidas ni lo diseñes esperándolo:
   Si se te cuela un master con varias, **la app no puede impedirlo**: registra
   `abr.variasVariantes` y Media3 se pone a conmutar calidad, que §6 prohíbe. Ese
   aviso es el único rastro que queda.
+- **Con más de un audio, añade `separate_audio=true`.** Sin él, Flussonic
+  declara los audios como renditions `EXT-X-MEDIA` **y además** apunta la
+  variante a `tracks-v1a1`, que los lleva multiplexados dentro del TS: la
+  primera pista llega **dos veces** y el abonado ve «Español, Español, Inglés».
+
+  Medido el 11-oct con `ffprobe` sobre los masters reales de HBO y Discovery:
+  **3 pistas de audio sin el parámetro, 2 con él**, y `tracks-v1/mono.m3u8`
+  entrega solo vídeo. Los dos parámetros se combinan:
+  `index.m3u8?filter=tracks:v2a1a2&separate_audio=true`.
+
+  **La app no puede arreglarlo** y es deliberado: distinguir cuál de las dos
+  pistas `spa` es la copia sería adivinar, y una regla que se equivoque esconde
+  la pista que el abonado necesitaba —el caso que obligó a pasar de `mono.m3u8`
+  a `index.m3u8`, porque en algunos satélites la etiqueta de idioma miente—. Lo
+  único que la app deja es el rastro: `audio.pistas cuantas=3 idiomas=[spa,
+  spa, eng]`.
+
+  Con un solo audio **no lo añadas**: no arregla nada y cuesta una conexión
+  más, porque la variante se queda sin audio.
 - **No ejecuta nada que venga del servidor.** Ni código, ni plantillas, ni hojas
   de estilo. Texto, números, listas e imágenes.
 - **No graba, no hace catch-up, no tiene DVR.**

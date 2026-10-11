@@ -128,11 +128,12 @@ render o recuperación, es vía M. **Estado:** cerrada.
 Lo que queda por hacer en el headend, en orden de lo que desbloquea. Flussonic
 **Streamer 24.03**.
 
-> **Revisado el 11-oct.** Esta sección pedía dos cosas que ya estaban hechas
-> —la normalización a AAC, cerrada el 26-sep (pendiente 18), y el letrero de
-> respaldo, cerrado el 01-oct (pendiente 7)— y **no nombraba dos que sí
-> faltan**, el 36 y el 11, que vivían solo en la tabla de pendientes. Una hoja
-> de trabajo con tareas ya hechas se deja de leer entera, que es peor.
+> **Revisado dos veces el 11-oct.** Pedía dos cosas ya hechas —la
+> normalización a AAC (pendiente 18, 26-sep) y el letrero de respaldo
+> (pendiente 7, 01-oct)— y no nombraba dos que faltaban, el 36 y el 11. Al
+> ponerse a redactar el 36 resultó que **tampoco era de headend**: se arregla
+> con un parámetro en la URL del generador y está cerrado el mismo día. Quedan
+> tres, y ninguna es la que llevaba una semana encabezando la lista.
 
 Advertencia previa: **el video nunca se transcodifica** (`CLAUDE.md` §2). En
 cualquier pantalla de transcoder, el video va en **Copy**. Si se toca el video,
@@ -158,21 +159,7 @@ Flussonic no se entera de que la fuente se fue hasta que agota el suyo.
 reconstrucción, igual que se midió el 22-sep. Avísame y lo mido en cinco
 minutos.
 
-### 2. Que la variante no lleve audio multiplexado cuando hay grupo `AUDIO`
-
-Pendiente **36**. HBO y Discovery ofrecen al abonado **«Español, Español,
-Inglés»**: el master declara los audios como `EXT-X-MEDIA` y además la variante
-los lleva dentro del TS, así que la misma pista aparece dos veces.
-
-No se arregla en la app a propósito: distinguir «esta es la duplicada» sería
-adivinar, y una regla que se equivoque **esconde una pista que el abonado
-necesitaba** — que es justo el caso del 02-oct, cuando se pasó a `index.m3u8`
-porque en algunos satélites la etiqueta de idioma miente.
-
-*Verificación:* la hago desde aquí leyendo el master; la app además registra
-`tracks.crudo` con lo que ve.
-
-### 3. `estrellashd-mp4`: el audio desaparece y vuelve
+### 2. `estrellashd-mp4`: el audio desaparece y vuelve
 
 Pendiente **11**, y arrastra el **12**. Revisar errores PES en Astra. Importa
 más de lo que parece porque es el caso real que destapó que ExoPlayer tolera
@@ -180,7 +167,7 @@ mal un cambio en el número de pistas a mitad de stream.
 
 *Verificación:* un remojo del canal con el contador de pistas en el log.
 
-### 4. Pasar `a093` por Flussonic — añade un canal de prueba
+### 3. Pasar `a093` por Flussonic — añade un canal de prueba
 
 Pendiente **9**. Es el único SD H.264 satelital y probablemente viene
 entrelazado, así que aporta un caso que los seis actuales no tienen. Mismos
@@ -196,6 +183,7 @@ ajustes que el resto: `segment_duration 2` y `segment_count 12`.
 |---|---|---|
 | 18 | MP2 → AAC en todos los canales del lineup | 26-sep, verificado: los seis entregan `aac 48000 Hz 2ch` |
 | 7 | letrero «sin señal» como fuente de respaldo | 01-oct, Edgar cortó la señal y entró el letrero |
+| 36 | el audio duplicado de HBO y Discovery | 11-oct, y **no era de headend**: `?separate_audio=true` en la URL del generador |
 
 La trampa del letrero, que costó un rato: en `backup <ubicación>/<archivo>` el
 prefijo es el **nombre de la ubicación VOD**, no una carpeta, y hay que
@@ -232,7 +220,7 @@ declararla.
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
 | ~~37~~ | ~~**El modo tunneled falla una aserción de Media3 al cambiar de canal**~~ | — | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. **Medido el 07-oct durante M4: 16 fallos en 20 sintonizaciones, un 80 %** —muy por encima del 5–30 % que se había estimado antes, y casi uno por cambio de canal—. Sigue recuperándose: 19 de 20 dieron imagen, y la que no fue un canal caído en origen. **Y el 08-oct salió el otro lado de la balanza, que cambia la pregunta:** apagar el tunneled no sale gratis. En `hbohd`, 1,6 min sin tunneled dieron **15 rebuffers** —uno cada 4 s—, el offset trepó de 10,7 a 20,7 s, saltó la vuelta al borde y se perdieron 74 fotogramas; la misma caja con tunneled puesto, 5,6 min con **1 rebuffer** y el offset clavado en 10,8. Ni red ni CPU: 77 Mbps de media para un canal de 4 Mbps, CPU al 9 %, cero reintentos. Así que la decisión ya no es «¿molesta el fallo del tunneled?» sino «¿molesta más que un canal que se corta cada cuatro segundos?». Antes se midió entre el 5 % y el 30 % de los zapeos; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila | **Cerrado 08-oct: el tunneled se queda, activo de fábrica.** La decisión la zanjó medir el otro platillo — 20,4 min con tunneled dieron **0 rebuffers** y 1,6 min sin él dieron **15**, con el offset trepando a 20,7 s hasta disparar la vuelta al borde. El fallo de la aserción cuesta un tropiezo al zapear; apagarlo cuesta el canal. El interruptor se queda para excluir modelos por `deviceOverrides` |
-| 36 | **El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition** | headend | HBO y Discovery ofrecen «Español, Español, Inglés». Lo limpio es que la variante no lleve audio cuando hay grupo `AUDIO`; en la app sería adivinar, y una regla que se equivoque esconde una pista que el abonado necesitaba |
+| ~~36~~ | ~~**El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition**~~ | — | **cerrado el 11-oct, y no era trabajo de headend.** HBO y Discovery ofrecían «Español, Español, Inglés» porque Flussonic declara los audios como renditions `EXT-X-MEDIA` **y además** apunta la variante a `tracks-v1a1`, que los lleva multiplexados. Se arregla con **un parámetro en la URL que publica el generador**, igual que el filtro de ABR: `?separate_audio=true`. Medido con `ffprobe` sobre los masters reales: **3 pistas de audio sin él, 2 con él**, y `tracks-v1/mono.m3u8` entrega solo vídeo. Antes de dar con el parámetro se probaron cuatro formas de `filter=tracks` y ninguna sirve —pedir `v1a1a2` sigue apuntando a la variante multiplexada y pedir `v1` deja el canal sin audio—. Implementado en `servidor-canales@8cfe89f`, solo cuando el stream tiene más de un audio: con uno no arregla nada y cuesta una conexión más. **Lo que conviene recordar es que llevaba una semana en la lista de headend sin ser de headend**, y que lo que lo destapó fue leer el master en vez de la tabla de pendientes. Falta que Edgar mire el menú de audio en pantalla |
 | ~~35~~ | ~~**Cajas con Android < 7.1.1 no validan el certificado del registro**~~ | — | **cerrado 05-oct, medido en un emulador de API 22.** `RegistryTrust` empaqueta ISRG Root X1, X2, YR e YE y las usa **solo** para el registro. Sin el arreglo: `CertPathValidatorException: Trust anchor for certification path not found`. Con él: `registro.respuesta autorizado=true` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
 | ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
