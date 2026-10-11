@@ -48,4 +48,25 @@ class DiagnosticoTest : StringSpec({
 		sumar(m, "SENAL", tope = 12)
 		JsonObject(m.toMap()).toString() shouldBe """{"SENAL":1}"""
 	}
+
+	// --- el audio sin normalizar (§2, defensa 2) ---------------------------
+
+	"la clave del audio lleva canal y códec, porque sin el canal no sirve" {
+		// «Este site tiene un canal en mp2» no basta para arreglarlo: hay que
+		// decir cuál. Y un canal puede cambiar de códec a mitad del lineup, así
+		// que son dos claves y no una.
+		val m = mutableMapOf<String, JsonPrimitive>()
+		repeat(14) { sumar(m, "estrellassd:mpeg", tope = 20) }
+		sumar(m, "estrellassd:ac3", tope = 20)
+		m.size shouldBe 2
+		m["estrellassd:mpeg"]!!.content shouldBe "14"
+	}
+
+	"veinte canales sin normalizar ya dicen que el problema es el site" {
+		// El tope es más bajo que el de fallos a propósito: pasados veinte, la
+		// lista completa no añade nada a la conclusión.
+		val m = mutableMapOf<String, JsonPrimitive>()
+		repeat(40) { sumar(m, "canal$it:mpeg", tope = 20) }
+		m.size shouldBe 20
+	}
 })

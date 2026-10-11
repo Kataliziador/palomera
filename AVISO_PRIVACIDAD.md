@@ -36,6 +36,7 @@ tiene el servicio contratado, lo siguiente:
 | Dirección del servidor de tu proveedor | La que se escribió al configurar la app. Nos dice de qué proveedor eres, no quién eres |
 | Datos técnicos de la caja | Fabricante, modelo, versión de Android, arquitectura, memoria y la lista de decodificadores de vídeo que trae |
 | Resumen de reproducción | Cuántos canales se abrieron, cuántos dieron imagen, cuánto tardó en aparecer, cuántos cortes hubo, cuántos minutos se reprodujeron en total, y **qué canales fallaron** |
+| Canales con el audio mal preparado | Si un canal de tu proveedor llega con un formato de audio que no es el que debería, el nombre de ese canal y el formato que llegó. Es un dato sobre **el canal**, no sobre ti: sirve para avisar a tu proveedor de que ese canal se va a quedar sin sonido en algunas cajas |
 
 **Y nada más.** No hay nombre, correo, teléfono, dirección, ubicación,
 contactos, fotos, micrófono ni cámara. La aplicación no los pide y no los
@@ -127,6 +128,7 @@ documento también cambia.
 | Identificador de instalación | `RegistryRepository.installId`, un `UUID` aleatorio en `SharedPreferences` |
 | Versión, host, datos de la caja | `RegistryRepository.peticion()` y `dispositivo()` |
 | Resumen de reproducción | `Diagnostico.resumen()` |
+| Canales con el audio mal preparado | `Diagnostico.resumen()` → `audioSinNormalizar`, alimentado desde `Media3LiveEngine.revisarNormalizacionDeAudio()`. Clave `canal:códec`, acotado a 20 canales |
 | «qué canales fallaron, no qué viste» | `Diagnostico.anotarSesion()`: solo suma cuando `causaDeFallo != null` |
 | Destino | `BuildConfig.REGISTRY_URL`, hoy `https://authjelly.satmx.net` |
 | Identificador a la vista | `about.kt`, fila «Identificador de esta instalación» |

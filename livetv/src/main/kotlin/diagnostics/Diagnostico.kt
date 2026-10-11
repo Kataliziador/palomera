@@ -72,6 +72,7 @@ class Diagnostico private constructor(context: Context) {
 		tunneledPedido: Boolean,
 		tunneledRescatado: Boolean,
 		causaDeFallo: String?,
+		audioSinNormalizar: String? = null,
 	) {
 		val e = prefs.edit()
 		e.putInt(K_SESIONES, prefs.getInt(K_SESIONES, 0) + 1)
@@ -87,6 +88,22 @@ class Diagnostico private constructor(context: Context) {
 		e.putLong(K_MINUTOS, prefs.getLong(K_MINUTOS, 0) + msReproducidos / 60_000)
 		if (tunneledPedido) e.putInt(K_TUN_PEDIDO, prefs.getInt(K_TUN_PEDIDO, 0) + 1)
 		if (tunneledRescatado) e.putInt(K_TUN_RESCATE, prefs.getInt(K_TUN_RESCATE, 0) + 1)
+
+		// El códec de audio que **no** era AAC, por canal (§2, defensa 2).
+		//
+		// Sin esto el aviso se queda en el log de esa caja y enterarse exige ir
+		// al site, que es justo el viaje que la defensa existía para evitar. Y
+		// el modo de fallo es silencioso: la caja de pruebas decodifica
+		// `audio/mpeg` y `audio/ac3` por hardware, así que un canal mal
+		// normalizado se oye perfecto en desarrollo y es silencio en una caja
+		// barata. Con esta clave, «un abonado no tiene sonido» se convierte en
+		// «el canal X de este site no pasó por la normalización».
+		if (audioSinNormalizar != null && canal != null) {
+			e.putString(
+				K_AUDIO,
+				sumarAcotado(prefs.getString(K_AUDIO, null), "$canal:$audioSinNormalizar", MAX_AUDIOS),
+			)
+		}
 
 		if (causaDeFallo != null) {
 			e.putString(K_FALLOS, sumarAcotado(prefs.getString(K_FALLOS, null), causaDeFallo, MAX_CAUSAS))
@@ -125,6 +142,7 @@ class Diagnostico private constructor(context: Context) {
 			put("tunneledRescatado", prefs.getInt(K_TUN_RESCATE, 0))
 			mapaDe(prefs.getString(K_FALLOS, null))?.let { put("fallosPorCausa", it) }
 			mapaDe(prefs.getString(K_CANALES, null))?.let { put("fallosPorCanal", it) }
+			mapaDe(prefs.getString(K_AUDIO, null))?.let { put("audioSinNormalizar", it) }
 		}
 	}
 
@@ -168,12 +186,23 @@ class Diagnostico private constructor(context: Context) {
 		private const val K_TUN_RESCATE = "tunRescate"
 		private const val K_FALLOS = "fallos"
 		private const val K_CANALES = "canales"
+		private const val K_AUDIO = "audioSinNormalizar"
 
 		/** Causas distintas que se guardan. Son pocas por diseño: son enums. */
 		private const val MAX_CAUSAS = 12
 
 		/** Canales con fallo que se guardan. Un lineup ronda los 120. */
 		private const val MAX_CANALES = 40
+
+		/**
+		 * Canales con el audio sin normalizar que se guardan.
+		 *
+		 * Más bajo que [MAX_CANALES] a propósito: si un site tiene **veinte**
+		 * canales sin normalizar, el problema es el site entero y no hace falta
+		 * la lista completa para saberlo. Pasado el tope se siguen contando los
+		 * que ya están, que es lo que hace `sumarAcotado`.
+		 */
+		private const val MAX_AUDIOS = 20
 
 		private val lector = Json { ignoreUnknownKeys = true }
 

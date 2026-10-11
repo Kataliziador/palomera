@@ -79,6 +79,7 @@ el editor somos nosotros (`CLAUDE.md` §8). Lo que la app manda hoy, y a dónde:
 | Modelo, fabricante, ABIs, RAM, versión de Android | registro propio | soporte |
 | Inventario de decoders de vídeo | registro propio | elegir el motor por modelo |
 | Diagnóstico de reproducción acumulado | registro propio | operar: qué falla y dónde |
+| Canales cuyo audio no llegó normalizado, con su códec | registro propio | avisar al ISP de que ese canal se va a quedar mudo en algunas cajas (§2 del `CLAUDE.md`) |
 | Host del servidor que escribió el abonado | registro propio | saber de qué ISP es |
 
 Cómo se declara, y por qué:
@@ -100,8 +101,9 @@ Cómo se declara, y por qué:
 **La política de privacidad es obligatoria** y necesita una URL pública
 permanente. **Redactada el 08-oct en `AVISO_PRIVACIDAD.md`**, verificada campo
 por campo contra el código y con un apéndice que liga cada frase a la línea que
-la sostiene. Le faltan cuatro datos que solo puede poner Edgar —razón social,
-domicilio, plazo de conservación y correo de contacto— y publicarla. Tiene que decir, en español y sin rodeos, qué se recoge de lo de
+la sostiene. Le faltan cinco datos que solo puede poner Edgar —razón social,
+domicilio, plazo de conservación, correo de contacto y la fecha de
+publicación— y publicarla. Tiene que decir, en español y sin rodeos, qué se recoge de lo de
 arriba, para qué, cuánto se conserva y a quién escribir para pedir su
 eliminación — eso último lo exige la LFPDPPP, y el `installId` basta para
 identificar un envío.

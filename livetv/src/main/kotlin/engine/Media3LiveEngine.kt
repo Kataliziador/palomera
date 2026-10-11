@@ -69,6 +69,14 @@ class Media3LiveEngine(
 	private var audioYaRevisado = false
 
 	/**
+	 * El códec de audio recibido cuando **no** era AAC, para la telemetría.
+	 *
+	 * Se guarda aquí y se entrega al cerrar la sesión en vez de informarlo en
+	 * el momento, porque `Diagnostico` cuenta por sesión y no por evento.
+	 */
+	private var audioSinNormalizar: String? = null
+
+	/**
 	 * El idioma por defecto se aplica **una vez por sintonía**.
 	 *
 	 * Si se reaplicara en cada `onTracksChanged`, a quien cambiara el audio a
@@ -309,6 +317,7 @@ class Media3LiveEngine(
 		audioTracks = emptyList()
 		selectedAudio = null
 		audioYaRevisado = false
+		audioSinNormalizar = null
 		audioPorDefectoAplicado = false
 		audioPorDefectoAvisado = false
 		abrYaAvisado = false
@@ -469,6 +478,7 @@ class Media3LiveEngine(
 					firstFrameAtMs == 0L -> "sinImagen"
 					else -> ultimaCausa?.name
 				},
+				audioSinNormalizar = audioSinNormalizar,
 			)
 			prepareAtMs = 0L
 		}
@@ -1625,6 +1635,12 @@ class Media3LiveEngine(
 			"modelo" to caps.model,
 			"puedeDecodificar" to puede,
 		)
+
+		// Lo que viaja al registro, para que esto no se quede en el log de una
+		// caja a la que habría que ir (§2, defensa 2). Se anota suene o no:
+		// que suene aquí es un accidente del hardware de esta caja, no que el
+		// site esté bien. Sin el prefijo `audio/`, que no aporta y ocupa.
+		audioSinNormalizar = mimeObservado.substringAfter("audio/")
 
 		if (puede) {
 			// Suena, pero solo porque esta caja trae el decoder. En otra no.
