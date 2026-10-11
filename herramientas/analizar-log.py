@@ -134,18 +134,43 @@ def main() -> int:
 		      f"{veredicto(float(primer), *OBJETIVOS['primer_fotograma_ms'])}")
 
 	# --- salud de la caja ---------------------------------------------------
-	def serie(clave: str, conv=float) -> list[float]:
-		return [conv(d[clave].rstrip("%")) for d in latidos if clave in d]
+	def serie(clave: str) -> list[float]:
+		"""Los valores numéricos de una clave del latido.
+
+		El latido `n=0` que sigue a un reinicio trae `cpu=null` y
+		`ramLibreMb=null`: el muestreador todavía no ha producido lectura. Un
+		`null` es «no medido», no un cero, así que se descarta —promediarlo
+		como 0 hundiría la mediana de CPU y fingiría una fuga de RAM.
+		"""
+		salida: list[float] = []
+		for d in latidos:
+			v = d.get(clave, "").rstrip("%")
+			try:
+				salida.append(float(v))
+			except ValueError:
+				continue
+		return salida
 
 	cpu, ram = serie("cpu"), serie("ramLibreMb")
 	buf, directo = serie("bufferS"), serie("directoS")
 	print(f"\n{NEGRITA}La caja{FIN}")
 	if cpu:
 		print(f"  cpu        mediana {est.median(cpu):>5.0f} %   p95 {sorted(cpu)[int(.95 * len(cpu))]:>5.0f} %")
-	if ram:
-		deriva = ram[-1] - ram[0]
+	if len(ram) >= 60:
+		# Comparar el primer latido con el último daba «posible fuga» sobre una
+		# serie plana: el 10-oct la RAM libre osciló entre 692 y 745 MB las
+		# cinco horas y el último latido cayó en un valle. Se comparan las
+		# medianas de los quince primeros minutos y de los quince últimos, que
+		# es lo que distingue una tendencia de un valle.
+		tramo = min(450, len(ram) // 3)
+		ini, fin = est.median(ram[:tramo]), est.median(ram[-tramo:])
+		deriva = fin - ini
 		señal = "sin fuga" if deriva > -50 else f"{ROJO}posible fuga{FIN}"
-		print(f"  ram libre  {ram[0]:.0f} → {ram[-1]:.0f} MB   ({deriva:+.0f})   {señal}")
+		print(f"  ram libre  {ini:.0f} → {fin:.0f} MB   ({deriva:+.0f})   "
+		      f"oscila {min(ram):.0f}–{max(ram):.0f}   {señal}")
+	elif ram:
+		print(f"  ram libre  {ram[0]:.0f} → {ram[-1]:.0f} MB   "
+		      f"{GRIS}(sesión corta: no se juzga la deriva){FIN}")
 	if buf:
 		print(f"  buffer     mediana {est.median(buf):>5.1f} s   p5 {sorted(buf)[int(.05 * len(buf))]:>5.1f} s   mínimo {min(buf):.1f} s")
 	if directo:
@@ -154,7 +179,13 @@ def main() -> int:
 	# --- la vuelta al borde -------------------------------------------------
 	saltos = [(l[:12], campos(l)) for l in cuerpo
 	          if "offset.vuelveAlBorde" in l or "offset.saltoNoAdelanta" in l]
-	tras = [campos(l) for l in cuerpo if "offset.trasElSalto" in l]
+	# `trasElSalto` se emparejaba por índice, y eso se rompió el 11-oct en
+	# cuanto hubo un salto **declinado**: el declinado no deja medida posterior,
+	# así que la columna «después» de la primera fila mostraba la medida del
+	# salto siguiente. Un dato correcto en la fila equivocada es peor que un
+	# hueco. Se empareja por cercanía en el tiempo, que es lo que de verdad los
+	# liga: la medida se escribe 2 ms después del salto.
+	tras = [(segundos(l), campos(l)) for l in cuerpo if "offset.trasElSalto" in l]
 	# La columna `gananciaMs` es del 10-oct; en los volcados anteriores se
 	# deriva, que es exactamente la resta que hice a mano para encontrar el
 	# pendiente 73. Sin esto la herramienta no sirve para releer el pasado,
@@ -179,7 +210,11 @@ def main() -> int:
 			def n(k: str) -> str:
 				v = d.get(k)
 				return f"{int(v):>8}" if v and v.lstrip("-").isdigit() else f"{'—':>8}"
-			despues = tras[i].get("offsetMs", "—") if i < len(tras) else "—"
+			despues = next(
+				(d2.get("offsetMs", "—") for t2, d2 in tras
+				 if 0 <= t2 - segundos(f"{hora} ") <= 2.0),
+				"—",
+			)
 			pos = "posAntesMs" if "posAntesMs" in d else "posMs"
 			marca = "*" if "gananciaDerivada" in d else " "
 			print(f"  {hora} {n('offsetMs')} {n('ventanaMs')} {n(pos)} {n('destinoMs')} {n('gananciaMs')}{marca} {despues:>8}")
@@ -217,6 +252,51 @@ def main() -> int:
 			print(f"  {lineas_latido[i][:8]}  el buffer cae 2 s por cada 2 s de reloj y se vacía")
 		print(f"{GRIS}  desde el cliente no hay nada que hacer; para confirmarlo,{FIN}")
 		print(f"{GRIS}  herramientas/vigilar-playlist.py a la vez que la sesión{FIN}")
+
+	# --- el bucle de inanición ----------------------------------------------
+	#
+	# Descubierto el 11-oct, y es el que más cortes cuesta de todo lo medido:
+	# 11 cortes en 38 s y 13 en 37 s, dos ráfagas de la misma sesión. La forma
+	# es inconfundible: la posición se queda a 2-4 s del borde de un origen que
+	# publica más despacio que el reloj, así que cada segmento llega tarde y el
+	# reproductor se queda sin nada cada tres segundos, indefinidamente. No es
+	# una parada del origen —hay datos, llegan— y no es un corte suelto.
+	#
+	# Lo que lo distingue de una parada: aquí el buffer **no se vacía hacia
+	# cero**, se queda oscilando entre 1,5 y 5 s. Por eso el detector de
+	# paradas no lo ve y hacía falta éste.
+	# El techo se mide sobre la **mediana** y no sobre el máximo: el último
+	# latido de la racha es justo el momento en que el origen suelta de golpe
+	# todo lo que no publicó —el buffer salta a 66 s— y con el máximo el
+	# detector se quedaba mudo precisamente en las dos rachas que lo motivaron.
+	HUECO_MAX_S, MINIMO_CORTES, BUFFER_TECHO_S = 5.0, 4, 6.0
+	cortes_t = [segundos(l) for l in cuerpo if "player.rebuffer" in l]
+	buffers_t = [(segundos(l), float(d["bufferS"]))
+	             for l, d in zip(lineas_latido, latidos) if "bufferS" in d]
+
+	bucles: list[tuple[float, float, int]] = []
+	racha_t: list[float] = []
+	for t in cortes_t + [float("inf")]:
+		if racha_t and t - racha_t[-1] <= HUECO_MAX_S:
+			racha_t.append(t)
+			continue
+		if len(racha_t) >= MINIMO_CORTES:
+			dentro = [b for s_, b in buffers_t if racha_t[0] <= s_ <= racha_t[-1]]
+			if dentro and est.median(dentro) <= BUFFER_TECHO_S:
+				bucles.append((racha_t[0], racha_t[-1], len(racha_t)))
+		racha_t = [t] if t != float("inf") else []
+
+	if bucles:
+		print(f"\n{NEGRITA}Bucle de inanición{FIN}  ({len(bucles)})")
+		for ini, fin, n in bucles:
+			def hhmmss(s_: float) -> str:
+				return f"{int(s_ // 3600):02d}:{int(s_ % 3600 // 60):02d}:{int(s_ % 60):02d}"
+			dentro = [b for s_, b in buffers_t if ini <= s_ <= fin]
+			print(f"  {hhmmss(ini)}–{hhmmss(fin)}  {fin - ini:.0f} s  "
+			      f"{n} cortes  un corte cada {(fin - ini) / max(n - 1, 1):.1f} s  "
+			      f"buffer mediano {est.median(dentro):.1f} s")
+		print(f"{GRIS}  la posición está pegada al borde de un origen lento;{FIN}")
+		print(f"{GRIS}  la cura medida es alejarla, no acercarla{FIN}")
 
 	# --- lo que no encaja en ninguna sección --------------------------------
 	avisos = {t: n for t, n in tipos.items()
