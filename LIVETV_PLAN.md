@@ -38,7 +38,15 @@ muestra solo el enrutador.
 
 ---
 
-## M1 — Diagnóstico y degradación
+## M1 — Diagnóstico y degradación — **cerrada 2026-10-09**
+
+Se dio por cerrada de hecho hace semanas —M3 a M6 se apoyan en ella y ninguna
+habría podido medirse sin el menú de degradación ni el log estructurado— y la
+bitácora seguía diciendo «pendiente de validación» desde el 23-sep. Corregido el
+11-oct. Lo único que sigue abierto de su alcance es el **inventario de códecs de
+la ZTE B866V2** (pendiente 4), que necesita la caja físicamente, y el pendiente
+8. El menú, desde el 11-oct, solo en compilaciones de depuración (§7 de
+`LIVETV_ENGINE.md`).
 
 **Objetivo:** poder ver qué está pasando y poder simular cajas peores. Sin
 esto, las fases siguientes son adivinanza.
@@ -57,7 +65,12 @@ MPEG-2 desde el menú cambia visiblemente el comportamiento; el log se exporta.
 
 ---
 
-## M2 — Estabilidad base
+## M2 — Estabilidad base — **cerrada 2026-10-09**
+
+Cerrada con el `targetOffsetMs` del pendiente 67: medido con 14 000, buffer p5
+de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora
+cumpliendo §10 por primera vez en una sesión larga. Lo que queda de estabilidad
+ya no es «un canal sano»: es lo que pasa cuando el origen falla, y eso es M7.
 
 **Objetivo:** que un canal sano corra sin microcortes.
 
@@ -231,9 +244,21 @@ reproduce por libVLC con audio y sin peine. El cambio de backend es invisible.
 
 ---
 
-## M7 — Resiliencia ante lluvia
+## M7 — Resiliencia ante lluvia — **abierta**
 
 **Objetivo:** que un corte no requiera intervención del suscriptor.
+
+**Lo que ya está y está validado en pantalla:** la escalera del vigilante
+(pendiente 69, los dos cortes provocados por Edgar el 09-oct: 16 s por el
+escalón 2 reiniciando el canal en Flussonic, 26 s por el escalón 3 con el cable
+fuera), el playlist vacío como espera, el mapeo de errores y la regla de no
+vetar decoders durante corrupción.
+
+**Lo que falta, y es lo que de verdad se parece a la lluvia:** `tc netem
+loss 5% delay 100ms 20ms`, un corte de **5 minutos**, y el golden sample de
+lluvia real en bucle —que este mismo documento llama «la mejor prueba que
+existe»—. Todo lo que hemos roto hasta ahora es corte limpio, y la banda Ku no
+falla así. Más el pendiente 12 y el bucle de inanición del 75.
 
 - `LiveWatchdog` con la escalera de recuperación
 - **Tratar el playlist vacío como estado de espera, nunca como error.**
@@ -260,11 +285,23 @@ el headend (pendientes 6 y 7 de `LIVETV_LOG.md`).
 
 ---
 
-## M8 — Maratón y zapping
+## M8 — Maratón y zapping — **abierta**
 
 **Objetivo:** sobrevivir a la operación real.
 
-- Reconexión programada antes del rollover de PTS (~26.5 h)
+**Estado medido al 11-oct:** la sesión más larga son **9,3 h** contra un mínimo
+aceptable de 24 h en §10, y el zapping va bien pero con pocas muestras —4
+sintonías con el primer fotograma entre 1 651 y 1 931 ms—. Nada de esto está
+cerrado.
+
+- ~~Reconexión programada antes del rollover de PTS (~26.5 h)~~ **probablemente
+  no hay que escribirla.** Leído el 11-oct en la fuente de Media3 1.8.0:
+  `TimestampAdjuster` dice «taking into account timestamp rollover», lleva
+  `MAX_PTS_PLUS_ONE = 0x200000000L` —los 33 bits— y estima el número de vueltas
+  en `adjustTsTimestamp`; el camino HLS lo usa vía `TimestampAdjusterProvider`,
+  que entrega un `TimestampAdjuster(MODE_SHARED)` por secuencia de
+  discontinuidad. **Queda por comprobar con un remojo que cruce las 26,5 h**, y
+  solo si se rompe se escribe algo
 - Sin fugas de memoria en zapping repetido
 - Medir el zapping real
 

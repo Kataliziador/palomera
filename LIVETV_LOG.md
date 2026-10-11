@@ -133,7 +133,9 @@ Lo que queda por hacer en el headend, en orden de lo que desbloquea. Flussonic
 > (pendiente 7, 01-oct)— y no nombraba dos que faltaban, el 36 y el 11. Al
 > ponerse a redactar el 36 resultó que **tampoco era de headend**: se arregla
 > con un parámetro en la URL del generador y está cerrado el mismo día. Quedan
-> tres, y ninguna es la que llevaba una semana encabezando la lista.
+> tres, y ninguna es la que llevaba una semana encabezando la lista. Al
+> desplegar y leer `/health` apareció una cuarta que el servicio ya señalaba
+> sola, así que son cuatro.
 
 Advertencia previa: **el video nunca se transcodifica** (`CLAUDE.md` §2). En
 cualquier pantalla de transcoder, el video va en **Copy**. Si se toca el video,
@@ -159,7 +161,26 @@ Flussonic no se entera de que la fuente se fue hasta que agota el suyo.
 reconstrucción, igual que se midió el 22-sep. Avísame y lo mido en cinco
 minutos.
 
-### 2. `estrellashd-mp4`: el audio desaparece y vuelve
+### 2. `segment_count` en los tres canales que el servicio ya señala
+
+Descubierto el 11-oct leyendo `http://<site>:8097/health`, que lo dice solo:
+
+```
+canal 4  (once)       SE VA A CORTAR: «oncesd» sirve 4 segmentos de 5,6 s (ventana 22 s)
+canal 10 (espn)       SE VA A CORTAR: «espnsur1abr» sirve 4 de 5,3 s (ventana 21 s)
+canal 12 (canal22sd)  SE VA A CORTAR: «canal22sd» sirve 4 de 5,6 s (ventana 22 s)
+```
+
+Son los que no llevan `segment_count` propio. Con una ventana de 21-22 s el
+contrato no deja pasar de ~11 s de retraso al directo, y el reproductor necesita
+unos tres segmentos de margen: con segmentos de 5,6 s eso no cabe en media
+ventana. `segment_duration 2` y `segment_count 12`, como los que van bien.
+
+**El panel de salud del propio servicio es la lista de tareas**, y conviene
+mirarlo antes que esta hoja: él sabe lo que Flussonic entrega ahora mismo y esta
+hoja no.
+
+### 3. `estrellashd-mp4`: el audio desaparece y vuelve
 
 Pendiente **11**, y arrastra el **12**. Revisar errores PES en Astra. Importa
 más de lo que parece porque es el caso real que destapó que ExoPlayer tolera
@@ -167,7 +188,7 @@ mal un cambio en el número de pistas a mitad de stream.
 
 *Verificación:* un remojo del canal con el contador de pistas en el log.
 
-### 3. Pasar `a093` por Flussonic — añade un canal de prueba
+### 4. Pasar `a093` por Flussonic — añade un canal de prueba
 
 Pendiente **9**. Es el único SD H.264 satelital y probablemente viene
 entrelazado, así que aporta un caso que los seis actuales no tienen. Mismos
