@@ -42,17 +42,6 @@ class DeviceLoad(context: Context) {
 	private var lastTicks = -1L
 	private var lastSampleAtMs = 0L
 
-	/**
-	 * Un `/proc` cerrado no se abre a mitad de sesión: al primer fallo se deja
-	 * de intentar.
-	 *
-	 * No basta con avisar una vez. En Android 11 `/proc/loadavg` da EACCES, y
-	 * seguir pidiéndolo cada dos segundos generaba una denegación de SELinux
-	 * por latido en el registro de auditoría del kernel — ruido en toda la
-	 * caja, no solo en nuestro log.
-	 */
-	private var procStatCerrado = false
-	private var loadAvgCerrado = false
 
 	data class Muestra(
 		/** CPU de **nuestro proceso** como porcentaje de la caja entera. */
@@ -125,5 +114,28 @@ class DeviceLoad(context: Context) {
 				LiveLog.warn("carga.loadavgIlegible", "causa" to it.message)
 				null
 			}
+	}
+
+	companion object {
+		/**
+		 * Un `/proc` cerrado no se abre nunca: al primer fallo se deja de
+		 * intentar, **y para todo el proceso**.
+		 *
+		 * No basta con avisar una vez por sesión. En Android 11
+		 * `/proc/loadavg` da EACCES, y seguir pidiéndolo cada dos segundos
+		 * generaba una denegación de SELinux por latido en el registro de
+		 * auditoría del kernel — ruido en toda la caja, no solo en nuestro log.
+		 *
+		 * **Estáticas desde el 11-oct.** Eran campos de instancia y se crea una
+		 * instancia por preparación, así que el aviso salía una vez por
+		 * sintonía: cuatro `WARN` en cuatro zapeos, medido en el volcado de las
+		 * 22:07. Los permisos de `/proc` no cambian entre canales, que es
+		 * exactamente lo que este comentario decía desde el principio.
+		 */
+		@Volatile
+		private var procStatCerrado = false
+
+		@Volatile
+		private var loadAvgCerrado = false
 	}
 }
