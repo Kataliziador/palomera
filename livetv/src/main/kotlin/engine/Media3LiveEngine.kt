@@ -216,6 +216,13 @@ class Media3LiveEngine(
 	private var resyncCount = 0
 	private var resyncDeclinadas = 0
 
+	/** Cuántas veces ha llegado un playlist nuevo. Pendiente 76. */
+	private var cambiosDeTimeline = 0
+
+	/** Para no repetir el mismo `offset.noSeEvalua` en cada playlist. */
+	private var ultimoMotivoSinEvaluar: String? = null
+	private var ultimoNoSeEvaluaAtMs = 0L
+
 	override fun attach(surface: SurfaceView) {
 		this.surface = surface
 		player?.setVideoSurfaceView(surface)
@@ -277,6 +284,12 @@ class Media3LiveEngine(
 		lastResyncAtMs = 0
 		resyncCount = 0
 		resyncDeclinadas = 0
+		// `cambiosDeTimeline` se reinicia con la sesión a propósito: lo que se
+		// quiere leer en el latido es «cuántos playlists ha visto **esta**
+		// sintonía», no un acumulado de la app.
+		cambiosDeTimeline = 0
+		ultimoMotivoSinEvaluar = null
+		ultimoNoSeEvaluaAtMs = 0L
 		prepareAtMs = inicio
 		firstFrameAtMs = 0
 		rescateTunneledHecho = false
@@ -560,6 +573,7 @@ class Media3LiveEngine(
 			"perdidos" to s.droppedFrames,
 			"rebuffers" to s.rebufferCount,
 			"reintentos" to s.loadRetries,
+			"timelines" to cambiosDeTimeline,
 			"cpu" to c?.let { "%.0f%%".format(it.cpuPercent) },
 			*extra,
 			"ramLibreMb" to c?.ramAvailableMb,
@@ -1008,6 +1022,13 @@ class Media3LiveEngine(
 		}
 
 		override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+			// Pendiente 76. Toda la decisión de volver al borde vive dentro de
+			// este método, así que **si el playlist se congela el método no se
+			// llama y el mecanismo entero queda mudo** sin dejar rastro. Eso
+			// costó el 11-oct no poder explicar por qué en 38 segundos de bucle
+			// de inanición no se evaluó ni una vez. El contador va en el latido:
+			// si deja de subir mientras el buffer baja, ya no hay que suponerlo.
+			cambiosDeTimeline++
 			if (timeline.windowCount == 0) return
 			val window = timeline.getWindow(0, Timeline.Window())
 			val durationMs = window.durationMs
@@ -1091,6 +1112,40 @@ class Media3LiveEngine(
 			val dispara = disparaSinCalculo ||
 				decision is VueltaAlBorde.Decision.Salta ||
 				(noAdelanta != null && !dev.resyncSoloSiAdelanta)
+
+			// Pendiente 76: por qué **no** se salta.
+			//
+			// Hasta el 11-oct el log solo decía lo que el mecanismo hizo, nunca
+			// lo que no hizo. Con el offset leyendo 70 s sobre una ventana de
+			// 33,6 —o sea con la condición cumplida de sobra— hubo 38 segundos
+			// sin una sola línea, y las cuatro guardas eran candidatas por igual.
+			//
+			// Solo se registra cuando el disparador **habría** disparado, que es
+			// lo que acota esto a los momentos interesantes, y una vez por
+			// motivo y por enfriamiento para no inundar el log.
+			if (!puedeResincronizar && dispara) {
+				val motivo = when {
+					dev.liveEdgeResyncDisabled -> "apagado en el menú"
+					firstFrameAtMs <= 0L -> "aún sin imagen en pantalla"
+					player?.playbackState != Player.STATE_READY -> "el reproductor no está listo"
+					else -> "enfriamiento, faltan " +
+						"${(LiveTuning.LIVE_EDGE_RESYNC_COOLDOWN_MS - (ahoraMs - lastResyncAtMs)) / 1000} s"
+				}
+				if (motivo != ultimoMotivoSinEvaluar ||
+					ahoraMs - ultimoNoSeEvaluaAtMs > LiveTuning.LIVE_EDGE_RESYNC_COOLDOWN_MS
+				) {
+					ultimoMotivoSinEvaluar = motivo
+					ultimoNoSeEvaluaAtMs = ahoraMs
+					LiveLog.warn(
+						"offset.noSeEvalua",
+						"offsetMs" to real,
+						"ventanaMs" to durationMs,
+						"posMs" to antesMs,
+						"motivo" to motivo,
+					)
+				}
+				return
+			}
 
 			if (puedeResincronizar && noAdelanta != null && dev.resyncSoloSiAdelanta) {
 				// Aquí no hay nada que recuperar: la lista del origen no avanza y

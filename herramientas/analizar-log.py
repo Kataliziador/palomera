@@ -295,12 +295,22 @@ def main() -> int:
 			print(f"  {hhmmss(ini)}–{hhmmss(fin)}  {fin - ini:.0f} s  "
 			      f"{n} cortes  un corte cada {(fin - ini) / max(n - 1, 1):.1f} s  "
 			      f"buffer mediano {est.median(dentro):.1f} s")
+			# Pendiente 76: si el contador de playlists no sube durante la
+			# racha, el origen tenía la lista congelada y la vuelta al borde no
+			# se evaluó porque su método no se llamó. Es la pregunta que el
+			# 11-oct quedó sin contestar, y ahora la contesta el propio volcado.
+			tl = [int(d["timelines"]) for l, d in zip(lineas_latido, latidos)
+			      if "timelines" in d and ini <= segundos(l) <= fin]
+			if tl:
+				print(f"           playlists nuevos durante la racha: {max(tl) - min(tl)}"
+				      + ("  → la lista estaba congelada" if max(tl) - min(tl) == 0 else ""))
 		print(f"{GRIS}  la posición está pegada al borde de un origen lento;{FIN}")
 		print(f"{GRIS}  la cura medida es alejarla, no acercarla{FIN}")
 
 	# --- lo que no encaja en ninguna sección --------------------------------
 	avisos = {t: n for t, n in tipos.items()
-	          if t.startswith(("vigilante.", "player.error", "codec.", "abr.", "audio.noNorm"))}
+	          if t.startswith(("vigilante.", "player.error", "codec.", "abr.", "audio.noNorm",
+	                           "offset.noSeEvalua", "offset.superaLaVentana", "canal.noDisponible"))}
 	if avisos:
 		print(f"\n{NEGRITA}Avisos{FIN}")
 		for t, n in sorted(avisos.items(), key=lambda x: -x[1]):
