@@ -19,10 +19,17 @@ class VueltaAlBordeTest : StringSpec({
 
 	val OBJETIVO = 14_000L
 
-	"el primer salto de cada ráfaga iba hacia atrás: no se da" {
+	"el primer salto de cada ráfaga va hacia atrás, y eso es bueno" {
 		// Offset de 72,8 s con la posición a 6,4 s del final de la ventana. El
 		// offset está inflado porque la lista del origen no avanza; el destino
 		// calculado queda 7,6 s DETRÁS de donde ya está el reproductor.
+		//
+		// Medido el 11-oct: **ese salto es la cura**, no el desperdicio. Lleva
+		// la posición 9 s más adentro del buffer, que es lo que saca al
+		// reproductor del bucle de inanición del 75. Declinarlo costó 12 cortes
+		// en 33 s. La clasificación no cambia —el salto efectivamente no
+		// adelanta— pero quien la lee ya no debe entenderla como «no sirve»; de
+		// fábrica se salta igual. Pendiente 73, cerrado y refutado.
 		val d = VueltaAlBorde.decidir(
 			offsetRealMs = 72_837,
 			ventanaMs = 33_267,

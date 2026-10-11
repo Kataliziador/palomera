@@ -477,11 +477,32 @@ cat > /tmp/livetv.dev.xml <<'XML'
 </map>
 XML
 
-adb -s $D shell am force-stop org.jellyfin.androidtv.debug
+P=mx.kataliziador.palco.debug
+adb -s $D shell am force-stop $P
 adb -s $D push /tmp/livetv.dev.xml /data/local/tmp/d.xml
-adb -s $D shell run-as org.jellyfin.androidtv.debug sh -c \
-  "'cat /data/local/tmp/d.xml > /data/data/org.jellyfin.androidtv.debug/shared_prefs/livetv.dev.xml'"
+adb -s $D shell run-as $P sh -c \
+  "'cat /data/local/tmp/d.xml > /data/data/$P/shared_prefs/livetv.dev.xml'"
+adb -s $D shell rm /data/local/tmp/d.xml
 ```
+
+**El paquete es `mx.kataliziador.palco.debug`** — hasta el 11-oct este bloque
+decía `org.jellyfin.androidtv.debug`, que es el del upstream y no está instalado
+en ninguna caja nuestra desde que §8 fijó el `applicationId`. Quien copiara esto
+perdía media hora con un `run-as` que falla sin decir por qué.
+
+**Esto sobreescribe el archivo entero**, así que borra cualquier otra opción que
+el menú tenga puesta. Para cambiar una sola, hay que leerlo primero:
+
+```bash
+adb -s $D shell run-as $P cat /data/data/$P/shared_prefs/livetv.dev.xml
+```
+
+El `force-stop` no es opcional: la app mantiene las preferencias en memoria y al
+salir las vuelve a escribir, así que sin él el cambio se pierde.
+
+**Una clave presente ya marca la instalación como degradada**, aunque su valor
+sea el de fábrica: `isDegraded` mira si la clave existe, no qué vale. Para
+volver de verdad a fábrica se **quita** la clave, no se pone en `false`.
 
 `overlayMode 1` enciende el overlay compacto, que enseña decodificadores y
 códecs en pantalla. Quitar el override es borrar ese archivo.

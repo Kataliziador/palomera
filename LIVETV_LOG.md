@@ -263,11 +263,13 @@ un frame congelado.
 | ~~67~~ | ~~**El `targetOffsetMs` de fábrica no se usa: el suelo lo pisa y sobra ventana**~~ | — | medido el 09-oct en los cuatro canales: las ventanas DVR son de 29,9 a 38,6 s —14 segmentos—, el contrato permite sentarse a media ventana (15-19 s) y el cliente se asienta a **11,3 s**, porque pide 8 000 y el suelo de `3 × TARGETDURATION` lo sube a 10,2 (`offset.noSeAplica`, seis veces en el volcado). El techo del buffer **es** esa distancia: p50 6,2 s, máximo 10,0 s. Con el origen publicando ~1 s tarde en el 22 % de los segmentos, ese margen se agota 15 veces por hora. Subir el offset a ~14 000 es la mitad barata del arreglo y no necesita headend; la otra mitad es más `segment_count`. **Cerrado el 09-oct, y no en la app.** Medido con 14 000: buffer p5 de 4,3 a 9,1 s y **cero cortes en 38 minutos**, con ratio y rebuffers/hora cumpliendo §10 por primera vez en una sesión larga. El valor de fábrica de la app no se toca —sería Modo A y es el sitio equivocado—: lo calcula el generador del 45 % de la ventana que mide, con suelo 8000 y techo 14000 (`servidor-canales@e29f980`), así que cada canal de cada site recibe lo que su segmentación permite |
 | ~~68~~ | ~~**Cada cambio de canal registra un `ERROR_CODE_FAILED_RUNTIME_CHECK`**~~ | — | en el volcado del 09-oct, cinco de cinco zapeos: `engine.prepare`, y **1 ms después** `engine.release canal=<el nuevo> habiaPlayer=false`, `engine.play`, el error de ExoPlayer con `videoDecoder=null bufferedMs=0`, `player.idle` y una preparación nueva que sí funciona. Se recupera solo, así que no se ve en pantalla, pero explica parte del primer fotograma: 1 725-1 942 ms frente a los 1,1-1,5 s de §6. **No es de hoy** —el volcado del 08-oct trae el mismo error en su única sesión—. **Diagnosticado y arreglado el 10-oct, y la mitad de su descripción era falsa.** El `engine.release` de 1 ms después no es un fallo: lo hace `prepare()` para construir sobre limpio. El fallo es que `exo.prepare()` corre **antes** de que exista la superficie, que la crea la vista unos milisegundos después; aceptarla en caliente reconfigura el renderer con la reproducción ya pedida y dispara `Assertions.checkState`. Medido con 17 sintonías: con el arreglo, 0 errores de 6 frente a 9 de 11. **Y no cuesta lo que dije:** el primer fotograma es el mismo (1 794 contra 1 784 ms de mediana); los «400-800 ms» los deduje de una sola muestra que era un reinicio en caliente. **Cerrado el 10-oct y activo de fábrica**, validado en pantalla por Edgar: «sí vi bien todo sin problemas». El interruptor se queda para reproducir el comportamiento anterior |
 | ~~69~~ | ~~**Un canal podía quedarse muerto para siempre sin que nada lo rescatara**~~ | — | **el peor fallo encontrado hasta hoy, y cerrado el 09-oct.** 98 minutos de `estado=almacenando reproduciendo=false` con 35,8 s de buffer sin consumir y la posición cayendo hacia atrás, tras un `Source error`. El vigilante no lo vio porque medía el progreso como «la posición cambió», y en ese estado cambiaba sola: la ventana corría y el reproductor no. La vuelta al borde tampoco, porque exige `STATE_READY`. Arreglado en `RelojDeAvance`: progresar es **reproducir y moverse**. Lo que más conviene recordar es que el primer arreglo —«que la posición suba»— era falso y lo tumbó su propia prueba con los números de una sesión sana, donde la posición no sube nunca. **Cerrado y validado en pantalla el 09-oct con los dos cortes provocados por Edgar:** reiniciando el canal en Flussonic se curó en 16 s por el escalón 2, y desconectando el cable en 26 s por el escalón 3 —11 s desde que la red volvió—, las dos veces con el aviso en pantalla |
-| ~~70~~ | ~~**La vuelta al borde no vuelve al borde, y cada intento cuesta un corte**~~ | — | medido en 9,3 h de `mileniosd` la noche del 10-oct: **547 saltos** y después de cada uno el offset seguía en 37 s con una ventana de 33,6. **549 de los 579 cortes de la noche ocurren en el segundo siguiente a un salto**, o sea que el 95 % los provoca el mecanismo de recuperación, no la red. Mediana de 142 ms —invisible, Edgar vio la imagen perfecta— pero el ratio sube a 1,12 % cuando una sesión limpia da 0 %. Descartado el origen: publica a 0,997× y 1,002× tiempo real, y el reloj de la caja va a 2 s. **Cerrado el 10-oct y activo de fábrica**, medido con 203 minutos de día: **de 547 saltos en 9,3 h a 9 en 3,4 h**, y `offset.trasElSalto` —la columna que se añadió para poder juzgarlo— deja el directo en 17-19 s en seis de los nueve. Saltar a `ventana − offset objetivo` en vez de a la «posición por defecto» del reproductor es lo que lo arregla. Los tres saltos que no sirven **van hacia atrás**, y de eso se ocupa el 73. La hipótesis de la posición —«los reinicios dejan el reproductor en la cola»— era falsa; ver el 71 |
+| ~~70~~ | ~~**La vuelta al borde no vuelve al borde, y cada intento cuesta un corte**~~ | — | medido en 9,3 h de `mileniosd` la noche del 10-oct: **547 saltos** y después de cada uno el offset seguía en 37 s con una ventana de 33,6. **549 de los 579 cortes de la noche ocurren en el segundo siguiente a un salto**, o sea que el 95 % los provoca el mecanismo de recuperación, no la red. Mediana de 142 ms —invisible, Edgar vio la imagen perfecta— pero el ratio sube a 1,12 % cuando una sesión limpia da 0 %. Descartado el origen: publica a 0,997× y 1,002× tiempo real, y el reloj de la caja va a 2 s. **Cerrado el 10-oct y activo de fábrica**, medido con 203 minutos de día: **de 547 saltos en 9,3 h a 9 en 3,4 h**, y `offset.trasElSalto` —la columna que se añadió para poder juzgarlo— deja el directo en 17-19 s en seis de los nueve. Saltar a `ventana − offset objetivo` en vez de a la «posición por defecto» del reproductor es lo que lo arregla. Los tres saltos que no sirven **van hacia atrás** —se abrió el 73 por eso, y el 11-oct resultó que esos tres sí servían: ver el 73 y el 75. La hipótesis de la posición —«los reinicios dejan el reproductor en la cola»— era falsa; ver el 71 |
 | ~~71~~ | ~~**Un reinicio puede dejar el reproductor en la cola de la ventana**~~ | — | **cerrado el 10-oct, y el enunciado era falso.** Se dedujo de los offsets de 64 y 66 s de dos de las cuatro reconstrucciones de la noche, sin ver la posición. Con la columna `posAntesMs` puesta, el mismo síntoma —offsets de 72 y 80 s— aparece **con la posición a 26,8 s de una ventana de 33,3**: el reproductor no estaba en la cola de nada. `currentLiveOffset` es reloj de pared contra `EXT-X-PROGRAM-DATE-TIME`, así que con el playlist congelado ese número crece sin límite aunque el reproductor esté pegado al final de todos los datos que existen. **No hay defecto en `prepare()`**; lo que había era un instrumento mal leído |
-| 72 | **El disparador de la vuelta al borde está a 300 ms de dispararse en un canal sano** | **A** | medido el 10-oct: el disparador compara el offset real con **la mitad de la ventana** —16,8 s de 33,6— y exige 3 s de exceso, mientras el directo sano de `mileniosd` se asienta en **19,0-19,5 s**. Son 300-800 ms de margen: cualquier canal con la ventana un poco más corta resincronizaría cada 30 segundos para siempre sin que nada esté mal. Y el offset al que se asienta no lo elegimos: medido contra 8 000 → 10 200 (09-oct) y 14 000 → 16 674 (10-oct), el modelo que encaja es `real ≈ max(pedido, 3 × TARGETDURATION) + un segmento`, porque la reproducción empieza en un límite de segmento. El arreglo del 73 lo neutraliza de refilón —ese salto iría hacia atrás— pero el disparador sigue mal elegido: debería medirse contra el offset **alcanzable**, no contra una fracción de la ventana. **Sin arreglar**, y es el candidato siguiente |
-| 73 | **Tres de cada nueve vueltas al borde saltan hacia atrás** | **A** | la mitad que queda del 70. Medido el 10-oct, el primer salto de cada ráfaga va de 26 843 a 19 267 —**7,6 s hacia atrás**, alejándose del directo— porque el offset está inflado por una lista congelada y la posición ya está a 6,4 s del final de la ventana. No hay a dónde saltar y el salto cuesta un corte: 3 de los 19 de la sesión. **Arreglo del 10-oct:** no saltar si el destino calculado no adelanta al menos un segmento, registrar `offset.saltoNoAdelanta` y volver a evaluar al terminar el enfriamiento —que es exactamente cuando llega el salto que sí sirve, así que la recuperación no se retrasa—. Detrás de «Volver al borde solo si el salto adelanta», apagado de fábrica. **Pendiente de medir en pantalla** |
+| 72 | **El disparador de la vuelta al borde está a 300 ms de dispararse en un canal sano** | **A** | medido el 10-oct: el disparador compara el offset real con **la mitad de la ventana** —16,8 s de 33,6— y exige 3 s de exceso, mientras el directo sano de `mileniosd` se asienta en **19,0-19,5 s**. Son 300-800 ms de margen: cualquier canal con la ventana un poco más corta resincronizaría cada 30 segundos para siempre sin que nada esté mal. Y el offset al que se asienta no lo elegimos: medido contra 8 000 → 10 200 (09-oct) y 14 000 → 16 674 (10-oct), el modelo que encaja es `real ≈ max(pedido, 3 × TARGETDURATION) + un segmento`, porque la reproducción empieza en un límite de segmento. El arreglo del 73 lo neutralizaba de refilón —ese salto iría hacia atrás— pero el 73 se cerró refutado el 11-oct, así que ese efecto lateral ya no existe y el disparador sigue mal elegido: debería medirse contra el offset **alcanzable**, no contra una fracción de la ventana. **Sin arreglar**, y es el candidato siguiente |
+| ~~73~~ | ~~**Tres de cada nueve vueltas al borde saltan hacia atrás**~~ | — | **cerrado el 11-oct, y el enunciado era falso: el salto hacia atrás es la cura, no el desperdicio.** Se enunció midiendo la ganancia como «acercarse al directo», y de ahí salió la guarda del 10-oct: no saltar si el destino no adelanta al menos un segmento (`offset.saltoNoAdelanta`), detrás de «Volver al borde solo si el salto adelanta», apagada de fábrica. Medida en pantalla con el interruptor **encendido**, 298 min de `mileniosd`: la guarda disparó una vez y exactamente como estaba escrito —`gananciaMs=-9128`, salto no dado— y **1,4 s después empezó un bucle de inanición de 12 cortes en 33 s** (75). El salto declinado habría movido la posición de 28,1 a 19,0 s, o sea **alejándola del borde, 9 s más adentro del buffer**, que es justo lo que el bucle necesita. No es inferido: el comportamiento viejo sí dio ese salto y está medido —11:58:38, un corte, el buffer de 3,9 a 12,9 s y **30 s seguidos entre 10 y 13 s sin un solo corte**—. Con la guarda, 17 y 18 cortes por ráfaga contra 7, 6 y 6 sin ella. **Lo que decide no es el signo de la ganancia sino si el destino deja margen de buffer**, que es lo que `ventana − objetivo` ya calcula: el comportamiento anterior estaba más cerca de lo correcto que la guarda. Decisión de Edgar el 11-oct: interruptor a OFF —su valor de fábrica— y pendiente cerrado. El interruptor se queda, apagado, porque su cableado es el que reusará el criterio nuevo |
 | 74 | **El reproductor sabe corregir el offset solo, y lo llevamos apagado** | **A** | leído el 10-oct en la fuente de Media3 1.8.0, `HlsMediaSource.updateLiveConfiguration`: la corrección por velocidad se desactiva cuando el `MediaItem` no trae `minPlaybackSpeed` ni `maxPlaybackSpeed` **y** el playlist no trae `HOLD-BACK`. Se cumplen las cuatro: construimos la `LiveConfiguration` solo con `targetOffsetMs` (`Media3LiveEngine.kt:372`) y Flussonic no emite `EXT-X-SERVER-CONTROL`. Con eso, `minPlaybackSpeed` y `maxPlaybackSpeed` quedan en `1f` y **el offset nunca vuelve solo**: de ahí sale la familia entera 70/71/73. Corregir variando la velocidad un 2 % no cuesta ningún corte, mientras que cada salto cuesta uno. **Candidato a sustituir la vuelta al borde en el caso normal**, dejándola solo para cuando la posición se sale de la ventana. Riesgo a validar en pantalla: el cambio de velocidad lo absorbe `SonicAudioProcessor` sin alterar el tono, pero eso hay que oírlo. Y conviene medirlo junto al 72, porque si el offset se corrige solo, el disparador a media ventana deja de importar. **Sin empezar** |
+| 75 | **El bucle de inanición: la posición pegada al borde de un origen lento cuesta tres cortes cada diez segundos** | **A** | medido el 11-oct en los 298 min de `mileniosd`: **25 de los 35 cortes de la sesión** salen de dos rachas de dos minutos —12 cortes en 33 s y 13 en 38 s, uno cada 3,0 s— y el resto de la sesión da 2,0 cortes/h, dentro de §10. La forma es inequívoca: la posición se queda a **2-4 s** del borde de un origen que publica más despacio que el reloj, cada segmento llega tarde y el reproductor se queda sin nada, se rellena con un segmento y se vuelve a quedar sin nada. **El detector de paradas no lo veía** porque aquí el buffer no se vacía hacia cero: oscila entre 1,5 y 5 s. Las dos rachas aparecen al salir de una parada del origen, cuando Flussonic publica a tirones para ponerse al día. La cura está medida y es **alejar la posición del borde**, no acercarla (ver 73); el criterio de la vuelta al borde debería ser «¿el destino deja margen de buffer?» en vez de «¿adelanta?». Hay detector en `herramientas/analizar-log.py` desde `c9ea037`: dispara dos veces en el volcado de las 20:12 y calla en el de las 14:26. **Sin arreglar**, y es el candidato siguiente junto al 72 |
+| 76 | **Cuando la vuelta al borde no se evalúa, no queda rastro de por qué** | **B** | el 11-oct, en la segunda racha del bucle de inanición (19:57:38-19:58:14, 13 cortes), el offset real leía 69-74 s sobre una ventana de 33,6 —o sea que la condición del disparador se cumplía de sobra— y **no se registró ni un `offset.vuelveAlBorde` ni un `offset.saltoNoAdelanta`**: el mecanismo no se evaluó ni una vez en 38 segundos. La explicación más probable es que vive en `onTimelineChanged` y con el playlist congelado ese método no se llama, pero **no se puede afirmar**: las tres guardas —imagen en pantalla, `STATE_READY`, enfriamiento— tampoco dejan rastro cuando paran la evaluación. Hoy el log solo dice lo que el mecanismo **hizo**, nunca lo que no hizo ni por qué, y eso convirtió una medición de dos minutos en una conjetura. Un `offset.noSeEvalua` con el motivo, acotado para no inundar el log, cierra el hueco. **Sin empezar** |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -275,6 +277,104 @@ un frame congelado.
 ---
 
 ## Entradas
+
+### El salto que creí desperdiciado era la cura — 2026-10-11
+
+Cierre del **pendiente 73** con el enunciado refutado, por decisión de Edgar
+tras la medición. Es el tercero de la familia 70/71/73 que resulta estar mal
+enunciado, y los tres por el mismo motivo: leer `currentLiveOffset` como si
+midiera la distancia al final de los datos.
+
+La sesión es la tarde del 10 en hora de la caja —20:13 a 01:12 UTC—, 298
+minutos de `mileniosd` con «Volver al borde solo si el salto adelanta»
+**encendido**, que era lo que faltaba validar en pantalla.
+
+#### Lo que la guarda hizo, y fue exactamente lo escrito
+
+```
+15:45:37.261 WARN offset.saltoNoAdelanta offsetMs=71200 ventanaMs=32967
+             posMs=28095 destinoMs=18967 gananciaMs=-9128 numero=1
+```
+
+El criterio de éxito estaba escrito de antemano y se cumplió al pie de la
+letra: el salto que iba 9,1 s hacia atrás no se dio, el cableado llega hasta el
+final y la pastilla de degradación lo decía.
+
+#### Lo que pasó 1,4 segundos después
+
+```
+15:46:00  pos 31.2  buffer 1.7  → corte
+15:46:02  pos 30.2  buffer 2.7  → corte
+15:46:04  pos 29.3  buffer 3.7
+15:46:06  pos 31.3  buffer 1.7  → corte
+```
+
+**12 cortes en 33 segundos, uno cada tres.** Es el pendiente 75: la posición
+pegada al borde de un origen que publica más despacio que el reloj. El salto
+declinado habría movido la posición de 28,1 a 19,0 s —**alejándola** del borde,
+9 s más adentro del buffer—, que es precisamente lo que el bucle necesita.
+
+Y no es una conjetura, porque el comportamiento anterior sí dio ese salto y
+está medido en el volcado de la mañana:
+
+```
+11:58:38  offset.vuelveAlBorde  posAntes 26843 → destino 19267   (1 corte)
+11:58:40  pos 20.3  buffer 12.9
+11:58:50  pos 22.2  buffer 11.1      30 segundos seguidos
+11:59:00  pos 21.0  buffer 12.3      entre 10 y 13 s de buffer
+11:59:08  pos 23.4  buffer  9.8      cero cortes
+```
+
+Un corte, y compró treinta segundos estables. La guarda quitó eso.
+
+| | mañana, sin guarda | tarde, con guarda |
+|---|---|---|
+| ráfagas | 3 | 2 |
+| cortes por ráfaga | 7, 6, 6 | **17, 18** |
+| segundos parado por ráfaga | 54, 36, 30 | **76, 82** |
+| bucles de inanición | **0** | **2** (25 de los 35 cortes) |
+| saltos hacia atrás | 3, todos dados | 1, declinado |
+
+#### Hasta dónde llega la evidencia
+
+Del encadenamiento «declino el salto → aparece el bucle» hay **una sola
+muestra**. En la segunda ráfaga el bucle apareció igual **sin** haber declinado
+nada, porque allí el mecanismo no se evaluó ni una vez en 38 segundos; por qué
+no se evaluó no se puede afirmar con el log que hay, y de eso sale el pendiente
+76. O sea: el bucle no lo causa solo la guarda. Lo que sí está medido es que la
+guarda le quitó la única cura disponible cuando la tuvo a mano.
+
+#### Lo que queda escrito para no repetirlo
+
+**La ganancia de un salto no se mide por acercarse al directo.** Se mide por el
+margen de buffer que deja el destino, que es lo que `ventana − objetivo` ya
+calcula. El comportamiento anterior estaba más cerca de lo correcto que la
+guarda, y el enunciado del 73 confundió el instrumento con el fenómeno por
+tercera vez en dos días.
+
+**Y un aviso sobre el 74**, de leer el código y no de medir: la corrección por
+velocidad se gobierna con el mismo `currentLiveOffset` que miente cuando el
+playlist se congela. Con el offset leyendo 70 s aceleraría para alcanzar un
+borde que no existe, o sea empujaría hacia el bucle del 75 en vez de sacarlo de
+él. No se puede adoptar a ciegas.
+
+#### Lo bueno de la sesión
+
+**4 h 10 min con cero cortes**, de 15:46:16 a 19:56:44 en hora de la caja. Es
+el tramo limpio más largo medido en este proyecto; el anterior eran 15 minutos.
+Los 35 cortes caben en dos ráfagas de dos minutos separadas por esas cuatro
+horas, y las dos empiezan con la firma de parada del origen. La de 15:44 está
+confirmada desde el otro extremo —el vigilante de esta máquina registró `el
+origen tardó 65.1 s en publicar un segmento de 2.8 s`—; la de 19:56 no, porque
+el vigilante ya se había parado: de esa solo hay la firma de la caja, y eso es
+inferido.
+
+Sin fuga de memoria: la RAM libre osciló entre 677 y 769 MB las cinco horas,
++6 MB de mediana a mediana. CPU mediana 7 %, p95 8 %.
+
+**Estado:** 73 cerrado y refutado. 75 y 76 abiertos. El interruptor se queda en
+el menú, apagado, porque su cableado es el que reusará el criterio nuevo.
+
 
 ### Tener la fuente de Media3 contesta en diez minutos lo que costó dos noches — 2026-10-10
 

@@ -204,17 +204,18 @@ object LiveTuning {
 	const val LIVE_EDGE_RESYNC_MIN_EXCESS_MS = 3_000L
 
 	/**
-	 * Cuánto tiene que **adelantar** un salto para que valga el corte que cuesta.
-	 *
-	 * Medido el 10-oct: de los nueve saltos de la sesión, tres iban de 26 843 a
-	 * 19 267, o sea **7,6 s hacia atrás**, alejándose del directo. Pasaba porque
-	 * el offset que los dispara está inflado por una lista congelada mientras la
-	 * posición ya está a 6,4 s del final de la ventana: no hay a dónde ir. Los
-	 * seis que sirven adelantaban +61 444 y +19 274.
+	 * A partir de cuánto se considera que un salto **adelanta**.
 	 *
 	 * Tres segundos es algo más que un segmento de cualquiera de los canales
 	 * medidos (2,0 a 2,8 s). Por debajo de un segmento el salto reinicia el
 	 * almacenamiento para ganar menos de lo que tira.
+	 *
+	 * **Hoy solo clasifica, no decide**, porque de fábrica se salta igual
+	 * ([RESYNC_SOLO_SI_ADELANTA_DEFAULT] en `false`). Se puso el 10-oct creyendo
+	 * que un salto que no adelanta era un corte desperdiciado —tres de nueve en
+	 * la sesión medida— y el 11-oct resultó al revés: esos tres saltos dejaban
+	 * la posición 9 s más adentro del buffer, que es la cura del bucle de
+	 * inanición (pendiente 75). Pendiente 73, cerrado y refutado.
 	 */
 	const val LIVE_EDGE_RESYNC_MIN_GAIN_MS = 3_000L
 
@@ -246,24 +247,32 @@ object LiveTuning {
 	 * **Invertido a `true` el 10-oct tras medirlo**, con 203 minutos de
 	 * `mileniosd` de día: de 547 saltos en 9,3 h a **9 en 3,4 h**, y seis de
 	 * los nueve dejan el directo en 17-19 s, comprobado con la columna
-	 * `offset.trasElSalto` que se añadió para esto. Los tres que no sirven
-	 * saltan **hacia atrás**, y de eso se ocupa
-	 * [LIVE_EDGE_RESYNC_MIN_GAIN_MS].
+	 * `offset.trasElSalto` que se añadió para esto. Los tres que parecían no
+	 * servir saltan **hacia atrás** y se abrió el 73 por eso; el 11-oct se midió
+	 * que sí servían, ver [RESYNC_SOLO_SI_ADELANTA_DEFAULT].
 	 */
 	const val RESYNC_CALCULANDO_DEFAULT = true
 
 	/**
-	 * No volver al borde cuando el salto no adelantaría (pendiente 73).
+	 * No volver al borde cuando el salto no adelantaría (pendiente 73,
+	 * **cerrado y refutado el 11-oct**).
 	 *
-	 * `false` mantiene lo anterior: saltar siempre que el offset pase del umbral,
-	 * aunque el destino calculado esté **detrás** de donde ya está el
-	 * reproductor. Medido el 10-oct, eso son 3 de los 19 cortes de la sesión, uno
-	 * al principio de cada ráfaga, y ninguno recupera nada.
+	 * Se queda en `false` —el comportamiento de siempre: saltar cuando el offset
+	 * pasa del umbral, aunque el destino quede detrás de la posición actual—
+	 * porque medirlo encendido demostró que la guarda es contraproducente.
 	 *
-	 * Encendido, esa vez no se salta: se registra `offset.saltoNoAdelanta` y se
-	 * vuelve a mirar al terminar el enfriamiento, que es exactamente cuando
-	 * llegaba el salto que sí sirve. **La recuperación no se retrasa**; lo que se
-	 * ahorra es el corte.
+	 * 298 min de `mileniosd` con el interruptor en ON: la guarda disparó una vez
+	 * y exactamente como estaba escrito (`gananciaMs=-9128`, salto no dado), y
+	 * 1,4 s después empezaron **12 cortes en 33 s**. El salto declinado habría
+	 * dejado la posición 9 s más adentro del buffer, que es la cura del bucle de
+	 * inanición del 75; con el comportamiento de fábrica ese mismo salto está
+	 * medido comprando, por un corte, treinta segundos con 10-13 s de buffer.
+	 * Por ráfaga: 17 y 18 cortes con la guarda contra 7, 6 y 6 sin ella.
+	 *
+	 * Encendido se registra `offset.saltoNoAdelanta` y se espera el enfriamiento.
+	 * **No se recomienda encenderlo.** El interruptor se conserva porque su
+	 * cableado es el que va a reusar el criterio correcto —«¿el destino deja
+	 * margen de buffer?» en vez de «¿adelanta?»—, que es el pendiente 75.
 	 */
 	const val RESYNC_SOLO_SI_ADELANTA_DEFAULT = false
 

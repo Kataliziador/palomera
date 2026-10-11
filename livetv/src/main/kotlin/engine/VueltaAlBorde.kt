@@ -31,9 +31,18 @@ import org.jellyfin.livetv.LiveTuning
  * | −41 844 | 33 600 | 19 600 | +61 444 | 19,3 s ✓ |
  * | 326 | 33 600 | 19 600 | +19 274 | 18,5 s ✓ |
  *
- * Los tres que fallan **saltan hacia atrás**, alejándose del directo, y cada uno
- * cuesta un rebuffer. Por eso la decisión no se toma con el offset: se toma con
- * la ganancia, que es lo único que dice si queda material por delante.
+ * De ahí salió el pendiente 73 —«los tres que saltan hacia atrás no recuperan
+ * nada»— y **el 11-oct se midió lo contrario**: ese salto hacia atrás es la
+ * cura. Deja la posición 9 s más adentro del buffer, y con el origen publicando
+ * más despacio que el reloj eso es exactamente lo que hace falta; declinarlo
+ * costó 12 cortes en 33 s (pendiente 75). El salto de la primera fila compró,
+ * por un corte, treinta segundos seguidos con 10-13 s de buffer.
+ *
+ * Así que [Decision.NoAdelanta] **describe** el salto, no lo juzga: quien la
+ * recibe decide, y de fábrica se salta igual
+ * ([LiveTuning.RESYNC_SOLO_SI_ADELANTA_DEFAULT] en `false`). Lo que debería
+ * decidir —y es el pendiente 75— no es el signo de la ganancia sino el margen
+ * de buffer que deja el destino.
  */
 internal object VueltaAlBorde {
 
@@ -43,7 +52,11 @@ internal object VueltaAlBorde {
 
 		/**
 		 * El salto iría hacia atrás o casi no movería: el offset está inflado
-		 * porque la lista no avanza, y aquí no hay nada que recuperar.
+		 * porque la lista no avanza.
+		 *
+		 * **No significa «no sirve».** Medido el 11-oct, ir hacia atrás dentro
+		 * de la ventana es la única cura del bucle de inanición del 75. Esto
+		 * dice qué clase de salto es; si se da o no lo decide quien llama.
 		 */
 		data class NoAdelanta(val destinoMs: Long, val gananciaMs: Long) : Decision
 

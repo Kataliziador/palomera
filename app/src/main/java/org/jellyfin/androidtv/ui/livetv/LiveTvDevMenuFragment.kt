@@ -274,12 +274,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Volver al borde solo si el salto adelanta",
-				value = if (dev.resyncSoloSiAdelanta) "ON" else "off (como antes)",
+				value = if (dev.resyncSoloSiAdelanta) "ON (refutado)" else "off (fábrica)",
 				changed = dev.resyncSoloSiAdelanta,
 			) { change { dev.resyncSoloSiAdelanta = !dev.resyncSoloSiAdelanta } }
 		}
 		item {
-			Info("Tres de cada nueve vueltas al borde saltan HACIA ATRÁS: el offset está inflado porque la lista del origen se paró, y la posición ya está pegada al final de la ventana. Encendido, esa vez no se salta y sale «offset.saltoNoAdelanta» en el log; se vuelve a mirar 30 s después, que es cuando llega el salto que sí sirve.")
+			Info("REFUTADO el 11-oct: déjalo apagado. Se puso creyendo que un salto que se aleja del directo era un corte desperdiciado, y medido en pantalla es lo contrario: ese salto deja la posición 9 s más adentro del buffer y es la única cura cuando el origen publica más despacio que el reloj. Encenderlo costó 12 cortes en 33 s donde el comportamiento de fábrica costaba 1. Se conserva solo para reproducir la medición.")
 		}
 
 		item {
