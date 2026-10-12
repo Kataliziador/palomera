@@ -258,7 +258,15 @@ vetar decoders durante corrupción.
 loss 5% delay 100ms 20ms`, un corte de **5 minutos**, y el golden sample de
 lluvia real en bucle —que este mismo documento llama «la mejor prueba que
 existe»—. Todo lo que hemos roto hasta ahora es corte limpio, y la banda Ku no
-falla así. Más el pendiente 12 y el bucle de inanición del 75.
+falla así. Más el pendiente 12.
+
+El bucle de inanición del **75 queda cerrado el 12-oct** y encendido de fábrica:
+7 h 22 min de `mileniosd` dieron 6 cortes contra 35 y **0,26 % de imagen parada
+contra 0,88 %**, con las tres métricas de §10 en verde por primera vez en una
+sesión larga. Pero esa sesión dejó en su lugar un pendiente mayor, el **74**
+medido: el objetivo de latencia no se mantiene solo, así que la sesión entera
+depende de la meseta donde cayó el último salto —entre 3,6 y 14,8 s de buffer en
+la misma sesión— y eso es lo que decide si un parón del origen se traga o se ve.
 
 - `LiveWatchdog` con la escalera de recuperación
 - **Tratar el playlist vacío como estado de espera, nunca como error.**

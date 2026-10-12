@@ -26,7 +26,9 @@ class MargenDeBufferTest : StringSpec({
 		//
 		// La ventana todavía tenía 33,6 s de datos. Lo que no tenía el
 		// reproductor era nada por delante, porque solo almacena hacia adelante
-		// y estaba al final. Moverse a 19 600 pone 12,5 s ya publicados delante.
+		// y estaba al final. Moverse a 19 600 lo aparta 12,5 s del borde — que
+		// es lo que fija la meseta, no lo que rellena el buffer en el acto (ver
+		// el KDoc de `MargenDeBuffer`).
 		val m = MargenDeBuffer()
 		cuatroVeces(m, bufferMs = 1_500, posMs = 32_100) shouldBe
 			MargenDeBuffer.Decision.Alejarse(destinoMs = 19_600, colchonMs = 12_500)

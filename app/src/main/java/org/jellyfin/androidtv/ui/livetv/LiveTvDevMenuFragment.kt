@@ -288,12 +288,12 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Alejar del borde si el buffer no aguanta",
-				value = if (dev.resyncPorMargen) "ON" else "off (como antes)",
-				changed = dev.resyncPorMargen,
+				value = if (dev.resyncPorMargen) "sí (fábrica)" else "NO, COMO ANTES",
+				changed = !dev.resyncPorMargen,
 			) { change { dev.resyncPorMargen = !dev.resyncPorMargen } }
 		}
 		item {
-			Info("Cuando el origen deja de publicar, el reproductor se queda a 1,5 s del final de los datos y entra en un bucle de un corte cada tres segundos: 25 de los 35 cortes de la sesión del 10-oct. Encendido, el latido lo detecta en 8 s y mueve la posición hacia atrás, donde SI hay datos ya publicados: un corte en vez de doce. Sale «offset.margenCorto» en el log.")
+			Info("Cuando el origen deja de publicar, el reproductor se queda a 1,5 s del final de los datos y entra en un bucle de un corte cada tres segundos: 25 de los 35 cortes de la sesión del 10-oct. El latido lo detecta en 8 s y mueve la posición hacia atrás. Medido en 7 h 22 el 11-oct: 6 cortes contra 35, y 0,26 % de imagen parada contra 0,88. Lo que compra no es rellenar el buffer en el acto —medido, no lo rellena— sino dejar la posición lejos del borde durante horas: el tramo que salio de un salto dio 4 h 07 sin un corte. Sale «offset.margenCorto» en el log. Apagarlo vuelve al comportamiento anterior.")
 		}
 
 		item {

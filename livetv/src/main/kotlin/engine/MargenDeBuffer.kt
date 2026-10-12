@@ -36,13 +36,27 @@ import org.jellyfin.livetv.LiveTuning
  * En ese latido de las 19:56:46 la ventana seguía teniendo 33,6 s de datos: lo
  * que no tenía el reproductor era **nada por delante**, porque solo almacena
  * hacia adelante y estaba al final. Mover la posición a `ventana − objetivo`
- * —19,6 s— le pone **12,5 s de datos ya publicados delante**, al precio de un
- * solo corte.
+ * —19,6 s— cuesta un solo corte.
  *
- * Eso es lo que el comportamiento viejo hacía por accidente y lo que el
- * pendiente 73 quitó creyendo que era desperdicio: medido el 11-oct, un salto
- * así llevó el buffer de 3,9 a 12,9 s y compró **treinta segundos seguidos sin
- * un corte**.
+ * **Lo que ese salto compra no es el rescate inmediato.** Este KDoc decía que
+ * pone «12,5 s de datos ya publicados delante», y la sesión de validación del
+ * 11-oct lo desmintió: el salto tira el buffer y los segmentos de atrás hay que
+ * volver a pedirlos, así que con el origen callado tampoco llegan. En tres de
+ * los cuatro saltos medidos el buffer se quedó en 1,5 / 1,4 / 2,7 s y cayó a
+ * cero en el latido siguiente; solo llenó el cuarto (4,4 → 12,4 s), que fue el
+ * único con el origen ya sirviendo.
+ *
+ * Lo que compra es **la meseta**: a qué distancia del directo se reproduce
+ * durante las horas siguientes. Un `seekTo` dentro de una ventana en directo
+ * redefine el objetivo de latencia de Media3 —`ExoPlayerImplInternal` llama a
+ * `setTargetLiveOffsetOverrideUs` con el offset del destino— y el reproductor se
+ * queda ahí hasta el siguiente salto. Medido: el salto de las 13:02:21 dejó la
+ * meseta en 18,6 s de directo y 14,8 s de buffer, y de ahí salieron **4 h 07 min
+ * sin un corte**; el escalón 1 del vigilante, que usa `seekToDefaultPosition`,
+ * dejó mesetas de 10,7 y 8,5 s, y la segunda murió en 26 segundos.
+ *
+ * Y el reproductor aguanta tantos segundos de silencio del origen como segundos
+ * de buffer tenga. Por eso la meseta es la métrica, y no el corte.
  *
  * ## Dos cosas que las medidas dejaron claras, y conviene no deshacer
  *
@@ -61,7 +75,11 @@ import org.jellyfin.livetv.LiveTuning
 internal class MargenDeBuffer {
 
 	sealed interface Decision {
-		/** Hay datos detrás sin consumir: moverse a [destinoMs] los pone delante. */
+		/**
+		 * Hay sitio detrás: moverse a [destinoMs] aparta la posición del borde.
+		 * No rellena el buffer por sí solo —eso depende de que el origen
+		 * sirva—, fija la distancia al directo de ahí en adelante.
+		 */
 		data class Alejarse(val destinoMs: Long, val colchonMs: Long) : Decision
 
 		/** El buffer aguanta, o la racha es demasiado corta para creérsela. */

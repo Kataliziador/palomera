@@ -311,15 +311,40 @@ object LiveTuning {
 	 *
 	 * Encendido, el latido mira cada dos segundos si la posición está pegada al
 	 * final de los datos **habiendo datos detrás**, y en ese caso se mueve a
-	 * `ventana − objetivo`. Eso cuesta **un** corte y pone por delante lo que ya
-	 * estaba publicado: en el latido que lo motivó, 12,5 s de margen donde había
-	 * 1,5.
+	 * `ventana − objetivo`, al precio de **un** corte.
+	 *
+	 * **Lo que compra no es el rescate, es la meseta**, y eso costó una sesión
+	 * de siete horas entenderlo. El salto tira el buffer y los segmentos de
+	 * atrás hay que volver a descargarlos, así que si el origen está callado
+	 * tampoco llegan: medido el 11-oct, en tres de los cuatro saltos el buffer
+	 * siguió en 1,5 / 1,4 / 2,7 s y cayó a cero acto seguido. Lo que sí hace es
+	 * **fijar a qué distancia del directo se reproduce durante las horas
+	 * siguientes**, porque un `seekTo` dentro de una ventana en directo redefine
+	 * el objetivo de latencia de Media3 (`ExoPlayerImplInternal` llama a
+	 * `setTargetLiveOffsetOverrideUs` con el offset del destino).
+	 *
+	 * Las cinco mesetas de esa sesión, cada una fijada por el salto que la abrió:
+	 *
+	 * | abre el tramo | directo | buffer | duró | acabó |
+	 * |---|---|---|---|---|
+	 * | arranque | 16,6 s | 12,8 s | 0,23 h | corte |
+	 * | `vigilante.saltaAlBorde` | 10,7 s | 7,0 s | 1,11 h | corte |
+	 * | `vigilante.saltaAlBorde` | 8,5 s | 3,6 s | **26 s** | corte |
+	 * | **`offset.margenCorto`** | 18,6 s | **14,8 s** | **4,12 h** | corte |
+	 * | reconstrucción + vuelta al borde | 12,2 s | 8,6 s | 1,89 h | fin |
+	 *
+	 * El reproductor aguanta tantos segundos de silencio del origen como
+	 * segundos de buffer tenga. Por eso la meseta es la métrica y no el corte.
 	 *
 	 * Comparte el enfriamiento con la vuelta al borde a propósito
 	 * ([LIVE_EDGE_RESYNC_COOLDOWN_MS] y el mismo reloj), para que los dos
 	 * mecanismos no se peleen por la misma posición.
+	 *
+	 * **Encendido de fábrica desde el 12-oct**, con la sesión de 7 h 22 del
+	 * 11-oct: 0,26 % de imagen parada contra 0,88 %, 9,2 s/h contra 31,8, cuatro
+	 * disparos y ninguno espurio. Ver `LIVETV_LOG.md`.
 	 */
-	const val RESYNC_POR_MARGEN_DEFAULT = false
+	const val RESYNC_POR_MARGEN_DEFAULT = true
 
 	// --- Reintentos ---------------------------------------------------------
 	/**

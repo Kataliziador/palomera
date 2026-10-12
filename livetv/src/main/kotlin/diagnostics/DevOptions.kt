@@ -362,8 +362,9 @@ class DevOptions(context: Context) {
 	/**
 	 * Alejar la posición del borde cuando el buffer no sobrevive (pendiente 75).
 	 *
-	 * Apagado reproduce el comportamiento anterior: nadie mira el margen y el
-	 * bucle de inanición corre hasta que el origen se recupera.
+	 * **Encendido de fábrica desde el 12-oct** (ver `LIVETV_LOG.md`). Apagado
+	 * reproduce el comportamiento anterior: nadie mira el margen y el bucle de
+	 * inanición corre hasta que el origen se recupera.
 	 */
 	var resyncPorMargen: Boolean
 		get() = tresCapas(K_RESYNC_MARGEN, null, LiveTuning.RESYNC_POR_MARGEN_DEFAULT)
@@ -547,7 +548,9 @@ class DevOptions(context: Context) {
 		if (prefs.contains(K_PREP_SUPERFICIE)) add("prepTrasSuperficie=${if (prepararConSuperficie) "ON" else "OFF"}")
 		if (prefs.contains(K_RESYNC_CALC)) add("resyncCalculado=${if (resyncCalculando) "ON" else "OFF"}")
 		if (prefs.contains(K_RESYNC_ADELANTA)) add("resyncSoloSiAdelanta=${if (resyncSoloSiAdelanta) "ON" else "OFF"}")
-		if (prefs.contains(K_RESYNC_MARGEN)) add("resyncPorMargen=${if (resyncPorMargen) "ON" else "OFF"}")
+		// De fábrica va encendido desde el 12-oct, así que lo que es noticia es
+		// apagarlo. Sin esto el latido anunciaría una degradación que no lo es.
+		if (resyncPorMargen != LiveTuning.RESYNC_POR_MARGEN_DEFAULT) add("resyncPorMargen=OFF")
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
