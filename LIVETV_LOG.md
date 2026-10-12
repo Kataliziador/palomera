@@ -325,6 +325,7 @@ declararla.
 | ~~75~~ | ~~**El bucle de inanición: la posición pegada al borde de un origen lento cuesta tres cortes cada diez segundos**~~ | — | **cerrado el 12-oct.** El arreglo (`MargenDeBuffer`, evaluado en el latido) quedó **encendido de fábrica** tras la sesión de 7 h 22 del 11-oct: 6 cortes contra 35, **0,26 % de imagen parada contra 0,88 %** —9,2 s/h contra 31,8—, cuatro disparos y ninguno espurio, cero `player.error` y cero `BEHIND_LIVE_WINDOW`. Cuatro de los cinco criterios escritos de antemano se cumplen; el cuarto estaba **mal escrito por mí** —pedía que `offset.trasElSalto` dejara el directo en 17-19 s, y ese campo publica `currentLiveOffset`, el número que miente con la lista congelada, que es justo cuando saltamos: tercera vez que me equivoco con él—. El `posMs` coincide con el `destinoMs` en los cinco saltos. **Y el enunciado del mecanismo también estaba mal:** decía que el salto «pone 12,5 s ya publicados delante», y medido el buffer siguió en 1,5 / 1,4 / 2,7 s y cayó a cero en tres de los cuatro saltos, porque el salto tira el buffer y con el origen callado los segmentos de atrás tampoco se descargan. Lo que compra es **la meseta**: ver 74 y la entrada del 12-oct. Cerrado por declaración de Edgar sobre las medidas, **sin validación en pantalla** —no estuvo delante—, con el argumento de que el salto hacia atrás ya viajaba en producción por el mecanismo viejo (corte 6 de esa misma sesión, `gananciaMs=-1778`), así que ON no introduce una clase de artefacto nueva |
 | ~~76~~ | ~~**Cuando la vuelta al borde no se evalúa, no queda rastro de por qué**~~ | — | **cerrado el 11-oct.** En la segunda racha del bucle de inanición (19:57:38-19:58:14, 13 cortes) el offset real leía 69-74 s sobre una ventana de 33,6 —condición cumplida de sobra— y no se registró ni un `offset.vuelveAlBorde` ni un `offset.saltoNoAdelanta`: 38 segundos sin una línea, con cuatro guardas candidatas por igual. Dos instrumentos lo cierran. **`offset.noSeEvalua`** con el motivo —apagado en el menú, aún sin imagen, el reproductor no está listo, o cuánto queda de enfriamiento—, registrado **solo cuando el disparador habría disparado** y una vez por motivo y por enfriamiento, que es lo que lo acota a los momentos interesantes sin inundar el log. Y **`timelines` en el latido**: toda la decisión vive dentro de `onTimelineChanged`, así que si el playlist se congela el método no se llama y el mecanismo entero queda mudo; un contador que deja de subir mientras el buffer baja convierte esa sospecha en una lectura. `analizar-log.py` ya lo usa: imprime los playlists nuevos de cada racha y dice «la lista estaba congelada» cuando son cero |
 | 77 | **El escalón 1 del vigilante deja la meseta más fina que nuestro propio salto** | **A** | medido el 11-oct. `vigilante.saltaAlBorde` usa `seekToDefaultPosition()` (`Media3LiveEngine.kt:814`) y dejó las dos peores mesetas de la sesión —**10,7 s** de directo / 7,0 de buffer, que aguantó 1,11 h y cayó al primer parón, y **8,5 s** / 3,6, que murió en **26 segundos**—, con el objetivo configurado en 14 s. `offset.margenCorto`, que calcula el destino con `VueltaAlBorde.destino()`, dejó la mejor: **18,6 s** / 14,8, y de ahí salieron 4 h 07 min limpias. Los dos saltan, los dos cuestan un corte, y uno deja al reproductor sobreviviendo y el otro no. Hay que leer por qué `seekToDefaultPosition` aterriza corto —sospecha: la ventana está transitoriamente inflada cuando el vigilante dispara, porque el origen acaba de volver— y probablemente usar el mismo destino que el 75 en el escalón 1. **Se mide en el latido, sin pantalla.** Puede quedar sin sentido si se cierra 74, porque entonces la meseta la corrige el reproductor solo |
+| 78 | **El log afirma `tunneled=true` cuando el tunneled no se activó** | **A** | medido el 12-oct en la Mecool KM9 Pro. `engine.prepare` publica lo que *pedimos*, no lo que *obtuvimos*: si el decoder de vídeo no declara `tunneled-playback`, Media3 lo desactiva en silencio (`DefaultTrackSelector.maybeConfigureRenderersForTunneling`) y el log sigue diciendo `true`. En esa caja `video/avc` y `video/mpeg2` **no** lo declaran —solo hevc, vp9 y dolby-vision—, así que el lineup entero corre sin tunneled y nadie se entera. **Hay una señal barata y ya publicada para detectarlo:** en tunneled real el contador de fotogramas no ve nada (§6), así que `tunneled=true` **y** `frames>0` en el latido significa que no enganchó. Importa más de lo que parece: el tunneled es la cura medida de los microcortes del pulldown 3:2, y en una caja así esa cura no existe aunque el log diga que sí. Arreglo: publicar el estado real, o al menos el aviso derivado del contador |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -332,6 +333,120 @@ declararla.
 ---
 
 ## Entradas
+
+### Segunda caja: una Mecool KM9 Pro contesta tres preguntas que la Skyworth no podía — 2026-10-12
+
+Primera vez que el motor corre en hardware que no es la caja de pruebas. §9
+avisa desde el principio de que la Skyworth es **el mejor caso posible** y de
+que no se desarrolle solo contra ella; esta entrada es la primera medida que lo
+comprueba.
+
+**La caja**, en `192.168.20.165:5555`, prestada por Edgar:
+
+```
+Build.MANUFACTURER   VS          ← no «MECOOL»
+Build.BRAND          MECOOL
+Build.MODEL          KM9PRO
+Build.DEVICE         KM9PRO
+Android 10 · API 29 · parche 2020-04-05 · Amlogic · 4 núcleos
+ABIs  armeabi-v7a, armeabi       (32 bits, igual que la Skyworth)
+RAM   1 988 MB · pantalla 1920×1080 @ 59.94, un solo modo, sin 4K
+Play Store + GMS + tvlauncher    ← certificada: se le puede instalar desde Play
+```
+
+**El `match` de `deviceOverrides` tiene trampa y hay que escribirlo medido.**
+`Build.MANUFACTURER` devuelve **`VS`**, no la marca que lleva impresa. Un ajuste
+escrito a mano con `"manufacturer": "MECOOL"` no casaría con nada, que es
+exactamente el fallo que `CONFIG_SCHEMA.md` §7 dice que es peor que no poner
+nada.
+
+**Prueba:** `estrellassd` (el único MPEG-2 del conjunto, 480i anamórfico),
+7,9 min, 237 latidos, de fábrica y sin tocar un interruptor.
+
+| | min | p5 | p50 | p95 | max |
+|---|---|---|---|---|---|
+| **fps** | 56,2 | 59,6 | **59,9** | 60,4 | 60,5 |
+| buffer s | 8,9 | 10,6 | 13,6 | 16,0 | 17,3 |
+| directo s | 17,4 | 17,4 | **17,4** | 17,4 | 17,4 |
+| cpu % | 8 | 8 | **9** | 11 | 41 |
+
+**Cero cortes, cero fotogramas perdidos, cero huecos nuevos, cero reintentos,
+cero latidos parados, cero avisos durante la reproducción.** Primer fotograma
+**1707 ms**. Una sola entrega tardía de 120 ms en el arranque.
+
+**Validado en pantalla por Edgar:** sin peine, **se ve 4:3**, fluido.
+
+#### Lo que contesta
+
+**1. El VPU de esta caja desentrelaza, y ya no es «sin verificar».** El plan
+salía con `deint=VPU … (sin verificar)`. Fuente 29,97 entrelazada, salida 59,9
+fps estables: entrega los dos campos. Es el método con el que se cerró el
+pendiente 1 —progresivo 1:1, entrelazado al doble— aplicado a hardware nuevo, y
+**Edgar confirma en pantalla que no hay peine**, que es la mitad que el
+pendiente 1 dejó abierta. Falta el contraste con un progresivo (`beisbol`) para
+cerrarlo por los dos lados en esta caja.
+
+**2. El SAR se aplica bien en una caja distinta.** `sar=1.1764706` = 20/17
+exacto, y en pantalla sale 4:3. §6 («respetar el SAR») queda validado fuera de
+la Skyworth.
+
+**3. Los contadores de fotogramas funcionan aquí, y en la Skyworth no.**
+
+#### El tunneled no engancha en esta caja, y el log lo dice al revés
+
+Los XML del fabricante declaran `tunneled-playback` en **hevc, vp9 y
+dolby-vision**, y **no** en `video/avc` ni en `video/mpeg2` — los dos únicos
+códecs que este lineup usa. Comprobado en la fuente de Media3 1.8.0
+(`DefaultTrackSelector.maybeConfigureRenderersForTunneling`):
+
+```java
+enableTunneling &= tunnelingAudioRendererIndex != -1 && tunnelingVideoRendererIndex != -1;
+```
+
+Si el renderer de vídeo no lo soporta, **el tunneled simplemente no se activa**:
+sin error, sin pantalla negra y sin disparar el rescate del 05-oct. Predicho
+desde el XML y **verificado en ejecución**: `engine.prepare` escribió
+`tunneled=true` y el contador marcó 60 fps, cuando en tunneled real marca cero.
+
+Consecuencias: la cura de los microcortes del cine (§6) **no aplica en esta
+caja** —hay que medir si vuelven con contenido H.264 con pulldown—, y a cambio
+esta caja es el único instrumento que tenemos para ver fps, huecos y entregas
+tardías. Pendiente **78** nuevo.
+
+#### El veto publicado no casaría aquí
+
+```
+Skyworth   OMX.amlogic.mpeg2.decoder.awesome2   ← el que vetamos
+KM9 Pro    OMX.amlogic.mpeg2.decoder.awesome    ← sin el «2»
+```
+
+Mismo fabricante de SoC, nombre distinto. Y esta caja **sí trae respaldo de
+software**: `c2.android.mpeg2.decoder` y `c2.android.avc.decoder` en el APEX
+`com.android.media.swcodec`, que la Skyworth no tiene. O sea que **el criterio
+de cierre de M3 —los canales en modo degradado— se puede ejecutar aquí**, y la
+entrada del 01-oct decía que en la Skyworth era imposible.
+
+#### Lo que esta caja NO resuelve
+
+Trae AC-3, E-AC-3 y DTS-HD por hardware, un decoder ffmpeg de audio y
+`audio/mpeg` por software: **un canal mal normalizado también se oiría perfecto
+aquí**. Seguimos sin una caja que delate el fallo silencioso de §2.
+
+#### Dos confirmaciones de paso
+
+**La trampa del teclado de §9 también aplica, con Gboard.** Se tragó el
+`DPAD_DOWN` y los dos «test» acabaron en el mismo campo. Hubo que
+`ime disable`, escribir, y volver a activarlo — hecho y comprobado.
+
+**`buffer = directo − 3,8 s`, otra vez.** El mismo retraso de publicación de
+Flussonic que se midió ayer en `mileniosd`, ahora en otro canal y otra caja. Ya
+no es una peculiaridad de un canal. Y `estrellassd` sirve **14 segmentos de
+3,003 s = ventana de 40,3 s**, sin `EXT-X-SERVER-CONTROL`: el pendiente 74 y la
+instrucción de headend nº 5 aplican igual aquí.
+
+**Estado:** cerrada.
+
+---
 
 ### [M4] El margen de buffer decide, y la meseta decide la sesión — 2026-10-12
 
