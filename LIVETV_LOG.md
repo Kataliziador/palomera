@@ -334,6 +334,73 @@ declararla.
 
 ## Entradas
 
+### El ajuste de imagen se recuerda, y sí recorta aunque no lo parezca — 2026-10-12
+
+**Síntoma:** Edgar pidió que el ajuste a pantalla valiera para todos los
+canales, porque no le gustan las franjas.
+
+**Lo que ya existía:** el modo «Llenar» recorta para llenar sin deformar, y en
+un canal que ya es 16:9 **no hace nada**. Lo que fallaba es que vivía en un
+`remember` del reproductor (`LiveTvPlayerFragment.kt:442`), así que volvía a
+«Ajustar» al salir de la pantalla y en cada arranque. Con ~120 canales eso es
+volver a elegirlo una vez por sesión y para siempre.
+
+**Cambio:** `LiveTvAspecto`, preferencia por caja al lado de
+[LiveTvUltimoCanal] y los favoritos. **Sin interruptor de desarrollador**
+aunque §3 liste «aspecto» como Modo A: no se toca cómo el motor aplica el
+aspecto, solo que se recuerde cuál se pidió, y el valor de fábrica sigue siendo
+`FIT` —una instalación nueva se ve exactamente igual que antes—. De paso, el
+`engine.setAspectMode(FIT)` fijo del arranque del motor pasa a leer el modo
+recordado: no se veía, pero libVLC guarda el último modo y lo reaplica al
+cambiar de superficie.
+
+**Prueba:** Mecool KM9 Pro con `estrellassd`. Se elige «Llenar», se mata la app,
+se vuelve a entrar y a sintonizar:
+
+```
+13:11:24.215  engine.setAspectMode mode=FILL     ← primera llamada, sin FIT previo
+13:11:25.573  frames.first msDesdePrepare=1349
+```
+
+**Validado en pantalla por Edgar:** la franja se fue.
+
+#### Y aquí está lo que hay que dejar escrito
+
+Edgar añadió que **«parece que no se pierde nada de imagen»**, comparándolo con
+`estrellashd`. Esa impresión es comprensible y **la medida dice lo contrario**,
+así que conviene no apoyarse en ella.
+
+Se comprobó si el SD traía el 16:9 con franjas incrustadas —en cuyo caso
+recortar no costaría nada—. **No las trae:** `cropdetect` sobre 20 s da
+`crop=544:478:0:0` en **598 de 598 muestras**, o sea imagen activa de borde a
+borde de un 4:3 completo.
+
+Así que «Llenar» descarta **el 12,5 % de arriba y el 12,5 % de abajo**, el 25 %
+del alto. La aritmética de la superficie lo confirma: 544×480 con SAR 20/17 da
+una proporción de 1,333, que en una vista de 1920×1080 produce una superficie
+de **1920×1440** — 360 px fuera de pantalla, 180 por lado.
+
+**Por qué no se nota, y cuándo sí se va a notar.** La televisión se encuadra
+respetando las zonas seguras: en un plano medio de telenovela lo que sobra
+arriba y abajo es aire, no sujeto. Lo que el recorte se come de verdad es lo
+que vive pegado a los bordes — **rótulos, marcadores deportivos, teletipos de
+noticias y subtítulos quemados**. Verificado sobre el fotograma real: con
+«Llenar», el logotipo «las estrellas» de la esquina superior derecha **queda
+cortado por la mitad**, y es la comprobación más rápida que existe para saber
+si el recorte está activo.
+
+Por eso el valor de fábrica se queda en «Ajustar» y esto es una **preferencia
+de quien mira**: nadie pierde imagen sin haberlo pedido, y quien prefiere la
+pantalla llena ya no tiene que repetirlo.
+
+**Pendiente si hiciera falta:** un modo intermedio 14:9 —recortar la mitad y
+estirar un poco— que es el compromiso que usan los televisores. No se escribe
+hasta que alguien lo pida con un caso real.
+
+**Estado:** cerrada.
+
+---
+
 ### Segunda caja: una Mecool KM9 Pro contesta tres preguntas que la Skyworth no podía — 2026-10-12
 
 Primera vez que el motor corre en hardware que no es la caja de pruebas. §9
