@@ -351,7 +351,12 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		}
 
 		engine.addListener(listener)
-		engine.setAspectMode(AspectMode.FIT)
+		// El modo recordado, no `FIT` fijo: esto corre antes de que la
+		// composición aplique el suyo, y con un valor distinto el motor recibía
+		// primero uno y luego el otro. No se veía —pasa 1,4 s antes del primer
+		// fotograma— pero libVLC guarda el último modo y lo reaplica al cambiar
+		// de superficie, así que dejarlo mal aquí sí tendría consecuencias.
+		engine.setAspectMode(LiveTvAspecto.of(context).modo)
 
 		// La reproducción se ata al **ciclo de vida**, no solo a la composición.
 		// Con ATRÁS el reproductor sale de la composición y `onDispose` limpia,
@@ -439,7 +444,11 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	var menuAbierto by remember { mutableStateOf<String?>(null) }
 	var opcionSeleccionada by remember { mutableIntStateOf(0) }
 
-	var aspecto by remember { mutableStateOf(AspectMode.FIT) }
+	// El modo de ajuste se recuerda por caja: con un lineup de ~120 canales,
+	// volver a elegirlo cada vez que se entra al reproductor es una vez por
+	// sesión y para siempre. De fábrica sigue siendo `FIT` (ver [LiveTvAspecto]).
+	val aspectoGuardado = remember { LiveTvAspecto.of(context) }
+	var aspecto by remember { mutableStateOf(aspectoGuardado.modo) }
 
 	// El modo se le dice **al motor**, no solo a la vista. libVLC aplica su
 	// propia geometría —mantiene la proporción dentro de su ventana— y sin
@@ -573,7 +582,10 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				if (pista == null) lineasSubtitulo = emptyList()
 			}
 
-			"imagen" -> AspectoDeVideo.modos.getOrNull(indice)?.let { aspecto = it }
+			"imagen" -> AspectoDeVideo.modos.getOrNull(indice)?.let {
+				aspecto = it
+				aspectoGuardado.modo = it
+			}
 
 			"apagado" -> apagarEnMin = MINUTOS_DE_APAGADO.getOrElse(indice) { 0 }
 		}
