@@ -260,6 +260,40 @@ lluvia real en bucle —que este mismo documento llama «la mejor prueba que
 existe»—. Todo lo que hemos roto hasta ahora es corte limpio, y la banda Ku no
 falla así. Más el pendiente 12.
 
+**El bloqueo que lo tenía parado se levantó el 14-oct, y no era de medida sino
+de dónde ejecutar.** Las tres pruebas pedían degradar el headend, y el de
+pruebas es **compartido y de solo lectura** (`CLAUDE.md` §9): aplicarle netem
+habría roto el trabajo de otros, y la caja no es nuestra para rootear. La
+salida es ponerse en medio, y ya hay dos herramientas para ello:
+
+- **`herramientas/lluvia.py`** — una pasarela que sirve un `config.json` cuyos
+  canales apuntan a ella y reenvía al headend perdiendo, retrasando, truncando
+  o cortando lo que se le pida en caliente. La caja se apunta con
+  `configUrlOverride`, que ya existía para esto. Comprobada mando a mando el
+  14-oct: limpia pasa `ffprobe` entera, al 50 % de pérdida fallan 10 de 20
+  peticiones, el retardo sale donde se pide, el truncado deja a `curl` con
+  salida 18 y el corte da *connection reset* hasta que vence. **No es netem**:
+  tira peticiones HTTP, no paquetes IP, y eso está escrito en su cabecera para
+  que nadie confunda lo que mide. A cambio deja rastro de cada decisión.
+- **`herramientas/corromper-ts.py`** — el golden sample, por fin. Rompe un TS
+  limpio como lo rompe la banda Ku: **paquetes enteros y a ráfagas**, porque un
+  desvanecimiento se lleva docenas seguidos y un 1 % uniforme es una prueba más
+  fácil que la realidad; más un pequeño porcentaje de payload alterado con TEI,
+  que es el otro fallo —el decoder pinta basura en vez de quedarse sin datos—.
+  Respeta PAT y los PMT, que localiza leyendo el PAT, salvo con `--sin-piedad`.
+  Medido el 14-oct sobre 60 s de `estrellassd`: el limpio decodifica con **0
+  errores** y el de lluvia con **345** del tipo correcto —`MVs not available`,
+  `ac-tex damaged`, `slice mismatch`—, y sigue siendo un stream válido de 60 s,
+  así que se sirve en bucle como directo. Con semilla fija, **dos versiones de
+  la app se comparan contra exactamente la misma avería**.
+
+Las grabaciones viven **fuera del repositorio**, en `/home/proyectos/muestras-lluvia/`:
+son emisión ajena y este repositorio va a ser público para cumplir la oferta de
+código de la GPL-2.0 (`PLAY.md` §5). Lo que se versiona es cómo rehacerlas.
+
+Queda ejecutarlo contra la caja, que es Modo A y es de Edgar; hoy está ocupada
+con el remojo largo de M8.
+
 El bucle de inanición del **75 queda cerrado el 12-oct** y encendido de fábrica:
 7 h 22 min de `mileniosd` dieron 6 cortes contra 35 y **0,26 % de imagen parada
 contra 0,88 %**, con las tres métricas de §10 en verde por primera vez en una
