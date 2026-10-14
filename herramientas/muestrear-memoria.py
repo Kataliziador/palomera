@@ -234,9 +234,14 @@ def informar_pendientes(filas: list) -> None:
 	"""Las columnas ordenadas por cuánto crecen, que es lo que se va a leer.
 
 	Sin esto el CSV tiene ~60 columnas y encontrar la que sube es trabajo
-	manual. La pendiente se saca de la primera y la última muestra: con un
-	remojo largo y crecimiento recto basta, y con crecimiento a escalones se
-	ve igual en el CSV.
+	manual.
+
+	**La pendiente se ajusta por mínimos cuadrados, no con la primera y la
+	última muestra.** Se intentó lo segundo y miente justo donde más importa:
+	el heap java sube y baja con cada GC, así que dos extremos que caigan uno
+	en un valle y otro en una cresta dan +5,6 MB/h donde la tendencia real es
+	plana. Se enseñan además el mínimo y el máximo, que es lo que permite ver
+	de un golpe si una columna oscila o sube de verdad.
 	"""
 	if len(filas) < 2:
 		print("hacen falta al menos dos muestras para una pendiente", file=sys.stderr)
@@ -252,20 +257,38 @@ def informar_pendientes(filas: list) -> None:
 		print("las marcas de hora no dan un intervalo utilizable", file=sys.stderr)
 		return
 
-	print(f"{len(filas)} muestras en {horas:.2f} h\n")
-	print(f"{'columna':34s} {'primera':>10s} {'última':>10s} {'por hora':>10s}")
+	print(f"{len(filas)} muestras en {horas:.2f} h  (KB salvo los contadores)\n")
+	print(f"{'columna':30s} {'primera':>9s} {'última':>9s} {'mín':>9s} {'máx':>9s} {'KB/h':>9s}")
 	pendientes = []
 	for col in filas[0]:
 		if col in ("reloj", "pid"):
 			continue
-		valores = [f[col] for f in filas if isinstance(f.get(col), int)]
-		if len(valores) < 2:
+		puntos = []
+		for f in filas:
+			v = f.get(col)
+			if isinstance(v, int):
+				try:
+					t = (datetime.fromisoformat(f["reloj"]) -
+						datetime.fromisoformat(filas[0]["reloj"])).total_seconds() / 3600
+				except (ValueError, KeyError):
+					continue
+				puntos.append((t, v))
+		if len(puntos) < 3:
 			continue
-		pendientes.append(((valores[-1] - valores[0]) / horas, col, valores[0], valores[-1]))
-	for ph, col, pri, ult in sorted(pendientes, reverse=True):
-		if abs(ph) < 0.01:
+		n = len(puntos)
+		mt = sum(t for t, _ in puntos) / n
+		mv = sum(v for _, v in puntos) / n
+		var = sum((t - mt) ** 2 for t, _ in puntos)
+		if var == 0:
 			continue
-		print(f"{col:34s} {pri:10d} {ult:10d} {ph:+10.2f}")
+		pend = sum((t - mt) * (v - mv) for t, v in puntos) / var
+		vals = [v for _, v in puntos]
+		pendientes.append((pend, col, vals[0], vals[-1], min(vals), max(vals)))
+
+	for pend, col, pri, ult, mn, mx in sorted(pendientes, reverse=True):
+		if abs(pend) < 1:
+			continue
+		print(f"{col:30s} {pri:9d} {ult:9d} {mn:9d} {mx:9d} {pend:+9.1f}")
 
 
 def main() -> int:
