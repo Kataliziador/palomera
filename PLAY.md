@@ -29,8 +29,45 @@ publicar una actualización nunca más. Dos decisiones:
   si se pierde. Sin esto, una clave perdida es una ficha muerta.
 
 El repositorio **no lleva ninguna clave** y no debe llevarla. La compilación
-las lee de propiedades (`keystore.file`, `keystore.password`,
-`keystore.alias`, `keystore.alias.password`).
+las lee de cuatro propiedades, y **estos son los nombres exactos que el código
+busca** (`app/build.gradle.kts:82`, verificado el 14-oct; este documento daba
+dos de los cuatro mal —`keystore.alias` y `keystore.alias.password`— y con esos
+nombres la firma no se aplica):
+
+| propiedad | variable de entorno equivalente |
+|---|---|
+| `keystore.file` | `KEYSTORE_FILE` |
+| `keystore.password` | `KEYSTORE_PASSWORD` |
+| `signing.key.alias` | `SIGNING_KEY_ALIAS` |
+| `signing.key.password` | `SIGNING_KEY_PASSWORD` |
+
+Van en `local.properties`, que está en `.gitignore`, o en el entorno
+(`Properties.kt` convierte el punto en subrayado y pasa a mayúsculas).
+
+**Y si falta alguna, la compilación de release ahora se detiene** con los cuatro
+nombres en el mensaje. Antes no: `signingConfigs` solo crea la configuración
+cuando están las cuatro, `findByName("release")` devolvía `null` sin decir nada
+y salía un AAB de 100 MB sin firmar que parecía bueno y moría en la consola de
+Play media hora después.
+
+**La clave se genera con 25 años de validez como mínimo**, que es lo que
+recomienda la documentación oficial de Android: con la misma clave se firman
+todas las actualizaciones durante la vida de la app, y una clave caducada no se
+puede sustituir si no hay Play App Signing. El comando lo ejecuta Edgar, para
+que la contraseña no pase por aquí:
+
+```bash
+keytool -genkeypair -v -keystore palco-subida.jks -storetype PKCS12 \
+  -alias palco -keyalg RSA -keysize 4096 -validity 10950 \
+  -dname "CN=<razón social>, O=<razón social>, C=MX"
+```
+
+**Lo que hay hoy no sirve para publicar, y lo dice en su propio certificado.**
+Las compilaciones de verificación se firman con un keystore desechable
+—`CN=solo-para-validar-local, O=NO-PUBLICAR`, un año de validez— que vive en el
+directorio temporal de la sesión y desaparece con ella. Está así a propósito:
+sirve para comprobar el empaquetado y es imposible confundirlo con la de
+producción.
 
 ---
 
@@ -157,6 +194,32 @@ Cómo se declara, y por qué:
   historial de visionado. Esa frontera está en el diseño, no en la intención, y
   conviene no cruzarla sin volver a mirar este formulario.
 
+### Los permisos que el formulario va a preguntar, y la tabla de arriba no cubre
+
+La tabla dice lo que la app **manda**. El formulario pregunta además por lo que
+los **permisos** permiten, y el manifiesto declara tres que no estaban escritos
+aquí. Medidos el 14-oct sobre el AAB de `0.1.0-rc.1` con `aapt2 dump badging`, y
+los tres **se usan de verdad**, así que ninguno se quita:
+
+| permiso | quién lo usa | qué contestar |
+|---|---|---|
+| `RECORD_AUDIO` | la búsqueda por voz del upstream (`SearchVoiceInput.kt`, vía `SpeechRecognizer`) | **no se recoge**: el audio va al reconocedor del sistema y no llega a nosotros ni al Jellyfin del ISP |
+| `WRITE_EPG_DATA` | `LeanbackChannelWorker.kt`, que escribe las filas «Siguiente» y los canales de vista previa del inicio de Android TV | **no se recoge**: se escribe en el proveedor de TV **de la propia caja** y no sale de ella |
+| `READ_EPG_DATA` | lo añade `androidx.tvprovider` al fusionar manifiestos, para leer lo que acaba de escribir | igual que el anterior |
+
+**Ninguno se puede quitar**, y la razón es el invariante de `CLAUDE.md` §4: los
+tres sirven a funciones de VOD del upstream —buscar por voz y aparecer en el
+inicio de Android TV—, así que retirarlos cambiaría el comportamiento de
+películas y series. Que `android.hardware.microphone` esté declarado
+`required="false"` es coherente: la voz es opcional, y en una caja sin micrófono
+la app funciona igual.
+
+Los otros permisos son de infraestructura y no tocan datos personales:
+`INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `WAKE_LOCK`,
+`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`,
+`RECEIVE_BOOT_COMPLETED` y el `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` que
+genera AndroidX.
+
 **La política de privacidad es obligatoria** y necesita una URL pública
 permanente. **Redactada el 08-oct en `AVISO_PRIVACIDAD.md`**, verificada campo
 por campo contra el código y con un apéndice que liga cada frase a la línea que
@@ -231,11 +294,38 @@ Dos cosas a tener presentes:
 ## 8. Lista de comprobación de cada envío
 
 ```bash
-./gradlew :app:bundleRelease
+JELLYFIN_VERSION=0.1.0-rc.1 ./gradlew :app:bundleRelease
 ```
 
-1. El AAB sale en `app/build/outputs/bundle/release/`
+La variable es obligatoria: sin ella sale `0.0.0-dev.1` con `versionCode 1`, que
+no se publica (§3).
+
+1. El AAB sale en `app/build/outputs/bundle/release/` y se llama
+   `palco-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
+   borra**: el riesgo real de este paso es subir el archivo equivocado
 2. `versionCode` mayor que el del envío anterior
 3. Las dos comprobaciones de aislamiento de `CLAUDE.md` §4.7 salen limpias
 4. Las pruebas pasan: `./gradlew :livetv:testDebugUnitTest`
 5. La entrada correspondiente está escrita en `LIVETV_LOG.md`
+
+### Lo verificado el 14-oct sobre `0.1.0-rc.1`
+
+Construido de verdad —`bundleRelease` y `assembleRelease`— y leído con
+`aapt2 dump badging` y `apksigner verify`, no supuesto:
+
+| | leído |
+|---|---|
+| paquete | `mx.kataliziador.palco` |
+| versión | `versionCode='10001' versionName='0.1.0-rc.1'` |
+| etiqueta | `Palco` |
+| `minSdk` / `targetSdk` | 21 / 36 |
+| lanzadores | `LAUNCHER` y `leanback-launchable-activity`, los dos |
+| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` |
+| ABIs | `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
+| `debuggable` | ausente |
+| `BuildConfig` | `DEBUG = false`, `DEVELOPMENT = false` |
+| firma | aplicada (con el keystore desechable de §1) |
+| AAB | 104,4 MB; los repartos de descarga de §2 siguen valiendo |
+
+Lo que **no** está verificado y no se puede verificar aquí: que esta compilación
+corra en una ZTE B866V2, que es justo para lo que se publica (§7).

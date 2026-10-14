@@ -155,7 +155,34 @@ android {
 	}
 }
 
-base.archivesName.set("jellyfin-androidtv-v${project.getVersionName()}")
+// El artefacto se llama como la app que se publica, no como el proyecto del
+// que salió el fork. Es el archivo que se sube a la Play Console y el que
+// aparece en su historial de versiones: dejarlo como «jellyfin-androidtv»
+// mientras la ficha dice Palco invita a subir el equivocado.
+base.archivesName.set("palco-v${project.getVersionName()}")
+
+// **Un AAB sin firmar se construye igual y Play lo rechaza al subirlo.**
+// `signingConfigs` solo crea la configuración `release` si están las cuatro
+// propiedades (arriba), y `findByName` devuelve null sin decir nada cuando
+// falta alguna. El resultado es un bundle de 100 MB que parece bueno y muere
+// en la consola media hora después, con un mensaje que no nombra la causa.
+if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
+	android.buildTypes.getByName("release").signingConfig == null
+) {
+	error(
+		"""
+		La compilación de release no tiene clave de firma, así que el AAB saldría sin firmar
+		y Play lo rechazaría. Hacen falta las cuatro propiedades, con estos nombres exactos:
+
+		    keystore.file          (o la variable KEYSTORE_FILE)
+		    keystore.password      (KEYSTORE_PASSWORD)
+		    signing.key.alias      (SIGNING_KEY_ALIAS)
+		    signing.key.password   (SIGNING_KEY_PASSWORD)
+
+		Van en `local.properties`, que no se versiona, o en el entorno. Ver PLAY.md §1.
+		""".trimIndent(),
+	)
+}
 
 tasks.register("versionTxt") {
 	val path = layout.buildDirectory.asFile.get().resolve("version.txt")
