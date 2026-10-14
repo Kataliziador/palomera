@@ -84,9 +84,45 @@ en esta caja.
 ## 3. La versión, antes del primer envío
 
 Hoy el proyecto compila como `0.0.0-dev.1`, `versionCode 1`. **Eso no se
-publica.** Hay que decidir el esquema de versiones y fijarlo antes del primer
-AAB, porque el `versionCode` solo puede subir: un número alto por accidente
-quema todos los menores para siempre.
+publica.** Hay que fijarlo antes del primer AAB, porque el `versionCode` solo
+puede subir: un número alto por accidente quema todos los menores para siempre.
+
+**El esquema no hay que inventarlo: ya está escrito y comprobado.**
+`buildSrc/.../VersionUtils.kt` deriva `versionCode = MAMIPAPR` de un semver, y
+el semver sale de la propiedad `jellyfin.version` o de la variable de entorno
+`JELLYFIN_VERSION` (en ese orden; `Properties.kt` mapea una a otra). Medido el
+14-oct compilando de verdad y leyendo el manifiesto con `aapt2`:
+
+```
+JELLYFIN_VERSION=0.1.0-rc.1  ->  versionCode='10001' versionName='0.1.0-rc.1'
+```
+
+| candidato | `versionCode` |
+|---|---|
+| `0.1.0-rc.1` | 10001 |
+| `0.1.0` | 10099 |
+| `1.0.0-rc.1` | 1000001 |
+| `1.0.0` | 1000099 |
+
+**Lo único que decide Edgar es el número.** La recomendación es `0.1.0-rc.1`:
+deja sitio por debajo para candidatas y por encima para todo lo demás.
+
+**Y la trampa que parecía haber no existe.** `app/build.gradle.kts:142` define
+`DEVELOPMENT = versionCode < 100`, así que al fijar una versión real se apaga
+**también en depuración**, y durante un tiempo se temió perder con él el menú
+de Diagnóstico en la caja de Edgar. Comprobado leyendo los tres usos que
+quedan:
+
+- el menú de Diagnóstico ya no depende de él, sino de `BuildConfig.DEBUG`
+  (`LiveTvFragment.kt:334`, con el comentario que lo explica);
+- `TelemetryService.kt:142` deja de añadir el volcado JSON crudo a los informes
+  de fallo, que además van al Jellyfin del ISP y no a nosotros;
+- `DeveloperPreferencesScreen.kt:43` esconde la casilla que activa el **módulo
+  de reproducción nuevo**, que es justo lo que `CLAUDE.md` §4.4 prohíbe usar.
+
+O sea que fijar la versión no cuesta nada y el tercer efecto es deseable.
+Verificado en el `BuildConfig` generado: con `0.1.0-rc.1` sale `DEBUG = true`
+y `DEVELOPMENT = false`, que es exactamente lo que se quiere.
 
 ---
 
