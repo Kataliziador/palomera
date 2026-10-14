@@ -245,6 +245,21 @@ dirección en la pantalla de Información y en la ficha.
 No es opcional ni es un detalle legal menor: es la condición bajo la que se
 puede distribuir esto.
 
+**Y hoy no se cumple, por una palabra que falta.** La pantalla de Información
+dice, en `livetv_legal_licenses`:
+
+> Derivada de jellyfin-androidtv, bajo licencia GPL-2.0. Incluye libVLC, de
+> VideoLAN, bajo LGPL-2.1. El código fuente de ambos está disponible bajo sus
+> respectivos términos.
+
+Dice que el código **existe**; no dice **dónde**. La GPL-2.0 pide acompañar el
+binario con el código o con una oferta escrita de entregarlo, y una oferta sin
+dirección no es una oferta. Es el **único cambio de código que le queda al
+envío**, y necesita exactamente un dato de Edgar —la URL del repositorio
+público—; con ella es editar una cadena en
+`app/src/main/res/values/strings.xml`. No se pone una URL provisional: un
+enlace muerto dentro de un aviso legal es peor que la frase incompleta.
+
 ---
 
 ## 6. La ficha, y una decisión que no es técnica
@@ -261,7 +276,13 @@ puede distribuir esto.
   así, y ese icono se ve encogido en la tienda. `palco-icono-512-ficha.png` es
   el mismo con el dibujo escalado hasta el cuadrado que Play respeta, y **es el
   que conviene subir**. El del APK no se toca: ahí la zona segura es real.
-- **Capturas de TV**, mínimo una, 16:9.
+- **Capturas de TV**, mínimo una, 16:9. **No pueden ser de un canal
+  reproduciendo.** Lo que se vería es emisión de un tercero —Milenio, Estrellas,
+  HBO— y publicarla en una ficha de tienda es usar contenido ajeno en nuestro
+  material comercial. Es el mismo motivo por el que las grabaciones de pruebas
+  viven fuera del repositorio. Las capturas tienen que ser de **la interfaz**:
+  la lista de canales con sus nombres y logos, la guía, la barra de canal sobre
+  un fondo propio. Eso además se hace con la caja libre, no durante un remojo.
 - **Clasificación de contenido** y **público objetivo**: la app no tiene
   contenido propio, lo sirve el ISP.
 - **Países**: México.
