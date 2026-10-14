@@ -775,6 +775,22 @@ adb -s 192.168.20.132:5555 logcat -v time | grep -iE "livetv|ExoPlayer|MediaCode
 hardware). No desarrolles solo contra ella. Usa el menú de degradación
 descrito en `LIVETV_ENGINE.md` para simular cajas peores.
 
+**Y es la única.** Hubo una Mecool KM9 Pro prestada entre el 12 y el 14 de
+octubre —contestó tres preguntas que esta no podía y está en la bitácora—, pero
+se devolvió. Así que la advertencia de arriba dejó de ser una precaución y es
+la situación: **todo lo que se mida viene de un solo modelo, y eso se escribe
+al afirmarlo.**
+
+Los dos sustitutos, y lo que cada uno no cubre:
+
+- **el menú de degradación** vale para lo que depende de las *capacidades* —qué
+  decoders hay y qué declaran—, no para lo que depende del *comportamiento* del
+  silicio. Que un decoder entregue mal no se simula: hay que verlo;
+- **la ZTE B866V2 por Play**, que es la caja mayoritaria del cliente y solo
+  instala desde la ficha pública. Es el único camino que queda a un segundo
+  dato de hardware real, y por eso publicar es un instrumento de medida y no
+  el final del trabajo (`PLAY.md`).
+
 ### Emulador de Android TV API 22, para lo que la caja no puede probar
 
 ```bash
