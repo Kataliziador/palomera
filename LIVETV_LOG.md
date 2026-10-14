@@ -274,7 +274,7 @@ declararla.
 | 23 | ~~`tunneled` deja sin imagen a los canales probados~~ | — | **RETIRADO 30-sep: era falso.** Salía de dos instrumentos que en modo tunneled **no ven nada**: el decodificador escribe directo al hardware de pantalla, así que ni `setVideoFrameMetadataListener` ni `SurfaceFlinger --latency` reciben fotogramas. Edgar miró `estrellassd` con tunneled activo y **se ve bien**. En ese modo solo valen los ojos |
 | ~~34~~ | ~~**`mono.m3u8` solo expone una pista de audio a Media3**~~ | — | **cerrado 02-oct: se pasa a `index.m3u8`.** Decisión de Edgar, con un argumento que faltaba: en algunos satélites la etiqueta de idioma miente, así que ver la segunda pista no es un extra sino el único remedio del abonado |
 | ~~37~~ | ~~**El modo tunneled falla una aserción de Media3 al cambiar de canal**~~ | — | `ERROR_CODE_FAILED_RUNTIME_CHECK` en `MediaCodecVideoRenderer.onEnabled`, la aserción del tunneling. **Medido el 07-oct durante M4: 16 fallos en 20 sintonizaciones, un 80 %** —muy por encima del 5–30 % que se había estimado antes, y casi uno por cambio de canal—. Sigue recuperándose: 19 de 20 dieron imagen, y la que no fue un canal caído en origen. **Y el 08-oct salió el otro lado de la balanza, que cambia la pregunta:** apagar el tunneled no sale gratis. En `hbohd`, 1,6 min sin tunneled dieron **15 rebuffers** —uno cada 4 s—, el offset trepó de 10,7 a 20,7 s, saltó la vuelta al borde y se perdieron 74 fotogramas; la misma caja con tunneled puesto, 5,6 min con **1 rebuffer** y el offset clavado en 10,8. Ni red ni CPU: 77 Mbps de media para un canal de 4 Mbps, CPU al 9 %, cero reintentos. Así que la decisión ya no es «¿molesta el fallo del tunneled?» sino «¿molesta más que un canal que se corta cada cuatro segundos?». Antes se midió entre el 5 % y el 30 % de los zapeos; **0 de 18 con tunneled apagado**. Siempre se recupera y el canal acaba reproduciendo. La pantalla ya no miente sobre la causa; la causa raíz es Modo A y toca la función más dependiente del fabricante de toda la pila | **Cerrado 08-oct: el tunneled se queda, activo de fábrica.** La decisión la zanjó medir el otro platillo — 20,4 min con tunneled dieron **0 rebuffers** y 1,6 min sin él dieron **15**, con el offset trepando a 20,7 s hasta disparar la vuelta al borde. El fallo de la aserción cuesta un tropiezo al zapear; apagarlo cuesta el canal. El interruptor se queda para excluir modelos por `deviceOverrides` |
-| ~~36~~ | ~~**El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition**~~ | — | **cerrado el 11-oct, y no era trabajo de headend.** HBO y Discovery ofrecían «Español, Español, Inglés» porque Flussonic declara los audios como renditions `EXT-X-MEDIA` **y además** apunta la variante a `tracks-v1a1`, que los lleva multiplexados. Se arregla con **un parámetro en la URL que publica el generador**, igual que el filtro de ABR: `?separate_audio=true`. Medido con `ffprobe` sobre los masters reales: **3 pistas de audio sin él, 2 con él**, y `tracks-v1/mono.m3u8` entrega solo vídeo. Antes de dar con el parámetro se probaron cuatro formas de `filter=tracks` y ninguna sirve —pedir `v1a1a2` sigue apuntando a la variante multiplexada y pedir `v1` deja el canal sin audio—. Implementado en `servidor-canales@8cfe89f`, solo cuando el stream tiene más de un audio: con uno no arregla nada y cuesta una conexión más. **Lo que conviene recordar es que llevaba una semana en la lista de headend sin ser de headend**, y que lo que lo destapó fue leer el master en vez de la tabla de pendientes. Falta que Edgar mire el menú de audio en pantalla |
+| ~~36~~ | ~~**El master duplica el audio 1: la variante lo lleva multiplexado y además lo declara como rendition**~~ | — | **cerrado el 11-oct, y no era trabajo de headend.** HBO y Discovery ofrecían «Español, Español, Inglés» porque Flussonic declara los audios como renditions `EXT-X-MEDIA` **y además** apunta la variante a `tracks-v1a1`, que los lleva multiplexados. Se arregla con **un parámetro en la URL que publica el generador**, igual que el filtro de ABR: `?separate_audio=true`. Medido con `ffprobe` sobre los masters reales: **3 pistas de audio sin él, 2 con él**, y `tracks-v1/mono.m3u8` entrega solo vídeo. Antes de dar con el parámetro se probaron cuatro formas de `filter=tracks` y ninguna sirve —pedir `v1a1a2` sigue apuntando a la variante multiplexada y pedir `v1` deja el canal sin audio—. Implementado en `servidor-canales@8cfe89f`, solo cuando el stream tiene más de un audio: con uno no arregla nada y cuesta una conexión más. **Lo que conviene recordar es que llevaba una semana en la lista de headend sin ser de headend**, y que lo que lo destapó fue leer el master en vez de la tabla de pendientes. **Desplegado en el site de pruebas el 14-oct** —`estado: ok, canales: 12`—, medido en la caja `audio.pistas cuantas=2 idiomas=[spa, eng]`, y **validado en pantalla por Edgar ese mismo día**: el menú de HBO ofrece dos pistas |
 | ~~35~~ | ~~**Cajas con Android < 7.1.1 no validan el certificado del registro**~~ | — | **cerrado 05-oct, medido en un emulador de API 22.** `RegistryTrust` empaqueta ISRG Root X1, X2, YR e YE y las usa **solo** para el registro. Sin el arreglo: `CertPathValidatorException: Trust anchor for certification path not found`. Con él: `registro.respuesta autorizado=true` |
 | ~~33~~ | ~~**`defaultChannel` se interpreta pero ningún camino lo usa**~~ | — | **cerrado 02-oct** con la memoria del último canal: decide el foco de la guía cuando la caja no tiene historia |
 | ~~32~~ | ~~**El aviso del operador se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct:** se dibuja bajo la marca, en la sección y no sobre el vídeo |
@@ -398,12 +398,23 @@ de verdad baja una caja: Play entrega un solo split de arquitectura, así que
 son **37,0 MB** en `armeabi-v7a` y **39,8 MB** en 64 bits. Medido sobre el
 tamaño comprimido de cada entrada del bundle. No hay problema de límite.
 
-**Lo que NO cubre esta entrada:** nada de lo de arriba es «se ve bien». Faltan
-los ojos de Edgar sobre la release —imagen, sonido, peine en `estrellassd`,
-sincronía— y hasta entonces lo único afirmado es que el artefacto arranca,
-autoriza, sintoniza y no se cae.
+**Lo que el instrumento no podía contestar, y contestó Edgar.** Nada de lo de
+arriba es «se ve bien»: lo medido solo dice que el artefacto arranca, autoriza,
+sintoniza y no se cae. Se le pidieron dos comprobaciones concretas sobre la
+release, y las dos salieron bien:
 
-**Estado:** abierta — pendiente de validación en pantalla.
+1. **Imagen, sonido y sincronía** en `estrellashd`; **peine** en `estrellassd`,
+   que es el que va por libVLC con desentrelazado por software; y **una
+   película**, porque la release es un artefacto nuevo y el VOD es el
+   invariante de §4.
+2. **El menú de audio de HBO**, que tras el despliegue del `separate_audio`
+   debía ofrecer dos pistas y no tres.
+
+**Validado en pantalla por Edgar:** «todo se ve bien». Con eso la release queda
+cerrada: es la primera vez que el binario que se publica se valida mirando una
+tele, y no solo leyendo un `logcat`.
+
+**Estado:** cerrada.
 
 ### El ajuste de imagen se recuerda, y sí recorta aunque no lo parezca — 2026-10-12
 
