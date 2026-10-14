@@ -56,6 +56,9 @@ PERMITIDO = [
 	r"^app/src/main/AndroidManifest\.xml$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/preference/category/about\.kt$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ConnectHelpAlertFragment\.kt$",
+	# el pie de versión llamaba «jellyfin-androidtv» a la app en la primera
+	# pantalla de toda instalación; §8 no lo permite ahí (14-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/SelectServerFragment\.kt$",
 	r"^app/src/main/res/values[^/]*/strings\.xml$",
 	r"^app/src/main/res/drawable[^/]*/(app_logo|app_banner_\w+|app_icon_\w+|ic_jellyfin|qr_jellyfin_docs)\.xml$",
 	r"^app/src/main/res/mipmap[^/]*/(app_icon|app_banner)\.(png|xml)$",

@@ -47,14 +47,37 @@ No hay que volver a tocarlo. Está aquí para no repetir trabajo ni dudar.
 | `leanback`, `touchscreen`, `faketouch`, `microphone` | los cuatro `required="false"` |
 | `targetSdk` | 36 |
 | `minSdk` | 21 |
-| 64 bits | el AAB trae `arm64-v8a`; la única nativa es `libandroidx.graphics.path` |
+| 64 bits | el AAB trae las cuatro ABIs, `arm64-v8a` entre ellas |
 | `debuggable` en release | ausente |
 | Avisos legales | «no afiliado al proyecto Jellyfin» y licencia GPL-2.0, en Información |
 
-**Sobre las ABIs:** no hay NDK ni compilación nativa propia —se fueron con la
-extensión FFmpeg (§6)—, así que el bundle reparte las cuatro arquitecturas
-solo y el requisito de 64 bits se cumple por construcción. No hay nada que
+**Sobre las ABIs:** no hay NDK ni compilación nativa **propia** —se fue con la
+extensión FFmpeg (§6)—, así que el bundle reparte las cuatro arquitecturas solo
+y el requisito de 64 bits se cumple por construcción. No hay nada que
 configurar.
+
+**Pero sí viaja código nativo ajeno, y pesa.** Este documento decía hasta el
+14-oct que «la única nativa es `libandroidx.graphics.path`», y eso dejó de ser
+cierto el 09-oct, cuando **libVLC** entró con M6. Medido sobre el AAB del
+14-oct, contando el tamaño comprimido de cada entrada del bundle:
+
+| | comprimido |
+|---|---|
+| AAB entero (las cuatro ABIs) | 104,2 MB |
+| común, sin `lib/` | 17,2 MB |
+| `lib/armeabi-v7a/` | 19,8 MB — de los cuales **19,5 son `libvlc.so`** |
+| `lib/arm64-v8a/` | 22,6 MB |
+| `lib/x86` / `lib/x86_64` | 20,7 / 23,9 MB |
+
+**Lo que se descarga una caja es común + su ABI**, porque Play entrega un solo
+split de arquitectura: **37,0 MB** en la Skyworth y en cualquier `armeabi-v7a`,
+**39,8 MB** en una de 64 bits. El AAB de 104 MB no es lo que nadie baja.
+
+Conviene tenerlo escrito porque el número asusta al verlo en la consola y
+porque, si algún día se discute quitar libVLC, **ese es el ahorro real: 19,5 MB
+de los 37** — y a cambio se perdería el MPEG-2 sin decoder de plataforma y el
+desentrelazado por software, que es justo lo que hace funcionar `estrellassd`
+en esta caja.
 
 ---
 

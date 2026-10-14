@@ -255,8 +255,11 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
    - **la excepción registrada de `deviceProfile.kt`** (§6, retirada de
      nextlib);
    - **marca y avisos legales** — `ui/preference/category/about.kt`,
-     `ui/startup/fragment/ConnectHelpAlertFragment.kt`, los `res/values*/
-     strings.xml`, los recursos de marca (`app_logo`, `app_icon*`,
+     `ui/startup/fragment/ConnectHelpAlertFragment.kt`,
+     `ui/startup/fragment/SelectServerFragment.kt` **(añadido el 14-oct: su
+     pie de versión llamaba «jellyfin-androidtv» a la app en la primera
+     pantalla de toda instalación, que es justo donde §8 no lo permite)**,
+     los `res/values*/strings.xml`, los recursos de marca (`app_logo`, `app_icon*`,
      `app_banner*`, `mipmap/`) y los atributos `icon`, `banner` y `label` del
      `AndroidManifest.xml`. Es §8 hecho código: la app no usa el nombre ni el
      logo de Jellyfin, y la pantalla de información lleva el «no afiliado» y

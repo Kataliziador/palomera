@@ -334,6 +334,77 @@ declararla.
 
 ## Entradas
 
+### La compilación que se publica corre por primera vez — 2026-10-14
+
+**Síntoma:** ninguno. El hueco era que no había síntoma porque nadie había
+mirado: `pm list packages` en la Skyworth devolvía **solo**
+`mx.kataliziador.palco.debug`. El paquete que se publica,
+`mx.kataliziador.palco`, no se había instalado nunca, en ninguna de las dos
+cajas. Veinte días de medidas son todas de depuración, y desde `c0262b9` el
+menú de desarrollador no viaja en release: en el artefacto que se sube, los 27
+interruptores están en su valor de fábrica y esa combinación no la había
+ejecutado nadie.
+
+**Cambio:** ninguno en el motor. Se compiló `:app:assembleRelease` firmada con
+una clave **desechable** del scratchpad —que no es ni será la de publicación— y
+se instaló en la Skyworth junto a la de depuración, que conviven por diseño.
+
+**Resultado, todo medido por `logcat` y captura:**
+
+| | |
+|---|---|
+| arranque | `StartupActivity` en 1 332 ms, sin caída |
+| registro | `autorizado=true`, `channelsUrl` y `marca=pruebas` **desde el registro** |
+| catálogo | `version=1 canales=12 grupos=4 ajustesPorCaja=1`, EPG 71 programas |
+| veto del servidor | aplicado: `OMX.amlogic.mpeg2.decoder.awesome2` |
+| `estrellashd` (H.264 HW) | primer fotograma **1 759 ms**, AVC 262 ms, AAC |
+| `mileniosd` (H.264 HW) | zapping, primer fotograma **729 ms** |
+| `estrellassd` (MPEG-2) | cascada a **libVLC**, `deint=SOFTWARE`, primer fotograma **646 ms**, SAR 1,1764706 respetado |
+| 35 latidos de `estrellashd` | 0 rebuffers, 0 reintentos, 0 huecos, buffer 13,6 s, directo 16,7 s sin varianza, CPU 6-9 % |
+
+**Tres cosas que esto contesta y antes eran suposición:**
+
+1. **El camino de producción entero funciona sin lista de arranque.** La
+   release lleva `LIVETV_BOOTSTRAP_CHANNELS = ""`, así que depende entera del
+   registro y del site, y los dos contestaron.
+2. **libVLC corre desde un binario de release.** M6 se cerró el 09-oct contra
+   compilaciones de depuración; es la primera vez que los 19,5 MB de
+   `libvlc.so` se cargan desde el artefacto que se publica.
+3. **El menú de Diagnóstico no está**, comprobado en pantalla. La verificación
+   que el plan proponía —«`grep` en el APK de release no encuentra la cadena
+   del menú»— **estaba mal escrita por mí**: con `isMinifyEnabled = false` el
+   literal sobrevive en el dex aunque la rama esté muerta, porque Kotlin no
+   pliega `BuildConfig.DEBUG` como constante. Lo que importa es que no se
+   pinta, y no se pinta.
+
+**Un instrumento nuevo, y gratis:** con libVLC `screencap` **sí captura la
+imagen**. La regla de §9 —la captura sale en blanco en el reproductor— vale
+para el camino tunneled de Media3, no para el de software. Permite verificar
+geometría y recorte sin estar delante de la tele.
+
+**Un defecto encontrado, y arreglado en este mismo commit:** el pie de la
+pantalla de selección de servidor decía **`jellyfin-androidtv 0.0.0-dev.1
+release`**. Nombra a la app, no al servidor, y es la primera pantalla de toda
+instalación, con el logotipo de Palco encima y sin ningún contexto de licencia
+que lo justifique: §8 no lo permite ahí. Ahora dice `Palco 0.0.0-dev.1
+release`, leído de `app_name` y no escrito a mano (§5.12). La atribución que la
+GPL-2.0 sí exige se queda donde le toca, en Información, junto al «no
+afiliado» y al aviso de licencias; `about.kt` no se toca.
+
+**Y un número que `PLAY.md` tenía mal:** decía que «la única nativa es
+`libandroidx.graphics.path`», y eso dejó de ser cierto el 09-oct con libVLC. El
+AAB pasó de 17 MB (05-oct) a **104,2 MB**, que asusta hasta que se mide lo que
+de verdad baja una caja: Play entrega un solo split de arquitectura, así que
+son **37,0 MB** en `armeabi-v7a` y **39,8 MB** en 64 bits. Medido sobre el
+tamaño comprimido de cada entrada del bundle. No hay problema de límite.
+
+**Lo que NO cubre esta entrada:** nada de lo de arriba es «se ve bien». Faltan
+los ojos de Edgar sobre la release —imagen, sonido, peine en `estrellassd`,
+sincronía— y hasta entonces lo único afirmado es que el artefacto arranca,
+autoriza, sintoniza y no se cae.
+
+**Estado:** abierta — pendiente de validación en pantalla.
+
 ### El ajuste de imagen se recuerda, y sí recorta aunque no lo parezca — 2026-10-12
 
 **Síntoma:** Edgar pidió que el ajuste a pantalla valiera para todos los

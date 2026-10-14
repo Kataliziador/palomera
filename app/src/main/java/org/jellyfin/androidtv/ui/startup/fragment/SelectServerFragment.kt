@@ -194,9 +194,21 @@ class SelectServerFragment : Fragment() {
 			}
 		}
 
-		// App info
+		// Versión, para soporte. **Con el nombre de la app, no con el del
+		// proyecto del que sale** (§8): esta es la primera pantalla de toda
+		// instalación, lleva el logotipo de Palco arriba y aquí no hay ningún
+		// contexto de licencia que justifique nombrar al upstream — leído de
+		// corrido, el pie decía que la app se llama «jellyfin-androidtv».
+		//
+		// La atribución que la GPL-2.0 sí exige vive donde le toca: en
+		// Información, junto al aviso de «no afiliado» y al de licencias, y
+		// ahí el identificador del fork se conserva a propósito.
+		//
+		// Sale de `app_name`, que el `build.gradle.kts` resuelve por tipo de
+		// compilación, así que no hay marca escrita a mano (§5.12).
 		@Suppress("SetTextI18n")
-		binding.appVersion.text = "jellyfin-androidtv ${BuildConfig.VERSION_NAME} ${BuildConfig.BUILD_TYPE}"
+		binding.appVersion.text =
+			"${getString(R.string.app_name)} ${BuildConfig.VERSION_NAME} ${BuildConfig.BUILD_TYPE}"
 
 		// Set focus to fragment
 		binding.root.requestFocus()
