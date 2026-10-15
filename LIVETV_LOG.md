@@ -336,6 +336,75 @@ declararla.
 
 ## Entradas
 
+### Dos huecos de instrumento que el remojo dejó a la vista — 2026-10-15
+
+**Síntoma:** ninguno en pantalla. Son dos preguntas que el remojo de 36,1 h no
+pudo contestar **porque nada las medía**, y las dos se detectaron al escribir su
+informe, no al fallar algo.
+
+**Cambio 1 — `load.retry` no decía qué falló ni dónde.** La línea era
+`attempt`, `delayMs` y `cause`, y con eso los **31 sucesos del origen** del
+remojo se escriben todos igual: `cause=InvalidResponseCodeException`. Un 404 y
+un 503 son diagnósticos opuestos —el primero es un recurso que no existe, una
+playlist mal generada o un stream apagado; el segundo es un origen vivo que no
+puede servir— y no se puede decir cuál fue ninguno de los 31. Y §5.8 pide que
+todo error se registre con la URL, que no estaba.
+
+Se añaden tres columnas en `Media3LiveEngine.kt:1633`:
+
+- **`codigo`** — el `responseCode`, de
+  `HttpDataSource.InvalidResponseCodeException`, que es un `public final int` y
+  ya estaba a mano;
+- **`que`** — playlist, segmento, cabecera o reloj, traducido de
+  `mediaLoadData.dataType`. Es la otra mitad del diagnóstico: un 404 en el
+  master significa que el canal no existe en ese headend, y en un segmento, que
+  la ventana se movió por debajo de nosotros. Son dos arreglos distintos;
+- **`recurso`** — la ruta de `loadEventInfo.uri`, sin el host, que además nombra
+  el canal.
+
+**Cambio 2 — el vuelco de PTS no tenía instrumento, y ahora tiene uno que puede
+verlo.** El ítem de M8 se quedó cerrado como «inferido» porque la sesión cruzó
+las 26,5 h y no pasó nada *visible*; pero sin nada que mire, «pasó sin
+incidente» y «no lo vi» son la misma lectura, que es el caso contra el que avisa
+`CLAUDE.md` §6 con el tunneled.
+
+**El PTS no se puede registrar.** Leído en Media3 1.8.0: `TimestampAdjuster`
+lleva el vuelco por dentro con `MAX_PTS_PLUS_ONE = 0x200000000L` y **no publica
+su estado**, así que no hay forma de escribir el valor crudo sin tocar la
+librería. Lo que sí es observable es la **firma** de un vuelco mal manejado: un
+salto de posición de 2³³ ticks a 90 kHz, o sea 8 589 934 592 / 90 000 s =
+**95 443 717 ms = 26,512 h**, que es de donde salían las «~26,5 h» del plan.
+
+Se añade `PlayerEvents.onPositionDiscontinuity`, que no existía:
+
+- un salto a menos de 60 s de esa cifra → **`pts.posibleVuelco`** a nivel aviso.
+  La tolerancia es de un minuto porque el salto se mide entre dos posiciones
+  publicadas por el reproductor, no entre dos PTS, así que lleva dentro el
+  buffer y el redondeo del ajustador; es el 0,06 % de la cifra, lo bastante
+  estrecho para no marcar nada normal —en 36 h no hubo un solo salto de ese
+  orden— y lo bastante ancho para no dejar pasar el fenómeno;
+- un salto que **pedimos nosotros** (`SEEK` o `SEEK_ADJUSTMENT`) → a DEBUG. De
+  propina, esto da **la verdad de cada salto**: el vigilante y la vuelta al
+  borde piden una posición y el reproductor aterriza donde puede, y hoy eso se
+  aproxima consultando la posición justo después (`offset.trasElSalto`), que es
+  una lectura y no el evento;
+- cualquier otro → aviso. Es donde aparecería algo que nadie pidió.
+
+Las dos cifras van a `LiveTuning` (§5.7): `MS_DE_UN_VUELCO_DE_PTS` y
+`TOLERANCIA_VUELCO_MS`.
+
+**Prueba:** `:livetv:compileDebugKotlin` y `:livetv:test` en verde,
+`comprobar.py` en orden. **No hay medida nueva en pantalla**, y no la habrá
+hasta el próximo remojo que cruce las 26,5 h: estos dos cambios no alteran nada
+de lo que se ve, solo lo que se escribe. Son Modo B por eso — no tocan
+decodificación, red, buffers, render ni recuperación—, y el reintento calcula el
+mismo retardo que antes.
+
+**Estado:** abierta hasta que el instrumento lea algo. Lo que cierra el ítem del
+vuelco de M8 es un remojo de la release que pase de 26,5 h y **no** escriba
+`pts.posibleVuelco`; hasta entonces el ítem sigue inferido, solo que ahora con
+algo que podría refutarlo.
+
 ### El remojo de 36 h: lo que cruzó el vuelco de PTS y lo que no se puede afirmar — 2026-10-15
 
 **Síntoma:** la sesión más larga medida eran **9,3 h** contra las 24 h

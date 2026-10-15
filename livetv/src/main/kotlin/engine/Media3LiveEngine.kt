@@ -15,6 +15,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -29,6 +30,7 @@ import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.pow
 import org.jellyfin.livetv.LiveTuning
@@ -1119,6 +1121,63 @@ class Media3LiveEngine(
 			notify { it.onVideoSizeChanged(videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio) }
 		}
 
+		/**
+		 * El único instrumento que puede ver un vuelco de PTS.
+		 *
+		 * **El PTS no se lee desde la API del reproductor.** `TimestampAdjuster`
+		 * lleva el vuelco de 33 bits por dentro —`MAX_PTS_PLUS_ONE =
+		 * 0x200000000L`— y no publica su estado, así que no hay forma de
+		 * registrar el valor crudo sin tocar Media3.
+		 *
+		 * Lo que sí es observable es **la firma del vuelco mal manejado**: un
+		 * salto de posición de 2³³ ticks a 90 kHz, o sea
+		 * [MS_DE_UN_VUELCO_DE_PTS] ≈ 26,5 h. Si el ajustador se equivocara, la
+		 * posición daría ese salto y aquí quedaría escrito.
+		 *
+		 * Por qué hacía falta: el remojo del 14-15 oct cruzó las 26,5 h y
+		 * siguió 9,5 h más sin reiniciar, pero **con este método ausente «pasó
+		 * sin incidente» y «no lo vi» eran la misma lectura**, así que el ítem
+		 * de M8 se quedó cerrado como inferido. Un instrumento ciego al
+		 * fenómeno no respalda nada (`CLAUDE.md` §6, el caso del tunneled).
+		 *
+		 * Y de propina da la verdad de cada salto nuestro: el vigilante y la
+		 * vuelta al borde piden una posición y el reproductor aterriza donde
+		 * puede. Eso hoy se aproxima consultando la posición justo después
+		 * (`offset.trasElSalto`), que es una lectura y no el evento.
+		 */
+		override fun onPositionDiscontinuity(
+			oldPosition: Player.PositionInfo,
+			newPosition: Player.PositionInfo,
+			reason: Int,
+		) {
+			val saltoMs = newPosition.positionMs - oldPosition.positionMs
+			val comoUnVuelco =
+				abs(abs(saltoMs) - MS_DE_UN_VUELCO_DE_PTS) < TOLERANCIA_VUELCO_MS
+
+			// A nivel aviso solo lo que nadie pidió. Nuestros propios saltos son
+			// decenas por sesión y a DEBUG no llenan el anillo de 20 000.
+			val pedidoPorNosotros =
+				reason == Player.DISCONTINUITY_REASON_SEEK ||
+					reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT
+			val campos = arrayOf(
+				"motivo" to motivoDeDiscontinuidad(reason),
+				"desdeMs" to oldPosition.positionMs,
+				"hastaMs" to newPosition.positionMs,
+				"saltoMs" to saltoMs,
+			)
+			when {
+				comoUnVuelco -> LiveLog.warn(
+					"pts.posibleVuelco",
+					*campos,
+					// Si esto sale alguna vez, el ítem del vuelco de M8 deja de
+					// ser una conjetura y pasa a ser un pendiente con número.
+					"nota" to "salto del tamaño de un vuelco de 33 bits",
+				)
+				pedidoPorNosotros -> LiveLog.debug("salto.aterrizaje", *campos)
+				else -> LiveLog.warn("salto.inesperado", *campos)
+			}
+		}
+
 		override fun onTimelineChanged(timeline: Timeline, reason: Int) {
 			// Pendiente 76. Toda la decisión de volver al borde vive dentro de
 			// este método, así que **si el playlist se congela el método no se
@@ -1615,14 +1674,57 @@ class Media3LiveEngine(
 				LiveTuning.RETRY_BACKOFF_MAX_MS,
 			)
 			loadRetries++
+			// **Las tres columnas que faltaban para poder diagnosticar un site
+			// ajeno.** Hasta el 15-oct esta línea decía
+			// `cause=InvalidResponseCodeException` y nada más, y con eso un 404
+			// y un 503 se escriben igual siendo diagnósticos opuestos: el
+			// primero es un recurso que no existe —playlist mal generada,
+			// stream apagado— y el segundo es un origen vivo que no puede
+			// servir. En el remojo de 36 h hubo **31 sucesos del origen, todos
+			// con este mismo texto**, y no se puede decir cuál era ninguno.
+			//
+			// `que` separa el playlist del segmento, que es la otra mitad del
+			// diagnóstico: un 404 en el master significa que el canal no
+			// existe en ese headend, y en un segmento, que la ventana se movió
+			// por debajo de nosotros. Y `recurso` es la ruta sin el host —§5.8
+			// pide la URL—, que además nombra el canal.
+			val codigo = (loadErrorInfo.exception as? InvalidResponseCodeException)?.responseCode
 			LiveLog.warn(
 				"load.retry",
 				"attempt" to loadErrorInfo.errorCount,
 				"delayMs" to delay,
 				"cause" to loadErrorInfo.exception::class.java.simpleName,
+				"codigo" to codigo,
+				"que" to queSePedia(loadErrorInfo.mediaLoadData.dataType),
+				"recurso" to loadErrorInfo.loadEventInfo.uri.path,
 			)
 			return delay
 		}
+	}
+
+	/**
+	 * Qué se estaba pidiendo cuando falló, en una palabra.
+	 *
+	 * Los enteros de `C.DATA_TYPE_*` no se leen en un log a las tres de la
+	 * mañana, y la diferencia entre playlist y segmento es justo la que decide
+	 * si hay que mirar el headend o la ventana DVR.
+	 */
+	private fun motivoDeDiscontinuidad(reason: Int): String = when (reason) {
+		Player.DISCONTINUITY_REASON_AUTO_TRANSITION -> "transicion"
+		Player.DISCONTINUITY_REASON_SEEK -> "saltoPedido"
+		Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT -> "saltoAjustado"
+		Player.DISCONTINUITY_REASON_SKIP -> "omitido"
+		Player.DISCONTINUITY_REASON_REMOVE -> "retirado"
+		Player.DISCONTINUITY_REASON_INTERNAL -> "interno"
+		else -> "otro($reason)"
+	}
+
+	private fun queSePedia(dataType: Int): String = when (dataType) {
+		C.DATA_TYPE_MANIFEST -> "playlist"
+		C.DATA_TYPE_MEDIA -> "segmento"
+		C.DATA_TYPE_MEDIA_INITIALIZATION -> "cabecera"
+		C.DATA_TYPE_TIME_SYNCHRONIZATION -> "reloj"
+		else -> "otro($dataType)"
 	}
 
 	/**
@@ -1794,5 +1896,27 @@ class Media3LiveEngine(
 		const val OFFSET_MISMATCH_TOLERANCE_MS = 2_000L
 		/** El doble del intervalo legítimo más largo de una cadencia 3:2. */
 		const val FRAME_GAP_WARN_MS = 100L
+
+		/**
+		 * Lo que mide un vuelco de PTS: 2³³ ticks del reloj de 90 kHz de
+		 * MPEG-TS, o sea 8 589 934 592 / 90 000 segundos ≈ **26,5 h**.
+		 *
+		 * No es una medida nuestra: sale del tamaño del campo en la norma, y
+		 * Media3 lleva la misma cifra en `TimestampAdjuster.MAX_PTS_PLUS_ONE =
+		 * 0x200000000L`.
+		 */
+		const val MS_DE_UN_VUELCO_DE_PTS = (0x200000000L / 90L)
+
+		/**
+		 * Cuánto puede desviarse un salto de la cifra exacta y seguir siendo un
+		 * vuelco.
+		 *
+		 * Un minuto: el salto se mide entre dos posiciones que el reproductor
+		 * publica, no entre dos PTS, así que llevan dentro el buffer y el
+		 * redondeo del ajustador. Más estrecho dejaría pasar el fenómeno que
+		 * esto existe para ver; mucho más ancho empezaría a marcar saltos
+		 * normales de un día de reproducción, que no los hay.
+		 */
+		const val TOLERANCIA_VUELCO_MS = 60_000L
 	}
 }

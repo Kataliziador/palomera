@@ -347,8 +347,13 @@ fotograma entre 1 651 y 1 931 ms—. Nada de esto está cerrado.
   que entrega un `TimestampAdjuster(MODE_SHARED)` por secuencia de
   discontinuidad. El remojo del 15-oct **cruzó las 26,5 h** y siguió 9,5 h más
   sin reiniciar, pero **nada en el log registra PTS**: un vuelco limpio y un
-  vuelco que no ocurrió se escriben igual, así que eso es **inferido**. Cerrarlo
-  exige registrar el PTS, no otro remojo
+  vuelco que no ocurrió se escriben igual, así que eso era **inferido**.
+  **Instrumento puesto el 15-oct:** el PTS no se lee desde la API —
+  `TimestampAdjuster` lo lleva por dentro y no publica su estado—, pero un
+  vuelco mal manejado tiene una sola firma observable, un salto de posición de
+  `MS_DE_UN_VUELCO_DE_PTS` (95 443 717 ms ≈ 26,5 h), y
+  `onPositionDiscontinuity` ya lo vigila con `pts.posibleVuelco`. **El próximo
+  remojo que cruce las 26,5 h cierra el ítem con dato en vez de con inferencia**
 - Sin fugas de memoria en zapping repetido. **En sesión continua ya está medido**
   (15-oct): sin fuga de java, y el heap nativo acumula 1,7 MB/h de asignaciones
   vivas y frías —no es una fuga, ver pendiente 79—. El zapeo repetido sigue sin medir
