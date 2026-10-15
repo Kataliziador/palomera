@@ -66,7 +66,8 @@ Content-Type: application/json
     "rebuffers": 9, "minutosReproducidos": 740,
     "tunneledPedido": 128, "tunneledRescatado": 0,
     "fallosPorCausa": { "SENAL": 2 },
-    "fallosPorCanal": { "estrellassd": 2 }
+    "fallosPorCanal": { "estrellassd": 2 },
+    "audioSinNormalizar": { "canal207:mp2": 4 }
   }
 }
 ```
@@ -79,9 +80,29 @@ Content-Type: application/json
 | `device` | soporte: saber qué cajas hay en cada ISP sin preguntar |
 | `device.decoders` | **el inventario de vídeo**, `nombre\|mime\|hw o sw` |
 | `diagnostico` | cómo se ha reproducido en esa caja, acumulado |
+| `diagnostico.audioSinNormalizar` | **el canal cuyo audio no era AAC**, `canal:códec` |
 
 **`device.decoders` y `diagnostico` se añadieron el 05-oct**, y son campos
 nuevos: un registro que los ignore sigue funcionando igual.
+
+**`audioSinNormalizar` se añadió el 11-oct** (`a968e58`) y **llevaba desde
+entonces en el código sin estar en este documento**, que es exactamente lo que
+la regla de sincronía de `CLAUDE.md` existe para evitar: quien escribe el
+registro mira aquí, y un contrato que se queda corto es peor que no tenerlo
+porque se cree. Se corrige al detectarlo, el 15-oct.
+
+### `audioSinNormalizar` es la defensa 2 de §2, y va aquí porque el fallo es mudo
+
+El audio se normaliza a AAC en el Flussonic de cada site, y con un headend por
+ISP eso pasó de garantía a requisito de despliegue. **La forma en que falla es
+silenciosa:** la caja de pruebas decodifica `audio/mpeg` y `audio/ac3` por
+hardware, así que un canal mal normalizado **se oye perfecto en desarrollo** y
+es silencio en una caja barata sin esos decoders. Nadie se entera hasta que
+llama un abonado de un site al que hay que ir.
+
+La clave es `canal:códec` y el valor, cuántas sesiones. Con eso, «un abonado no
+tiene sonido» se convierte en «el canal 207 de este site no pasó por la
+normalización», sin viajar.
 
 ### Por qué el inventario de decoders va aquí
 

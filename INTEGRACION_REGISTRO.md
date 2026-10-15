@@ -240,6 +240,16 @@ instalación: sesiones, cuántas dieron imagen, ms al primer fotograma,
 rebuffers, si el tunneled hizo falta rescatarlo, y los fallos por causa y por
 canal.
 
+**Y desde el 11-oct trae `audioSinNormalizar`**, con claves `canal:códec` y
+cuántas sesiones cada una. **Es el campo que más te conviene mirar**, porque
+delata un fallo de despliegue que nadie puede ver de otra forma: el audio se
+normaliza a AAC en el Flussonic de cada site, y un canal que se quedó sin
+normalizar **se oye perfecto en una caja buena** —decodifica MP2 y AC-3 por
+hardware— y es silencio en una barata. Si ves `canal207:mp2` subiendo en un
+site, ese canal hay que renormalizarlo, y te has enterado sin que llame nadie.
+Llevaba desde entonces en el código sin estar en el contrato; se corrigió el
+15-oct.
+
 **No se vacía al enviarlo.** Recibes el total cada vez y la diferencia la
 calculas tú. Es deliberado: vaciar en la caja significaría perder lo acumulado
 cada vez que un envío falla, justo en las cajas con mala conexión, que son las
