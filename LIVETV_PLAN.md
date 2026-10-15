@@ -331,10 +331,13 @@ el headend (pendientes 6 y 7 de `LIVETV_LOG.md`).
 
 **Objetivo:** sobrevivir a la operación real.
 
-**Estado medido al 11-oct:** la sesión más larga son **9,3 h** contra un mínimo
-aceptable de 24 h en §10, y el zapping va bien pero con pocas muestras —4
-sintonías con el primer fotograma entre 1 651 y 1 931 ms—. Nada de esto está
-cerrado.
+**Estado medido al 15-oct:** la sesión más larga son **36,1 h** —remojo de
+`mileniosd` del 14 al 15-oct, un solo pid, 2,1 cortes/h y 0,31 % de ratio—, o sea
+ya por encima de las 24 h «aceptable» de §10 y por debajo de las 48 h objetivo.
+**Pero es la APK de depuración**, con el anillo de diagnóstico y un `logcat`
+atado 36 h, así que el número que cuenta para §10 sale de un remojo de la
+**release**. El zapping sigue con pocas muestras —4 sintonías con el primer
+fotograma entre 1 651 y 1 931 ms—. Nada de esto está cerrado.
 
 - ~~Reconexión programada antes del rollover de PTS (~26.5 h)~~ **probablemente
   no hay que escribirla.** Leído el 11-oct en la fuente de Media3 1.8.0:
@@ -342,9 +345,13 @@ cerrado.
   `MAX_PTS_PLUS_ONE = 0x200000000L` —los 33 bits— y estima el número de vueltas
   en `adjustTsTimestamp`; el camino HLS lo usa vía `TimestampAdjusterProvider`,
   que entrega un `TimestampAdjuster(MODE_SHARED)` por secuencia de
-  discontinuidad. **Queda por comprobar con un remojo que cruce las 26,5 h**, y
-  solo si se rompe se escribe algo
-- Sin fugas de memoria en zapping repetido
+  discontinuidad. El remojo del 15-oct **cruzó las 26,5 h** y siguió 9,5 h más
+  sin reiniciar, pero **nada en el log registra PTS**: un vuelco limpio y un
+  vuelco que no ocurrió se escriben igual, así que eso es **inferido**. Cerrarlo
+  exige registrar el PTS, no otro remojo
+- Sin fugas de memoria en zapping repetido. **En sesión continua ya está medido**
+  (15-oct): sin fuga de java, y el heap nativo acumula 1,7 MB/h de asignaciones
+  vivas y frías —no es una fuga, ver pendiente 79—. El zapeo repetido sigue sin medir
 - Medir el zapping real
 
 **Pruebas de Edgar:** un canal 48 h continuas; 50 cambios de canal seguidos.
