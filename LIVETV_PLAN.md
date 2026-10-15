@@ -493,16 +493,30 @@ recompilar, y sin ninguno la app arranca con la marca neutra y la lista de
 ## B9 — Registro de sites
 Consulta al registro antes de derivar por convención (`REGISTRY_SCHEMA.md`).
 
-- Normalización del host igual que en `ServiceUrl`
-- Autorización guardada por host, con su caducidad
-- **Degradación:** sin respuesta y vigente se entra; caducada hay gracia;
-  pasada la gracia se cierra **explicando**, no con un error genérico
-- La puerta cubre **solo** la sección de canales; el VOD no se toca
-- `channelsUrl` y `brand` del registro pisan a la convención y al site
+**Los cinco puntos están construidos.** Llevaban sin marcar y el plan pedía
+trabajo hecho, que cuesta un día a quien lo lea; se verificó uno a uno contra el
+código el 15-oct y se anota la línea de cada uno para que se pueda refutar.
+
+- ~~Normalización del host igual que en `ServiceUrl`~~ `SiteAuthorization.kt:15`
+  (la clave es el host normalizado) y `ServiceUrl.kt:93`, que explica por qué los
+  dos lados tienen que normalizar igual
+- ~~Autorización guardada por host, con su caducidad~~ `SiteAuthorization.kt:23`,
+  `untilEpochMs`, y la regla escrita en la línea 21: antes se descarta la
+  respuesta entera que guardar una autorización sin caducidad
+- ~~**Degradación:** sin respuesta y vigente se entra; caducada hay gracia;
+  pasada la gracia se cierra **explicando**~~ `Acceso.kt:73` y `:78`, las dos
+  ramas con su motivo, y `DecisorDeAccesoTest.kt:69` y `:75` que las prueban
+- ~~La puerta cubre **solo** la sección de canales; el VOD no se toca~~
+  `LiveTvFragment.kt:464`: la pantalla de «no autorizado» es de la sección, y el
+  módulo no depende de `app` (§4.1), así que no tiene por dónde tocar el VOD
+- ~~`channelsUrl` y `brand` del registro pisan a la convención y al site~~
+  `LiveTvCatalog.kt:200`, donde el `channelsUrl` del registro va delante de la
+  derivación, y `:286`, que registra «registro» como origen de la decisión
 
 **Dependencia:** B1. **Criterio de cierre:** dar de alta un host en el registro
 y que una caja entre sin tocar la app; quitarlo y que se cierre con su mensaje
 al caducar. Y con el registro apagado, una caja ya autorizada sigue entrando.
+**El criterio sigue abierto**: eso se comprueba con cajas en campo, no aquí.
 
 ### Lo que pide el proyecto del autorizador
 
@@ -523,8 +537,11 @@ contrato no cambia; esto es lo que `INTEGRACION_REGISTRO.md` §7 dejaba abierto.
   por debajo de API 24, justo donde está el problema. Tiene que ser un
   `X509TrustManager` que confíe en **el sistema o en las incluidas**, nunca uno
   que acepte todo.
-- Lo mismo para el cliente OkHttp de Coil, o la autorización funcionaría y el
-  logo de la marca no.
+- ~~Lo mismo para el cliente OkHttp de Coil, o la autorización funcionaría y el
+  logo de la marca no.~~ **Hecho**, y no ampliando el `ImageLoader` global —que
+  era la tentación y habría dado confianza ampliada a todas las imágenes de la
+  app—: `LogoLoader.kt` construye uno aparte, con `RegistryTrust` y solo para el
+  logo de la marca.
 
 **Añadido desde este lado, que allí no podían ver:** `ConfigRepository` usa
 `HttpURLConnection`, así que **el mismo fallo alcanza al `config.json`** si un
@@ -539,8 +556,17 @@ arreglo debe cubrir las dos conexiones, no solo la del registro.
   Modelo, ABIs, RAM, **inventario de decoders de vídeo**, sesiones, ms al
   primer fotograma, rebuffers, rescates del tunneled y fallos por causa y por
   canal. Viaja montado en la consulta al registro, no en un servicio nuevo.
-  **Falta el códec de audio recibido**, que es como se detecta un site con el
-  AAC mal configurado (§2)
+  **El códec de audio recibido también está** (`a968e58`, 11-oct): el motor lo
+  observa en `Media3LiveEngine.kt:1731` y lo acumula por canal en
+  `audioSinNormalizar`, que es como se detecta un site con el AAC mal
+  configurado (§2 defensa 2). Esta línea decía que faltaba y estaba
+  desactualizada; corregida el 15-oct
+- ~~**Y el registro lo guarda**~~ **hecho el 15-oct, en el otro repositorio.**
+  Hasta ese día la APK mandaba el inventario de decoders y el diagnóstico
+  entero y **el autorizador los descartaba en silencio**: su modelo de entrada
+  declaraba tres campos de `device` y Pydantic tira lo que no declara. Diez días
+  enviando a la basura justo el dato que justifica B6. Ver
+  `autorizador` PR #10 y su `docs/BITACORA.md`
 - **Datos de abonado**, detrás de un interruptor por proveedor y con contrato:
   identidad y qué vio quién. Exige aviso de privacidad y el formulario de
   Seguridad de los datos de Play, y el editor somos nosotros.
