@@ -588,12 +588,17 @@ falta.
 - ~~target API vigente~~ — 36
 - ~~El registro, nunca en claro~~ — `domain-config` para `authjelly.satmx.net`,
   que pedía `PETICION_APK` §1
-- Banner de ficha 1280×720 e icono 512×512 — hay que generarlos, el del APK es
-  vectorial
+- ~~Banner de ficha 1280×720 e icono 512×512 — hay que generarlos, el del APK
+  es vectorial~~ **hechos el 05-oct**, en `herramientas/marca/png/`. Del icono
+  hay dos y hay que elegir: `palco-icono-512-ficha.png` es el que conviene
+  subir (`PLAY.md` §6 dice por qué)
 - **Política de privacidad** y **formulario de Seguridad de los datos**: ahora
   obligan de verdad, porque la app manda `installId` y diagnóstico (B6)
 - **Repositorio público del fork**, que es la oferta de código de la GPL-2.0
-- **Versión real**: hoy compila como `0.0.0-dev.1` y eso no se publica
+- ~~**Versión real**: hoy compila como `0.0.0-dev.1` y eso no se publica~~
+  **el build ya no deja**, desde el 16-oct: una tarea de release con
+  `versionCode < 100` se detiene y dice cómo fijar el número. Elegirlo sigue
+  siendo de Edgar; publicar el `1` por descuido ya no se puede
 - **Clave de firma y su custodia**, y decidir si se usa Play App Signing
 
 **Cierre:** un AAB firmado, subido, y una ZTE instalándolo desde la ficha.

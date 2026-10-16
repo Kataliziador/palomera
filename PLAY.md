@@ -124,6 +124,17 @@ Hoy el proyecto compila como `0.0.0-dev.1`, `versionCode 1`. **Eso no se
 publica.** Hay que fijarlo antes del primer AAB, porque el `versionCode` solo
 puede subir: un número alto por accidente quema todos los menores para siempre.
 
+**Y el peligro era el contrario del que parece.** Un AAB sin versión no falla
+al construirse ni al subirse: Play acepta el `versionCode 1` tan contento, y lo
+que se rompe es el envío *siguiente*, cuando ya no hay forma de volver a los
+números por debajo de 100 ni de usar la convención `MAMIPAPR`. Desde el 16-oct
+**el build se niega**: cualquier tarea con «Release» en el nombre y
+`versionCode < 100` para la compilación con el mensaje que dice cómo fijarla
+(`app/build.gradle.kts`, al lado de la guarda de la clave de firma, que lleva
+ahí desde el 14-oct por el mismo motivo). Comprobado las dos ramas: sin la
+variable el `bundleRelease` se detiene; con `-Pjellyfin.version=0.1.0-rc.1`
+pasa de largo y llega a la guarda de firma.
+
 **El esquema no hay que inventarlo: ya está escrito y comprobado.**
 `buildSrc/.../VersionUtils.kt` deriva `versionCode = MAMIPAPR` de un semver, y
 el semver sale de la propiedad `jellyfin.version` o de la variable de entorno
@@ -318,8 +329,9 @@ Dos cosas a tener presentes:
 JELLYFIN_VERSION=0.1.0-rc.1 ./gradlew :app:bundleRelease
 ```
 
-La variable es obligatoria: sin ella sale `0.0.0-dev.1` con `versionCode 1`, que
-no se publica (§3).
+La variable es obligatoria y **el build la exige**: sin ella el
+`bundleRelease` se detiene antes de compilar nada, en vez de entregar un
+`versionCode 1` publicable (§3).
 
 1. El AAB sale en `app/build/outputs/bundle/release/` y se llama
    `palco-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se

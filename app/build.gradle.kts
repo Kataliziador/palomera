@@ -161,6 +161,40 @@ android {
 // mientras la ficha dice Palco invita a subir el equivocado.
 base.archivesName.set("palco-v${project.getVersionName()}")
 
+// Las dos maneras silenciosas de construir un bundle que no se puede publicar:
+// sin versión y sin firma. Las dos producen un archivo de 100 MB con buena cara.
+
+// **Un AAB sin versión se construye igual, y Play sí lo acepta.** Ese es el
+// problema: `getVersionName()` cae a `0.0.0-dev.1` cuando nadie pasa
+// `jellyfin.version` ni `JELLYFIN_VERSION`, y de ahí sale `versionCode 1`. El
+// envío no falla —falla el siguiente—, porque el `versionCode` solo puede
+// subir: publicado el 1, los 98 números por debajo de 100 quedan quemados y
+// con ellos la convención `MAMIPAPR` de `VersionUtils.kt`, que es de donde
+// sale el número de toda versión futura. Es irreversible por el mismo motivo
+// que el nombre de paquete, y no se avisa en ningún sitio.
+//
+// `versionCode < 100` es exactamente «major, minor y patch son cero», o sea
+// la familia del marcador de desarrollo; es el mismo criterio con el que el
+// tipo `debug` decide `DEVELOPMENT`.
+if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
+	android.defaultConfig.versionCode!! < 100
+) {
+	error(
+		"""
+		La compilación de release no tiene versión: salió `${android.defaultConfig.versionName}`,
+		que es el marcador de desarrollo, con `versionCode ${android.defaultConfig.versionCode}`.
+		Play aceptaría ese envío y después no se puede bajar el número.
+
+		Se fija con la propiedad o con la variable de entorno, no en el código:
+
+		    ./gradlew -Pjellyfin.version=0.1.0-rc.1 :app:bundleRelease
+		    JELLYFIN_VERSION=0.1.0-rc.1 ./gradlew :app:bundleRelease
+
+		Ver PLAY.md §2, que lleva la tabla de números y el candidato recomendado.
+		""".trimIndent(),
+	)
+}
+
 // **Un AAB sin firmar se construye igual y Play lo rechaza al subirlo.**
 // `signingConfigs` solo crea la configuración `release` si están las cuatro
 // propiedades (arriba), y `findByName` devuelve null sin decir nada cuando
