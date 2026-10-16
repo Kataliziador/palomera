@@ -226,6 +226,67 @@ def main() -> int:
 			marca = "*" if "gananciaDerivada" in d else " "
 			print(f"  {hora} {n('offsetMs')} {n('ventanaMs')} {n(pos)} {n('destinoMs')} {n('gananciaMs')}{marca} {despues:>8}")
 
+	# --- la meseta que deja cada tipo de salto -------------------------------
+	#
+	# Los tres saltos cuestan lo mismo —un corte— y no dejan al reproductor en
+	# el mismo sitio. Eso es el pendiente 77, y antes de esta sección se
+	# discutía con tramos sueltos: el 11-oct dos mesetas malas parecían
+	# condenar al vigilante, y el 15-oct el p95 global del remojo parecía
+	# absolverlo. Ninguna de las dos lecturas valía, porque mezclaban estados.
+	# La comparación que decide es **condicional al salto que la causó**.
+	#
+	# El tiempo se cuenta en latidos y no en la hora de la línea: una sesión
+	# larga cruza la medianoche y `segundos()` daría un salto de -86400.
+	#
+	# Se mide de 2 a 10 minutos después, no justo después: en el primer minuto
+	# el buffer se está rellenando y todas las mesetas se parecen.
+	MESETA_INI, MESETA_FIN = 60, 300        # latidos = 2 y 10 minutos
+	MISMO_INCIDENTE = 30                    # latidos = 60 s
+
+	tipo_de_salto = {
+		"offset.margenCorto": "margenCorto",
+		"offset.vuelveAlBorde": "vuelveAlBorde",
+		"vigilante.saltaAlBorde": "vigilante",
+	}
+	buffers_latido: list[float] = []
+	saltos_en_latidos: list[tuple[int, str]] = []
+	for l in cuerpo:
+		if " latido " in l:
+			b = campos(l).get("bufferS")
+			buffers_latido.append(float(b) if b else float("nan"))
+			continue
+		for marca, nombre in tipo_de_salto.items():
+			if marca in l:
+				saltos_en_latidos.append((len(buffers_latido), nombre))
+				break
+
+	# Un incidente son todos los saltos encadenados: el vigilante suele llegar
+	# detrás de un `margenCorto`, y lo que decide la meseta es el **último**.
+	incidentes: list[list[tuple[int, str]]] = []
+	for k, nombre in saltos_en_latidos:
+		if incidentes and k - incidentes[-1][-1][0] <= MISMO_INCIDENTE:
+			incidentes[-1].append((k, nombre))
+		else:
+			incidentes.append([(k, nombre)])
+
+	mesetas: dict[str, list[float]] = {}
+	for inc in incidentes:
+		k, nombre = inc[-1]
+		dentro = [b for b in buffers_latido[k + MESETA_INI:k + MESETA_FIN] if b == b]
+		if len(dentro) >= 30:
+			mesetas.setdefault(nombre, []).append(est.mean(dentro))
+
+	if len(mesetas) > 1:
+		print(f"\n{NEGRITA}La meseta que deja cada salto{FIN}  "
+		      f"({len(incidentes)} incidentes, buffer medio de 2 a 10 min después)")
+		print(f"{GRIS}  último salto del incidente      n   mediana    mínima    máxima{FIN}")
+		for nombre in ("margenCorto", "vuelveAlBorde", "vigilante"):
+			v = mesetas.get(nombre)
+			if v:
+				print(f"  {nombre:<28} {len(v):>3}  {est.median(v):>7.1f} s {min(v):>7.1f} s {max(v):>7.1f} s")
+		print(f"{GRIS}  los tres cuestan un corte; si uno deja el buffer varios segundos{FIN}")
+		print(f"{GRIS}  más fino que otro, es el destino lo que hay que igualar (pendiente 77){FIN}")
+
 	# --- la firma de parada del origen --------------------------------------
 	#
 	# Diez segundos de buffer cayendo 2 s por cada 2 s de reloj. En marcha
