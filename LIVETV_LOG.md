@@ -259,11 +259,11 @@ declararla.
 | 8 | Confirmar si `a095` es el mismo canal que `discoveryhd-70w` | M1 | mismos datos técnicos |
 | 9 | Pasar `a093` (SD H.264 70W) por Flussonic | headend | único SD H.264 satelital, probablemente entrelazado |
 | 10 | ~~Caracterizar `test-sat70w-hbohd-mp4`~~ | M1 | **cerrado**: h264 1080i `bb`, AAC |
-| 11 | **`estrellashd-mp4`: pista de audio intermitente** | headend + M7 | desaparece y vuelve; revisar errores PES en Astra |
-| 12 | Sobrevivir a cambios en el número de pistas a mitad de stream | M7 | ExoPlayer lo tolera mal; caso real en `estrellashd-mp4` |
+| 11 | **`estrellashd-mp4`: pista de audio intermitente** | headend | desaparece y vuelve; revisar errores PES en Astra. Pierde la etiqueta M7 al cerrarse la fase el 19-oct; el lado cliente de esto es el pendiente 12 |
+| 12 | Sobrevivir a cambios en el número de pistas a mitad de stream | propia (salió de M7 el 19-oct) | ExoPlayer lo tolera mal; caso real en `estrellashd-mp4`. **Intentado el 19-oct y sin medir:** el montaje falló cuatro veces fingiendo el fallo que buscaba, y el control lo delató las cuatro. Lo que queda escrito para el quinto intento: la vía que funciona es la de los canales 901 y 903 —segmentos escritos por ffmpeg en tiempo real, 0 y 7 rebuffers— y no un playlist cosido a mano. Y el cambio hay que probarlo **sin** `EXT-X-DISCONTINUITY`, que es el caso feo; con él anunciado no se vio efecto |
 | 13 | ~~Aceptar `spa`, `esp`, `esl` y `es` como español~~ | — | **cerrado 02-oct con M3.** `ChannelProfile.normalizarIdioma` acepta `spa esp esl es spanish castellano`. Verificado en la caja: `estrellashd` entrega la etiqueta cruda `esl` y el motor la expone como `audio.pistas idiomas=[spa]` |
 | 14 | ~~Recapturar la muestra de `estrellashd-mp4`~~ | — | **cerrado 26-sep: la contradicción era falsa.** 60000/1001 y 30000/1001 eran los dos valores nominales del contenedor. Medido sobre 12 s del canal en vivo: 286 imágenes **progresivas** en 11.912 s (23.976 fps) con `repeat_pict` alternando 1,0,1,0 sin excepción → **cine con pulldown 3:2 señalizado**. Ver `CHANNELS.md` §3.quinquies |
-| 15 | Instalar tsduck y tomar línea base de errores CC con buen clima | M7 | no está en los repos de Ubuntu, bajar el .deb |
+| 15 | Instalar tsduck y tomar línea base de errores CC con buen clima | instrumentación | no está en los repos de Ubuntu, bajar el .deb. Pierde la etiqueta M7 al cerrarse la fase el 19-oct: no bloqueaba el cierre y sigue siendo útil |
 | ~~22~~ | ~~**`hbohd` transporta cine 23.976 con cadencia 3:2**~~ | — | microcortes que Edgar ve y los contadores no. Medido: 358 intervalos de 50 ms alternando con 357 de 33 ms, frente a 894 uniformes de 33 en `discoveryhd`. Descartado `FLAG_DETECT_ACCESS_UNITS`. Ver `CHANNELS.md` §3.quater | **Cerrado 08-oct con el 24**: es el mismo fenómeno visto desde el canal. Validado en pantalla, se acepta |
 | ~~16~~ | ~~**Validar desentrelazado con los dos tipos de codificación**~~ | — | **revisar:** se justificaba en que `hbohd` era `bb`, y medido es `tt`. Ya no hay canal con orden invertido en el conjunto | `discoveryhd-70w` por frames, `hbohd-70w` por campos. Estos dos bastan: cubren las cuatro combinaciones sin depender de `estrellashd`, que está en disputa (#14) | **Cerrado 08-oct, validado por Edgar: «no hay peines en ninguno, la imagen se ve bien».** Cubiertas las dos codificaciones y las dos resoluciones con `discoveryhd` (1080i H.264) y `hbohd` (1080i H.264 + cine). El orden de campo invertido no se pudo cubrir porque **no existe** en el conjunto: la premisa de que `hbohd` era `bb` resultó falsa al medirlo. `estrellassd` queda fuera por el 55 |
 | 17 | ~~Subir `segment_count` de 6 a 12~~ | — | **cerrado 23-sep: hecho.** Ventana medida de 29–36 s en todos los canales. Antes:| ventana DVR medida de 13.88 s en `hbohd` contra `targetOffsetMs` de 12000: 1.9 s de margen. Sin costo de CPU ni de latencia |
@@ -6478,5 +6478,81 @@ fuente de verdad, contenía cifras que no coinciden con lo que la app recibe.
 
 **Resultado:** 31 correcciones. Pendientes 17 a 20 abiertos, #3 cerrado, #13
 subido de B4 a M3, #14 y #16 ampliados.
+
+**Estado:** cerrada.
+
+---
+
+### [M-7] Resiliencia ante lluvia — 2026-10-19
+
+**Síntoma:** no había ninguno. La fase llevaba abierta desde el principio
+porque sus tres ensayos nunca se habían hecho: todo lo que habíamos roto eran
+cortes limpios, y la banda Ku no falla así.
+
+**Hipótesis:** que el motor aguanta un camino degradado y una señal corrupta
+sin cerrarse y sin que el abonado tenga que tocar nada.
+
+**Cambio:** ninguno en el motor. Es una fase de medida. Lo único que se tocó es
+utilería: `herramientas/lluvia.py`, que no podía apuntar la caja porque el
+redirector de `sh -c "cat > …"` lo ejecutaba el shell de fuera —uid `shell`—
+antes de que `run-as` cambiara de identidad (`e48a294`).
+
+**Prueba:** la Skyworth, APK de depuración —`configUrlOverride` solo funciona
+sobre un paquete depurable—, con la pasarela de `lluvia.py` en medio y el
+golden sample servido en bucle. Edgar mirando la pantalla en cada ensayo.
+
+**Resultado:**
+
+| ensayo | medido | en pantalla (Edgar) |
+|---|---|---|
+| corte de 5 min, ×2 | 284 s atascado, escalón 11, imagen a los **7 s** de volver la señal. Idéntico las dos veces | congela unos segundos, negro, «sin señal, reconectando», vuelve sola. «No parece que haya que hacer nada» |
+| golden sample, Media3 (H.264) | 0 rebuffers | bloques de basura, **sigue** |
+| golden sample, libVLC (MPEG-2 SD) | 1 rebuffer; `playing silence`, buffers tirados, `pts_delay` a 1000 ms | se pixelea a ratos, audio **cortado**, **sin desfase**, sigue |
+| tramo IP al 5 % | 1 segmento perdido en 2,5 min | — |
+| tramo IP al 30 % | 19 caídas, 3 `load.retry` con `HttpDataSourceException`, 0 paradas | — |
+
+El golden sample lleva 816 paquetes TS perdidos (1,53 %) en **7 ráfagas de
+120**, más 168 con bits cambiados, PAT y PMT respetados, semilla `20261014`:
+repetible byte a byte, así que cualquier versión futura se compara contra
+exactamente la misma avería.
+
+**Los 7 s no cumplen el objetivo de §10 y no hay que leerlos así.** La pasarela
+deja de contestar con el headend sano detrás, así que al reabrir hay contenido
+inmediato; un corte real de la fuente es más lento **por el lado del servidor**
+—Flussonic tarda ~15 s en reconstruir el playlist, que es lo que §10 ya declara
+inalcanzable—. Lo que estos 7 s demuestran es que **el cliente no añade retraso
+propio**.
+
+**Y el ensayo que pedía el plan no muerde.** `--perdida 5` sobre segmentos es
+un segmento cada 2,5 minutos: con 13 s de buffer y reintentos infinitos, eso no
+prueba resistencia, prueba que no pasó nada. Queda escrito para que nadie lo dé
+por superado sin subir la dosis.
+
+**Lo que esta fase descubrió sin buscarlo:**
+
+1. **El aviso culpaba al clima de cualquier fallo.** Con la red cortada entera y
+   el servidor apagado, la barra decía «Señal débil por condiciones
+   climáticas». `CausaDeFallo.SENAL` es **cualquier** error de E/S. Cambiado a
+   «Recuperando la señal…» por decisión de Edgar —un mensaje aplicable a
+   situaciones generales— en `0a4c7fc`.
+2. **La APK de depuración llevaba 92 h viva** latiendo cada 2 s en segundo
+   plano. Sus líneas caen en el mismo `logcat` y `analizar-log.py` no mira el
+   pid: habría mezclado dos sesiones en el remojo sin que nada lo delatara.
+   Comprobación nueva antes de cualquier remojo:
+   `grep -oE "livetv +\([0-9]+\)" crudo.log | sort -u` debe dar **una** línea.
+   Pararla liberó 69 MB de RAM, así que la RAM libre del remojo del 14-oct
+   estaba medida con la otra app encima.
+3. **HBO HD real: 120 s, 0 rebuffers, 0 intervenciones del vigilante**, con
+   `tunneled=true` y `bitrate=3,53 Mbps`. Es la primera medida continua de
+   contenido de cine a 1080p en esta caja y sale limpia. Edgar: «funcionando
+   excelente».
+
+**El pendiente 12 sale de M7** y no se midió. Cuatro montajes seguidos
+fingieron el fallo que buscaban —duración anunciada distinta de la real,
+emisión agotada que Media3 lee como `PlaylistStuckException`, y una ventana que
+miraba al futuro en vez de al pasado, que deja al reproductor sin un segundo de
+margen—. Los cuatro los cazó el **canal de control**, no el experimento. El
+número que lo zanjó fue externo: el HBO real da 0 rebuffers donde mi montaje
+daba 6.
 
 **Estado:** cerrada.

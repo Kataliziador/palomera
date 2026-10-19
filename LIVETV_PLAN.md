@@ -244,7 +244,7 @@ reproduce por libVLC con audio y sin peine. El cambio de backend es invisible.
 
 ---
 
-## M7 — Resiliencia ante lluvia — **abierta**
+## M7 — Resiliencia ante lluvia — **cerrada 2026-10-19**
 
 **Objetivo:** que un corte no requiera intervención del suscriptor.
 
@@ -254,11 +254,24 @@ escalón 2 reiniciando el canal en Flussonic, 26 s por el escalón 3 con el cabl
 fuera), el playlist vacío como espera, el mapeo de errores y la regla de no
 vetar decoders durante corrupción.
 
-**Lo que falta, y es lo que de verdad se parece a la lluvia:** `tc netem
-loss 5% delay 100ms 20ms`, un corte de **5 minutos**, y el golden sample de
-lluvia real en bucle —que este mismo documento llama «la mejor prueba que
-existe»—. Todo lo que hemos roto hasta ahora es corte limpio, y la banda Ku no
-falla así. Más el pendiente 12.
+**Lo que faltaba, y es lo que de verdad se parece a la lluvia** —`tc netem
+loss 5% delay 100ms 20ms`, un corte de **5 minutos** y el golden sample de
+lluvia real en bucle—, **se hizo el 19-oct y Edgar lo validó en pantalla.** La
+entrada de cierre está en `LIVETV_LOG.md`; el resumen:
+
+- **corte de 5 minutos, dos veces, cifras idénticas:** 284 s atascado, escalón
+  11 de la escalera, imagen **7 s** después de volver la señal. En pantalla:
+  congela, avisa, no pide nada al abonado y vuelve sola;
+- **golden sample en los dos motores.** Media3 se ve con bloques de basura y
+  sigue; libVLC se pixelea con el audio cortado —`playing silence`, buffers
+  tirados— pero **sin desfase** y sin pararse;
+- **tramo IP degradado:** el 5 % que pedía el plan **no muerde** (1 segmento
+  perdido cada 2,5 min); al 30 % el motor reintenta con `HttpDataSourceException`
+  y no se para ni una vez.
+
+**El pendiente 12 sale de esta fase** y pasa a su propio renglón: la lluvia
+rompe la señal, y el 12 es que el stream cambie de forma. Estaban juntos por
+historia, no por parentesco. Sigue sin medir.
 
 **El bloqueo que lo tenía parado se levantó el 14-oct, y no era de medida sino
 de dónde ejecutar.** Las tres pruebas pedían degradar el headend, y el de
