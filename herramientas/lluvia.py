@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import shlex
 import socket
 import subprocess
 import sys
@@ -293,13 +294,23 @@ def apuntar_caja(serie: str, base: str) -> None:
 	import re
 	xml = re.sub(r'\s*<string name="configUrlOverride">.*?</string>\n?', "\n", xml)
 	xml = xml.replace("<map />", "<map>\n</map>").replace("</map>", linea + "</map>")
+	# El entrecomillado no es cosmético. `adb shell` junta sus argumentos y
+	# **el shell de la caja vuelve a interpretarlos**, así que un `>` sin
+	# proteger lo ejecuta el shell de fuera —uid `shell`, 2000— antes de que
+	# `run-as` cambie de identidad: el redirector escribe el que no tiene
+	# permiso y sale «Permission denied» aunque `run-as` funcione. Pasando la
+	# orden entera como una sola palabra, el redirector lo hace el `sh` de
+	# dentro, que ya corre como la app.
 	subprocess.run(["adb", "-s", serie, "shell", "run-as", "mx.kataliziador.palco.debug",
-	                "sh", "-c", f"cat > {pref}"], input=xml, text=True, check=True)
+	                "sh", "-c", shlex.quote(f"cat > {pref}")],
+	               input=xml, text=True, check=True)
 	subprocess.run(["adb", "-s", serie, "shell", "am", "force-stop",
 	                "mx.kataliziador.palco.debug"], check=True)
 	print("puesto. para quitarlo cuando se termine:")
+	# Mismo motivo que arriba: la orden va entre comillas simples para que
+	# llegue entera al `sh` de dentro.
 	print(f"  adb -s {serie} shell run-as mx.kataliziador.palco.debug "
-	      f"sh -c \"sed -i '/configUrlOverride/d' {pref}\"")
+	      f"\"sh -c 'sed -i /configUrlOverride/d {pref}'\"")
 	print(f"  adb -s {serie} shell am force-stop mx.kataliziador.palco.debug")
 
 
