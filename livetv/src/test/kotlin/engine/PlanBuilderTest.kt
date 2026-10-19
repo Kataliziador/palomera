@@ -336,7 +336,9 @@ class PlanBuilderTest : StringSpec({
  * Existe porque el mensaje **dirige a quien lo lee**: decir «señal débil por
  * condiciones climáticas» ante una aserción de Media3 manda a un técnico a
  * revisar una antena que está perfecta. Hasta el 03-oct todos los errores
- * decían eso.
+ * decían eso, y hasta el 19-oct lo seguía diciendo el caso de señal aunque el
+ * fallo fuera el servidor apagado. Hoy ese caso dice «Recuperando la señal…»;
+ * lo que esta prueba fija es la clasificación, no el texto.
  */
 class CausaDeFalloTest : StringSpec({
 

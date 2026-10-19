@@ -337,8 +337,22 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				// error decía «señal débil por condiciones climáticas», incluida
 				// una aserción interna de Media3 — y eso manda a un técnico a
 				// revisar una antena que está perfecta.
+				//
+				// Y hasta el 19-oct lo seguía diciendo el caso de señal, que es
+				// **cualquier** error de entrada/salida. Visto en M7 cortando la
+				// red entera: el abonado leía «condiciones climáticas» con el
+				// cielo despejado y el servidor apagado. La app no puede saber si
+				// llueve; sabe que algo del camino falló y que está reintentando,
+				// así que eso es lo que dice. El que lee un aviso falso deja de
+				// creerse los verdaderos, y el soporte del ISP se acostumbra a
+				// descartar como clima lo que puede ser su headend caído.
+				//
+				// Tiene que ser cierto además **mientras se sigue viendo bien**:
+				// esto se pone en cada error recuperable, y muchos se reintentan
+				// con éxito sin que la imagen llegue a pararse. El cartel central
+				// de «Sin señal» es el que solo sale con el vigilante trabajando.
 				state = when (causa) {
-					CausaDeFallo.SENAL -> "Señal débil por condiciones climáticas"
+					CausaDeFallo.SENAL -> "Recuperando la señal…"
 					CausaDeFallo.INTERNO -> "Reconectando…"
 				}
 				detail = event

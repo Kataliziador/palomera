@@ -150,6 +150,11 @@ data class EngineStats(
  * **Importa porque el mensaje dirige a quien lo lee.** Decir «señal débil por
  * condiciones climáticas» ante una aserción interna de Media3 manda a un
  * técnico a revisar una antena que está perfecta, y le quita media hora.
+ *
+ * Esa frase ya no se usa —desde el 19-oct el aviso de señal dice «Recuperando
+ * la señal…», porque la app tampoco puede saber si llueve—, pero la distinción
+ * sigue haciendo falta: lo que el reproductor rompe por dentro y lo que llega
+ * roto de fuera no se arreglan en el mismo sitio.
  */
 enum class CausaDeFallo {
 	/** Red, segmentos, playlist: lo que la lluvia provoca de verdad. */

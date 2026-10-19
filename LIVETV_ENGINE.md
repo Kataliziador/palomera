@@ -473,12 +473,20 @@ decoders sanos, y vetarlos degradaría la caja permanentemente por una tormenta.
 
 | Situación | Mensaje |
 |---|---|
-| El playlist responde pero no avanza | "Señal débil por condiciones climáticas" |
+| El playlist responde pero no avanza | "Recuperando la señal…" |
 | El playlist no responde | "Revisa tu conexión a internet" |
 | El canal no es compatible con la caja | "Este canal no es compatible con tu dispositivo" |
 
 Distinguir las dos primeras evita llamadas a soporte por algo que el
 suscriptor no puede arreglar.
+
+**Y ninguno nombra una causa que la app no pueda comprobar.** El primero decía
+«señal débil por condiciones climáticas» hasta el 19-oct, y se cambió al verlo
+en M7: con la red cortada entera y el cielo despejado, la app seguía culpando
+al tiempo. Un aviso falso se paga dos veces —el abonado deja de creerse los
+verdaderos, y el soporte del ISP aprende a descartar como clima lo que puede
+ser su headend caído—. El mensaje dice lo que la app **sí** sabe: que algo del
+camino falló y que está reintentando.
 
 ---
 
