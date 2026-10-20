@@ -328,6 +328,8 @@ declararla.
 | 78 | **El log afirma `tunneled=true` cuando el tunneled no se activó** | **A** | medido el 12-oct en la Mecool KM9 Pro. `engine.prepare` publica lo que *pedimos*, no lo que *obtuvimos*: si el decoder de vídeo no declara `tunneled-playback`, Media3 lo desactiva en silencio (`DefaultTrackSelector.maybeConfigureRenderersForTunneling`) y el log sigue diciendo `true`. En esa caja `video/avc` y `video/mpeg2` **no** lo declaran —solo hevc, vp9 y dolby-vision—, así que el lineup entero corre sin tunneled y nadie se entera. **Hay una señal barata y ya publicada para detectarlo:** en tunneled real el contador de fotogramas no ve nada (§6), así que `tunneled=true` **y** `frames>0` en el latido significa que no enganchó. Importa más de lo que parece: el tunneled es la cura medida de los microcortes del pulldown 3:2, y en una caja así esa cura no existe aunque el log diga que sí. Arreglo: publicar el estado real, o al menos el aviso derivado del contador. **La KM9 se devolvió el 14-oct, y no hace falta:** medido ese mismo día sobre los ficheros de códecs de la propia Skyworth, `OMX.amlogic.avc.decoder.awesome2` y `OMX.amlogic.mpeg2.decoder.awesome2` **sí** declaran `feature-tunneled-playback`, mientras que el fichero entero de los de software —`/apex/com.android.media.swcodec/etc/media_codecs.xml`, con `c2.android.avc.decoder` y `c2.android.mpeg2.decoder` dentro— **no menciona `tunneled` ni una vez**. O sea que `forceSoftwareVideo`, que ya existe en el menú, reproduce la condición exacta del 78 en la caja que tenemos: se pide tunneled, Media3 lo apaga en silencio y el log sigue diciendo `true`. Es el «menú de degradación» que §9 manda usar, cumpliendo su función |
 | 79 | **El heap nativo acumula ~1,7 MB/h de asignaciones vivas que nadie vuelve a leer** | **A** | medido el 15-oct sobre el remojo de 36,1 h, 290 volcados de `dumpsys meminfo`. `NativeHeap.heapAlloc` 56 → 99 MB en 24 h, **+1769 KB/h recto**, con `heapSize` acompañando. **No es una fuga:** `dumpsys meminfo --unreachable` da **132 bytes en 13 asignaciones** inalcanzables, y `smaps` reparte los ~95 MB en **239 regiones de `[anon:scudo:primary]`** sin ninguna dominante (la mayor, 3,2 MB). Tampoco es fragmentación: `heapFree` son 9,6 MB de 117. Son asignaciones **referenciadas y frías** —el kernel se lleva el 38 % a zram—. No amenaza §10 (a 48 h serían ~120 MB, con 671 MB disponibles en la caja) pero una sesión de una semana son ~290 MB. **El sitio de la asignación sigue sin medir:** hace falta `libc.debug.malloc.options=backtrace`, que exige reiniciar el proceso con la propiedad puesta — experimento aparte |
 | 80 | **`LocalBinders` sube 1,8/h y no baja** | **A** | medido el 15-oct en el mismo remojo: 30 → 74 en 24 h, monótono, mientras el resto del censo queda plano (Views 23, Activities 1, ProxyBinders 39, ParcelCount 48, Threads 58, descriptores 226 → 232). Tiene la forma de algo que se registra y no se da de baja. A 1,8/h son ~300 en una semana; el límite práctico de binders por proceso está muy por encima, así que **no es urgente**, pero es la única otra columna del censo que no se aplana y conviene saber de quién es |
+| 81 | **`frames.first` mide dos cosas distintas según el motor** | **A** | Media3 lo emite en `onRenderedFirstFrame` —un fotograma **pintado**— (`Media3LiveEngine.kt:1641`); libVLC lo emite en `MediaPlayer.Event.Vout`, cuando se **crea la salida de vídeo** (`VlcLiveEngine.kt:377`), bastante antes de que haya imagen. Medido el 20-oct en los 56 zapeos: **1 459 ms de mediana en Media3 contra 226 ms en libVLC**, y la diferencia no es que libVLC sea seis veces más rápido, es que mide otra cosa. Mezclarlos en un percentil contamina el número de §10, y el riesgo es de los caros: los SD MPEG-2 de cualquier site con cajas sin ese decoder van **todos** por libVLC, así que el zapping del caso mayoritario está sin medir y parecería excelente. El arreglo es emitirlo en el primer fotograma de verdad también en libVLC, o nombrarlo distinto |
+| 82 | **Zapear a un canal no disponible expulsa del reproductor** | **A** | medido el 20-oct: `canal.noDisponible canal=universal` → `engine.release habiaPlayer=true`, y la app vuelve a la lista. `CONTRATO.md` dice que un canal `unavailable` sale «con su número y su sitio, y la app explica por qué no se puede ver»; no que te eche de lo que estabas viendo. El lineup de pruebas tiene dos (`universal`, `foxny`); en uno real de 120 se topa constantemente, y recuperarse exige volver a entrar a mano |
 | ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
@@ -6556,3 +6558,61 @@ número que lo zanjó fue externo: el HBO real da 0 rebuffers donde mi montaje
 daba 6.
 
 **Estado:** cerrada.
+
+---
+
+### [M-8] Zapping: 56 cambios de canal medidos, y el instrumento tenía una trampa — 2026-10-20
+
+**Síntoma:** M8 pedía 50 zapeos y solo había **4 muestras**, de una tarde suelta.
+
+**Hipótesis:** que el zapping cumple los objetivos de §10.
+
+**Cambio:** ninguno. Medición.
+
+**Prueba:** APK de **release** `0.1.0-rc.1` compilada del HEAD de hoy, contra el
+site de pruebas por el registro —sin `configUrlOverride`, camino de producción—.
+Zapeo real con las flechas **dentro del reproductor**, que es como zapea un
+abonado, no volviendo a la lista. 56 cambios automatizados por `adb`, 7 s entre
+cada uno.
+
+**Resultado:**
+
+| motor | qué mide su `frames.first` | n | p50 | p95 |
+|---|---|---|---|---|
+| Media3 | fotograma **pintado** (`onRenderedFirstFrame`) | 49 | **1 459 ms** | **1 744 ms** |
+| libVLC | salida de vídeo **creada** (`Event.Vout`) | 7 | 226 ms | 610 ms |
+
+**Contra §10, con los 49 comparables: p50 y p95 por debajo del _objetivo_**
+—< 2 000 y < 3 000—, no solo del aceptable. Un único valor por encima de 2 s en
+los 49: `canal22sd`, 3 055 ms. Por canal, medianas de 1 440 a 1 735 ms.
+
+**Y la trampa, que es lo que más vale de esta medida.** El primer cálculo dio
+p50 = 1 452 ms mezclando los dos motores, y era mentira por abajo: los 7 zapeos
+de `estrellassd` —MPEG-2, que en esta caja va por libVLC porque su decoder está
+vetado— aportaban valores de 185 a 721 ms que **no son el primer fotograma**.
+Los dos motores emiten el mismo evento con el mismo nombre para momentos
+distintos. Queda como pendiente **81**, y no es cosmético: los SD MPEG-2 de
+cualquier site con cajas sin ese decoder van todos por libVLC, así que el
+zapping del caso mayoritario está **sin medir** y el número que saldría parece
+excelente.
+
+**Lo que costó llegar hasta aquí, por si alguien repite el experimento:**
+
+- **el primer intento midió 3 de 50.** Zapear hacia abajo llega al canal
+  `universal`, que está marcado «sin señal», y eso **expulsa del reproductor**
+  (pendiente **82**);
+- **el segundo midió 0 de 90.** Al quedar fuera del reproductor, las flechas
+  navegan la lista, salen de TV en vivo y acaban en el VOD: la caja terminó en
+  la ficha de una película;
+- el tercero funcionó acotando el recorrido a una ventana de canales sin
+  ninguno no disponible. **El orden de zapeo es el del catálogo ordenado por
+  número**, no el de los grupos de la pantalla, y eso hay que mirarlo antes de
+  elegir la ventana.
+
+**Lo que queda de M8:** el remojo de 48 h sobre la release, arrancado el 20-oct
+a las 19:04 UTC con `mileniosd` —el mismo canal de los remojos de 9,3 h y
+36,1 h, para que las tres series se comparen—. Se cumplen el 22-oct a las 19:04.
+Comprobado antes de arrancar que **late un solo proceso**, que es la trampa que
+casi arruina el remojo del 19-oct.
+
+**Estado:** abierta — falta el remojo.
