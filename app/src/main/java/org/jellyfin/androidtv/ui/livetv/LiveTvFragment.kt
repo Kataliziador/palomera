@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +41,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
@@ -59,6 +61,7 @@ import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
 import org.jellyfin.livetv.config.Acceso
 import org.jellyfin.livetv.config.ConfigOrigin
 import org.jellyfin.livetv.diagnostics.DevOptions
+import org.jellyfin.livetv.epg.FranjaEpg
 import org.jellyfin.livetv.source.ChannelProfile
 import org.jellyfin.livetv.source.ChannelSearch
 import org.koin.android.ext.android.inject
@@ -153,6 +156,39 @@ private fun ChannelRow(
 
 	val favoritos = remember { LiveTvFavorites.of(context) }
 	val favoritosIds by favoritos.ids.collectAsState()
+
+	// --- Programación -------------------------------------------------------
+	//
+	// La guía se recoge **suelta**, no dentro del catálogo, y por el mismo
+	// motivo que explica `LiveTvCatalog`: reemitir el catálogo rehace las
+	// tarjetas y el foco salta. Aquí solo alimenta texto y una línea de
+	// progreso, así que puede cambiar sin tocar la lista.
+	val fuente = remember { LiveTvCatalog.of(context) }
+	val epg by fuente.guia.collectAsState()
+
+	// El reloj de la sección. Mueve el progreso de las tarjetas y los minutos
+	// que quedan. Medio minuto es de sobra: la barra más larga de la pantalla
+	// mide 168 dp, así que un minuto de programa no llega a mover un píxel en
+	// casi ningún caso, y un reloj por segundo recompondría 120 tarjetas.
+	var ahoraMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+	LaunchedEffect(Unit) {
+		while (true) {
+			delay(GUIDE_CLOCK_REFRESH_MS)
+			ahoraMs = System.currentTimeMillis()
+		}
+	}
+
+	// Releer la guía es un efecto, no parte de componer. Cada minuto, y la
+	// llamada no hace nada si la ventana guardada ya cubre el presente: lo que
+	// se vigila es salirse de ella, que es cosa de horas. Quien deja la sección
+	// abierta toda la tarde es justo quien se saldría.
+	LaunchedEffect(ahoraMs / 60_000) { fuente.guiaSiHaceFalta(ahoraMs) }
+
+	// El canal que tiene el foco, para la línea de programación. Arranca en el
+	// que va a recibirlo, o la línea saldría vacía hasta la primera flecha.
+	var enfocado by remember(idInicial, catalog.channels) {
+		mutableStateOf(catalog.channels.firstOrNull { it.id == idInicial })
+	}
 
 	val guia = remember(catalog, favoritosIds) {
 		agruparCanales(catalog.channels, catalog.groups, favoritosIds)
@@ -411,6 +447,19 @@ private fun ChannelRow(
 				)
 			}
 
+			// Qué dan en el canal que tiene el foco.
+			//
+			// Solo si este site sirve guía: cuesta ~52 dp —media fila de
+			// tarjetas— y donde no hay programación la sección se queda como
+			// estaba, que es el caso normal mientras un ISP monta su tubería
+			// (`INTEGRACION_CANALES.md` §2).
+			if (epg.canales > 0) {
+				QueDanAhora(
+					franja = enfocado?.let { epg.franja(it.id, ahoraMs) },
+					ahoraMs = ahoraMs,
+				)
+			}
+
 			Spacer(modifier = Modifier.height(26.dp))
 
 			val denegado = catalog.acceso as? Acceso.Denegado
@@ -439,9 +488,12 @@ private fun ChannelRow(
 				LiveTvChannelGrid(
 					sections = secciones,
 					favorites = favoritosIds,
+					franja = { canal -> epg.franja(canal.id, ahoraMs) },
+					ahoraMs = ahoraMs,
 					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
+					onChannelFocus = { enfocado = it },
 					idConFoco = if (buscando) resultados.firstOrNull()?.id else idInicial,
 					tomarFoco = !buscando,
 					enfocar = bajarAResultados,
@@ -499,7 +551,90 @@ private fun SeccionCerrada(mensaje: String) {
 /** Segundo y medio: da tiempo a marcar tres cifras sin hacer esperar. */
 private const val NUMBER_ENTRY_TIMEOUT_MS = 1_500L
 
+/**
+ * Cada cuánto avanza el reloj de la sección.
+ *
+ * Medio minuto: lo que se mueve con él son los minutos que quedan y unas
+ * líneas de progreso de 168 dp de ancho. Un reloj por segundo recompondría la
+ * lista entera 60 veces por minuto para no cambiar un píxel.
+ */
+private const val GUIDE_CLOCK_REFRESH_MS = 30_000L
+
+/**
+ * La altura reservada para la línea de programación.
+ *
+ * Fija a propósito: con un canal sin guía el hueco se queda vacío, porque si
+ * se encogiera las tarjetas darían un salto cada vez que el foco pasa por un
+ * canal que el site no cubre.
+ */
+private val ALTO_PROGRAMACION = 52.dp
+
 /** Acepta tanto la fila superior como el teclado numérico del mando. */
+/**
+ * Qué dan en el canal que tiene el foco.
+ *
+ * **Una vez y arriba de la guía, no en cada tarjeta.** En la tarjeta no cabe:
+ * 168 dp cortan cualquier título real a media palabra, y lo que se gana
+ * poniéndolo 120 veces se pierde en ruido. Aquí cabe entero, con la hora y los
+ * minutos que quedan, y cambia al moverse el foco — que es como se recorre un
+ * lineup buscando qué ver. Lo que sí va en la tarjeta es la línea de progreso,
+ * que no es texto y se lee a tres metros.
+ *
+ * **El hueco se reserva aunque este canal no tenga programación.** Un site
+ * sirve guía de unos canales y no de otros, así que si la altura dependiera de
+ * eso las tarjetas subirían y bajarían al recorrer la lista. Vacío no dice
+ * «sin programación»: el sitio está reservado para no mover nada, y rellenarlo
+ * con una disculpa llamaría la atención sobre lo que falta.
+ *
+ * Sin color: el acento del ISP ya viste los títulos de grupo justo debajo, y
+ * repetirlo aquí dejaría dos cosas distintas pintadas igual.
+ */
+@Composable
+private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long) {
+	Column(modifier = Modifier.height(ALTO_PROGRAMACION)) {
+		val ahora = franja?.ahora ?: return@Column
+
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = ahora.titulo,
+				color = Color.White,
+				fontWeight = FontWeight.SemiBold,
+				fontSize = 20.sp,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f, fill = false),
+			)
+			Spacer(modifier = Modifier.width(16.dp))
+			Text(
+				text = "${hora(ahora.inicioMs)} – ${hora(ahora.finMs)}",
+				color = Color(0xFFA8ADB4),
+				fontSize = 16.sp,
+			)
+			Spacer(modifier = Modifier.width(12.dp))
+			Text(
+				text = "quedan ${ahora.restanteMin(ahoraMs)} min",
+				color = Color(0xFF7D8187),
+				fontSize = 16.sp,
+			)
+		}
+
+		franja.luego?.let { siguiente ->
+			Spacer(modifier = Modifier.height(6.dp))
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Text(text = "Luego", color = Color(0xFF7D8187), fontSize = 16.sp)
+				Spacer(modifier = Modifier.width(12.dp))
+				Text(
+					text = siguiente.titulo,
+					color = Color(0xFFA8ADB4),
+					fontSize = 16.sp,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis,
+				)
+			}
+		}
+	}
+}
+
 private fun digitoDe(key: Key): Char? = when (key) {
 	Key.Zero, Key.NumPad0 -> '0'
 	Key.One, Key.NumPad1 -> '1'

@@ -311,4 +311,11 @@ private fun Pista(tecla: String, que: String) {
 
 private val formatoHora = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-private fun hora(ms: Long): String = formatoHora.format(Date(ms))
+/**
+ * `HH:mm` en el huso de la caja.
+ *
+ * Compartida con la sección —no privada de este archivo— para que la línea de
+ * programación de la guía y la barra del canal escriban la hora igual. Dos
+ * formateadores para lo mismo acaban divergiendo.
+ */
+internal fun hora(ms: Long): String = formatoHora.format(Date(ms))

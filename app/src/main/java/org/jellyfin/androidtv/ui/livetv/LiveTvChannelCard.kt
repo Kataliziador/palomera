@@ -52,6 +52,17 @@ import org.jellyfin.livetv.source.ChannelProfile
 fun LiveTvChannelCard(
 	channel: ChannelProfile,
 	favorite: Boolean,
+	/**
+	 * Lo que lleva emitido el programa en curso, 0..1, o `null` si de este canal
+	 * no hay guía.
+	 *
+	 * **Va como línea en el borde y no como texto.** La tarjeta mide 168 dp: a
+	 * tres metros un título real se corta a media palabra, y 120 títulos
+	 * cortados son ruido. Una línea dice «va por la mitad» de un vistazo y no
+	 * compite con el logo, que es lo que identifica el canal. El título entero
+	 * se dice una sola vez, arriba de la guía, para el canal que tiene el foco.
+	 */
+	progreso: Float? = null,
 	onClick: () -> Unit,
 	onLongClick: () -> Unit,
 	modifier: Modifier = Modifier,
@@ -139,6 +150,31 @@ fun LiveTvChannelCard(
 					Text(text = "sin señal", color = Color.White, fontSize = 11.sp)
 				}
 			}
+
+			// Pegada al borde de abajo y dentro del recorte del mosaico: separarla
+			// la convertiría en un subrayado y se leería como decoración, no como
+			// «cuánto lleva».
+			//
+			// Por debajo de un 1 % no se pinta, igual que en la barra del canal: un
+			// relleno de ancho casi cero se lee como un fallo de dibujo y no como
+			// «acaba de empezar». Y no se pinta en un canal marcado sin señal,
+			// donde una barra de progreso prometería algo que no se puede ver.
+			if (progreso != null && progreso > 0.01f && !channel.unavailable) {
+				Box(
+					modifier = Modifier
+						.align(Alignment.BottomCenter)
+						.fillMaxWidth()
+						.height(ALTO_PROGRESO)
+						.background(Color.Black.copy(alpha = 0.35f)),
+				) {
+					Box(
+						modifier = Modifier
+							.fillMaxWidth(progreso.coerceIn(0f, 1f))
+							.height(ALTO_PROGRESO)
+							.background(Color.White.copy(alpha = 0.85f)),
+					)
+				}
+			}
 		}
 
 		Spacer(modifier = Modifier.height(8.dp))
@@ -187,6 +223,9 @@ private val ANCHO = 168.dp
 
 /** 16:9, la proporción de todo lo demás en una tele. */
 private val ALTO = 94.dp
+
+/** La línea de progreso del borde. Cuatro dp se ven a tres metros; dos no. */
+private val ALTO_PROGRESO = 4.dp
 
 private val FONDO = Color(0xFF1C1C1E)
 private val FONDO_ENFOCADO = Color(0xFF2E2E31)

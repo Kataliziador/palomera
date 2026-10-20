@@ -422,6 +422,14 @@ emite el servidor, convertidas al huso de la caja.
 varias horas por varios canales— no se ha hecho. La barra enseña ahora y luego,
 que es lo que el plan pedía; una rejilla es otra pantalla.
 
+**Y desde el 20-oct la programación también se ve en la sección**, no solo
+sobre el vídeo: cada tarjeta lleva una línea de progreso en el borde —gráfica,
+no texto, que es lo único que se lee a tres metros en 168 dp— y encima de la
+guía va una línea con el título, la hora y lo que queda del canal que tiene el
+foco, con «Luego». Medido en el emulador de TV, que tiene el mismo lienzo que
+la caja (1920×1080 a 320 dpi): `epg.interpretada canales=7 programas=66` y la
+línea siguiendo al foco por cuatro canales. Sigue sin ser la rejilla.
+
 **Reescrita el 02-oct.** El muro de este bloque no era consumir la guía sino
 producirla, y con el servidor de canales+EPG en cada site (`CLAUDE.md` §1) esa
 mitad **cambia de lado**: generar el XMLTV desde el EIT de Astra es trabajo del
@@ -470,6 +478,12 @@ cambios es vía M.
 **no vive aquí**. Subió a M3 al descubrirse que Flussonic normaliza los PIDs y
 el idioma es la única clave de selección que queda. B4 dibuja el selector; M3
 decide qué pista es cuál.
+
+~~**Qué están dando, en la sección**~~ **hecho el 20-oct.** La guía ya se
+descargaba y se interpretaba desde B8, y solo la veía quien ya estaba dentro de
+un canal: la lista no decía nada de la programación. Con ~120 canales eso
+convierte la sección en un listín. Ahora la dice una vez —arriba, para el canal
+con el foco— y la insinúa en cada tarjeta con una línea de progreso.
 
 ~~**Los `extras` entran aquí** (`CLAUDE.md` §6)~~ **hecho el 03-oct.** La barra
 pinta los del canal bajo «Luego» y la cabecera de la sección los de la raíz,

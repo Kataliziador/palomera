@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.base.button.Button
+import org.jellyfin.livetv.epg.FranjaEpg
 import org.jellyfin.livetv.config.ChannelGroup
 import org.jellyfin.livetv.source.ChannelProfile
 
@@ -97,6 +99,17 @@ fun LiveTvChannelGrid(
 	sections: List<ChannelSection>,
 	favorites: Set<String>,
 	/**
+	 * Qué dan ahora en un canal, si de ese canal se sabe algo.
+	 *
+	 * Entra como función y no dentro de [ChannelSection] a propósito: la guía
+	 * viaja en un flujo aparte del catálogo porque reemitir el catálogo rehace
+	 * las tarjetas y al rehacerlas el foco salta (ver `LiveTvCatalog`).
+	 * Mezclarlas aquí devolvería ese fallo, y la guía cambia cada pocas horas.
+	 */
+	franja: (ChannelProfile) -> FranjaEpg? = { null },
+	/** El reloj con el que se calcula el progreso. Lo mueve quien dibuja. */
+	ahoraMs: Long = 0L,
+	/**
 	 * El acento de la marca del proveedor, ya validado contra el fondo.
 	 *
 	 * Los títulos de grupo son el único sitio de la guía donde el color del ISP
@@ -105,6 +118,13 @@ fun LiveTvChannelGrid(
 	accent: Color,
 	onChannelClick: (ChannelProfile) -> Unit,
 	onChannelLongClick: (ChannelProfile) -> Unit,
+	/**
+	 * El canal que acaba de recibir el foco.
+	 *
+	 * Lo necesita quien dibuja para contar qué están dando: el título no cabe en
+	 * la tarjeta y se enseña una sola vez, arriba.
+	 */
+	onChannelFocus: (ChannelProfile) -> Unit = {},
 	/**
 	 * El canal que debe recibir el foco al entrar: el último visto, o el que el
 	 * ISP puso por defecto. `null` lo deja en la primera tarjeta.
@@ -215,12 +235,30 @@ fun LiveTvChannelGrid(
 						LiveTvChannelCard(
 							channel = canal,
 							favorite = canal.id in favorites,
+							progreso = franja(canal)?.ahora?.progreso(ahoraMs),
 							onClick = { onChannelClick(canal) },
 							onLongClick = { onChannelLongClick(canal) },
 							modifier = Modifier
+								// **En el extremo de la fila, la flecha no hace nada.**
+								// Sin esto, DERECHA desde el último canal de un grupo
+								// corto —«Películas» tiene dos— se va a «Buscar canal»
+								// de la cabecera: medido en el emulador el 20-oct, dos
+								// veces. La búsqueda de foco de Compose es geométrica y
+								// ahí arriba a la derecha hay un botón, así que lo
+								// encuentra. En una tele eso es un salto que nadie pidió
+								// y del que se vuelve a ciegas.
+								//
+								// En la fila que llega al borde de la pantalla no se
+								// notaba, porque no queda nada a la derecha que
+								// encontrar. Por eso solo aparecía en los grupos cortos.
+								.focusProperties {
+									if (indice == seccion.channels.lastIndex) right = FocusRequester.Cancel
+									if (indice == 0) left = FocusRequester.Cancel
+								}
 								.onFocusChanged {
 									if (it.isFocused) {
 										scope.launch { horizontalState.animateScrollToItem(indice) }
+										onChannelFocus(canal)
 									}
 								}
 								.then(
