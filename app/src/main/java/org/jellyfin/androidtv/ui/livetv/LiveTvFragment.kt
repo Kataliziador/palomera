@@ -317,11 +317,11 @@ private fun ChannelRow(
 				// porque el servidor no responde se comporta igual que una al
 				// día, y sin este aviso nadie las distingue.
 				when {
-					catalog.loading -> Pastilla("actualizando…", Color(0xFF9E9E9E))
+					catalog.loading -> Pastilla("actualizando…", LiveTvPaleta.tintaSutil)
 					catalog.origin == ConfigOrigin.CACHE ->
-						Pastilla("lista guardada — el servidor no responde", Color(0xFFE2B33C))
+						Pastilla("lista guardada — el servidor no responde", LiveTvPaleta.aviso)
 					catalog.origin == ConfigOrigin.NINGUNO ->
-						Pastilla("canales de prueba", Color(0xFF9E9E9E))
+						Pastilla("canales de prueba", LiveTvPaleta.tintaSutil)
 					else -> Unit
 				}
 
@@ -332,7 +332,7 @@ private fun ChannelRow(
 				// falsas.
 				if (degradada) {
 					Spacer(modifier = Modifier.width(8.dp))
-					Pastilla(degradacion, Color(0xFFE2B33C))
+					Pastilla(degradacion, LiveTvPaleta.aviso)
 				}
 
 				Spacer(modifier = Modifier.width(12.dp))
@@ -399,7 +399,7 @@ private fun ChannelRow(
 				) {
 					Text(text = "ⓘ", color = Color(catalog.brand.accent))
 					Spacer(modifier = Modifier.width(10.dp))
-					Text(text = aviso.text, color = Color(0xFFD5D5D5), fontSize = 14.sp)
+					Text(text = aviso.text, color = LiveTvPaleta.tintaApagada, fontSize = 14.sp)
 				}
 			}
 
@@ -411,13 +411,13 @@ private fun ChannelRow(
 				Row(
 					modifier = Modifier
 						.clip(ShapeDefaults.Small)
-						.background(Color(0xFFE2B33C).copy(alpha = 0.12f))
+						.background(LiveTvPaleta.aviso.copy(alpha = 0.12f))
 						.padding(horizontal = 14.dp, vertical = 10.dp),
 					verticalAlignment = Alignment.CenterVertically,
 				) {
-					Text(text = "ⓘ", color = Color(0xFFE2B33C))
+					Text(text = "ⓘ", color = LiveTvPaleta.aviso)
 					Spacer(modifier = Modifier.width(10.dp))
-					Text(text = aviso, color = Color(0xFFD5D5D5), fontSize = 14.sp)
+					Text(text = aviso, color = LiveTvPaleta.tintaApagada, fontSize = 14.sp)
 				}
 			}
 
@@ -482,7 +482,7 @@ private fun ChannelRow(
 							"No se pudo cargar la lista de canales de este servidor."
 						else -> "No hay canales que mostrar."
 					},
-					color = Color(0xFF9E9E9E),
+					color = LiveTvPaleta.tintaSutil,
 				)
 			} else {
 				LiveTvChannelGrid(
@@ -538,11 +538,11 @@ private fun SeccionCerrada(mensaje: String) {
 			fontSize = 24.sp,
 		)
 		Spacer(modifier = Modifier.height(14.dp))
-		Text(text = mensaje, color = Color(0xFFBDBDBD), fontSize = 17.sp)
+		Text(text = mensaje, color = LiveTvPaleta.tintaApagada, fontSize = 17.sp)
 		Spacer(modifier = Modifier.height(22.dp))
 		Text(
 			text = "Tus películas y series siguen disponibles en Inicio.",
-			color = Color(0xFF7D8187),
+			color = LiveTvPaleta.tintaSutil,
 			fontSize = 15.sp,
 		)
 	}
@@ -607,13 +607,13 @@ private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long) {
 			Spacer(modifier = Modifier.width(16.dp))
 			Text(
 				text = "${hora(ahora.inicioMs)} – ${hora(ahora.finMs)}",
-				color = Color(0xFFA8ADB4),
+				color = LiveTvPaleta.tintaApagada,
 				fontSize = 16.sp,
 			)
 			Spacer(modifier = Modifier.width(12.dp))
 			Text(
 				text = "quedan ${ahora.restanteMin(ahoraMs)} min",
-				color = Color(0xFF7D8187),
+				color = LiveTvPaleta.tintaSutil,
 				fontSize = 16.sp,
 			)
 		}
@@ -621,11 +621,11 @@ private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long) {
 		franja.luego?.let { siguiente ->
 			Spacer(modifier = Modifier.height(6.dp))
 			Row(verticalAlignment = Alignment.CenterVertically) {
-				Text(text = "Luego", color = Color(0xFF7D8187), fontSize = 16.sp)
+				Text(text = "Luego", color = LiveTvPaleta.tintaSutil, fontSize = 16.sp)
 				Spacer(modifier = Modifier.width(12.dp))
 				Text(
 					text = siguiente.titulo,
-					color = Color(0xFFA8ADB4),
+					color = LiveTvPaleta.tintaApagada,
 					fontSize = 16.sp,
 					maxLines = 1,
 					overflow = TextOverflow.Ellipsis,

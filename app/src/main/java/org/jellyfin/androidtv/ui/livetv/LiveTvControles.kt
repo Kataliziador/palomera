@@ -155,11 +155,11 @@ fun LiveTvOpciones(
 			// Opaco del todo y con borde: sobre el velo de la barra, un panel
 			// traslúcido deja ver el texto de debajo y las dos capas se leen
 			// como una sola cosa rota.
-			.background(Color(0xFF0D0D0D))
+			.background(LiveTvPaleta.fondo)
 			.border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
 			.padding(horizontal = 24.dp, vertical = 18.dp),
 	) {
-		Text(text = titulo, color = Color(0xFF8A8A8A), fontSize = 14.sp)
+		Text(text = titulo, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
 		Spacer(modifier = Modifier.height(12.dp))
 
 		opciones.forEachIndexed { i, opcion ->

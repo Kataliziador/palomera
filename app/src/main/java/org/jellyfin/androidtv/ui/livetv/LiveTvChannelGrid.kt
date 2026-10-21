@@ -302,7 +302,7 @@ fun NumberEntryOverlay(digits: String, resolved: String?, modifier: Modifier = M
 		)
 		Text(
 			text = resolved ?: "sin canal con ese número",
-			color = if (resolved != null) Color(0xFFBDBDBD) else Color(0xFFFFB300),
+			color = if (resolved != null) LiveTvPaleta.tintaApagada else LiveTvPaleta.aviso,
 			fontSize = 14.sp,
 		)
 	}

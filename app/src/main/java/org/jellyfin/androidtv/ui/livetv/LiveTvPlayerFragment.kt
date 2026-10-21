@@ -165,7 +165,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
 				Text(
 					text = channel.unavailableMessage ?: "Este canal no está disponible ahora",
-					color = Color(0xFFBDBDBD),
+					color = LiveTvPaleta.tintaApagada,
 				)
 			}
 		}
@@ -214,9 +214,9 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
 				Text(
 					text = "Este canal no se puede reproducir en este dispositivo",
-					color = Color(0xFFBDBDBD),
+					color = LiveTvPaleta.tintaApagada,
 				)
-				Text(text = plan.reason, color = Color(0xFF7D8187), fontSize = 14.sp)
+				Text(text = plan.reason, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
 			}
 		}
 		return
@@ -800,7 +800,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				Text(text = "Sin señal", color = Color.White, fontSize = 30.sp)
 				Text(
 					text = "Reconectando…",
-					color = Color(0xFFBDBDBD),
+					color = LiveTvPaleta.tintaApagada,
 					fontSize = 15.sp,
 				)
 			}

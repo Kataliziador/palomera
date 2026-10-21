@@ -82,9 +82,9 @@ fun LiveTvChannelCard(
 				.fillMaxWidth()
 				.height(ALTO)
 				.clip(ShapeDefaults.Medium)
-				.background(if (enfocada) FONDO_ENFOCADO else FONDO)
+				.background(if (enfocada) LiveTvPaleta.elevado else LiveTvPaleta.mosaico)
 				.border(
-					BorderStroke(if (enfocada) 2.dp else 1.dp, if (enfocada) Color.White else BORDE),
+					BorderStroke(if (enfocada) 2.dp else 1.dp, if (enfocada) Color.White else LiveTvPaleta.elevado),
 					ShapeDefaults.Medium,
 				)
 				// `combinedClickable` trae el foco consigo, así que no hace
@@ -125,7 +125,7 @@ fun LiveTvChannelCard(
 				Etiqueta(
 					text = "★",
 					modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-					color = Color(0xFFFFC74A),
+					color = LiveTvPaleta.tinta,
 				)
 			}
 
@@ -144,7 +144,7 @@ fun LiveTvChannelCard(
 						.align(Alignment.BottomStart)
 						.padding(8.dp)
 						.clip(ShapeDefaults.ExtraSmall)
-						.background(Color(0xCC8A1C1C))
+						.background(LiveTvPaleta.noDisponible)
 						.padding(horizontal = 6.dp, vertical = 2.dp),
 				) {
 					Text(text = "sin señal", color = Color.White, fontSize = 11.sp)
@@ -180,7 +180,7 @@ fun LiveTvChannelCard(
 		Spacer(modifier = Modifier.height(8.dp))
 		Text(
 			text = channel.name,
-			color = if (enfocada) Color.White else Color(0xFFBFBFBF),
+			color = if (enfocada) Color.White else LiveTvPaleta.tintaApagada,
 			fontWeight = if (enfocada) FontWeight.SemiBold else FontWeight.Normal,
 			fontSize = 15.sp,
 			maxLines = 1,
@@ -200,7 +200,7 @@ fun LiveTvChannelCard(
 private fun Etiqueta(
 	text: String,
 	modifier: Modifier = Modifier,
-	color: Color = Color(0xFFE8E8E8),
+	color: Color = LiveTvPaleta.tintaApagada,
 	fontFamily: FontFamily? = null,
 ) {
 	Box(
@@ -226,7 +226,3 @@ private val ALTO = 94.dp
 
 /** La línea de progreso del borde. Cuatro dp se ven a tres metros; dos no. */
 private val ALTO_PROGRESO = 4.dp
-
-private val FONDO = Color(0xFF1C1C1E)
-private val FONDO_ENFOCADO = Color(0xFF2E2E31)
-private val BORDE = Color(0xFF2E2E31)

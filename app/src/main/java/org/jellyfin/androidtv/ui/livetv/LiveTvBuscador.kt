@@ -120,7 +120,7 @@ fun BarraDeBusqueda(
 		Icon(
 			imageVector = ImageVector.vectorResource(R.drawable.ic_search),
 			contentDescription = null,
-			tint = Color(0xFF9E9E9E),
+			tint = LiveTvPaleta.tintaSutil,
 			modifier = Modifier.size(22.dp),
 		)
 
@@ -133,7 +133,7 @@ fun BarraDeBusqueda(
 				// justo lo que hace que «canal 2» encuentre «Estrellas HD».
 				Text(
 					text = "Nombre o número del canal",
-					color = Color(0xFF6E7278),
+					color = LiveTvPaleta.tintaSutil,
 					fontSize = 20.sp,
 				)
 			}

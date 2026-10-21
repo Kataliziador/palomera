@@ -171,9 +171,9 @@ private fun Line(label: String, value: String, strong: Boolean = false, warn: Bo
 	Text(
 		text = "${label.padEnd(19)} $value",
 		color = when {
-			warn -> Color(0xFFFFB300)
+			warn -> LiveTvPaleta.aviso
 			strong -> Color.White
-			else -> Color(0xFFBDBDBD)
+			else -> LiveTvPaleta.tintaApagada
 		},
 		fontFamily = FontFamily.Monospace,
 		fontWeight = if (strong || warn) FontWeight.Bold else FontWeight.Normal,

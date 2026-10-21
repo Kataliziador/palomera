@@ -37,8 +37,8 @@ fun DatosExtra(
 	extras: List<ChannelExtra>,
 	modifier: Modifier = Modifier,
 	tamano: TextUnit = 17.sp,
-	colorEtiqueta: Color = Color(0xFF7D8187),
-	colorValor: Color = Color(0xFFA8ADB4),
+	colorEtiqueta: Color = LiveTvPaleta.tintaSutil,
+	colorValor: Color = LiveTvPaleta.tintaApagada,
 ) {
 	if (extras.isEmpty()) return
 

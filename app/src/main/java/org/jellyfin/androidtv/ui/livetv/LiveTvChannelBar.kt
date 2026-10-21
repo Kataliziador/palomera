@@ -100,13 +100,13 @@ fun LiveTvChannelBar(
 					Spacer(modifier = Modifier.height(14.dp))
 					Text(
 						text = "${hora(p.inicioMs)} – ${hora(p.finMs)}",
-						color = Color(0xFFA8ADB4),
+						color = LiveTvPaleta.tintaApagada,
 						fontSize = 17.sp,
 					)
 					Spacer(modifier = Modifier.height(3.dp))
 					Text(
 						text = "quedan ${p.restanteMin(ahoraMs)} min",
-						color = Color(0xFF7D8187),
+						color = LiveTvPaleta.tintaSutil,
 						fontSize = 16.sp,
 					)
 				}
@@ -192,7 +192,7 @@ private fun QueEstanDando(
 				modifier = Modifier
 					.size(11.dp)
 					.clip(CircleShape)
-					.background(Color(0xFFE53935)),
+					.background(LiveTvPaleta.enVivo),
 			)
 			Spacer(modifier = Modifier.width(12.dp))
 		}
@@ -216,9 +216,9 @@ private fun QueEstanDando(
 	if (siguiente != null) {
 		Spacer(modifier = Modifier.height(12.dp))
 		Row {
-			Text(text = "Luego", color = Color(0xFF7D8187), fontSize = 17.sp)
+			Text(text = "Luego", color = LiveTvPaleta.tintaSutil, fontSize = 17.sp)
 			Spacer(modifier = Modifier.width(14.dp))
-			Text(text = siguiente.titulo, color = Color(0xFFA8ADB4), fontSize = 17.sp)
+			Text(text = siguiente.titulo, color = LiveTvPaleta.tintaApagada, fontSize = 17.sp)
 		}
 	}
 
@@ -233,7 +233,7 @@ private fun QueEstanDando(
 	// El detalle técnico solo aparece cuando algo va mal: en marcha estorba.
 	if (!enVivo && detail != null) {
 		Spacer(modifier = Modifier.height(8.dp))
-		Text(text = detail, color = Color(0xFF7D8187), fontSize = 15.sp)
+		Text(text = detail, color = LiveTvPaleta.tintaSutil, fontSize = 15.sp)
 	}
 }
 
@@ -305,7 +305,7 @@ private fun Pista(tecla: String, que: String) {
 				.padding(horizontal = 8.dp, vertical = 3.dp),
 		)
 		Spacer(modifier = Modifier.width(8.dp))
-		Text(text = que, color = Color(0xFF6E7278), fontSize = 14.sp)
+		Text(text = que, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
 	}
 }
 

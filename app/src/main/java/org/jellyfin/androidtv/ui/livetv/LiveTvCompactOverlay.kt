@@ -58,7 +58,7 @@ fun LiveTvCompactOverlay(
 				}
 				if (stats.measuredFps > 0f) append("  %.1ffps".format(stats.measuredFps))
 			},
-			Color(0xFFE0E0E0),
+			LiveTvPaleta.tintaApagada,
 		)
 
 		Linea(
@@ -79,7 +79,7 @@ fun LiveTvCompactOverlay(
 				append("  reb ").append(stats.rebufferCount)
 				if (stats.loadRetries > 0) append("  ret ").append(stats.loadRetries)
 			},
-			if (alarma) Color(0xFFFFB300) else Color(0xFF9E9E9E),
+			if (alarma) LiveTvPaleta.aviso else LiveTvPaleta.tintaSutil,
 		)
 	}
 }
