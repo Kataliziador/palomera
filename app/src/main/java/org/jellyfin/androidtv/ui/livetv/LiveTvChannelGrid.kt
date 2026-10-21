@@ -258,6 +258,7 @@ fun LiveTvChannelGrid(
 								channel = canal,
 								favorite = canal.id in favorites,
 								progreso = franja(canal)?.ahora?.progreso(ahoraMs),
+							accent = accent,
 								onClick = { onChannelClick(canal) },
 								onLongClick = { onChannelLongClick(canal) },
 								modifier = Modifier

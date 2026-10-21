@@ -57,6 +57,22 @@ fun LogoDeCanal(
 	 * caja dentro de otra. Ahí se pasa transparente.
 	 */
 	fondo: Color = Color.White.copy(alpha = 0.10f),
+	/**
+	 * Qué pintar cuando no hay logo que pintar.
+	 *
+	 * Por defecto, las iniciales. La tarjeta de la sección pasa otra cosa —el
+	 * número del canal, grande— porque ahí las iniciales no distinguen: medio
+	 * lineup comparte las tres primeras letras («Estrellas HD» y «Estrellas SD»
+	 * son las dos `EST`) y el número es único por definición.
+	 */
+	respaldo: (@Composable () -> Unit)? = null,
+	/**
+	 * Avisa de que el logo no cargó, para quien necesite saberlo por fuera.
+	 *
+	 * La tarjeta lo necesita: con logo el número va en una esquina y sin él
+	 * ocupa el mosaico, y esa decisión se toma fuera de este componente.
+	 */
+	alFallar: () -> Unit = {},
 ) {
 	// Atado a la URL: al zapear, un canal sin logo no debe heredar el fallo del
 	// anterior, ni uno con logo quedarse con las iniciales del que falló.
@@ -77,9 +93,11 @@ fun LogoDeCanal(
 				// prever y recortarlos cortaría nombres. El relleno evita que
 				// un logo cuadrado toque los bordes del recuadro.
 				contentScale = ContentScale.Fit,
-				onError = { fallo = true },
+				onError = { fallo = true; alFallar() },
 				modifier = Modifier.fillMaxSize().padding(8.dp),
 			)
+		} else if (respaldo != null) {
+			respaldo()
 		} else {
 			Text(
 				text = inicialesDeCanal(channel.name),

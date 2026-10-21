@@ -86,6 +86,17 @@ object LiveTvPaleta {
 	/** El punto del directo. Es una marca, no un fondo de texto. */
 	val enVivo = Color(0xFFE53935)
 
-	/** Fondo del distintivo «sin señal» de una tarjeta. */
-	val noDisponible = Color(0xCC8A1C1C)
+	/**
+	 * El velo bajo las marcas de esquina de una tarjeta: número, HD, favorito
+	 * y «sin señal».
+	 *
+	 * Caen encima del logo del canal, que puede ser casi blanco, y sin velo el
+	 * número desaparece. Cuesta menos que recortar el logo.
+	 *
+	 * **Las cuatro marcas comparten fondo a propósito.** Antes «sin señal» iba
+	 * sobre un rojo de error, y era el único sitio de la sección que trataba un
+	 * canal caído como una avería: lo que distingue ese estado es que la
+	 * tarjeta entera se atenúa, no que la etiqueta grite.
+	 */
+	val velo = Color(0x8C000000)
 }

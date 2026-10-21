@@ -465,10 +465,21 @@ private fun ChannelRow(
 			// Solo si este site sirve guía. Donde no hay programación la banda
 			// se queda en una línea, que es el caso normal mientras un ISP monta
 			// su tubería (`INTEGRACION_CANALES.md` §2).
-			if (epg.canales > 0) {
+			//
+			// Y si el canal enfocado está marcado sin señal, lo que se lee en
+			// esa línea es lo que dijo el operador. **El `config.json` traía ese
+			// mensaje desde el principio y la sección no lo enseñaba nunca**:
+			// solo aparecía después de entrar al canal, que es enterarse tarde.
+			val sinSenal = enfocado?.takeIf { it.unavailable }?.let { canal ->
+				canal.unavailableMessage?.takeIf { it.isNotBlank() }
+					?: "Este canal no está disponible por ahora."
+			}
+
+			if (epg.canales > 0 || sinSenal != null) {
 				QueDanAhora(
 					franja = enfocado?.let { epg.franja(it.id, ahoraMs) },
 					ahoraMs = ahoraMs,
+					sinSenal = sinSenal,
 				)
 			}
 
@@ -629,9 +640,34 @@ private val ANCHO_MAXIMO_LUEGO = 260.dp
  * aquí dejaría dos cosas distintas pintadas igual.
  */
 @Composable
-private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long) {
+private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long, sinSenal: String? = null) {
 	Box(modifier = Modifier.fillMaxWidth().height(ALTO_PROGRAMACION)) {
-		Crossfade(targetState = franja, label = "programación") { actual ->
+		Crossfade(targetState = sinSenal to franja, label = "programación") { (aviso, actual) ->
+			// Un canal caído no tiene programación que contar, y lo que hay que
+			// decir de él cabe en la misma línea.
+			if (aviso != null) {
+				Row(
+					modifier = Modifier.fillMaxSize(),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Text(
+						text = "Sin señal",
+						color = LiveTvPaleta.aviso,
+						fontWeight = FontWeight.SemiBold,
+						fontSize = 17.sp,
+					)
+					Spacer(modifier = Modifier.width(14.dp))
+					Text(
+						text = aviso,
+						color = LiveTvPaleta.tintaApagada,
+						fontSize = 16.sp,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+					)
+				}
+				return@Crossfade
+			}
+
 			val ahora = actual?.ahora ?: return@Crossfade
 
 			Row(
