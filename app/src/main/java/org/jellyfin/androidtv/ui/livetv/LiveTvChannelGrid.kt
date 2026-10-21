@@ -1,8 +1,10 @@
 package org.jellyfin.androidtv.ui.livetv
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,10 +26,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -200,84 +204,131 @@ fun LiveTvChannelGrid(
 		if (tomarFoco || enfocar > 0) runCatching { focoInicial.requestFocus() }
 	}
 
-	LazyColumn(
-		state = verticalState,
-		modifier = modifier.focusGroup(),
-		verticalArrangement = Arrangement.spacedBy(26.dp),
-	) {
-		itemsIndexed(sections, key = { _, s -> s.id }) { indiceSeccion, seccion ->
-			Column(
-				modifier = Modifier.onFocusChanged {
-					if (it.hasFocus) scope.launch { verticalState.animateScrollToItem(indiceSeccion) }
-				}
-			) {
-				// Color explícito: el del tema está pensado para el fondo claro
-				// de la app y sobre el negro de esta sección queda casi
-				// invisible. Un título de grupo que no se lee convierte la
-				// guía en una lista suelta. El acento llega ya validado contra
-				// este fondo, así que no puede volver a pasar.
-				Text(
-					text = seccion.title,
-					color = accent,
-					fontWeight = FontWeight.Bold,
-					fontSize = 17.sp,
-					modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
-				)
+	// El velo del borde de arriba.
+	//
+	// **Una fila que se desplaza bajo la banda se cortaba en seco**, y lo que
+	// queda colgando es la mitad de un nombre de canal sin su tarjeta: se lee
+	// como un fallo de dibujo. Dieciséis dp de degradado hasta el fondo de la
+	// sección convierten el corte en una desaparición.
+	//
+	// **Y solo cuando hay algo desplazado.** Sin esta condición el velo se
+	// comería los 16 dp de arriba del primer título de grupo con la lista en su
+	// sitio, que es como se ve la sección el 90 % del tiempo.
+	val desplazada = verticalState.firstVisibleItemIndex > 0 ||
+		verticalState.firstVisibleItemScrollOffset > 0
+	val opacidadVelo by animateFloatAsState(
+		targetValue = if (desplazada) 1f else 0f,
+		label = "velo",
+	)
 
-				val horizontalState =
-					if (indiceSeccion == posicionConFoco?.first) filaConFoco
-					else rememberLazyListState()
-				LazyRow(
-					state = horizontalState,
-					horizontalArrangement = Arrangement.spacedBy(16.dp),
+	Box(modifier = Modifier.fillMaxWidth()) {
+		LazyColumn(
+			state = verticalState,
+			modifier = modifier.focusGroup(),
+			verticalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FILAS),
+		) {
+			itemsIndexed(sections, key = { _, s -> s.id }) { indiceSeccion, seccion ->
+				Column(
+					modifier = Modifier.onFocusChanged {
+						if (it.hasFocus) scope.launch { verticalState.animateScrollToItem(indiceSeccion) }
+					}
 				) {
-					itemsIndexed(seccion.channels, key = { _, c -> c.id }) { indice, canal ->
-						LiveTvChannelCard(
-							channel = canal,
-							favorite = canal.id in favorites,
-							progreso = franja(canal)?.ahora?.progreso(ahoraMs),
-							onClick = { onChannelClick(canal) },
-							onLongClick = { onChannelLongClick(canal) },
-							modifier = Modifier
-								// **En el extremo de la fila, la flecha no hace nada.**
-								// Sin esto, DERECHA desde el último canal de un grupo
-								// corto —«Películas» tiene dos— se va a «Buscar canal»
-								// de la cabecera: medido en el emulador el 20-oct, dos
-								// veces. La búsqueda de foco de Compose es geométrica y
-								// ahí arriba a la derecha hay un botón, así que lo
-								// encuentra. En una tele eso es un salto que nadie pidió
-								// y del que se vuelve a ciegas.
-								//
-								// En la fila que llega al borde de la pantalla no se
-								// notaba, porque no queda nada a la derecha que
-								// encontrar. Por eso solo aparecía en los grupos cortos.
-								.focusProperties {
-									if (indice == seccion.channels.lastIndex) right = FocusRequester.Cancel
-									if (indice == 0) left = FocusRequester.Cancel
-								}
-								.onFocusChanged {
-									if (it.isFocused) {
-										scope.launch { horizontalState.animateScrollToItem(indice) }
-										onChannelFocus(canal)
+					// Color explícito: el del tema está pensado para el fondo claro
+					// de la app y sobre el negro de esta sección queda casi
+					// invisible. Un título de grupo que no se lee convierte la
+					// guía en una lista suelta. El acento llega ya validado contra
+					// este fondo, así que no puede volver a pasar.
+					Text(
+						text = seccion.title,
+						color = accent,
+						fontWeight = FontWeight.Bold,
+						fontSize = 17.sp,
+						modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+					)
+
+					val horizontalState =
+						if (indiceSeccion == posicionConFoco?.first) filaConFoco
+						else rememberLazyListState()
+					LazyRow(
+						state = horizontalState,
+						horizontalArrangement = Arrangement.spacedBy(16.dp),
+					) {
+						itemsIndexed(seccion.channels, key = { _, c -> c.id }) { indice, canal ->
+							LiveTvChannelCard(
+								channel = canal,
+								favorite = canal.id in favorites,
+								progreso = franja(canal)?.ahora?.progreso(ahoraMs),
+								onClick = { onChannelClick(canal) },
+								onLongClick = { onChannelLongClick(canal) },
+								modifier = Modifier
+									// **En el extremo de la fila, la flecha no hace nada.**
+									// Sin esto, DERECHA desde el último canal de un grupo
+									// corto —«Películas» tiene dos— se va a «Buscar canal»
+									// de la cabecera: medido en el emulador el 20-oct, dos
+									// veces. La búsqueda de foco de Compose es geométrica y
+									// ahí arriba a la derecha hay un botón, así que lo
+									// encuentra. En una tele eso es un salto que nadie pidió
+									// y del que se vuelve a ciegas.
+									//
+									// En la fila que llega al borde de la pantalla no se
+									// notaba, porque no queda nada a la derecha que
+									// encontrar. Por eso solo aparecía en los grupos cortos.
+									.focusProperties {
+										if (indice == seccion.channels.lastIndex) right = FocusRequester.Cancel
+										if (indice == 0) left = FocusRequester.Cancel
 									}
-								}
-								.then(
-									// El foco va al último canal visto; si no
-									// hay o ya no está en el lineup, a la
-									// primera tarjeta.
-									if ((posicionConFoco ?: (0 to 0)) == (indiceSeccion to indice)) {
-										Modifier.focusRequester(focoInicial)
-									} else {
-										Modifier
+									.onFocusChanged {
+										if (it.isFocused) {
+											scope.launch { horizontalState.animateScrollToItem(indice) }
+											onChannelFocus(canal)
+										}
 									}
-								),
-						)
+									.then(
+										// El foco va al último canal visto; si no
+										// hay o ya no está en el lineup, a la
+										// primera tarjeta.
+										if ((posicionConFoco ?: (0 to 0)) == (indiceSeccion to indice)) {
+											Modifier.focusRequester(focoInicial)
+										} else {
+											Modifier
+										}
+									),
+							)
+						}
 					}
 				}
 			}
 		}
+
+		if (opacidadVelo > 0.01f) {
+			Box(
+				modifier = Modifier
+					.align(Alignment.TopCenter)
+					.fillMaxWidth()
+					.height(ALTO_VELO)
+					.alpha(opacidadVelo)
+					.background(
+						Brush.verticalGradient(
+							0f to LiveTvPaleta.fondo,
+							1f to Color.Transparent,
+						)
+					),
+			)
+		}
 	}
 }
+
+/**
+ * La separación entre dos filas de canales.
+ *
+ * Eran 26 dp. Con el paso de fila medido en 176 dp en el emulador, cada dp de
+ * aquí es un dp que no ve la fila de abajo, y seis bastaban para recortar media
+ * fila más de pantalla.
+ */
+private val SEPARACION_ENTRE_FILAS = 20.dp
+
+/** Lo que tarda una fila en desaparecer bajo la banda de arriba. */
+private val ALTO_VELO = 16.dp
 
 /**
  * Lo que se ve al teclear un número con el mando.

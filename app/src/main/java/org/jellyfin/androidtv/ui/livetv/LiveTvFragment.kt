@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -258,7 +260,17 @@ private fun ChannelRow(
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(
 			modifier = Modifier
-				.padding(horizontal = 48.dp, vertical = 24.dp)
+				// **Arriba, cero, y no es un descuido.** La barra principal ocupa
+				// 95 dp pero su tinta acaba en el 67 (medido en el emulador el
+				// 21-oct): el aire ya está puesto, son 28 dp, y cada dp que
+				// añadíamos aquí se sumaba a ese hueco en vez de separar nada.
+				// Eran 24, y con ellos la primera tarjeta caía en el dp 264 de
+				// 540.
+				//
+				// Abajo, cero también: el relleno inferior recortaba la lista
+				// por el único lado por el que una lista puede recortarse sin
+				// que estorbe.
+				.padding(start = 48.dp, end = 48.dp)
 				.focusGroup()
 				.onKeyEvent { evento ->
 					if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
@@ -447,12 +459,12 @@ private fun ChannelRow(
 				)
 			}
 
-			// Qué dan en el canal que tiene el foco.
+			// Qué dan en el canal que tiene el foco: la segunda línea de la
+			// banda, pegada a la cabecera.
 			//
-			// Solo si este site sirve guía: cuesta ~52 dp —media fila de
-			// tarjetas— y donde no hay programación la sección se queda como
-			// estaba, que es el caso normal mientras un ISP monta su tubería
-			// (`INTEGRACION_CANALES.md` §2).
+			// Solo si este site sirve guía. Donde no hay programación la banda
+			// se queda en una línea, que es el caso normal mientras un ISP monta
+			// su tubería (`INTEGRACION_CANALES.md` §2).
 			if (epg.canales > 0) {
 				QueDanAhora(
 					franja = enfocado?.let { epg.franja(it.id, ahoraMs) },
@@ -460,7 +472,7 @@ private fun ChannelRow(
 				)
 			}
 
-			Spacer(modifier = Modifier.height(26.dp))
+			Spacer(modifier = Modifier.height(HUECO_ANTES_DE_LA_LISTA))
 
 			val denegado = catalog.acceso as? Acceso.Denegado
 			if (denegado != null) {
@@ -566,8 +578,26 @@ private const val GUIDE_CLOCK_REFRESH_MS = 30_000L
  * Fija a propósito: con un canal sin guía el hueco se queda vacío, porque si
  * se encogiera las tarjetas darían un salto cada vez que el foco pasa por un
  * canal que el site no cubre.
+ *
+ * **Eran 52 dp, en dos líneas, y ahora es una.** Medido en el emulador el
+ * 20-oct: con dos líneas la primera tarjeta caía en el dp 264 de 540 —el 49 %
+ * de la pantalla gastado antes de enseñar un canal— y solo entraba una fila y
+ * media. Lo que había en la segunda línea era «Luego», que ahora va a la
+ * derecha de la misma.
  */
-private val ALTO_PROGRAMACION = 52.dp
+private val ALTO_PROGRAMACION = 26.dp
+
+/**
+ * El aire entre la banda de arriba y el primer título de grupo.
+ *
+ * Eran 33 dp medidos, y es el segundo de los dos huecos muertos que tenía la
+ * sección. Dieciséis siguen separando dos cosas distintas sin que parezca que
+ * falta algo.
+ */
+private val HUECO_ANTES_DE_LA_LISTA = 16.dp
+
+/** El ancho máximo de «Luego», para que un título largo no empuje la hora. */
+private val ANCHO_MAXIMO_LUEGO = 260.dp
 
 /** Acepta tanto la fila superior como el teclado numérico del mando. */
 /**
@@ -580,56 +610,78 @@ private val ALTO_PROGRAMACION = 52.dp
  * lineup buscando qué ver. Lo que sí va en la tarjeta es la línea de progreso,
  * que no es texto y se lee a tres metros.
  *
+ * **Una línea, no dos.** Lo de ahora manda a la izquierda y lo que viene luego
+ * se alinea a la derecha, en la misma línea: es información de segundo orden y
+ * no merecía una línea propia a costa de media fila de canales.
+ *
  * **El hueco se reserva aunque este canal no tenga programación.** Un site
  * sirve guía de unos canales y no de otros, así que si la altura dependiera de
  * eso las tarjetas subirían y bajarían al recorrer la lista. Vacío no dice
  * «sin programación»: el sitio está reservado para no mover nada, y rellenarlo
  * con una disculpa llamaría la atención sobre lo que falta.
  *
- * Sin color: el acento del ISP ya viste los títulos de grupo justo debajo, y
- * repetirlo aquí dejaría dos cosas distintas pintadas igual.
+ * **Se funde al cambiar de canal.** El texto cambia entero cada vez que el foco
+ * se mueve una tarjeta; con 120 canales y el pulgar en la flecha, el cambio
+ * seco parpadea. El fundido corto convierte el parpadeo en un relevo, y es el
+ * único movimiento no pedido de la sección.
+ *
+ * Sin color: el acento del ISP viste el progreso de las tarjetas, y repetirlo
+ * aquí dejaría dos cosas distintas pintadas igual.
  */
 @Composable
 private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long) {
-	Column(modifier = Modifier.height(ALTO_PROGRAMACION)) {
-		val ahora = franja?.ahora ?: return@Column
+	Box(modifier = Modifier.fillMaxWidth().height(ALTO_PROGRAMACION)) {
+		Crossfade(targetState = franja, label = "programación") { actual ->
+			val ahora = actual?.ahora ?: return@Crossfade
 
-		Row(verticalAlignment = Alignment.CenterVertically) {
-			Text(
-				text = ahora.titulo,
-				color = Color.White,
-				fontWeight = FontWeight.SemiBold,
-				fontSize = 20.sp,
-				maxLines = 1,
-				overflow = TextOverflow.Ellipsis,
-				modifier = Modifier.weight(1f, fill = false),
-			)
-			Spacer(modifier = Modifier.width(16.dp))
-			Text(
-				text = "${hora(ahora.inicioMs)} – ${hora(ahora.finMs)}",
-				color = LiveTvPaleta.tintaApagada,
-				fontSize = 16.sp,
-			)
-			Spacer(modifier = Modifier.width(12.dp))
-			Text(
-				text = "quedan ${ahora.restanteMin(ahoraMs)} min",
-				color = LiveTvPaleta.tintaSutil,
-				fontSize = 16.sp,
-			)
-		}
+			Row(
+				modifier = Modifier.fillMaxSize(),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Row(
+					modifier = Modifier.weight(1f),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Text(
+						text = ahora.titulo,
+						color = LiveTvPaleta.tinta,
+						fontWeight = FontWeight.SemiBold,
+						fontSize = 17.sp,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+						modifier = Modifier.weight(1f, fill = false),
+					)
+					Spacer(modifier = Modifier.width(14.dp))
+					Text(
+						text = "${hora(ahora.inicioMs)} – ${hora(ahora.finMs)}",
+						color = LiveTvPaleta.tintaApagada,
+						fontSize = 16.sp,
+						maxLines = 1,
+					)
+					Spacer(modifier = Modifier.width(12.dp))
+					Text(
+						text = "quedan ${ahora.restanteMin(ahoraMs)} min",
+						color = LiveTvPaleta.tintaSutil,
+						fontSize = 16.sp,
+						maxLines = 1,
+					)
+				}
 
-		franja.luego?.let { siguiente ->
-			Spacer(modifier = Modifier.height(6.dp))
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				Text(text = "Luego", color = LiveTvPaleta.tintaSutil, fontSize = 16.sp)
-				Spacer(modifier = Modifier.width(12.dp))
-				Text(
-					text = siguiente.titulo,
-					color = LiveTvPaleta.tintaApagada,
-					fontSize = 16.sp,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-				)
+				actual.luego?.let { siguiente ->
+					Spacer(modifier = Modifier.width(24.dp))
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						Text(text = "Luego", color = LiveTvPaleta.tintaSutil, fontSize = 16.sp)
+						Spacer(modifier = Modifier.width(10.dp))
+						Text(
+							text = siguiente.titulo,
+							color = LiveTvPaleta.tintaApagada,
+							fontSize = 16.sp,
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis,
+							modifier = Modifier.widthIn(max = ANCHO_MAXIMO_LUEGO),
+						)
+					}
+				}
 			}
 		}
 	}
