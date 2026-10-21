@@ -104,12 +104,12 @@ fun LiveTvChannelCard(
 	// arreglar. Mismo criterio que [SeccionCerrada].
 	val atenuada = if (channel.unavailable) Modifier.alpha(OPACIDAD_SIN_SENAL) else Modifier
 
-	Column(modifier = modifier.width(ANCHO)) {
+	Column(modifier = modifier.width(ANCHO_TARJETA)) {
 		Box(
 			modifier = Modifier
 				.scale(escala)
 				.fillMaxWidth()
-				.height(ALTO)
+				.height(ALTO_TARJETA)
 				.clip(ShapeDefaults.Medium)
 				.background(if (enfocada) LiveTvPaleta.elevado else LiveTvPaleta.mosaico)
 				// **Sin borde en reposo.** Ciento veinte recuadros de 1 dp son
@@ -144,7 +144,7 @@ fun LiveTvChannelCard(
 				channel = channel,
 				modifier = Modifier
 					.fillMaxWidth()
-					.height(ALTO)
+					.height(ALTO_TARJETA)
 					.padding(horizontal = 16.dp, vertical = 14.dp)
 					.then(atenuada),
 				tamanoTexto = 22.sp,
@@ -308,10 +308,16 @@ private fun NumeroDeCanal(channel: ChannelProfile) {
 	)
 }
 
-private val ANCHO = 168.dp
+/**
+ * El ancho de una tarjeta.
+ *
+ * `internal` porque la fila fantasma de la sección dibuja huecos de este
+ * tamaño: si no fuera el mismo número, la lista daría un salto al llegar.
+ */
+internal val ANCHO_TARJETA = 168.dp
 
 /** 16:9, la proporción de todo lo demás en una tele. */
-private val ALTO = 94.dp
+internal val ALTO_TARJETA = 94.dp
 
 /** La línea de progreso del borde. Cuatro dp se ven a tres metros; dos no. */
 private val ALTO_PROGRESO = 4.dp

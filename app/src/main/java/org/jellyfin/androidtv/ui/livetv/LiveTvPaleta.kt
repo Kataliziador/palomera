@@ -51,6 +51,15 @@ object LiveTvPaleta {
 	 */
 	val fondo = Color(0xFF101010)
 
+	/**
+	 * El hueco de algo que todavía no está: la fila fantasma mientras llega la
+	 * primera lista.
+	 *
+	 * Más apagado que el mosaico de una tarjeta de verdad, para que se lea como
+	 * sitio reservado y no como una tarjeta negra.
+	 */
+	val hueco = Color(0xFF161618)
+
 	/** El mosaico de una tarjeta en reposo, y la celda de la guía. */
 	val mosaico = Color(0xFF1C1C1E)
 

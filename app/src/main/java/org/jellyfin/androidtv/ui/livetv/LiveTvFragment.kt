@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -332,7 +333,12 @@ private fun ChannelRow(
 					catalog.loading -> Pastilla("actualizando…", LiveTvPaleta.tintaSutil)
 					catalog.origin == ConfigOrigin.CACHE ->
 						Pastilla("lista guardada — el servidor no responde", LiveTvPaleta.aviso)
-					catalog.origin == ConfigOrigin.NINGUNO ->
+					// Y solo si de verdad hay canales de prueba que enseñar: en
+					// el APK de Play la lista de arranque está vacía a
+					// propósito, y ahí la pastilla decía «canales de prueba»
+					// encima de una pantalla que explica que no se pudo cargar
+					// la lista. Visto al provocar el estado en el emulador.
+					catalog.origin == ConfigOrigin.NINGUNO && catalog.channels.isNotEmpty() ->
 						Pastilla("canales de prueba", LiveTvPaleta.tintaSutil)
 					else -> Unit
 				}
@@ -477,7 +483,12 @@ private fun ChannelRow(
 
 			if (epg.canales > 0 || sinSenal != null) {
 				QueDanAhora(
-					franja = enfocado?.let { epg.franja(it.id, ahoraMs) },
+					// Con la lista vacía no hay canal enfocado, y dejar la
+					// programación del último sería contar lo que dan en algo
+					// que ya no está en pantalla.
+					franja = enfocado
+						?.takeIf { secciones.isNotEmpty() }
+						?.let { epg.franja(it.id, ahoraMs) },
 					ahoraMs = ahoraMs,
 					sinSenal = sinSenal,
 				)
@@ -488,25 +499,37 @@ private fun ChannelRow(
 			val denegado = catalog.acceso as? Acceso.Denegado
 			if (denegado != null) {
 				SeccionCerrada(denegado.mensaje)
+			} else if (secciones.isEmpty() && catalog.loading && !buscando) {
+				// Todavía no sabemos si hay canales. **Decir «no hay canales»
+				// aquí sería mentir durante un segundo**, y el parpadeo entre
+				// «no hay nada» y una lista llena es lo que hace que una app
+				// parezca rota cuando solo estaba tardando.
+				FilaFantasma()
 			} else if (secciones.isEmpty()) {
-				// Sin canales hay dos situaciones distintas y conviene no
-				// confundirlas: el servidor contestó una lista vacía —raro,
-				// pero suyo— o no se pudo hablar con él. Lo segundo es lo que
-				// va a pasar en un site mal configurado, y decir «no hay
-				// canales» ahí manda a buscar donde no es.
-				Text(
-					text = when {
-						// Buscando, la lista vacía no habla del servidor: habla
-						// de lo que se acaba de teclear. Decir «no se pudo
-						// cargar la lista» aquí mandaría a buscar donde no es.
-						buscando && consulta.isNotBlank() ->
-							"Ningún canal coincide con «$consulta»."
-						catalog.origin == ConfigOrigin.NINGUNO ->
-							"No se pudo cargar la lista de canales de este servidor."
-						else -> "No hay canales que mostrar."
-					},
-					color = LiveTvPaleta.tintaSutil,
-				)
+				// Sin canales hay tres situaciones distintas y conviene no
+				// confundirlas: lo que se buscó no está, el servidor contestó
+				// una lista vacía —raro, pero suyo— o no se pudo hablar con él.
+				// Lo último es lo que va a pasar en un site mal configurado, y
+				// decir «no hay canales» ahí manda a buscar donde no es.
+				when {
+					// Buscando, la lista vacía no habla del servidor: habla de
+					// lo que se acaba de teclear.
+					buscando && consulta.isNotBlank() -> SinCanales(
+						titulo = "Ningún canal coincide con «$consulta»",
+						mensaje = "Prueba con otra parte del nombre, o teclea el número del canal.",
+					)
+					catalog.origin == ConfigOrigin.NINGUNO -> SinCanales(
+						titulo = "No se pudo cargar la lista de canales",
+						mensaje = "Este servidor no contestó. Suele arreglarse solo; si no, " +
+							"díselo a tu proveedor.",
+						conVod = true,
+					)
+					else -> SinCanales(
+						titulo = "Este servidor todavía no tiene canales",
+						mensaje = "La lista llegó vacía. Los canales los configura tu proveedor.",
+						conVod = true,
+					)
+				}
 			} else {
 				LiveTvChannelGrid(
 					sections = secciones,
@@ -536,6 +559,91 @@ private fun ChannelRow(
 }
 
 /**
+ * Lo que se ve cuando no hay canales que enseñar.
+ *
+ * **Un estado también es una pantalla.** Esto era una línea gris en la esquina
+ * de arriba de un fondo negro, y una línea gris suelta no se lee como una
+ * explicación: se lee como lo poco que quedó de algo que falló. Toma la forma
+ * que ya usa [SeccionCerrada] —qué pasa, en grande; qué hacer, debajo— porque
+ * las dos pantallas dicen lo mismo con palabras distintas.
+ *
+ * **Nada de rojo y ningún «error».** Ninguno de los tres casos es un fallo del
+ * aparato y en ninguno puede el abonado arreglar nada desde aquí.
+ *
+ * `conVod` solo donde viene a cuento: cuando la sección no tiene canales que
+ * dar, decir que las películas siguen ahí es la diferencia entre «se rompió la
+ * aplicación» y «esta parte está vacía». Cuando lo que pasa es que una búsqueda
+ * no encontró nada, decirlo sería cambiar de tema.
+ */
+@Composable
+private fun SinCanales(titulo: String, mensaje: String, conVod: Boolean = false) {
+	Column(modifier = Modifier.fillMaxWidth(0.6f)) {
+		Text(
+			text = titulo,
+			color = LiveTvPaleta.tinta,
+			fontWeight = FontWeight.SemiBold,
+			fontSize = 24.sp,
+		)
+		Spacer(modifier = Modifier.height(14.dp))
+		Text(text = mensaje, color = LiveTvPaleta.tintaApagada, fontSize = 17.sp)
+		if (conVod) {
+			Spacer(modifier = Modifier.height(22.dp))
+			Text(
+				text = "Tus películas y series siguen disponibles en Inicio.",
+				color = LiveTvPaleta.tintaSutil,
+				fontSize = 15.sp,
+			)
+		}
+	}
+}
+
+/**
+ * El sitio que van a ocupar los canales, mientras llegan.
+ *
+ * **Quieta.** Un brillo recorriendo los huecos es el adorno por defecto de
+ * cualquier pantalla de carga y aquí no diría nada que la forma no diga ya;
+ * además dura lo que tarda una petición en la LAN del ISP, que son
+ * milisegundos. Lo único que tiene que hacer es ocupar el sitio exacto —de ahí
+ * que use las medidas de la tarjeta de verdad— para que la lista no dé un
+ * salto al llegar.
+ */
+@Composable
+private fun FilaFantasma() {
+	Column {
+		Box(
+			modifier = Modifier
+				.padding(start = 4.dp, bottom = 8.dp)
+				.width(ANCHO_TITULO_FANTASMA)
+				.height(ALTO_TITULO_FANTASMA)
+				.clip(ShapeDefaults.ExtraSmall)
+				.background(LiveTvPaleta.hueco),
+		)
+		Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+			repeat(TARJETAS_FANTASMA) {
+				Column {
+					Box(
+						modifier = Modifier
+							.width(ANCHO_TARJETA)
+							.height(ALTO_TARJETA)
+							.clip(ShapeDefaults.Medium)
+							.background(LiveTvPaleta.hueco),
+					)
+					Spacer(modifier = Modifier.height(8.dp))
+					Box(
+						modifier = Modifier
+							.padding(horizontal = 2.dp)
+							.width(ANCHO_NOMBRE_FANTASMA)
+							.height(ALTO_TITULO_FANTASMA)
+							.clip(ShapeDefaults.ExtraSmall)
+							.background(LiveTvPaleta.hueco),
+					)
+				}
+			}
+		}
+	}
+}
+
+/**
  * Lo que se ve cuando el registro dice que este servidor no está autorizado.
  *
  * **No puede parecer que la app está rota** (`REGISTRY_SCHEMA.md` §3). El
@@ -553,22 +661,11 @@ private fun ChannelRow(
  */
 @Composable
 private fun SeccionCerrada(mensaje: String) {
-	Column(modifier = Modifier.fillMaxWidth(0.6f)) {
-		Text(
-			text = "TV en vivo no está disponible",
-			color = Color.White,
-			fontWeight = FontWeight.SemiBold,
-			fontSize = 24.sp,
-		)
-		Spacer(modifier = Modifier.height(14.dp))
-		Text(text = mensaje, color = LiveTvPaleta.tintaApagada, fontSize = 17.sp)
-		Spacer(modifier = Modifier.height(22.dp))
-		Text(
-			text = "Tus películas y series siguen disponibles en Inicio.",
-			color = LiveTvPaleta.tintaSutil,
-			fontSize = 15.sp,
-		)
-	}
+	SinCanales(
+		titulo = "TV en vivo no está disponible",
+		mensaje = mensaje,
+		conVod = true,
+	)
 }
 
 /** Segundo y medio: da tiempo a marcar tres cifras sin hacer esperar. */
@@ -609,6 +706,13 @@ private val HUECO_ANTES_DE_LA_LISTA = 16.dp
 
 /** El ancho máximo de «Luego», para que un título largo no empuje la hora. */
 private val ANCHO_MAXIMO_LUEGO = 260.dp
+
+/** Las que caben en el ancho de la pantalla de la caja, ni una más. */
+private const val TARJETAS_FANTASMA = 5
+
+private val ANCHO_TITULO_FANTASMA = 120.dp
+private val ANCHO_NOMBRE_FANTASMA = 96.dp
+private val ALTO_TITULO_FANTASMA = 16.dp
 
 /** Acepta tanto la fila superior como el teclado numérico del mando. */
 /**
