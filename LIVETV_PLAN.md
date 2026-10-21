@@ -485,6 +485,22 @@ un canal: la lista no decía nada de la programación. Con ~120 canales eso
 convierte la sección en un listín. Ahora la dice una vez —arriba, para el canal
 con el foco— y la insinúa en cada tarjeta con una línea de progreso.
 
+~~**La interfaz de la sección: sencilla, funcional y estética**~~ **hecho el
+21-oct**, en seis commits y con el emulador `api22tv` como instrumento. La
+primera tarjeta pasa del dp **264** de 540 al **202**, de fila y media a dos
+filas completas; sin logo manda el número del canal, que es único, en vez de
+tres iniciales que medio lineup comparte; los 46 literales de color pasan a una
+paleta con nombres; el acento del ISP deja los títulos de grupo y se queda en
+las barras de progreso; y vacío, error y carga dejan de ser una línea gris en
+una esquina. Entrada completa en `LIVETV_LOG.md`, con los seis caminos de foco
+medidos.
+
+**Lo que esa revisión dejó fuera a propósito:** la parrilla —otra pantalla, ya
+diseñada en el sistema de diseño del proyecto: 4 dp por minuto, columna de
+canales de 132 dp, línea de ahora—, los 95 dp de la barra principal, que es
+compartida con Inicio y Buscar, y cualquier cosa que pase encima de vídeo, que
+es Modo A.
+
 ~~**Los `extras` entran aquí** (`CLAUDE.md` §6)~~ **hecho el 03-oct.** La barra
 pinta los del canal bajo «Luego» y la cabecera de la sección los de la raíz,
 sin saber qué son, con topes en `LiveTuning` —6 entradas, 24 y 40 caracteres—

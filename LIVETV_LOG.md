@@ -6616,3 +6616,96 @@ Comprobado antes de arrancar que **late un solo proceso**, que es la trampa que
 casi arruina el remojo del 19-oct.
 
 **Estado:** abierta — falta el remojo.
+
+---
+
+### [B-4] La sección gastaba el 49 % de la pantalla antes de enseñar un canal — 2026-10-21
+
+**Síntoma:** medido en el emulador `api22tv` —1920×1080 a densidad 320, el
+mismo lienzo de 960×540 dp que la Skyworth—, leyendo la captura fila por fila:
+la primera tarjeta de canal empezaba en el **dp 264 de 540**. Entraban una fila
+y media. Y con un site sin logos —el caso normal al arrancar— «Estrellas HD»
+(101) y «Estrellas SD» (102) pintaban las dos `EST`, pegadas, indistinguibles
+sin leer el nombre de abajo.
+
+**Hipótesis:** no había una sola causa grande sino cuatro pequeñas sumadas:
+24 dp de relleno superior que no separaban nada —la barra principal ocupa 95 dp
+pero su tinta acaba en el 67, así que ya había 28 de aire—, una línea de
+programación de dos renglones (52 dp), 26 dp entre filas con un paso de fila de
+176, y 46 literales de color sin escala que hacían que nada se alineara.
+
+**Cambio:** seis commits, todos Modo B, ninguno toca decodificación, red,
+buffers, render ni recuperación.
+
+| | qué | dónde |
+|---|---|---|
+| F0 | `LiveTvPaleta`: 46 literales y 18 valores → una escala con nombres | `LiveTvPaleta.kt` + 10 archivos |
+| F1 | cabecera y programación en una banda; velo en el borde de la lista | `LiveTvFragment.kt`, `LiveTvChannelGrid.kt` |
+| F2 | sin logo manda el número; estados; progreso con el acento | `LiveTvChannelCard.kt`, `LogoDeCanal.kt` |
+| F3 | contraste contra el fondo real; el acento, un solo trabajo | `config/Brand.kt`, `LiveTvChannelGrid.kt` |
+| F4 | vacío, error y carga con forma de pantalla | `LiveTvFragment.kt` |
+| F5 | medir los seis caminos de foco y escribir esto | — |
+
+**Prueba:** emulador `api22tv`, una captura por caso, leídas fila por fila con
+el medidor de bandas (`scratchpad/medir_png.py`). Los seis caminos de foco, con
+flechas del mando y localizando el borde blanco de la tarjeta enfocada por
+píxel, no a ojo.
+
+**Resultado:**
+
+| | antes | ahora |
+|---|---|---|
+| primera tarjeta | 264,0 dp | **202,0 dp** |
+| filas completas | 1,5 | **2 + el título de la 3.ª** |
+| 101 contra 102 | las dos `EST` | **101 y 102**, 34 sp |
+| literales de color | 46, 18 valores | 0 fuera de la paleta |
+
+Los seis caminos de foco, medidos sobre la captura (dp de la tarjeta enfocada):
+
+| camino | resultado |
+|---|---|
+| arriba desde la lista | «Buscar canal», ninguna tarjeta enfocada |
+| abajo desde la cabecera | primera tarjeta, y=203,5 |
+| derecha de más al final de fila corta | se queda en la 2.ª, x=238 |
+| izquierda de más al principio | se queda en la 1.ª, x=54 |
+| abajo desde el extremo derecho | 2.ª tarjeta de la fila de abajo, x=238 |
+| volver a entrar | el último canal visto, 402, desplazado a la vista |
+
+**Cuatro cosas más que la medida sacó a la luz, y no eran el objetivo:**
+
+- **dos grises no pasaban el contraste.** `#7D8187` daba 4,86:1 sobre la
+  sección y **4,34:1 sobre una tarjeta**; `#6E7278`, 3,93 y 3,52. El mínimo
+  para texto es 4,5;
+- **el acento validaba su contraste contra negro puro** y el fondo de la
+  sección es `#101010`: un color que pasaba justo con 3,00 valía 2,72 donde se
+  ve. Corregido, con prueba (`#5A5A5A` pasaba y ya no);
+- **`unavailableMessage` llegaba del `config.json` y no se enseñaba nunca** en
+  la sección, solo dentro del reproductor. Ahora se lee con el foco encima;
+- **la pastilla decía «canales de prueba» sin ninguno.** Con la lista de
+  arranque vacía —que es como se compila el APK de Play— aparecía encima de la
+  pantalla que explica que no se pudo cargar la lista. Salió al provocar ese
+  estado a mano.
+
+**Lo que queda, y por qué no entró:** la parrilla, que es otra pantalla y ya
+está diseñada en el sistema de diseño; los 95 dp de la barra principal, que es
+la de Inicio y Buscar y tocarla cambia tres pantallas; y el velo de la lista,
+que suaviza el corte de una fila al desplazarse pero **no alcanza a tapar el
+nombre de un canal cuya tarjeta ya salió** —queda 20 dp por debajo del corte—,
+visible al final de la lista, donde no se puede desplazar más.
+
+**Una afirmación del plan era falsa y se corrige aquí.** El plan decía que la
+escala de tipos del sistema de diseño estaba escrita en píxeles de pantalla y
+que su título de programa, 18, eran 9 sp en la caja. **No.** Los números de ese
+sistema son dp y sp: su `space3xl` de 48 es el margen de 48 dp de la sección y
+su `shapeMedium` de 12 es el radio de 12 dp de la app. Salió al ir a corregirlo
+y comprobar las unidades contra la fuente, que es donde debería haberse
+comprobado antes de escribirlo. Lo que sí estaba por debajo del suelo de 16 sp
+era `ltv-meta`, que lleva las horas, en 14. Corregido en el sistema y en el
+plan publicado. De paso, la parrilla de ese sistema son **8 dp por minuto y una
+columna de canales de 264 dp**, no la mitad.
+
+**Lo que no puede validar el emulador:** cómo se siente recorrer 120 canales
+con el pulgar en una flecha, y nada que pase encima de vídeo. Eso es pantalla
+de Edgar.
+
+**Estado:** cerrada
