@@ -39,8 +39,18 @@ data class Brand(
 /** Gris claro: legible sobre el negro de la sección y sobre el claro de la app. */
 const val ACENTO_NEUTRO = 0xFFBDBDBD.toInt()
 
-/** El fondo de la sección de canales, contra el que se mide el contraste. */
-private const val FONDO_SECCION = 0xFF000000.toInt()
+/**
+ * El fondo de la sección de canales, contra el que se mide el contraste.
+ *
+ * **No es negro puro, y medirlo contra negro puro era medir contra una
+ * pantalla que no existe.** El fondo del tema de la app es `#101010`
+ * (`ui/base/colorScheme.kt`), y sobre él todo contrasta un 10 % menos: un
+ * acento que pasaba justo con 3,00 vale 2,72 donde se va a ver de verdad.
+ *
+ * Si algún día el tema cambia de fondo, este valor cambia con él. No hay forma
+ * de leerlo desde aquí: el módulo `livetv` no depende de `app` (§4.1).
+ */
+private const val FONDO_SECCION = 0xFF101010.toInt()
 
 /**
  * Contraste mínimo exigido al acento.

@@ -48,10 +48,24 @@ class BrandTest : StringSpec({
 		BrandParser.colorValidado("#E8A33DFF") shouldBe null
 	}
 
-	"un color ilegible sobre el negro de la sección se rechaza" {
+	"un color ilegible sobre el fondo de la sección se rechaza" {
 		// Azul oscuro de marca: perfectamente válido como hex y perfectamente
-		// invisible a tres metros sobre fondo negro.
+		// invisible a tres metros sobre el fondo de la sección.
 		BrandParser.colorValidado("#101840") shouldBe null
+	}
+
+	"el contraste se mide contra el fondo real, no contra negro puro" {
+		// El fondo de la sección es `#101010`, no `#000000`. Un gris que pasa
+		// justo contra negro puro —3,05— vale 2,76 sobre el fondo de verdad, y
+		// ahí es donde el abonado tiene que leerlo.
+		(BrandParser.contraste(0xFF5A5A5A.toInt(), 0xFF000000.toInt()) > 3.0) shouldBe true
+		BrandParser.colorValidado("#5A5A5A") shouldBe null
+	}
+
+	"el umbral nuevo no se come los colores de marca que sí se leen" {
+		// 3,01 contra el fondo real: justo por encima, y se acepta. Subir el
+		// umbral «por si acaso» dejaría a los ISPs en gris.
+		BrandParser.colorValidado("#2E5FA8") shouldNotBe null
 	}
 
 	"un color de marca legible se acepta aunque no sea blanco" {
@@ -61,10 +75,9 @@ class BrandTest : StringSpec({
 		BrandParser.colorValidado("#C62828") shouldNotBe null
 	}
 
-	"el neutro pasa su propia validación" {
+	"el neutro pasa su propia validación sobre el fondo de la sección" {
 		// Si el respaldo no fuera legible, no sería un respaldo.
-		BrandParser.contraste(ACENTO_NEUTRO, 0xFF000000.toInt()) shouldNotBe null
-		(BrandParser.contraste(ACENTO_NEUTRO, 0xFF000000.toInt()) > 3.0) shouldBe true
+		(BrandParser.contraste(ACENTO_NEUTRO, 0xFF101010.toInt()) > 3.0) shouldBe true
 	}
 
 	"el contraste es simétrico y el de un color consigo mismo es 1" {

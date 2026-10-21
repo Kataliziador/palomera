@@ -233,14 +233,21 @@ fun LiveTvChannelGrid(
 						if (it.hasFocus) scope.launch { verticalState.animateScrollToItem(indiceSeccion) }
 					}
 				) {
-					// Color explícito: el del tema está pensado para el fondo claro
-					// de la app y sobre el negro de esta sección queda casi
-					// invisible. Un título de grupo que no se lee convierte la
-					// guía en una lista suelta. El acento llega ya validado contra
-					// este fondo, así que no puede volver a pasar.
+					// **El título de grupo no lleva el acento del ISP.** Lo llevaba,
+					// y con doce grupos el color de marca salía doce veces en una
+					// pantalla para decir «Nacionales»: mobiliario. El acento queda
+					// para lo único donde el color dice algo que no se puede decir
+					// de otra forma —cuánto lleva el programa, en la línea de
+					// progreso de cada tarjeta—, que es además lo que pide el
+					// sistema de diseño del proyecto.
+					//
+					// Color explícito y no el del tema: el del tema está pensado
+					// para el fondo claro de la app y sobre esta sección queda casi
+					// invisible. Un título de grupo que no se lee convierte la guía
+					// en una lista suelta.
 					Text(
 						text = seccion.title,
-						color = accent,
+						color = LiveTvPaleta.tintaApagada,
 						fontWeight = FontWeight.Bold,
 						fontSize = 17.sp,
 						modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
