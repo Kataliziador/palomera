@@ -326,7 +326,7 @@ declararla.
 | ~~76~~ | ~~**Cuando la vuelta al borde no se evalúa, no queda rastro de por qué**~~ | — | **cerrado el 11-oct.** En la segunda racha del bucle de inanición (19:57:38-19:58:14, 13 cortes) el offset real leía 69-74 s sobre una ventana de 33,6 —condición cumplida de sobra— y no se registró ni un `offset.vuelveAlBorde` ni un `offset.saltoNoAdelanta`: 38 segundos sin una línea, con cuatro guardas candidatas por igual. Dos instrumentos lo cierran. **`offset.noSeEvalua`** con el motivo —apagado en el menú, aún sin imagen, el reproductor no está listo, o cuánto queda de enfriamiento—, registrado **solo cuando el disparador habría disparado** y una vez por motivo y por enfriamiento, que es lo que lo acota a los momentos interesantes sin inundar el log. Y **`timelines` en el latido**: toda la decisión vive dentro de `onTimelineChanged`, así que si el playlist se congela el método no se llama y el mecanismo entero queda mudo; un contador que deja de subir mientras el buffer baja convierte esa sospecha en una lectura. `analizar-log.py` ya lo usa: imprime los playlists nuevos de cada racha y dice «la lista estaba congelada» cuando son cero |
 | 77 | **El escalón 1 del vigilante deja la meseta más fina que nuestro propio salto** | **A** | medido el 11-oct. `vigilante.saltaAlBorde` usa `seekToDefaultPosition()` (`Media3LiveEngine.kt:814`) y dejó las dos peores mesetas de la sesión —**10,7 s** de directo / 7,0 de buffer, que aguantó 1,11 h y cayó al primer parón, y **8,5 s** / 3,6, que murió en **26 segundos**—, con el objetivo configurado en 14 s. `offset.margenCorto`, que calcula el destino con `VueltaAlBorde.destino()`, dejó la mejor: **18,6 s** / 14,8, y de ahí salieron 4 h 07 min limpias. Los dos saltan, los dos cuestan un corte, y uno deja al reproductor sobreviviendo y el otro no. Hay que leer por qué `seekToDefaultPosition` aterriza corto —sospecha: la ventana está transitoriamente inflada cuando el vigilante dispara, porque el origen acaba de volver— y probablemente usar el mismo destino que el 75 en el escalón 1. **Se mide en el latido, sin pantalla.** Puede quedar sin sentido si se cierra 74, porque entonces la meseta la corrige el reproductor solo | **Reenunciado el 16-oct, y ahora sí medido: el enunciado original se sostiene, las dos lecturas anteriores no.** El 11-oct lo di por cierto con dos mesetas sueltas; el 15-oct lo di por refutado con el p95 global del remojo (15,8 s). **Las dos lecturas mezclaban estados** —el p95 de 36 h promedia las horas sanas con las que siguen a un salto—, y la comparación que decide es condicional al salto que causó cada meseta. Medido sobre los 64 984 latidos del remojo de 36,1 h, agrupando los 74 saltos en **42 incidentes** y tomando el buffer medio **de 2 a 10 minutos después** del último salto de cada uno (antes del minuto 2 todas se parecen, porque el buffer se está rellenando): `offset.margenCorto` deja **15,0 s** de mediana (n=7, rango 11,8-16,0), `offset.vuelveAlBorde` **13,2 s** (n=12, rango 11,8-14,2) y `vigilante.saltaAlBorde` **9,4 s** (n=23, rango 7,1-13,5). Son **4-6 s menos**, y no se solapan por arriba: la mejor meseta del vigilante (13,5) es la peor de los otros dos. Dos implementaciones independientes dan lo mismo. **Lo que NO dice esta medida:** que el escalón 1 sea peligroso —recuperó **30 de 30** y las sesiones siguieron—, ni que la causa sea el destino y no el estado del que se parte: el vigilante dispara con el reproductor ya atascado y `margenCorto` dispara preventivamente, así que la **asociación está medida y el mecanismo es inferido**. Para separarlos hace falta igualar el destino y volver a medir, que es la acción que propone esta fila. La sección «La meseta que deja cada salto» de `herramientas/analizar-log.py` la recalcula en cada remojo
 | 78 | **El log afirma `tunneled=true` cuando el tunneled no se activó** | **A** | medido el 12-oct en la Mecool KM9 Pro. `engine.prepare` publica lo que *pedimos*, no lo que *obtuvimos*: si el decoder de vídeo no declara `tunneled-playback`, Media3 lo desactiva en silencio (`DefaultTrackSelector.maybeConfigureRenderersForTunneling`) y el log sigue diciendo `true`. En esa caja `video/avc` y `video/mpeg2` **no** lo declaran —solo hevc, vp9 y dolby-vision—, así que el lineup entero corre sin tunneled y nadie se entera. **Hay una señal barata y ya publicada para detectarlo:** en tunneled real el contador de fotogramas no ve nada (§6), así que `tunneled=true` **y** `frames>0` en el latido significa que no enganchó. Importa más de lo que parece: el tunneled es la cura medida de los microcortes del pulldown 3:2, y en una caja así esa cura no existe aunque el log diga que sí. Arreglo: publicar el estado real, o al menos el aviso derivado del contador. **La KM9 se devolvió el 14-oct, y no hace falta:** medido ese mismo día sobre los ficheros de códecs de la propia Skyworth, `OMX.amlogic.avc.decoder.awesome2` y `OMX.amlogic.mpeg2.decoder.awesome2` **sí** declaran `feature-tunneled-playback`, mientras que el fichero entero de los de software —`/apex/com.android.media.swcodec/etc/media_codecs.xml`, con `c2.android.avc.decoder` y `c2.android.mpeg2.decoder` dentro— **no menciona `tunneled` ni una vez**. O sea que `forceSoftwareVideo`, que ya existe en el menú, reproduce la condición exacta del 78 en la caja que tenemos: se pide tunneled, Media3 lo apaga en silencio y el log sigue diciendo `true`. Es el «menú de degradación» que §9 manda usar, cumpliendo su función |
-| 79 | **El heap nativo acumula ~1,7 MB/h de asignaciones vivas que nadie vuelve a leer** | **A** | medido el 15-oct sobre el remojo de 36,1 h, 290 volcados de `dumpsys meminfo`. `NativeHeap.heapAlloc` 56 → 99 MB en 24 h, **+1769 KB/h recto**, con `heapSize` acompañando. **No es una fuga:** `dumpsys meminfo --unreachable` da **132 bytes en 13 asignaciones** inalcanzables, y `smaps` reparte los ~95 MB en **239 regiones de `[anon:scudo:primary]`** sin ninguna dominante (la mayor, 3,2 MB). Tampoco es fragmentación: `heapFree` son 9,6 MB de 117. Son asignaciones **referenciadas y frías** —el kernel se lleva el 38 % a zram—. No amenaza §10 (a 48 h serían ~120 MB, con 671 MB disponibles en la caja) pero una sesión de una semana son ~290 MB. **El sitio de la asignación sigue sin medir:** hace falta `libc.debug.malloc.options=backtrace`, que exige reiniciar el proceso con la propiedad puesta — experimento aparte |
+| 79 | **El heap nativo acumula ~1,7 MB/h de asignaciones vivas que nadie vuelve a leer** | **A** | medido el 15-oct sobre el remojo de 36,1 h, 290 volcados de `dumpsys meminfo`. `NativeHeap.heapAlloc` 56 → 99 MB en 24 h, **+1769 KB/h recto**, con `heapSize` acompañando. **No es una fuga:** `dumpsys meminfo --unreachable` da **132 bytes en 13 asignaciones** inalcanzables, y `smaps` reparte los ~95 MB en **239 regiones de `[anon:scudo:primary]`** sin ninguna dominante (la mayor, 3,2 MB). Tampoco es fragmentación: `heapFree` son 9,6 MB de 117. Son asignaciones **referenciadas y frías** —el kernel se lleva el 38 % a zram—. No amenaza §10 (a 48 h serían ~120 MB, con 671 MB disponibles en la caja) pero una sesión de una semana son ~290 MB. **El sitio de la asignación sigue sin medir:** hace falta `libc.debug.malloc.options=backtrace`, que exige reiniciar el proceso con la propiedad puesta — experimento aparte. **Confirmado el 22-oct en una segunda serie independiente:** remojo de release de 51,0 h, 610 volcados, `heapAlloc` 39,6 → 127,1 MB = **+1,72 MB/h** (contra +1,77 el 15-oct), `heapSize` 71 → 151, y el `SwapPss` del proceso 6,3 → 85,8 MB. La proyección de esta fila —«a 48 h serían ~120 MB»— salió **121,8 MB a la hora 48**. Dos remojos y la misma pendiente, así que el ritmo ya no es una medida suelta. **Aviso para quien lo revise:** la columna que hay que leer es `heapAlloc`; `Native Heap` **PSS** oscila entre 31 y 52 MB porque es solo la parte residente, y leerla a ella hace parecer que el crecimiento está acotado (error cometido el 22-oct y corregido el mismo día) |
 | 80 | **`LocalBinders` sube 1,8/h y no baja** | **A** | medido el 15-oct en el mismo remojo: 30 → 74 en 24 h, monótono, mientras el resto del censo queda plano (Views 23, Activities 1, ProxyBinders 39, ParcelCount 48, Threads 58, descriptores 226 → 232). Tiene la forma de algo que se registra y no se da de baja. A 1,8/h son ~300 en una semana; el límite práctico de binders por proceso está muy por encima, así que **no es urgente**, pero es la única otra columna del censo que no se aplana y conviene saber de quién es |
 | 81 | **`frames.first` mide dos cosas distintas según el motor** | **A** | Media3 lo emite en `onRenderedFirstFrame` —un fotograma **pintado**— (`Media3LiveEngine.kt:1641`); libVLC lo emite en `MediaPlayer.Event.Vout`, cuando se **crea la salida de vídeo** (`VlcLiveEngine.kt:377`), bastante antes de que haya imagen. Medido el 20-oct en los 56 zapeos: **1 459 ms de mediana en Media3 contra 226 ms en libVLC**, y la diferencia no es que libVLC sea seis veces más rápido, es que mide otra cosa. Mezclarlos en un percentil contamina el número de §10, y el riesgo es de los caros: los SD MPEG-2 de cualquier site con cajas sin ese decoder van **todos** por libVLC, así que el zapping del caso mayoritario está sin medir y parecería excelente. El arreglo es emitirlo en el primer fotograma de verdad también en libVLC, o nombrarlo distinto |
 | 82 | **Zapear a un canal no disponible expulsa del reproductor** | **A** | medido el 20-oct: `canal.noDisponible canal=universal` → `engine.release habiaPlayer=true`, y la app vuelve a la lista. `CONTRATO.md` dice que un canal `unavailable` sale «con su número y su sitio, y la app explica por qué no se puede ver»; no que te eche de lo que estabas viendo. El lineup de pruebas tiene dos (`universal`, `foxny`); en uno real de 120 se topa constantemente, y recuperarse exige volver a entrar a mano |
@@ -6615,7 +6615,8 @@ a las 19:04 UTC con `mileniosd` —el mismo canal de los remojos de 9,3 h y
 Comprobado antes de arrancar que **late un solo proceso**, que es la trampa que
 casi arruina el remojo del 19-oct.
 
-**Estado:** abierta — falta el remojo.
+**Estado:** cerrada el 22-oct con el remojo de 51,0 h — ver la entrada
+«El remojo de 48 h: cumplidas, y el instrumento que yo mismo elegí mal».
 
 ---
 
@@ -6709,3 +6710,92 @@ con el pulgar en una flecha, y nada que pase encima de vídeo. Eso es pantalla
 de Edgar.
 
 **Estado:** cerrada
+
+---
+
+### [M-8] El remojo de 48 h: cumplidas, y el instrumento que yo mismo elegí mal — 2026-10-22
+
+**Síntoma:** ninguno. §10 pedía **> 48 h de uptime continuo** y ningún remojo
+había pasado de 36,1 h. Era la última fila de la tabla sin cumplir.
+
+**Hipótesis:** que la release aguanta 48 h sin degradarse.
+
+**Cambio:** ninguno. Medición.
+
+**Prueba:** APK de **release** `0.1.0-rc.1`, el mismo canal `mileniosd` de los
+remojos de 9,3 h y 36,1 h para que las tres series se comparen, arrancado el
+20-oct a las 19:04 UTC en la Skyworth. Tres instrumentos a la vez: el logcat
+filtrado (`capturar.sh`), tres cifras de `dumpsys meminfo` cada 10 min
+(306 muestras) y el **volcado entero** de `muestrear-memoria.py` cada 5 min
+(610 muestras). Cortado a las **51,0 h**.
+
+**Resultado — los objetivos de §10:**
+
+| métrica | medido en 51 h | objetivo |
+|---|---|---|
+| uptime continuo | **51,0 h**, un solo PID (14451) | > 48 h ✅ |
+| cortes | 26 → **0,5/h** | < 1/h ✅ |
+| ratio de rebuffer | **0,03 %** | < 0,3 % ✅ |
+| primer fotograma | **1 496 ms** | < 4 s ✅ |
+| recuperación tras corte | 14 s, 2 s, 2 s, 2 s | < 15 s aceptable ✅ |
+
+91 679 latidos = 3 056 min de reproducción sin un hueco. CPU mediana 6 %, p95
+6 %. Buffer mediana 13,8 s, p5 10,5. Cuatro atascos del vigilante, los cuatro
+recuperados solos; uno llegó al escalón 2 (`rehacePreparacion`), los otros tres
+se arreglaron con un salto al borde. Cero cuelgues, cero ANR, ningún
+`lowmemorykiller` sobre nuestro proceso —los seis avisos del log son de otros
+procesos del sistema (PIDs 20843, 2340, 15732)—.
+
+**Lo que esto NO dice:** nada sobre «crash-free sessions > 99,5 %». Es **una**
+sesión con cero cuelgues; de n=1 no sale un porcentaje. Y sigue siendo **un
+solo modelo de caja** (§9).
+
+**El pendiente 79 se confirma en una segunda serie independiente.** Su
+enunciado —el heap nativo acumula ~1,7 MB/h de asignaciones vivas y frías— se
+midió el 15-oct sobre 36,1 h. Aquí, 51 h después y con otra serie:
+`NativeHeap.heapAlloc` **39,6 → 127,1 MB**, **+1,72 MB/h** (contra +1,77
+entonces), `heapSize` 71 → 151 MB acompañando, y el `SwapPss` del proceso
+**6,3 → 85,8 MB**: el kernel se lleva a zram lo que no se vuelve a tocar. La
+proyección que el 79 escribió —«a 48 h serían ~120 MB»— salió **121,8 MB a la
+hora 48**. Dos remojos, misma pendiente, predicción cumplida.
+
+**Y el heap java se cierra: está acotado por construcción.**
+`DalvikHeap.heapAlloc` sube de 14,8 a 34,5 MB y se **aplana en la hora 12**,
+donde no se mueve ya de 34,4-34,8 en las 39 h restantes. Es el anillo de
+diagnóstico de `LiveTuning.LOG_RING_CAPACITY` llenándose, exactamente como se
+sospechaba el 15-oct: crecimiento con techo, no fuga.
+
+**Dos lecturas mías de hace siete horas, a las 44 h, eran falsas. Las dos por
+mirar la columna equivocada, y las dos las corrijo aquí porque es donde se
+escribieron.**
+
+- Dije que **«el heap nativo es un diente de sierra acotado, suelo 31-35 MB,
+  +0,32 MB/h»**. Estaba leyendo `Native Heap` **PSS**, que es solo la parte
+  residente: oscila porque el kernel swapea, no porque la app libere. La
+  columna que manda es `heapAlloc`, que es la que el 79 ya decía que hay que
+  leer, y esa no tiene diente ni techo en 51 h.
+- Dije que **«los peldaños del PSS caen en los sucesos del vigilante, tres de
+  tres, y el tamaño escala con el escalón»**. Miré las ventanas de los tres
+  sucesos y nunca pregunté lo contrario: cuántos peldaños ocurren **sin**
+  suceso. Son **15 peldaños de más de 3 MB en las 51 h, y 11 no tienen ni
+  corte ni vigilante**; y al revés, solo **4 de los 26 cortes** caen en una
+  ventana con peldaño. Con 15 ventanas de 10 min sobre 3 056 min, el azar ya
+  daría ~1,3. No hay relación medida. El instrumento podía enseñármelo y no lo
+  apunté ahí.
+
+Lo que de verdad explica el PSS de 177 → 253 MB es aritmética de contabilidad:
+en este build la fila `TOTAL` **suma el SwapPss** (167 MB residentes + 86 MB en
+zram), y por debajo, `.so mmap` cae de 23,2 a 3,7 MB y `.dex mmap` de 30,8 a
+13,4 porque las páginas de código se van desalojando. La app no ocupa 253 MB de
+RAM: ocupa ~167 y tiene 86 comprimidos.
+
+**Lo que no se pudo medir y por qué:** el sitio de la asignación nativa. En la
+release, `/proc/<pid>/fd`, `/proc/<pid>/maps` y `smaps` no son legibles por el
+shell sin root, y `--unreachable` ya dio 132 bytes el 15-oct: no hay nada
+inalcanzable que buscar. Hace falta `libc.debug.malloc.options=backtrace` con el
+proceso reiniciado, que es el experimento aparte que el 79 ya pide.
+
+**La caja de Edgar queda restaurada** —`sleep_timeout` 28800000, salvapantallas
+activo, `screen_off_timeout` 600000— y los dos muestreadores, parados.
+
+**Estado:** cerrada. M8 completa.
