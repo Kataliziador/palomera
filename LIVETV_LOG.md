@@ -6798,4 +6798,16 @@ proceso reiniciado, que es el experimento aparte que el 79 ya pide.
 **La caja de Edgar queda restaurada** —`sleep_timeout` 28800000, salvapantallas
 activo, `screen_off_timeout` 600000— y los dos muestreadores, parados.
 
-**Estado:** cerrada. M8 completa.
+**Y el vuelco de PTS deja de ser una inferencia.** El remojo cruzó las 26,5 h
+y `pts.posibleVuelco` salió **cero veces**. El instrumento no estaba ciego: el
+mismo `onPositionDiscontinuity` clasificó **25 discontinuidades** como
+`salto.aterrizaje` en esas horas, así que se ejecutaba y ninguna tenía la firma
+de los 33 bits. Lo que sigue sin decir es que el vuelco **ocurriera** —el PTS
+crudo de Flussonic no se lee desde la API—: es la ausencia medida del síntoma,
+no la presencia medida del suceso.
+
+**Estado:** medida y completa en sus tres criterios, **pendiente del visto
+bueno de Edgar**, que es lo que cierra una fase de Modo A (§3). Las dos pruebas
+que M8 le pedía —un canal 48 h continuas y 50 cambios de canal seguidos— las
+hizo `adb`, no él delante de la tele. Lo que queda sin medir de la fase es el
+**zapeo repetido**: las dos series de memoria son de un canal fijo.

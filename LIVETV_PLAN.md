@@ -340,11 +340,19 @@ el headend (pendientes 6 y 7 de `LIVETV_LOG.md`).
 
 ---
 
-## M8 — Maratón y zapping — **abierta**
+## M8 — Maratón y zapping — **medida el 22-oct, pendiente del visto bueno de Edgar**
 
 **Objetivo:** sobrevivir a la operación real.
 
-**Estado medido al 15-oct:** la sesión más larga son **36,1 h** —remojo de
+**Estado medido al 22-oct:** el remojo de la **release** llegó a **51,0 h**
+con un solo pid: 26 cortes (**0,5/h**), ratio **0,03 %**, primer fotograma
+**1 496 ms**, cuatro atascos del vigilante recuperados solos. Los tres criterios
+de cierre, cumplidos —vivo a las 48 h, memoria estable y zapping p50 por debajo
+de 2 s (1 459 ms sobre 49 muestras de Media3, 20-oct)—. **Falta el visto bueno
+de Edgar**, que es lo que cierra una fase de Modo A (`CLAUDE.md` §3): las dos
+pruebas que pide esta fase las hizo `adb`, no él delante de la tele.
+
+**Estado anterior, al 15-oct:** la sesión más larga son **36,1 h** —remojo de
 `mileniosd` del 14 al 15-oct, un solo pid, 2,1 cortes/h y 0,31 % de ratio—, o sea
 ya por encima de las 24 h «aceptable» de §10 y por debajo de las 48 h objetivo.
 **Pero es la APK de depuración**, con el anillo de diagnóstico y un `logcat`
@@ -365,12 +373,23 @@ fotograma entre 1 651 y 1 931 ms—. Nada de esto está cerrado.
   `TimestampAdjuster` lo lleva por dentro y no publica su estado—, pero un
   vuelco mal manejado tiene una sola firma observable, un salto de posición de
   `MS_DE_UN_VUELCO_DE_PTS` (95 443 717 ms ≈ 26,5 h), y
-  `onPositionDiscontinuity` ya lo vigila con `pts.posibleVuelco`. **El próximo
-  remojo que cruce las 26,5 h cierra el ítem con dato en vez de con inferencia**
-- Sin fugas de memoria en zapping repetido. **En sesión continua ya está medido**
-  (15-oct): sin fuga de java, y el heap nativo acumula 1,7 MB/h de asignaciones
-  vivas y frías —no es una fuga, ver pendiente 79—. El zapeo repetido sigue sin medir
-- Medir el zapping real
+  `onPositionDiscontinuity` ya lo vigila con `pts.posibleVuelco`. **Cerrado con
+  dato el 22-oct:** el remojo de release de 51,0 h cruzó las 26,5 h y
+  `pts.posibleVuelco` salió **cero veces**. Y el instrumento no estaba ciego:
+  el mismo callback clasificó **25 discontinuidades** como `salto.aterrizaje`
+  en esas horas, así que se estaba ejecutando y ninguna tenía la firma del
+  vuelco de 33 bits. Lo que esto sigue **sin** decir es que el vuelco ocurriera:
+  el PTS crudo de Flussonic no se lee desde la API. Es la ausencia medida del
+  síntoma, no la presencia medida del suceso
+- Sin fugas de memoria en zapping repetido. **En sesión continua, medido dos
+  veces** (15-oct y 22-oct): el heap java se **aplana en la hora 12** —el anillo
+  de diagnóstico llenándose, techo por construcción— y el nativo acumula
+  **+1,72 MB/h** de asignaciones vivas y frías, misma pendiente que la serie
+  anterior y con la proyección de las 48 h cumplida al kilobyte (pendiente 79).
+  **El zapeo repetido sigue sin medir:** las dos series son de un canal fijo
+- ~~Medir el zapping real~~ **hecho el 20-oct**: 56 cambios con las flechas
+  dentro del reproductor, p50 1 459 ms y p95 1 744 ms sobre los 49 de Media3.
+  Los 7 de libVLC no son comparables y de ahí salió el pendiente 81
 
 **Pruebas de Edgar:** un canal 48 h continuas; 50 cambios de canal seguidos.
 
