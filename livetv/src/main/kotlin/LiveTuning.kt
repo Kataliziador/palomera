@@ -560,6 +560,35 @@ object LiveTuning {
 	 */
 	const val VLC_DEINTERLACE_MODE = "yadif2x"
 
+	/**
+	 * Cada cuánto se pregunta a libVLC si ya mostró una imagen, en ms.
+	 *
+	 * libVLC **no avisa del primer fotograma pintado**: no hay ningún evento
+	 * equivalente al `onRenderedFirstFrame` de Media3. Lo que sí lleva es un
+	 * contador, `IMedia.Stats.displayedPictures`, así que el primer fotograma
+	 * se mide sondeándolo.
+	 *
+	 * 25 ms porque el número que sale alimenta el objetivo de zapping de §10,
+	 * que se juzga en p50 y p95 de **segundos**: el sondeo no puede ser el
+	 * término de error dominante. El latido, a 2 000 ms, cuantizaría una
+	 * medida de ~1 500 ms en tramos del 130 % y sería inservible.
+	 */
+	const val VLC_SONDEO_PRIMER_FOTOGRAMA_MS = 25L
+
+	/**
+	 * Cuánto se sondea antes de darse por vencido, en ms.
+	 *
+	 * Si se agota, **no se escribe un `frames.first`**: se escribe un aviso de
+	 * que la salida de vídeo se creó y nunca llegó imagen, que es un síntoma
+	 * distinto y peor. Rellenar la métrica con el momento del sondeo fallido
+	 * daría un número que parece medido.
+	 *
+	 * 10 s es el doble del peor arranque observado en el camino de libVLC
+	 * —`estrellassd`, MPEG-2 480i con `yadif2x` por software— con margen para
+	 * una caja más lenta que la de pruebas (§9).
+	 */
+	const val VLC_ESPERA_MAXIMA_PRIMER_FOTOGRAMA_MS = 10_000L
+
 	// --- EPG -----------------------------------------------------------------
 	/**
 	 * La guía **no viaja dentro del `config.json`** (`CLAUDE.md` §6): la lista

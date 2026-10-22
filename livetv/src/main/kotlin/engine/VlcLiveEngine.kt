@@ -72,7 +72,24 @@ class VlcLiveEngine(
 	private var plan: PlaybackPlan? = null
 
 	private var prepareAtMs = 0L
+
+	/**
+	 * El primer fotograma **mostrado**, no la salida de vídeo creada.
+	 *
+	 * Eran lo mismo hasta el 22-oct y no lo son (pendiente 81): `Event.Vout`
+	 * avisa de que existe la salida, bastante antes de que haya imagen. Lo que
+	 * mide el objetivo de §10 es esto.
+	 */
 	private var firstFrameAtMs = 0L
+
+	/**
+	 * Cuándo se creó la salida de vídeo.
+	 *
+	 * Sigue haciendo falta como puerta del contador de rebuffers: «ya empezó a
+	 * reproducir, así que un `Buffering` ahora es un corte y no el arranque».
+	 * Esa puerta quiere el momento temprano, y antes la daba `firstFrameAtMs`.
+	 */
+	private var voutAtMs = 0L
 	private var rebuffers = 0
 	private var sesionDesdeMs = 0L
 	private var anchoVideo = 0
@@ -93,6 +110,7 @@ class VlcLiveEngine(
 
 	private val medidor = DeviceLoad(context)
 	private var latido: Job? = null
+	private var sondeoPrimerFotograma: Job? = null
 	private val alcance = CoroutineScope(Dispatchers.Main.immediate)
 
 	override fun attach(surface: SurfaceView) {
@@ -134,6 +152,9 @@ class VlcLiveEngine(
 		this.plan = plan
 		prepareAtMs = System.currentTimeMillis()
 		firstFrameAtMs = 0L
+		voutAtMs = 0L
+		sondeoPrimerFotograma?.cancel()
+		sondeoPrimerFotograma = null
 		sesionDesdeMs = prepareAtMs
 
 		LiveLog.startSession(channel.id, channel.url, channel.videoCodec, channel.audioCodec)
@@ -199,6 +220,8 @@ class VlcLiveEngine(
 	override fun release() {
 		latido?.cancel()
 		latido = null
+		sondeoPrimerFotograma?.cancel()
+		sondeoPrimerFotograma = null
 		soltarReproductor()
 		libVlc?.release()
 		libVlc = null
@@ -354,7 +377,7 @@ class VlcLiveEngine(
 			MediaPlayer.Event.Buffering -> {
 				val lleno = evento.buffering >= 100f
 				when {
-					!lleno && firstFrameAtMs > 0L && !enRebuffer -> {
+					!lleno && voutAtMs > 0L && !enRebuffer -> {
 						enRebuffer = true
 						rebuffers++
 						LiveLog.warn("player.rebuffer", "numero" to rebuffers, "motor" to id)
@@ -374,14 +397,19 @@ class VlcLiveEngine(
 			}
 
 			MediaPlayer.Event.Vout -> {
-				if (evento.voutCount > 0 && firstFrameAtMs == 0L) {
-					firstFrameAtMs = System.currentTimeMillis()
-					LiveLog.info(
-						"frames.first",
-						"msDesdePrepare" to (firstFrameAtMs - prepareAtMs),
+				if (evento.voutCount > 0 && voutAtMs == 0L) {
+					voutAtMs = System.currentTimeMillis()
+					// **Este evento ya no es `frames.first`** (pendiente 81).
+					// Se sigue registrando porque es el dato que las medidas
+					// anteriores al 22-oct llamaban primer fotograma, y sin él
+					// las series no se podrían comparar — pero con su nombre.
+					LiveLog.debug(
+						"vlc.voutCreado",
+						"msDesdePrepare" to (voutAtMs - prepareAtMs),
 						"motor" to id,
 					)
 					leerFormato()
+					medirPrimerFotograma()
 				}
 			}
 
@@ -437,6 +465,62 @@ class VlcLiveEngine(
 					"cpu" to carga?.let { "%.0f%%".format(it.cpuPercent) },
 					"ramLibreMb" to carga?.ramAvailableMb,
 				)
+			}
+		}
+	}
+
+	/**
+	 * El primer fotograma **pintado**, sondeando el contador de libVLC.
+	 *
+	 * **Por qué hay que sondear.** libVLC no tiene un evento de primer
+	 * fotograma; `Event.Vout` dice que se creó la salida de vídeo, que es otra
+	 * cosa y ocurre mucho antes. Medido el 20-oct en 56 zapeos, esa confusión
+	 * daba **226 ms de mediana en libVLC contra 1 459 en Media3** y la
+	 * diferencia no era velocidad: los dos eventos se llamaban igual y medían
+	 * momentos distintos (pendiente 81).
+	 *
+	 * Lo que sí publica libVLC es `IMedia.Stats.displayedPictures`, un
+	 * contador de imágenes mostradas. En cuanto pasa de cero hay imagen en
+	 * pantalla, y ese es el instante comparable con el de Media3.
+	 *
+	 * Importaba más de lo que parece: **todos los SD MPEG-2 de una caja sin
+	 * ese decoder van por este camino**, así que el zapping del caso
+	 * mayoritario era el que estaba mal medido, y además parecía excelente.
+	 *
+	 * Si se agota la espera no se escribe la métrica. Un `frames.first` con el
+	 * momento en que dejamos de mirar sería un número que parece medido.
+	 */
+	private fun medirPrimerFotograma() {
+		sondeoPrimerFotograma?.cancel()
+		sondeoPrimerFotograma = alcance.launch {
+			val desde = System.currentTimeMillis()
+			while (isActive) {
+				val mostradas = runCatching { player?.media?.stats?.displayedPictures }
+					.onFailure { LiveLog.warn("vlc.statsIlegibles", "motivo" to it.message) }
+					.getOrNull()
+				if (mostradas != null && mostradas > 0) {
+					firstFrameAtMs = System.currentTimeMillis()
+					LiveLog.info(
+						"frames.first",
+						"msDesdePrepare" to (firstFrameAtMs - prepareAtMs),
+						"msDesdeVout" to (firstFrameAtMs - voutAtMs),
+						"mostradas" to mostradas,
+						"motor" to id,
+					)
+					return@launch
+				}
+				if (System.currentTimeMillis() - desde >= LiveTuning.VLC_ESPERA_MAXIMA_PRIMER_FOTOGRAMA_MS) {
+					// La salida existe y no llega imagen. Es el síntoma de
+					// pantalla negra con audio, no un arranque lento, y por eso
+					// es un aviso y no una métrica.
+					LiveLog.warn(
+						"frames.sinImagenTrasVout",
+						"esperaMs" to (System.currentTimeMillis() - desde),
+						"motor" to id,
+					)
+					return@launch
+				}
+				delay(LiveTuning.VLC_SONDEO_PRIMER_FOTOGRAMA_MS)
 			}
 		}
 	}
