@@ -11,6 +11,27 @@ Caracterización medida de los canales y de la caja de pruebas.
 > está la cascada de M3, que decide por canal y por caja sin saber de antemano
 > qué hay, y rehace el plan si el stream desmiente al `config.json`.
 
+> **23-oct: los dos canales de 77W están apagados, y es temporal.** Edgar
+> retiró ese servidor y lo repondrá en unos días. Mientras tanto
+> `estrellashd-mp4` y `estrellassd-mp2v` llegan marcados `unavailable` en el
+> `config.json` y la sección los enseña con «Sin señal en este momento» —eso es
+> la app funcionando, no un fallo—.
+>
+> **Lo que bloquea, para no perder una mañana descubriéndolo:**
+>
+> - **todo lo que necesite MPEG-2 de verdad.** `estrellassd-mp2v` es el único
+>   del conjunto, y con él se cae el único camino que ejercita libVLC por
+>   necesidad, el desentrelazado `yadif2x` por software y el SAR 20:17;
+> - **los *closed captions*.** `estrellashd` es el único que los emite
+>   (CEA-608), así que §7 queda sin canal de prueba;
+> - **repetir el experimento de zapping del 20-oct separando motores**
+>   (pendiente 81): su pata de libVLC eran 7 zapeos de `estrellassd`.
+>
+> **Lo que NO bloquea:** forzar libVLC desde el menú (`forcedEngine`) sobre
+> cualquier canal, que es como se midió el 81 el 22-oct, y toda la degradación
+> por capacidades de §9 —`forceSoftwareVideo`, decoders vetados—, que no
+> depende de qué emita el satélite.
+
 Medido el 2026-09-20 y 2026-09-21 con `scan-canales.sh` y `adb`.
 **Reverificado contra Flussonic el 2026-09-22** (PIDs, SAR, orden de campo
 y ventana DVR): ver §2.bis. Esa revisión corrigió varias cifras de aquí.
