@@ -14,6 +14,18 @@ data class DecoderInfo(
 	val mime: String,
 	val hardware: Boolean,
 	val maxInstances: Int,
+	/**
+	 * Si el decoder **declara** `feature-tunneled-playback` para este mime.
+	 *
+	 * No es una curiosidad del inventario: es la condición que Media3 evalúa
+	 * en silencio. Si se pide tunneled y el decoder elegido no lo declara,
+	 * `DefaultTrackSelector.maybeConfigureRenderersForTunneling` **lo apaga
+	 * sin decir nada** y la sesión corre sin él (pendiente 78).
+	 *
+	 * Por defecto `false` para las capacidades fabricadas a mano de las
+	 * pruebas: una caja inventada no declara nada mientras no se diga.
+	 */
+	val tunneled: Boolean = false,
 ) {
 	/**
 	 * Declarado no es funcionando. El XML del fabricante puede listar un decoder
@@ -186,6 +198,7 @@ class DeviceCapabilities private constructor(
 							mime = mime,
 							hardware = isHardware(info),
 							maxInstances = maxInstances(info, mime),
+							tunneled = declaraTunneled(info, mime),
 						)
 					}
 				}
@@ -200,6 +213,26 @@ class DeviceCapabilities private constructor(
 			} else {
 				val n = info.name.lowercase()
 				!(n.startsWith("omx.google.") || n.startsWith("c2.android.") || n.startsWith("omx.sec.") && n.contains(".sw."))
+			}
+
+		/**
+		 * Medido el 14-oct sobre los ficheros de códecs de la propia Skyworth:
+		 * `OMX.amlogic.avc.decoder.awesome2` y
+		 * `OMX.amlogic.mpeg2.decoder.awesome2` **sí** declaran
+		 * `feature-tunneled-playback`, mientras que el fichero entero de los de
+		 * software —`/apex/com.android.media.swcodec/etc/media_codecs.xml`— no
+		 * menciona `tunneled` ni una vez. O sea que degradar a software con
+		 * `forceSoftwareVideo` reproduce la condición del pendiente 78 en la
+		 * caja que tenemos.
+		 */
+		private fun declaraTunneled(info: MediaCodecInfo, mime: String): Boolean =
+			runCatching {
+				info.getCapabilitiesForType(mime)
+					.isFeatureSupported(MediaCodecInfo.CodecCapabilities.FEATURE_TunneledPlayback)
+			}.getOrElse {
+				// Cero try/catch silenciosos (CLAUDE.md regla 8).
+				LiveLog.warn("caps.tunneledDesconocido", "codec" to info.name, "mime" to mime)
+				false
 			}
 
 		private fun maxInstances(info: MediaCodecInfo, mime: String): Int =

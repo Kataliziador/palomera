@@ -291,7 +291,10 @@ class Media3LiveEngine(
 			"targetOffsetMs" to (dev.targetOffsetOverrideMs ?: plan.targetOffsetMs),
 			"reason" to plan.reason,
 			"playlistStuckCoef" to stuckCoefficient,
-			"tunneled" to tunnelingSesion,
+			// **`tunneledPedido`, no `tunneled`** (pendiente 78). Aquí, antes de
+			// que exista decoder, lo único que se sabe es lo que se pide. Si
+			// Media3 lo apaga luego, lo dirá `tunneled.noEngancho`.
+			"tunneledPedido" to tunnelingSesion,
 			"tsSearchPaquetes" to dev.timestampSearchPackets,
 			"degradacion" to dev.describe(),
 		)
@@ -1576,6 +1579,7 @@ class Media3LiveEngine(
 		) {
 			videoDecoder = decoderName
 			LiveLog.info("decoder.video", "name" to decoderName, "initMs" to initializationDurationMs)
+			comprobarTunneledDeVerdad(decoderName)
 		}
 
 		override fun onAudioDecoderInitialized(
@@ -1806,6 +1810,62 @@ class Media3LiveEngine(
 	 * separa «este site está mal configurado, arréglalo cuando puedas» de «este
 	 * canal está mudo ahora mismo en este modelo».
 	 */
+	/**
+	 * Si pedimos tunneled, ¿lo tenemos?
+	 *
+	 * **`engine.prepare` publicaba lo que pedimos, no lo que obtuvimos**
+	 * (pendiente 78). Media3 pide el tunneled por el selector de pistas, y si
+	 * el decoder de vídeo elegido no declara `feature-tunneled-playback`
+	 * `DefaultTrackSelector.maybeConfigureRenderersForTunneling` **lo apaga en
+	 * silencio**. El log seguía diciendo `tunneled=true` y la sesión corría sin
+	 * él.
+	 *
+	 * Importa más de lo que parece: el tunneled es la cura **medida** de los
+	 * microcortes del pulldown 3:2 (`CLAUDE.md` §6), y en una caja que no lo
+	 * declara esa cura no existe aunque el log diga que sí. Medido el 12-oct en
+	 * la Mecool KM9 Pro: `video/avc` y `video/mpeg2` no lo declaraban —solo
+	 * hevc, vp9 y dolby-vision—, así que su lineup entero corría sin tunneled y
+	 * nadie se enteraba.
+	 *
+	 * **La prueba es de un solo lado, a propósito.** Solo avisa cuando el
+	 * decoder activo declara `tunneled` para *nada*, que es una negación
+	 * segura; no puede dar un falso aviso. Lo que no cubre es que Media3 lo
+	 * apague por otro motivo suyo —ahí el inventario diría que sí y la sesión
+	 * no lo tendría—, y para eso queda la segunda señal, ya publicada: en
+	 * tunneled de verdad el contador de fotogramas no ve nada (§6), así que
+	 * `tunneled=true` **y** `frames>0` en el latido significa que no enganchó.
+	 */
+	private fun comprobarTunneledDeVerdad(decoderName: String) {
+		if (!tunnelingSesion) return
+
+		val caps = DeviceCapabilities.of(context)
+		val mime = player?.videoFormat?.sampleMimeType
+		val entradas = caps.decoders.filter { it.name == decoderName }
+			.let { porNombre -> if (mime == null) porNombre else porNombre.filter { it.mime == mime } }
+
+		if (entradas.isEmpty()) {
+			// No poder comprobarlo no es poder negarlo: se registra y se deja
+			// el estado como está, en vez de declarar un fallo que no consta.
+			LiveLog.warn(
+				"tunneled.sinInventario",
+				"decoder" to decoderName,
+				"mime" to mime,
+			)
+			return
+		}
+		if (entradas.any { it.tunneled }) return
+
+		tunnelingSesion = false
+		LiveLog.warn(
+			"tunneled.noEngancho",
+			"decoder" to decoderName,
+			"mime" to mime,
+			"pedido" to true,
+			"efectivo" to false,
+			"motivo" to "el decoder no declara feature-tunneled-playback",
+		)
+	}
+
 	private fun revisarNormalizacionDeAudio(mimeObservado: String?) {
 		if (audioYaRevisado || mimeObservado == null) return
 		audioYaRevisado = true
