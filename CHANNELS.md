@@ -31,6 +31,25 @@ Caracterización medida de los canales y de la caja de pruebas.
 > cualquier canal, que es como se midió el 81 el 22-oct, y toda la degradación
 > por capacidades de §9 —`forceSoftwareVideo`, decoders vetados—, que no
 > depende de qué emita el satélite.
+>
+> **Y el mismo día hay más apagado que los dos de 77W**, leído en el panel de
+> salud del propio servicio (`curl http://<site>:8097/health`, 17:00 UTC):
+> **`hbohd` (70W) no está emitiendo** —su playlist da 404 y el motor se queda
+> reintentando, que es lo que §6 manda— y **`foxny` entrega `mp2a`**, que la
+> APK no decodifica a propósito (§2). Los dos llegan ya marcados `unavailable`.
+>
+> Lo que se lleva `hbohd` importa más de lo que parece: era el único **H.264
+> 1080i** del conjunto —el caso del pulldown 3:2 que justifica el tunneled
+> (§6)— y uno de los dos canales con **dos pistas de audio** (spa/eng) para
+> probar la selección por idioma. Vivos hoy: `mileniosd`, `once`, `canal22sd`,
+> `discoveryhd`, `beisbol`, `espn` y `espnsur4abr`.
+>
+> El panel también avisa de que **`mileniosd` y `espnsur4abr` no tienen guía
+> ahora mismo** —la fuente XMLTV los lista pero no trae programas—, y por eso
+> la cabecera de la sección sale vacía al enfocarlos: no es la app, es que no
+> hay nada que pintar. **Conviene mirar ese panel antes que esta hoja:** sabe
+> lo que Flussonic entrega ahora mismo, con el motivo y el arreglo, y esta hoja
+> no.
 
 Medido el 2026-09-20 y 2026-09-21 con `scan-canales.sh` y `adb`.
 **Reverificado contra Flussonic el 2026-09-22** (PIDs, SAR, orden de campo
