@@ -338,6 +338,82 @@ declararla.
 
 ## Entradas
 
+### [M-8] Maratón y zapping, cerrada con el mando en la mano — 2026-10-25
+
+**Síntoma:** ninguno. Es el cierre de la fase, y lo que faltaba no era una
+medida sino quién la hacía: el 22-oct los tres criterios ya salían en verde,
+pero **las dos pruebas que M8 pide las había hecho `adb`**, y §3 dice que una
+fase de Modo A no se cierra sin Edgar delante de la tele.
+
+**Cambio:** ninguno en el motor. Lo único que se instaló fue `0.1.0-rc.3`, que
+lleva el arreglo del pendiente 82 (commit `3e491ab`) y nada más de zapping.
+
+**Prueba:** Edgar, con el control, sobre la release, el 25-oct:
+
+- **50 cambios de canal seguidos** dentro del reproductor, sin volver a la
+  lista, en unos dos minutos. Dieron **42 sintonías** y **9 pantallas de aviso**
+  —el lineup tenía 4 de 12 canales caídos ese día—;
+- películas y series contra el comportamiento de siempre, que es el invariante
+  de §4 y lo que bloquea el envío a Play;
+- cambio de pista de audio en `hbohd`, que volvió a emitir esa tarde.
+
+**Resultado:**
+
+| criterio | objetivo §10 | medido |
+|---|---|---|
+| zapping p50 | < 2 s | **583 ms** (42 muestras) |
+| zapping p95 | < 3 s | **819 ms** · máx 1 094 |
+| uptime continuo | > 48 h | **51,0 h** (remojo del 22-oct, un solo pid) |
+| rebuffer ratio | < 0,3 % | **0,03 %** (mismo remojo) |
+| rebuffers/h | < 1 | **0,5/h** |
+
+El p50 percibido es ~1 033 ms: a los 583 hay que sumarles los 450 de
+`ZAP_SETTLE_MS`, que es lo que el motor espera antes de sintonizar para que
+mantener ▼ pulsado no reconstruya veinte decodificadores.
+
+**Por canal**, nada se desmarca: lo más lento `hbohd` (813 ms) y `discoveryhd`
+(786, que pide `deint=VPU`); lo más rápido `estrellassd` por **libVLC** (367),
+que es la cascada eligiendo sola para el único MPEG-2 del conjunto.
+
+**La memoria en zapeo repetido, que era el hueco real.** Las dos series
+anteriores salían de un canal fijo, así que nadie había mirado qué pasa
+zapeando. Con `dumpsys meminfo` cada 30 s:
+
+```
+             21:22   21:23   21:24   21:25   21:26   21:29
+binders       20      57      97      97      63      63
+nativo MB     7,1    16,6    18,1    19,0    19,0    18,3
+java MB      25,9    36,2    27,2    22,1    22,1    24,2
+```
+
+Sube mientras se zapea y **suelta al parar**: los binders vuelven de 97 a 63 y
+se quedan planos cuatro minutos, el nativo se asienta en ~19 MB. El java sube y
+lo recoge el recolector, que es lo normal. **No es una fuga desbocada.**
+
+**Lo que esta medida no dice, y se escribe para que nadie la estire:** trece
+minutos de observación, **una** sesión, 42 sintonías y **una sola caja** (§9).
+No descarta un goteo de días. Y las columnas de descriptores y mapeos del
+muestreador salieron **vacías**: en la release no se puede leer
+`/proc/<pid>/fd` de otro proceso sin root, así que ese instrumento era ciego y
+no respalda nada.
+
+**Y una comprobación de instrumento que sí se hizo:** el muestreador detectó
+por su cuenta el cambio de pid de la reinstalación (5296 → 9150), o sea que
+habría visto un reinicio si lo hubiera habido.
+
+**De paso, el pendiente 82 quedó probado en uso real:** nueve pasadas por
+canales caídos, y las ocho que tuvieron continuación salieron con la flecha
+entre 1,7 y 3,2 s. Cero callejones. Vale más que la prueba dirigida de esa
+misma tarde, porque nadie iba buscándolo.
+
+**Decisión de Edgar, y queda escrita porque cambia lo que se puede afirmar:**
+no repetir el remojo —«tomó demasiado tiempo»— y dar por buenas las 51 h del
+22-oct, que son de la misma release. Consecuencia: **no existe ninguna medida
+de 48 h zapeando**, ni de ninguna caja que no sea la Skyworth. El remojo es de
+un canal quieto; el zapeo, de dos minutos.
+
+**Estado:** cerrada.
+
 ### Dos huecos de instrumento que el remojo dejó a la vista — 2026-10-15
 
 **Síntoma:** ninguno en pantalla. Son dos preguntas que el remojo de 36,1 h no

@@ -340,17 +340,37 @@ el headend (pendientes 6 y 7 de `LIVETV_LOG.md`).
 
 ---
 
-## M8 — Maratón y zapping — **medida el 22-oct, pendiente del visto bueno de Edgar**
+## M8 — Maratón y zapping — **cerrada 2026-10-25**
 
 **Objetivo:** sobrevivir a la operación real.
 
-**Estado medido al 22-oct:** el remojo de la **release** llegó a **51,0 h**
-con un solo pid: 26 cortes (**0,5/h**), ratio **0,03 %**, primer fotograma
-**1 496 ms**, cuatro atascos del vigilante recuperados solos. Los tres criterios
-de cierre, cumplidos —vivo a las 48 h, memoria estable y zapping p50 por debajo
-de 2 s (1 459 ms sobre 49 muestras de Media3, 20-oct)—. **Falta el visto bueno
-de Edgar**, que es lo que cierra una fase de Modo A (`CLAUDE.md` §3): las dos
-pruebas que pide esta fase las hizo `adb`, no él delante de la tele.
+**Cerrada el 25-oct con el visto bueno de Edgar**, que es lo que cierra una
+fase de Modo A (`CLAUDE.md` §3). Las tres medidas, y de dónde sale cada una:
+
+| criterio | medida | de dónde |
+|---|---|---|
+| vivo a las 48 h | **51,0 h** con un solo pid: 26 cortes (**0,5/h**), ratio **0,03 %**, primer fotograma 1 496 ms, cuatro atascos del vigilante recuperados solos | remojo de la release, 22-oct, por `adb` |
+| zapping p50 < 2 s | **p50 583 ms · p95 819 ms · máx 1 094 ms**, 42 sintonías | **Edgar con el mando**, 25-oct, release `0.1.0-rc.3` |
+| memoria estable | binders 20 → 97 durante el zapeo y **de vuelta a 63**, planos cuatro minutos; heap nativo asentado en ~19 MB; el java sube y lo recoge el recolector | mismo día, `dumpsys meminfo` cada 30 s |
+
+**Los 50 cambios de canal los hizo Edgar con el control, no `adb`**, que era
+justo lo que faltaba el 22-oct. Súmale los 450 ms de `ZAP_SETTLE_MS` y lo que
+percibe el abonado es ~1,0 s de mediana, contra los 2 s de objetivo de §10.
+
+**Y la serie destapó el hueco que quedaba y lo tapó:** las dos medidas de
+zapping anteriores salían de un canal fijo, así que nadie había mirado la
+memoria **zapeando en serie**. Se midió, sube mientras se zapea y suelta al
+parar. Trece minutos de observación, una sesión, 42 sintonías y **una sola
+caja** (§9): no descarta un goteo de días, sí lo que había que decidir.
+
+**De paso quedó probado el arreglo del pendiente 82 en uso real:** nueve
+pasadas por canales caídos —cinco por `foxny`, cuatro por `universal`— y las
+ocho que tuvieron continuación salieron con la flecha, entre 1,7 y 3,2 s. Cero
+callejones. La novena es la última pulsación de la serie.
+
+**Lo que esta fase NO cierra, y conviene no leerlo de más:** el remojo de 51 h
+es de un canal quieto y el zapeo es de dos minutos. No hay ninguna medida de
+48 h **zapeando**, ni de ninguna caja que no sea la Skyworth.
 
 **Estado anterior, al 15-oct:** la sesión más larga son **36,1 h** —remojo de
 `mileniosd` del 14 al 15-oct, un solo pid, 2,1 cortes/h y 0,31 % de ratio—, o sea
@@ -391,9 +411,13 @@ fotograma entre 1 651 y 1 931 ms—. Nada de esto está cerrado.
   dentro del reproductor, p50 1 459 ms y p95 1 744 ms sobre los 49 de Media3.
   Los 7 de libVLC no son comparables y de ahí salió el pendiente 81
 
-**Pruebas de Edgar:** un canal 48 h continuas; 50 cambios de canal seguidos.
+~~**Pruebas de Edgar:** un canal 48 h continuas; 50 cambios de canal
+seguidos.~~ **Hechas.** Los 50 cambios, con el mando el 25-oct. Las 48 h, por
+medida del 22-oct: Edgar decidió el 25-oct no repetir el remojo —«tomó
+demasiado tiempo»— y dar por buena la de 51 h, que es la misma release.
 
-**Cierre:** vivo a las 48 h, memoria estable, zapping p50 < 2 s.
+~~**Cierre:** vivo a las 48 h, memoria estable, zapping p50 < 2 s.~~
+**Los tres cumplidos**, con la tabla de arriba.
 
 ---
 
