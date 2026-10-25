@@ -103,4 +103,18 @@ class ServiceUrlTest : StringSpec({
 		ServiceUrl.hostDeServidor("   ").shouldBeNull()
 		ServiceUrl.hostDeServidor("http://").shouldBeNull()
 	}
+
+	// Las dos normalizaciones —ésta y `normalizar_host` del autorizador—
+	// tienen que dar lo mismo o hay sites que se preguntan y no se encuentran.
+	// El punto final las separó veintiún días (ver el caso de arriba); estos
+	// dos cierran los bordes que quedaban sin cubrir por los dos lados.
+	"un corchete vacío no es un host" {
+		ServiceUrl.hostDeServidor("http://[]:8096").shouldBeNull()
+		ServiceUrl.baseDesdeServidor("http://[]:8096", 8097).shouldBeNull()
+	}
+
+	"el punto raíz solo no es un host" {
+		ServiceUrl.hostDeServidor(".").shouldBeNull()
+		ServiceUrl.hostDeServidor("http://..").shouldBeNull()
+	}
 })

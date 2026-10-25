@@ -71,7 +71,10 @@ object ServiceUrl {
 		val host = if (sinCredenciales.startsWith("[")) {
 			// IPv6 literal: el puerto va detrás del corchete de cierre.
 			sinCredenciales.substringBefore(']', missingDelimiterValue = "").plus(']')
-				.takeIf { it.length > 1 } ?: return nulo(cruda)
+				// `> 2` y no `> 1`: `[]` mide dos y colaba, y se derivaba
+				// `https://[]:8097`. El autorizador ya lo rechazaba, y las dos
+				// normalizaciones tienen que dar lo mismo.
+				.takeIf { it.length > 2 } ?: return nulo(cruda)
 		} else {
 			sinCredenciales.substringBefore(':')
 		}
@@ -109,7 +112,10 @@ object ServiceUrl {
 
 		val host = if (sinCredenciales.startsWith("[")) {
 			sinCredenciales.substringBefore(']', missingDelimiterValue = "").plus(']')
-				.takeIf { it.length > 1 } ?: return nuloHost(cruda)
+				// `> 2` y no `> 1`: `[]` mide dos y colaba, y se derivaba
+				// `https://[]:8097`. El autorizador ya lo rechazaba, y las dos
+				// normalizaciones tienen que dar lo mismo.
+				.takeIf { it.length > 2 } ?: return nuloHost(cruda)
 		} else {
 			sinCredenciales.substringBefore(':')
 		}
