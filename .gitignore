@@ -2,6 +2,13 @@
 .DS_Store
 local.properties
 
+# Material de firma. Nunca en el repositorio, y menos siendo público:
+# perder la clave es perder la ficha de Play, y publicarla es peor.
+*.jks
+*.keystore
+*.p12
+*.pfx
+
 /.idea
 .gradle
 .kotlin/
