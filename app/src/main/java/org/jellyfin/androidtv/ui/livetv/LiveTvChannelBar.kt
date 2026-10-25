@@ -19,6 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import android.content.Context
+import android.text.format.DateFormat
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,9 +29,7 @@ import androidx.compose.ui.unit.sp
 import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.livetv.epg.FranjaEpg
 import org.jellyfin.livetv.source.ChannelProfile
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * La barra de canal.
@@ -94,12 +95,13 @@ fun LiveTvChannelBar(
 
 			Spacer(modifier = Modifier.width(28.dp))
 
+			val contexto = LocalContext.current
 			Column(horizontalAlignment = Alignment.End) {
 				Reloj(ahoraMs)
 				epg?.ahora?.let { p ->
 					Spacer(modifier = Modifier.height(14.dp))
 					Text(
-						text = "${hora(p.inicioMs)} – ${hora(p.finMs)}",
+						text = "${hora(contexto, p.inicioMs)} – ${hora(contexto, p.finMs)}",
 						color = LiveTvPaleta.tintaApagada,
 						fontSize = 17.sp,
 					)
@@ -270,7 +272,7 @@ private fun BarraDeProgreso(progreso: Float) {
 @Composable
 private fun Reloj(ahoraMs: Long) {
 	Text(
-		text = hora(ahoraMs),
+		text = hora(LocalContext.current, ahoraMs),
 		color = Color.White,
 		fontWeight = FontWeight.Medium,
 		fontSize = 30.sp,
@@ -309,13 +311,20 @@ private fun Pista(tecla: String, que: String) {
 	}
 }
 
-private val formatoHora = SimpleDateFormat("HH:mm", Locale.getDefault())
-
 /**
- * `HH:mm` en el huso de la caja.
+ * La hora como la escribe el resto de la caja.
+ *
+ * **Era `HH:mm` fijo, y se veía.** En una caja puesta en 12 h, la barra del
+ * canal marcaba «16:01» mientras la barra superior de la app —que es del
+ * upstream y sí respeta el ajuste del sistema— marcaba «4:00» en la misma
+ * pantalla. El abonado no sabe que son dos barras de dos sitios: lee un fallo.
+ *
+ * `DateFormat.getTimeFormat` devuelve el formato del sistema, así que sigue el
+ * ajuste de 12/24 h y el idioma sin obligar a nadie a elegir por el abonado.
  *
  * Compartida con la sección —no privada de este archivo— para que la línea de
  * programación de la guía y la barra del canal escriban la hora igual. Dos
  * formateadores para lo mismo acaban divergiendo.
  */
-internal fun hora(ms: Long): String = formatoHora.format(Date(ms))
+internal fun hora(context: Context, ms: Long): String =
+	DateFormat.getTimeFormat(context).format(Date(ms))

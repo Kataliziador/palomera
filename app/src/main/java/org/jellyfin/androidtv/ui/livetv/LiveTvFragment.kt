@@ -745,6 +745,7 @@ private val ALTO_TITULO_FANTASMA = 16.dp
  */
 @Composable
 private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long, sinSenal: String? = null) {
+	val contextoHora = LocalContext.current
 	Box(modifier = Modifier.fillMaxWidth().height(ALTO_PROGRAMACION)) {
 		Crossfade(targetState = sinSenal to franja, label = "programación") { (aviso, actual) ->
 			// Un canal caído no tiene programación que contar, y lo que hay que
@@ -793,7 +794,7 @@ private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long, sinSenal: String? = n
 					)
 					Spacer(modifier = Modifier.width(14.dp))
 					Text(
-						text = "${hora(ahora.inicioMs)} – ${hora(ahora.finMs)}",
+						text = "${hora(contextoHora, ahora.inicioMs)} – ${hora(contextoHora, ahora.finMs)}",
 						color = LiveTvPaleta.tintaApagada,
 						fontSize = 16.sp,
 						maxLines = 1,
