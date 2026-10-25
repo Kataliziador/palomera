@@ -193,6 +193,17 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Zapear desde las pantallas de aviso",
+				value = if (dev.zapeoEnAvisoEnabled) "ACTIVO" else "apagado (pendiente 82)",
+				changed = dev.procedenciaDe(DevOptions.K_ZAPEO_AVISO) == "menú",
+			) { change { dev.zapeoEnAvisoEnabled = !dev.zapeoEnAvisoEnabled } }
+		}
+		item {
+			Info("Con un canal caído en pantalla, ▲▼ siguen cambiando de canal. Apagado, solo se sale con ATRÁS: es el pendiente 82 tal como se midió.")
+		}
+
+		item {
+			Row(
 				label = "Fingir tunneled sin imagen",
 				value = if (dev.simularTunneledSinImagen) "FINGIENDO" else "no",
 				changed = dev.simularTunneledSinImagen,

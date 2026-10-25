@@ -249,6 +249,16 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_RESCATE_TUNNELED, v) }
 
 	/**
+	 * Que ▲▼ sigan cambiando de canal en las pantallas de aviso.
+	 *
+	 * Apagarlo reproduce el pendiente 82: desde «canal no disponible» solo se
+	 * sale con ATRÁS.
+	 */
+	var zapeoEnAvisoEnabled: Boolean
+		get() = prefs.getBoolean(K_ZAPEO_AVISO, LiveTuning.ZAPEO_EN_AVISO_DEFAULT)
+		set(v) = put { putBoolean(K_ZAPEO_AVISO, v) }
+
+	/**
 	 * Fingir que no llegó el primer fotograma, para poder ver el rescate.
 	 *
 	 * Sin esto no hay forma de probarlo: la caja de pruebas entrega imagen con
@@ -559,6 +569,7 @@ class DevOptions(context: Context) {
 		if (registryUrlOverride != null) add("registro=manual")
 		if (simularDenegacion > 0) add("FINGE DENEGADO=$simularDenegacion")
 		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
+		if (prefs.contains(K_ZAPEO_AVISO)) add("zapeoEnAviso=${if (zapeoEnAvisoEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (prefs.contains(K_TS_AUD)) add("AUD=${if (tsDetectAccessUnits) "on" else "off"}")
@@ -616,6 +627,7 @@ class DevOptions(context: Context) {
 		const val K_MAX_BUFFER = "maxBufferOverrideMs"
 		const val K_OVERLAY_MODE = "overlayMode"
 		const val K_RESCATE_TUNNELED = "rescateTunneledEnabled"
+		const val K_ZAPEO_AVISO = "zapeoEnAvisoEnabled"
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 		const val K_REGISTRY_URL = "registryUrlOverride"
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
@@ -636,6 +648,7 @@ class DevOptions(context: Context) {
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
 			K_PREP_SUPERFICIE, K_RESYNC_CALC, K_RESYNC_ADELANTA, K_RESYNC_MARGEN,
+			K_ZAPEO_AVISO,
 		)
 
 		const val OVERLAY_OCULTO = 0

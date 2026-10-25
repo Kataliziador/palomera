@@ -133,18 +133,30 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		sintonizado = enPantalla
 	}
 
+	// Declarado aquí arriba y no junto al resto del zapeo: las pantallas de
+	// aviso —canal no disponible, canal sin camino de decodificación— se dibujan
+	// antes y también cambian de canal. Ese era el pendiente 82.
+	fun vecino(paso: Int): ChannelProfile? {
+		val lista = canales.channels
+		if (lista.isEmpty()) return null
+		val i = lista.indexOfFirst { it.id == enPantalla?.id }
+		// Da la vuelta a propósito: en televisión, bajar desde el último lleva
+		// al primero. Toparse con un muro invisible se siente como un fallo.
+		return lista[((if (i < 0) 0 else i) + paso + lista.size) % lista.size]
+	}
+
+	val zapearEnAviso: (Int) -> Unit = { paso -> vecino(paso)?.let { enPantalla = it } }
+
 	val channel = sintonizado
 
 	if (channel == null) {
 		// Con la lista de BuildConfig no debería ocurrir, pero callarlo sería
 		// un error silencioso (CLAUDE.md regla 8).
-		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-			Text(
-				text = "Canal no encontrado: $channelId",
-				color = Color.White,
-				modifier = Modifier.align(Alignment.Center),
-			)
-		}
+		PantallaDeAviso(
+			titulo = "Canal no encontrado: $channelId",
+			zapeoVivo = dev.zapeoEnAvisoEnabled,
+			onZap = zapearEnAviso,
+		)
 		return
 	}
 
@@ -155,20 +167,21 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	// llamada a soporte**; uno que explica, no. Se comprueba antes de construir
 	// plan ni motor: no tiene sentido abrir un decodificador para nada.
 	if (channel.unavailable) {
-		LiveLog.info(
-			"canal.noDisponible",
-			"canal" to channel.id,
-			"motivo" to channel.unavailableMessage,
-		)
-		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-			Column(modifier = Modifier.align(Alignment.Center)) {
-				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
-				Text(
-					text = channel.unavailableMessage ?: "Este canal no está disponible ahora",
-					color = LiveTvPaleta.tintaApagada,
-				)
-			}
+		// Atado al canal y no suelto en el cuerpo: aquí dentro ahora se zapea, y
+		// una línea por recomposición convertiría el log en ruido.
+		LaunchedEffect(channel.id) {
+			LiveLog.info(
+				"canal.noDisponible",
+				"canal" to channel.id,
+				"motivo" to channel.unavailableMessage,
+			)
 		}
+		PantallaDeAviso(
+			titulo = channel.name,
+			mensaje = channel.unavailableMessage ?: "Este canal no está disponible ahora",
+			zapeoVivo = dev.zapeoEnAvisoEnabled,
+			onZap = zapearEnAviso,
+		)
 		return
 	}
 
@@ -209,16 +222,13 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 
 	// Un canal sin camino de decodificación se dice, no se deja en negro.
 	if (plan.unsupported) {
-		Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-			Column(modifier = Modifier.align(Alignment.Center)) {
-				Text(text = channel.name, color = Color.White, fontSize = 26.sp)
-				Text(
-					text = "Este canal no se puede reproducir en este dispositivo",
-					color = LiveTvPaleta.tintaApagada,
-				)
-				Text(text = plan.reason, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
-			}
-		}
+		PantallaDeAviso(
+			titulo = channel.name,
+			mensaje = "Este canal no se puede reproducir en este dispositivo",
+			detalle = plan.reason,
+			zapeoVivo = dev.zapeoEnAvisoEnabled,
+			onZap = zapearEnAviso,
+		)
 		return
 	}
 
@@ -511,15 +521,6 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		if (enVivo) return@LaunchedEffect
 		delay(CHANNEL_BAR_STALL_MS)
 		barraVisible = true
-	}
-
-	fun vecino(paso: Int): ChannelProfile? {
-		val lista = canales.channels
-        if (lista.isEmpty()) return null
-		val i = lista.indexOfFirst { it.id == enPantalla?.id }
-		// Da la vuelta a propósito: en televisión, bajar desde el último lleva
-		// al primero. Toparse con un muro invisible se siente como un fallo.
-		return lista[((if (i < 0) 0 else i) + paso + lista.size) % lista.size]
 	}
 
 	// --- Qué controles hay, y qué hace cada uno -----------------------------
@@ -904,4 +905,56 @@ private fun idiomaCorto(stats: EngineStats): String? {
 	}
 }
 
+/**
+ * Lo que se ve cuando un canal no se puede reproducir.
+ *
+ * Tres casos la usan —canal no encontrado, canal marcado como no disponible y
+ * canal sin camino de decodificación— y los tres son callejones si no escuchan
+ * el mando: el manejador de teclas del reproductor vive mucho más abajo, detrás
+ * de un `return`. Eso era el pendiente 82, medido el 23 y el 25-oct.
+ *
+ * ▲▼ cambian de canal igual que sobre la imagen. Todo lo demás se deja pasar,
+ * ATRÁS incluido, para que siga llevando a la lista.
+ */
+@Composable
+private fun PantallaDeAviso(
+	titulo: String,
+	mensaje: String? = null,
+	detalle: String? = null,
+	zapeoVivo: Boolean,
+	onZap: (Int) -> Unit,
+) {
+	val foco = remember { FocusRequester() }
+	LaunchedEffect(foco) { runCatching { foco.requestFocus() } }
 
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(Color.Black)
+			.focusRequester(foco)
+			.focusable()
+			.onKeyEvent { evento ->
+				if (!zapeoVivo) return@onKeyEvent false
+				if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
+				when (evento.key) {
+					Key.DirectionUp -> { onZap(-1); true }
+					Key.DirectionDown -> { onZap(1); true }
+					else -> false
+				}
+			}
+	) {
+		Column(modifier = Modifier.align(Alignment.Center)) {
+			Text(text = titulo, color = Color.White, fontSize = 26.sp)
+			if (mensaje != null) Text(text = mensaje, color = LiveTvPaleta.tintaApagada)
+			if (detalle != null) Text(text = detalle, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
+			// Se dice lo que se puede hacer, no solo lo que falla. Un canal que
+			// explica no genera una llamada a soporte (CLAUDE.md §2).
+			if (zapeoVivo) Text(
+				text = "▲▼ cambia de canal · ATRÁS vuelve a la lista",
+				color = LiveTvPaleta.tintaSutil,
+				fontSize = 14.sp,
+				modifier = Modifier.padding(top = 12.dp),
+			)
+		}
+	}
+}

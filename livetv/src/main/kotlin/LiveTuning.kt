@@ -447,6 +447,26 @@ object LiveTuning {
 	const val RESCATE_TUNNELED_DEFAULT = true
 
 	/**
+	 * Las flechas siguen cambiando de canal en las pantallas de aviso.
+	 *
+	 * Medido el 23 y el 25-oct (pendiente 82): al zapear a un canal marcado como
+	 * no disponible, la app se queda —correctamente— en el reproductor con el
+	 * motivo escrito, pero ahí ▲▼ dejaban de responder y solo se salía con
+	 * ATRÁS. La causa no era el zapeo: la pantalla de aviso se dibujaba con un
+	 * `return` anticipado, 460 líneas antes del manejador de teclas, así que
+	 * nadie escuchaba el mando.
+	 *
+	 * Importa en el lineup real, no en los seis de prueba: con ~120 canales y
+	 * varios caídos cualquier día —el 25-oct eran 4 de 12—, el zapeo se moría en
+	 * el primer apagado y había que salir a la lista para seguir.
+	 *
+	 * De fábrica activo, como el rescate del tunneled: el comportamiento
+	 * anterior es un callejón sin salida, no una alternativa. El interruptor se
+	 * queda para poder reproducirlo en pantalla.
+	 */
+	const val ZAPEO_EN_AVISO_DEFAULT = true
+
+	/**
 	 * Espera entre escalones de recuperación.
 	 *
 	 * Un salto al borde tarda en surtir efecto; medir antes de que se note
