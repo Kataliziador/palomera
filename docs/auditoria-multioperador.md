@@ -7,9 +7,15 @@ contra el despliegue de pruebas. **No se modificó código ni datos.**
 
 ---
 
-## 0. Decisión tomada el 25-oct, después de esta auditoría
+## 0. Tres decisiones tomadas después de esta auditoría
 
-**Edgar: «todo el contenido estará en local en cada ISP».** Eso contesta la
+Las tres salieron de leer este documento, así que el diagnóstico de abajo las
+precede. Donde una decisión cambia una conclusión, se dice en el sitio en vez
+de reescribir el diagnóstico: interesa ver **qué cambió y por qué**.
+
+### Primera decisión: el contenido se queda en el site de cada ISP
+
+**Edgar, 25-oct: «todo el contenido estará en local en cada ISP».** Eso contesta la
 pregunta 1, que era la que decidía el resto, y **reduce el trabajo a la mitad
 larga**. Lo que se construye no es una plataforma de contenido: es un **plano
 de control central sobre infraestructura ajena**.
@@ -33,7 +39,7 @@ Lo que **no** elimina, y conviene no confundirlo con lo anterior:
 
 ### Segunda decisión: el vídeo se normaliza a H.264 + AAC
 
-**Edgar, el mismo día: «sí tendremos que reducir los canales a H.264 + AAC».**
+**Edgar, 25-oct: «sí tendremos que reducir los canales a H.264 + AAC».**
 Eso contesta la pregunta 5 y **revierte el principio rector de `CLAUDE.md` §2**
 —«los canales se reproducen tal cual llegan del satélite», «el vídeo **nunca**
 se transcodifica»— y saca del «fuera de alcance» de §7 la transcodificación de
@@ -50,9 +56,50 @@ MPEG-2 porque el documento se lo manda. Ver §6.
 headend y cuáles se ofrecen **lo decide cada ISP**, no nosotros. Nuestra
 decisión es solo con qué códecs los aceptamos.
 
-La Fase 2 de este documento está reescrita con la primera decisión aplicada, y
-§6 recoge entera la segunda. El resto —los doce puntos, los riesgos y el
-diagnóstico— vale igual: describe lo que hay, no lo que se quería hacer.
+### Tercera decisión: solo desde la red del ISP
+
+**Edgar, 26-oct: «los abonados solo pueden entrar si están en la red del ISP, no
+pueden entrar desde internet; todo el contenido se sirve de un servidor local
+y así será por configuración inicial».**
+
+Es la decisión con más consecuencias de las tres, y casi todas buenas.
+
+**Baja el riesgo nº 1 de esta auditoría.** Las URLs de stream permanentes y sin
+token eran graves porque quien leyera un `config.json` se llevaba enlaces
+reproducibles para siempre. Si el origen solo responde dentro de la red del
+ISP, **ese enlace no le sirve a nadie de fuera**. No desaparece —un abonado de
+dentro puede redistribuir— pero pasa de «cualquiera en internet» a «alguien
+con conexión de ese ISP». Sigue conviniendo firmarlas (§5, Fase 2b), pero deja
+de ser lo primero.
+
+**Habilita el descubrimiento por DNS**, que es ahora la mejor opción y cambia
+la recomendación de la Fase 2 (ver abajo).
+
+**Y convierte un hueco en un bloqueo:** un revisor de Google está en
+California, no en la red de ningún ISP, así que abrirá la app y verá una
+pantalla que no conecta con nada. Desde su punto de vista **la app no
+funciona**, que es de las causas más comunes de rechazo. No se arregla con unas
+credenciales: hace falta un **entorno de demostración accesible desde
+internet**. Pasa a la Fase 1 porque bloquea el envío.
+
+**La limitación, dicha en voz alta:** el abonado no ve nada fuera de su casa.
+Ni en el móvil en el trabajo, ni en casa de un familiar. Para un producto de
+caja de televisión es razonable y simplifica mucho, pero es una promesa que el
+comercial del ISP va a vender al revés si nadie se lo dice.
+
+---
+
+### Lo que las tres decisiones dejan en pie
+
+| | Decisión | Qué elimina | Qué deja igual |
+|---|---|---|---|
+| 1 | contenido en el site del ISP | catálogo central, almacenamiento, ancho de banda, Postgres | la pantalla de servidor, los roles, el takedown de operador |
+| 2 | vídeo a H.264 + AAC | el bloqueo de códec para Smart TV | el coste de escribir esos clientes |
+| 3 | solo desde la red del ISP | la mayor parte del riesgo de redistribución | la falta de identidad y de roles |
+
+La Fase 2 está reescrita con la primera y la tercera aplicadas, y §6 recoge
+entera la segunda. El resto —los doce puntos, los riesgos y el diagnóstico—
+vale igual: describe lo que hay, no lo que se quería hacer.
 
 ---
 
@@ -175,13 +222,13 @@ de dispositivos por cuenta, de sesiones de reproducción.
 | 3 | Roles y permisos | ❌ | `autorizador/db.py:78`; `canales/acceso.py:5` | **Alto** | **M** |
 | 4 | Autenticación del abonado | ❌ | `ServerAddFragment.kt`; no hay tabla | **Crítico** | **L** |
 | 5 | Fuentes de contenido | ❌ | `ServerAddFragment.kt` | **Crítico** | **M** |
-| 6 | Protección de streams | ❌ | `CLAUDE.md` §6 | **Crítico** | **L** |
+| 6 | Protección de streams | ❌ | `CLAUDE.md` §6 | ~~Crítico~~ → **Alto**, acotado por §0.3 | **M** |
 | 7 | Kill switch / takedown | ⚠️ Desigual | ver abajo | **Alto** | **M** |
 | 8 | Marca por operador | ✅ | `autorizador/autorizacion.py:50-60` | Bajo | — |
 | 9 | Gestión desde el panel | ⚠️ | `canales/panel.py` | Medio | **L** |
 | 10 | Métricas para facturar | ⚠️ | `autorizador/db.py:118,180` | Medio | **M** |
 | 11 | Escalabilidad | ⚠️ Hoy sí, mañana no | `autorizador/db.py:207` | Medio | **L** |
-| 12 | Tiendas | ⚠️/❌ | `PLAY.md`; no hay términos | **Alto** | **M** |
+| 12 | Tiendas | ⚠️/❌ | `PLAY.md`; no hay términos | ~~Alto~~ → **Bloqueante** por §0.3 | **M** |
 
 ### 1 · Modelo de tenant — ⚠️ Parcial
 
@@ -257,9 +304,19 @@ URLs fijas, planas, sin token y sin caducidad:
 directa al Flussonic del ISP— y DRM está fuera de alcance (§7).
 
 Consecuencia concreta: quien lea un `config.json` se lleva URLs reproducibles
-para siempre, en VLC, sin la app. Hoy eso está contenido porque todo ocurre
-dentro de la LAN del ISP. **En una plataforma central es el riesgo número uno**,
-y es el que mira un titular de derechos.
+para siempre, en VLC, sin la app.
+
+**La tercera decisión de §0 lo acota, y esto era una suposición que ahora es
+política.** El diagnóstico decía «hoy está contenido porque todo ocurre dentro
+de la LAN del ISP», lo cual era una descripción del despliegue de pruebas, no
+una garantía. Al decidirse que el contenido **solo** se sirve en local y por
+configuración inicial, la contención pasa a ser una propiedad del producto: un
+enlace filtrado no le sirve a nadie fuera de esa red.
+
+Lo que queda, y por lo que sigue mereciendo arreglarse: un abonado de dentro
+puede redistribuir a otros abonados de ese mismo ISP, y el editor de la ficha
+eres tú. Las URLs firmadas de la Fase 2b lo cierran, y ahora son trabajo
+importante en vez de urgente.
 
 ### 7 · Kill switch y auditoría — ⚠️, y muy desigual
 
@@ -325,7 +382,7 @@ coste. No es que el código escale mal: es que hoy no hace ese trabajo.
 - **Política de privacidad:** redactada y verificada contra el código (`AVISO_PRIVACIDAD.md`), **sin publicar** y le faltan cinco datos (`PLAY.md` §4).
 - **Términos de uso:** ❌ no existen. Buscado en todo el repositorio.
 - **Contacto para reportes de derechos:** ❌ no existe.
-- **Login de demostración para revisores:** ❌ no existe, y hoy es estructuralmente difícil: un revisor necesitaría un Jellyfin y un servicio de canales alcanzables desde internet.
+- **Login de demostración para revisores:** ❌ no existe, y con la tercera decisión de §0 **pasa de hueco a bloqueo**. El revisor está en California, no en la red de ningún ISP: abrirá la app y verá una pantalla que no conecta con nada. «La app no funciona» es de las causas más comunes de rechazo, y no se arregla entregando credenciales — hace falta el entorno de demostración de la Fase 1.
 - **Oferta de código GPL-2.0:** incompleta — la pantalla de Información dice que el código existe pero no dónde (`PLAY.md` §5).
 - Lo que sí está: paquete propio, nombre e icono propios, «no afiliado a Jellyfin», 64 bits, `targetSdk` 36, sin `debuggable`.
 
@@ -333,11 +390,24 @@ coste. No es que el código escale mal: es que hoy no hace ese trabajo.
 
 ## 4. Riesgos de seguridad, por severidad
 
+**El orden es el del diagnóstico, anterior a la tercera decisión de §0.** Con
+el contenido alcanzable solo dentro de la red del ISP, el nº 1 queda acotado y
+el orden real pasa a ser **2, 3, 1, 4, 5, 6**: lo que más pesa deja de ser la
+redistribución y pasa a ser que **no hay identidad de abonado, así que no hay
+nada que revocar**. Se deja la numeración original para que se vea qué cambió
+y por qué, no porque siga valiendo.
+
 **1 · Las URLs de stream son permanentes y públicas.** Quien lea un
 `config.json` —que no pide autenticación— se lleva enlaces reproducibles sin la
 app y sin caducidad. Contenido de terceros redistribuible por copiar y pegar.
-Es el riesgo que convierte una queja de un titular de derechos en un problema
-tuyo y no del ISP.
+
+**Acotado por la tercera decisión de §0**, y es la razón por la que ya no lo
+pondría el primero: si el origen solo responde dentro de la red del ISP, el
+enlace filtrado no le sirve a nadie de fuera. Queda el abonado de dentro que
+redistribuye, que es un problema real pero de otro tamaño, y se cierra con
+URLs firmadas (Fase 2b). **Lo que no cambia es que el riesgo, cuando se
+materializa, sigue siendo tuyo y no del ISP**, porque el editor de la ficha
+eres tú.
 
 **2 · No hay identidad de abonado, así que no hay nada que revocar.** No puedes
 cortar a un moroso, ni limitar dispositivos, ni saber cuántas personas hay
@@ -380,6 +450,7 @@ servicio y añadir una fila.
 - **Panel del site:** usuarios con nombre en vez de una contraseña compartida, para que `historial` pueda decir quién.
 - **Takedown:** bajar `AUTORIZADOR_VENTANA_DIAS` y añadir un camino de corte rápido —que la APK revalide al arrancar la sección, no solo al caducar—. Esto **sí** toca la APK y es un cambio de contrato (`REGISTRY_SCHEMA.md`).
 - **Legal:** publicar el aviso de privacidad, escribir términos de uso y poner un contacto de reportes de derechos.
+- **Entorno de demostración accesible desde internet — bloquea el envío a Play.** Sube a Fase 1 por la tercera decisión de §0: con el contenido solo alcanzable dentro de la red del ISP, un revisor no puede ver **nada**, y «la app no funciona» es de las causas más comunes de rechazo. Hace falta un Jellyfin pequeño, un servidor de canales y uno o dos streams **con contenido propio o libre de derechos**, dados de alta como un ISP más en el registro, con usuario y clave entregados en el formulario de envío. No es trabajo perdido: ese mismo entorno sirve para las capturas de la ficha, para enseñar el producto a un ISP nuevo sin tocar el de nadie, y para probar las altas.
 - **Apps:** ninguna además de lo anterior.
 
 ### Fase 2 — Operación con varios ISPs, con el contenido en su site
@@ -388,17 +459,56 @@ Con el contenido quedándose en cada ISP, esta fase deja de ser «construir una
 plataforma» y pasa a ser **cerrar el cliente y acelerar el corte**. Tres cosas,
 en este orden.
 
-**a) Quitar la pantalla de servidor y poner un código de operador.** Es el
-cambio de más valor por lo que cuesta, porque resuelve tres puntos a la vez: la
-fuente arbitraria (punto 5), el mayor riesgo de tienda (punto 12) y el «el
-abonado solo entra con lo que le dio su ISP» de tu enunciado. El flujo sería:
-el abonado teclea un código corto, el registro lo resuelve a un host —ya tiene
-la tabla `alias`, haría falta el camino inverso— y la app va directa al login
-de Jellyfin de ese site. **El abonado nunca ve ni escribe una dirección.**
+**a) Quitar la pantalla de servidor. DNS primero, código de operador como
+respaldo.** Es el cambio de más valor por lo que cuesta, porque resuelve tres
+cosas a la vez: la fuente arbitraria (punto 5), el mayor riesgo de tienda
+(punto 12) y el «el abonado solo entra con lo que le dio su ISP» del enunciado.
+
+**Primer intento, DNS.** La tercera decisión de §0 lo habilita: si la caja está
+siempre en la red del ISP, la app puede preguntar por un **nombre fijo** —
+`palco.servicio`, pongamos— y **el resolvedor del ISP contesta con su
+servidor**. El abonado no escribe nada. Para el ISP es **un registro DNS**, que
+es más simple que cualquier panel que le demos y algo que ya hace todos los
+días.
+
+La pega, y es frecuente: **falla si la caja no usa el DNS del ISP.** Muchas
+Android TV traen `8.8.8.8` puesto o un DNS privado configurado. Por eso es el
+camino rápido, no el único.
+
+**Respaldo, el código de operador.** Si el nombre no resuelve, se pide un
+código corto. Y **ese código ya existe**: `sites.id` del registro tiene el
+formato `^[a-z0-9][a-z0-9-]{0,39}$` (`autorizador/db.py:213`), o sea `redtv`,
+`ispjelly`. No hay espacio de nombres nuevo que inventar ni gestionar — solo
+enseñarlo en el panel, porque hoy es un detalle interno.
+
+**Variante que recomiendo para el respaldo:** meter el código en el propio
+usuario, `juan@redtv`. Cuesta lo mismo, el abonado escribe **dos campos en vez
+de tres** y le suena a correo. El ISP no cambia nada: crea el usuario `juan` y
+le dice que es `juan@redtv`. Se parte por la **última** arroba y se exige que
+el sufijo tenga forma de código; si no la tiene, se trata todo como nombre de
+usuario, que cubre el caso del usuario que es un correo.
+
+**Qué hay que tocar:** `sites` no tiene columna para la URL de Jellyfin —nunca
+hizo falta, la traía el abonado—, así que una migración; `Pregunta.host` pasa
+de obligatorio a opcional y se acepta `siteId`; la respuesta añade
+`site.jellyfinUrl`. Una APK vieja sigue mandando `host` y funciona igual, que
+es lo que los contratos exigen.
 
 Y fíjate en lo que **no** hace falta: identidad central. Las credenciales
 siguen siendo las que el ISP da en su Jellyfin, que es exactamente lo que
 pides. No hay tabla de abonados que mantener, ni sincronizar, ni respaldar.
+
+**El coste real es uno:** metes al registro en el camino del primer arranque.
+Hoy, si se cae, las cajas instaladas siguen funcionando porque la dirección ya
+está puesta; con el código, una caja **nueva** no puede empezar. El radio es
+acotado —nunca afecta a quien ya funciona— pero se diseña desde el principio:
+cachear la resolución en cuanto llega, permitir reintroducir el código, y
+distinguir «vuelve a intentarlo» de «no autorizado», que hoy se confundirían.
+
+**Migración de lo ya instalado:** no migrar. Que la app siga aceptando el
+servidor ya configurado y que lo nuevo sea solo para altas. Si algún día
+quieres unificar, la app puede resolver el host contra el registro y rellenar
+el código sola.
 
 **b) URLs de stream firmadas, en el Flussonic de cada ISP.** Flussonic las
 soporta; el trabajo es configuración de headend más que el generador del
