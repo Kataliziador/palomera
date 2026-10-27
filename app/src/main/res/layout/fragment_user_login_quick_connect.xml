@@ -10,21 +10,21 @@
         style="@style/TextAppearance.AppCompat.Body2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/login_quickconnect_step_1" />
+        android:text="@string/livetv_acceso_codigo_paso_1" />
 
     <TextView
         style="@style/TextAppearance.AppCompat.Body2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/login_quickconnect_step_2" />
+        android:text="@string/livetv_acceso_codigo_paso_2" />
 
     <TextView
         style="@style/TextAppearance.AppCompat.Body2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/login_quickconnect_step_3" />
+        android:text="@string/livetv_acceso_codigo_paso_3" />
 
     <TextView
         android:id="@+id/quick_connect_code"
@@ -32,6 +32,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
         android:textDirection="ltr" />
 
     <ProgressBar

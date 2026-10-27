@@ -34,7 +34,7 @@
         android:layout_marginStart="48dp"
         android:layout_marginTop="27dp"
         android:layout_marginEnd="48dp"
-        android:text="@string/lbl_sign_in"
+        android:text="@string/livetv_acceso_titulo"
         app:layout_constraintEnd_toStartOf="@id/center"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -95,7 +95,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="@string/action_use_quickconnect" />
+            android:text="@string/livetv_acceso_usar_codigo" />
 
         <Button
             android:id="@+id/cancel"

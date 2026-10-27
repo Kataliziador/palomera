@@ -338,6 +338,63 @@ declararla.
 
 ## Entradas
 
+### [B] La primera pantalla deja de mandar al abonado a instalarse Jellyfin — 2026-10-27
+
+**Síntoma:** al estrenar una caja, lo primero que la app enseñaba era *«1. Abra
+la aplicación Jellyfin en su teléfono o navegador e inicie sesión con su
+cuenta»*, con un código de seis dígitos debajo. Salió mirando el escenario
+completo de un abonado nuevo, no de una prueba de regresión.
+
+**Por qué era un defecto y no una molestia:** nombra a Jellyfin como el sitio
+al que el abonado tiene que ir, que es justo lo que §8 prohíbe, y describe una
+operación que ningún abonado va a hacer —no tiene esa app, no sabe que tiene
+una cuenta—. Es la primera pantalla de **toda** instalación. Y obliga a
+escribirle al revisor de Google una instrucción para que la app no le parezca
+rota.
+
+**Lo que se encontró leyendo:** `UserLoginFragment.kt:74` arranca siempre en
+Quick Connect salvo que le pasen `ARG_SKIP_QUICKCONNECT`, y ese argumento está
+declarado en la línea 31 y **no lo pasa nadie** — los dos sitios que crean el
+fragmento (`ServerFragment.kt:81` y `:144`) no lo mandan. Código muerto del
+upstream.
+
+**Cambio.** No se esquiva Quick Connect: se le cambia el texto, porque el
+mecanismo es bueno —nadie teclea una contraseña con un control remoto— y lo
+que estaba mal era a quién mandaba llamar. Ahora: *«1. Llama a tu proveedor de
+televisión. 2. Dile que quieres activar este aparato. 3. Dale este código:»*.
+
+Son **cadenas propias** con el prefijo `livetv_`, no una traducción de las de
+upstream, y la razón está medida: `login_quickconnect_step_*` viene traducida
+a cuarenta idiomas, así que sobrescribirla en `values/` habría dejado el texto
+viejo en los otros treinta y nueve. Con nombre propio, cualquier idioma cae en
+la nuestra. El precio son cuatro atributos `android:text` en dos layouts, que
+se añaden a la lista de §4.7.
+
+**Dos defectos más de la misma pantalla, encontrados en la captura y no
+pensando:** el título decía «Por favor inicie sesión» —usted— encima de unos
+pasos que tutean, y el código, que es lo único que el abonado tiene que leer
+en voz alta, se pintaba en gris mientras las instrucciones iban en blanco. El
+título pasa a «Activa tu televisión» y el código a blanco y negrita.
+
+**Lo que NO se tocó, a propósito:** el botón «Usar contraseña». Mientras un
+site no tenga instalado el panel de abonados, es el único camino de alta que
+no mete la caja como administrador —el panel web de Jellyfin no expone el
+`userId` de `POST /QuickConnect/Authorize`— y es por donde entra el revisor de
+Google.
+
+**Verificado en la caja**, no en el editor: APK instalada en la Skyworth, datos
+borrados, y recorrido el alta desde cero. La pantalla enseña los tres pasos y
+el código en blanco; «Usar contraseña» lleva al formulario, que ya rotula
+«Activar con código» el botón de vuelta; y con `test`/`test` la sesión entra al
+inicio con «TV en vivo» en la barra. Las dos comprobaciones de §4.7 siguen
+limpias: la del camino de VOD solo enseña la excepción registrada de
+`media3-ffmpeg-decoder`.
+
+**Origen:** la conversación del panel de abonados
+(`/home/proyectos/panel-abonados/docs/DISENO.md`). Ese panel es quien autoriza
+los códigos; esta pantalla se publica antes que él y por eso el camino de
+contraseña tiene que seguir visible.
+
 ### [B] La app pasa a llamarse Palomera — 2026-10-27
 
 **Síntoma:** «Palco» estaba elegido pero no verificado desde el 03-oct, y al

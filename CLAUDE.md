@@ -259,9 +259,20 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      `ui/startup/fragment/SelectServerFragment.kt` **(añadido el 14-oct: su
      pie de versión llamaba «jellyfin-androidtv» a la app en la primera
      pantalla de toda instalación, que es justo donde §8 no lo permite)**,
-     los `res/values*/strings.xml`, los recursos de marca (`app_logo`, `app_icon*`,
+     los `res/values*/strings.xml`, **los dos layouts de la pantalla de acceso
+     —`layout/fragment_user_login.xml` y
+     `layout/fragment_user_login_quick_connect.xml`— (añadidos el 27-oct)**,
+     los recursos de marca (`app_logo`, `app_icon*`,
      `app_banner*`, `mipmap/`) y los atributos `icon`, `banner` y `label` del
-     `AndroidManifest.xml`. Es §8 hecho código: la app no usa el nombre ni el
+     `AndroidManifest.xml`.
+
+     **Por qué los layouts y no solo las cadenas:** las de upstream vienen
+     traducidas a cuarenta idiomas, así que sobrescribir
+     `login_quickconnect_step_*` en `values/` habría dejado el texto viejo en
+     los otros treinta y nueve. Con cadenas de nombre propio —el prefijo
+     `livetv_` que ya usan los avisos legales— cualquier idioma cae en la
+     nuestra, y el precio es cambiar cuatro atributos `android:text`. Son
+     cambios de texto y de color, ninguno de lógica. Es §8 hecho código: la app no usa el nombre ni el
      logo de Jellyfin, y la pantalla de información lleva el «no afiliado» y
      la licencia GPL-2.0. **No es opcional ni es estética**: es lo que hace
      legal el envío a Play, y vive por fuerza en las pantallas del upstream
@@ -756,6 +767,28 @@ arriba bajan hasta el borde del cubo, sale una corona** — tienen que solaparse
 entre sí. La palabra sigue construida con círculos y rectángulos, con una
 excepción: la `e` lleva bola de 11.5 y barra de 7 porque con el radio 10 y el
 trazo 9 del resto su ojo mide una unidad y se cierra.
+
+### La primera pantalla pide un código, no manda a instalarse Jellyfin
+
+Cambiado el 27-oct. Lo que el upstream enseñaba al estrenar una caja era
+*«1. Abra la aplicación Jellyfin en su teléfono o navegador e inicie sesión con
+su cuenta»*. Eso nombra a Jellyfin como el sitio al que el abonado tiene que
+ir —lo que §8 no permite— y además describe algo que ningún abonado va a
+hacer: no tiene esa app, no sabe que tiene una cuenta y está estrenando una
+caja, no iniciando sesión.
+
+Ahora dice **llama a tu proveedor, dile que quieres activar este aparato,
+dale este código**. Quien autoriza el código es el proveedor desde el panel de
+abonados (`/home/proyectos/panel-abonados`), que es el único sitio donde se
+puede hacer sin meter la caja como administrador — el panel web de Jellyfin no
+expone el `userId` de `POST /QuickConnect/Authorize`, así que autorizar desde
+ahí entrega la caja con permisos de administrador.
+
+**El botón «Usar contraseña» no se quita.** Mientras un site no tenga el panel
+instalado, es el único camino de alta que existe, y es también por donde entra
+el revisor de Google (`PLAY.md` §6). Lo mismo vale para el título compartido de
+esa pantalla, que pasó de «Por favor inicie sesión» a «Activa tu televisión»:
+el abonado no está iniciando sesión, está estrenando un aparato.
 
 ### Lo que sigue siendo obligatorio
 

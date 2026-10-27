@@ -293,12 +293,12 @@ enlace muerto dentro de un aviso legal es peor que la frase incompleta.
   `herramientas/marca/generar.sh`, así que no hay una copia del dibujo que se
   pueda quedar atrás.
 
-  Del icono hay **dos**, y hay que elegir. `palco-icono-512.png` es el
+  Del icono hay **dos**, y hay que elegir. `palomera-icono-512.png` es el
   adaptativo tal cual: su símbolo vive en la zona segura **circular** de 66 dp
   sobre 108, porque un lanzador puede recortarlo en círculo. Play no recorta
-  así, y ese icono se ve encogido en la tienda. `palco-icono-512-ficha.png` es
-  el mismo con el dibujo escalado hasta el cuadrado que Play respeta, y **es el
-  que conviene subir**. El del APK no se toca: ahí la zona segura es real.
+  así, y ese icono se ve encogido en la tienda. `palomera-icono-512-ficha.png`
+  es el mismo con el dibujo escalado hasta el cuadrado que Play respeta, y **es
+  el que conviene subir**. El del APK no se toca: ahí la zona segura es real.
 - **Capturas de TV**, mínimo una, 16:9. **No pueden ser de un canal
   reproduciendo.** Lo que se vería es emisión de un tercero —Milenio, Estrellas,
   HBO— y publicarla en una ficha de tienda es usar contenido ajeno en nuestro
@@ -309,12 +309,25 @@ enlace muerto dentro de un aviso legal es peor que la frase incompleta.
 - **Clasificación de contenido** y **público objetivo**: la app no tiene
   contenido propio, lo sirve el ISP.
 - **Países**: México.
+- **Instrucciones de acceso para el revisor — obligatorias, y ahora más.**
+  Desde el 27-oct la primera pantalla pide **llamar al proveedor y dictarle un
+  código** (§8 de `CLAUDE.md`). Un revisor de Google no puede hacer eso, así
+  que si no se le dice cómo entrar, rechaza la app por no poder probarla.
 
-**La decisión que no es técnica:** el nombre «Palco» está **elegido, no
-verificado**. Falta comprobarlo en **IMPI, clases 38 y 41**, y que el título
-esté libre en la Play Console. Si está tomado, se cambia el nombre visible sin
-tocar el paquete — por eso el paquete no lleva la palabra «palco» como marca
-sino como nombre propio nuestro.
+  En el campo de instrucciones del envío va, literalmente: la dirección del
+  servidor de pruebas, y que **pulse «Usar contraseña»** en la pantalla de
+  activación para escribir usuario y clave. Ese botón está ahí a propósito y no
+  se quita (§8): mientras un site no tenga panel de abonados instalado, es
+  también el único camino de alta que no mete la caja como administrador.
+
+**La decisión que no es técnica:** el nombre «Palomera» está **verificado solo
+contra el buscador de las tiendas** —Play México y App Store México, las dos
+limpias—, y eso **no es una búsqueda de marcas**. Falta comprobarlo en **IMPI,
+clases 38 y 41**, que el título esté libre en la Play Console, y a mano en
+Samsung, LG y Roku, que no tienen buscador público alcanzable. Si estuviera
+tomado se cambia el nombre visible sin tocar el paquete, pero el paquete ya
+lleva la palabra: `mx.kataliziador.palomera` es irreversible desde el primer
+envío (§1).
 
 ---
 

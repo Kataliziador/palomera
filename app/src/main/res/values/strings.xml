@@ -7,6 +7,34 @@
     <string name="livetv_about_install_id" translatable="false">Identificador de esta instalación</string>
     <string name="livetv_about_version" translatable="false">Versión de la aplicación</string>
     <string name="livetv_licenses_description" translatable="false">Licencias de las librerías de código abierto que la aplicación utiliza</string>
+    <!--
+      La pantalla de acceso por código. Sustituye al texto de Quick Connect del
+      upstream, que mandaba al abonado a instalarse la aplicación Jellyfin en su
+      teléfono e iniciar sesión con una cuenta que no sabe que tiene — lo que
+      §8 no permite y, sobre todo, lo que ningún abonado va a hacer.
+
+      Son cadenas **propias** y no una traducción de las de upstream a
+      propósito: `login_quickconnect_step_*` viene traducida a cuarenta idiomas,
+      así que sobrescribirla en `values/` habría dejado el texto viejo en todos
+      los demás. Con nombre propio, cualquier idioma cae aquí.
+
+      Quien autoriza el código es el proveedor, desde el panel de abonados
+      (/home/proyectos/panel-abonados). Mientras un site no lo tenga instalado,
+      el botón de contraseña sigue estando a un clic: autorizar un código desde
+      el panel de Jellyfin metería la caja como administrador.
+    -->
+    <!--
+      El título lo comparten esta pantalla y la de contraseña, así que tiene que
+      servir para las dos. El de upstream («Por favor inicie sesión») hablaba de
+      usted encima de unos pasos que tutean, y además nombra una operación
+      —iniciar sesión— que el abonado no está haciendo: él está estrenando una
+      caja.
+    -->
+    <string name="livetv_acceso_titulo" translatable="false">Activa tu televisión</string>
+    <string name="livetv_acceso_codigo_paso_1" translatable="false">1. Llama a tu proveedor de televisión.</string>
+    <string name="livetv_acceso_codigo_paso_2" translatable="false">2. Dile que quieres activar este aparato.</string>
+    <string name="livetv_acceso_codigo_paso_3" translatable="false">3. Dale este código:</string>
+    <string name="livetv_acceso_usar_codigo" translatable="false">Activar con código</string>
     <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">Palomera</string>
     <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">Palomera Debug</string>
     <string name="video_error_unknown_error">Failed to load video</string>
