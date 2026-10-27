@@ -748,12 +748,14 @@ primer envío, y por eso el cambio del 27-oct se hizo entero: `applicationId`,
 va en la URL de la ficha, y dejarlo diciendo `palco` habría sido dejar dentro
 la palabra de otro para siempre.
 
-**Lo que queda del cambio de nombre es el dibujo.** `app_logo.xml` deletrea
-PALCO con letras construidas a mano a partir de círculos y rectángulos, y el
-símbolo es un palco —el arco de la boca del escenario y el barandal—. Las dos
-cosas hay que rehacerlas, y con ellas `app_icon_foreground`, `app_banner` y los
-PNG de `herramientas/marca/png/`, que son generados. Hasta entonces la marca de
-la app dice un nombre y el logotipo dice otro.
+**El dibujo se rehízo el mismo día.** El símbolo es una palomera: el cubo
+troncocónico con su doblez y el montón de palomitas asomando. Dos detalles que
+costaron seis variantes y que conviene no deshacer: **sin el doblez del borde
+la silueta se lee como una magdalena**, y **si los valles entre los bultos de
+arriba bajan hasta el borde del cubo, sale una corona** — tienen que solaparse
+entre sí. La palabra sigue construida con círculos y rectángulos, con una
+excepción: la `e` lleva bola de 11.5 y barra de 7 porque con el radio 10 y el
+trazo 9 del resto su ojo mide una unidad y se cierra.
 
 ### Lo que sigue siendo obligatorio
 

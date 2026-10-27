@@ -4,23 +4,60 @@
   **Lleva el nombre escrito y no solo el símbolo**: en los lanzadores clásicos
   de Leanback el banner es toda la ficha —no hay etiqueta debajo—, así que un
   banner sin palabra deja la app sin nombre en la pantalla de inicio.
+
+  Son los mismos trazos de `app_logo.xml`, sin retocar, escalados para caber en
+  320 x 180 y centrados ópticamente sobre la tinta —de 8.5 a 358 en horizontal
+  y de 11.5 a 60.5 en vertical—, no sobre el lienzo, que tiene aire a los lados.
+  Con la palabra de ocho letras el logotipo mide 366 de ancho y a tamaño 1:1 ya
+  no cabía aquí.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="320dp"
     android:height="180dp"
     android:viewportWidth="320"
     android:viewportHeight="180">
-    <group android:translateX="34" android:translateY="54">
-        <group android:translateY="4">
-            <path android:pathData="M16,56 L16,30 A16,16 0 0 1 48,30 L48,56" android:strokeColor="#F4F5F7" android:strokeWidth="7" android:strokeLineCap="round" android:strokeLineJoin="round" />
-            <path android:pathData="M8,47 L56,47" android:strokeColor="#F4F5F7" android:strokeWidth="7" android:strokeLineCap="round" />
-        </group>
-        <path android:pathData="M83,16 L83,58" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
-        <path android:pathData="M88,21 L95,21 A9,9 0 0 1 95,39 L88,39" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
-        <path android:pathData="M121,43 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
-        <path android:pathData="M146,28 L146,58" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
-        <path android:pathData="M166,16 L166,58" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
-        <path android:pathData="M199,36 A10,10 0 1 0 199,50" android:strokeColor="#F4F5F7" android:strokeWidth="9" android:strokeLineCap="round" />
-        <path android:pathData="M214,43 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+    <group
+        android:scaleX="0.76" android:scaleY="0.76"
+        android:translateX="20.7" android:translateY="62.6">
+        <!-- Símbolo: cubo, doblez y palomitas -->
+        <path
+            android:pathData="M14,33 L21,57 L49,57 L56,33"
+            android:strokeColor="#F4F5F7"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M16.5,41 L53.5,41"
+            android:strokeColor="#F4F5F7"
+            android:strokeWidth="5"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M12,34 A8.5,8.5 0 0 1 27,28 A11,11 0 0 1 44,26 A8.5,8.5 0 0 1 58,34"
+            android:strokeColor="#F4F5F7"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+
+        <!-- P -->
+        <path android:pathData="M85,16 L85,58" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
+        <path android:pathData="M90,21 L97,21 A9,9 0 0 1 97,39 L90,39" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
+        <!-- a -->
+        <path android:pathData="M122.5,43 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <path android:pathData="M147.5,28 L147.5,58" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <!-- l -->
+        <path android:pathData="M164,16 L164,58" android:strokeColor="#F4F5F7" android:strokeWidth="10" />
+        <!-- o -->
+        <path android:pathData="M180.5,43 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <!-- m -->
+        <path android:pathData="M214.5,58 L214.5,43 A10,10 0 0 1 234.5,43 L234.5,58" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <path android:pathData="M234.5,43 A10,10 0 0 1 254.5,43 L254.5,58" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <!-- e -->
+        <path android:pathData="M293.25,43 A11.5,11.5 0 1 0 289.9,51.1" android:strokeColor="#F4F5F7" android:strokeWidth="8.5" android:strokeLineCap="round" />
+        <path android:pathData="M272.25,43 L292.25,43" android:strokeColor="#F4F5F7" android:strokeWidth="7" android:strokeLineCap="round" />
+        <!-- r -->
+        <path android:pathData="M307,58 L307,43 A10,10 0 0 1 317,33" android:strokeColor="#F4F5F7" android:strokeWidth="9" android:strokeLineCap="round" />
+        <!-- a -->
+        <path android:pathData="M331,43 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
+        <path android:pathData="M356,28 L356,58" android:strokeColor="#F4F5F7" android:strokeWidth="9" />
     </group>
 </vector>

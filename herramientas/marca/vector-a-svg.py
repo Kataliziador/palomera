@@ -9,8 +9,9 @@ quedan atrás y nadie se entera hasta verlos en la tienda.
 
 Cubre **el subconjunto que usan nuestros vectores y ninguno más**: `<path>` con
 `pathData`, `fillColor`, `strokeColor`, `strokeWidth`, `strokeLineCap` y
-`strokeLineJoin`, y `<group>` con `translateX`/`translateY`. Si algún día se
-usa `scale`, `rotation`, `pathData` animado, degradados o `clip-path`, esto
+`strokeLineJoin`, y `<group>` con `translateX`/`translateY`, `scaleX`/`scaleY`
+y `pivotX`/`pivotY`. Si algún día se usa `rotation`, `pathData` animado,
+degradados o `clip-path`, esto
 falla **en voz alta** en vez de dibujar algo distinto en silencio: un logotipo
 que sale mal sin avisar es peor que uno que no sale.
 
@@ -27,7 +28,7 @@ PATH_OK = {
     "pathData", "fillColor", "strokeColor", "strokeWidth",
     "strokeLineCap", "strokeLineJoin", "fillAlpha", "strokeAlpha", "name",
 }
-GROUP_OK = {"translateX", "translateY", "name"}
+GROUP_OK = {"translateX", "translateY", "scaleX", "scaleY", "pivotX", "pivotY", "name"}
 VECTOR_OK = {
     "width", "height", "viewportWidth", "viewportHeight", "tint", "name",
     "alpha", "autoMirrored",
@@ -74,6 +75,32 @@ def pinta(elemento, tinte):
     return " ".join(trozos)
 
 
+def transforma(grupo):
+    """El `transform` SVG equivalente a un `<group>` de VectorDrawable.
+
+    Android compone el grupo como
+    `translate(t) · translate(pivot) · rotate · scale · translate(-pivot)`,
+    y **ese orden importa**: con el pivote fuera de (0,0), escalar antes o
+    después de trasladar deja el dibujo en sitios distintos. Se emite igual,
+    omitiendo las partes neutras para que el SVG se pueda leer.
+    """
+    g = lambda n, d: float(attr(grupo, n) or d)
+    tx, ty = g("translateX", 0), g("translateY", 0)
+    sx, sy = g("scaleX", 1), g("scaleY", 1)
+    px, py = g("pivotX", 0), g("pivotY", 0)
+
+    partes = []
+    if (tx, ty) != (0, 0):
+        partes.append(f"translate({tx:g},{ty:g})")
+    if (sx, sy) != (1, 1):
+        if (px, py) != (0, 0):
+            partes.append(f"translate({px:g},{py:g})")
+        partes.append(f"scale({sx:g},{sy:g})")
+        if (px, py) != (0, 0):
+            partes.append(f"translate({-px:g},{-py:g})")
+    return " ".join(partes) or "translate(0,0)"
+
+
 def nodos(elemento, tinte, sangria="  "):
     salida = []
     for hijo in elemento:
@@ -86,9 +113,7 @@ def nodos(elemento, tinte, sangria="  "):
             salida.append(f'{sangria}<path d="{datos}" {pinta(hijo, tinte)}/>')
         elif etiqueta == "group":
             revisar(hijo, GROUP_OK, "<group>")
-            x = attr(hijo, "translateX") or "0"
-            y = attr(hijo, "translateY") or "0"
-            salida.append(f'{sangria}<g transform="translate({x},{y})">')
+            salida.append(f'{sangria}<g transform="{transforma(hijo)}">')
             salida.extend(nodos(hijo, tinte, sangria + "  "))
             salida.append(f"{sangria}</g>")
         elif etiqueta == "clip-path":

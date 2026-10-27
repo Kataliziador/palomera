@@ -385,15 +385,27 @@ comprobación b) de §4.7 sigue devolviendo sólo la excepción registrada de
 
 **Resultado:** la identidad publicable es Palomera.
 
-**Lo que queda, y es visible:** el dibujo. `app_logo.xml` deletrea PALCO con
-letras construidas a mano con círculos y rectángulos, y el símbolo es un palco
-—el arco de la boca del escenario y el barandal—. Hay que rehacerlo, y con él
-`app_icon_foreground`, `app_banner` y los cuatro PNG de
-`herramientas/marca/png/`, que son generados. **Hasta entonces la app dice un
-nombre y el logotipo dice otro**, y eso no se puede enviar a Play.
+**El dibujo, el mismo día.** Símbolo nuevo —cubo troncocónico con doblez y
+montón de palomitas— en `app_logo.xml`, `app_icon_foreground`, su variante
+monocroma y `app_banner_foreground`, más los cuatro PNG regenerados con
+`generar.sh`. Se probaron **seis variantes del símbolo, renderizadas a 190 px
+y a 34 px** antes de elegir: las que dejan los valles entre bultos a la altura
+del borde del cubo se leen como corona, y sin el doblez del borde la silueta
+es una magdalena. La `e` necesitó bola de 11.5 y barra de 7: con el radio 10 y
+el trazo 9 del resto de la caja baja, su ojo mide una unidad y se cierra.
 
-**Estado:** cerrada en lo de código; el dibujo y la verificación en IMPI,
-Play Console, Samsung, LG y Roku siguen abiertos.
+Al banner hubo que escalarlo a 0.76 — con ocho letras el logotipo mide 366 de
+ancho y a 1:1 ya no cabía en 320 — y eso obligó a enseñarle `scaleX`/`scaleY`
+y `pivotX`/`pivotY` a `vector-a-svg.py`, que hasta ahora solo traducía
+`translate` y **fallaba en voz alta** al encontrárselos, que es justo lo que
+tenía que hacer.
+
+**Verificado en la caja**, no solo en el renderizador: instalado el APK, la
+barra enseña el logotipo nuevo, el título dice «Te damos la bienvenida a
+Palomera» y el pie «Palomera Debug 0.0.0-dev.1».
+
+**Estado:** cerrada. Sigue abierta la verificación del nombre en IMPI (38 y
+41), Play Console, Samsung, LG y Roku.
 
 ### [M-8] Maratón y zapping, cerrada con el mando en la mano — 2026-10-25
 

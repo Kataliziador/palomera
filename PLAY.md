@@ -78,7 +78,7 @@ No hay que volver a tocarlo. Está aquí para no repetir trabajo ni dudar.
 | | Estado |
 |---|---|
 | `applicationId` propio | `mx.kataliziador.palomera` |
-| Nombre propio | «Palomera» desde el 27-oct (§8). **El dibujo todavía no**: el logotipo deletrea PALCO |
+| Nombre e icono propios | «Palomera», logotipo, icono y banner en vector, sin rastro de Jellyfin (§8) |
 | PNG de icono, banner y logo de marca | generados desde esos vectores (`herramientas/marca/`) |
 | `LEANBACK_LAUNCHER` | declarado, junto al `LAUNCHER` normal |
 | `leanback`, `touchscreen`, `faketouch`, `microphone` | los cuatro `required="false"` |

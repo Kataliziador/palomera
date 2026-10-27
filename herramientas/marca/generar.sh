@@ -6,12 +6,12 @@
 # falta mapas de bits en tres sitios, y los tres los pide alguien que no
 # compila:
 #
-#   palco-logo.png          la ranura `logo` del registro y del servidor de
-#                           canales (CONFIG_SCHEMA §6). El autorizador solo
-#                           acepta PNG —un SVG puede llevar script—, de 28 a
-#                           1000 px de alto y hasta 2000 de ancho.
-#   palco-icono-512.png     el icono de la ficha de Play (PLAY.md §6).
-#   palco-banner-1280.png   el banner de TV de la ficha (PLAY.md §6).
+#   palomera-logo.png         la ranura `logo` del registro y del servidor de
+#                             canales (CONFIG_SCHEMA §6). El autorizador solo
+#                             acepta PNG —un SVG puede llevar script—, de 28 a
+#                             1000 px de alto y hasta 2000 de ancho.
+#   palomera-icono-512.png    el icono de la ficha de Play (PLAY.md §6).
+#   palomera-banner-1280.png  el banner de TV de la ficha (PLAY.md §6).
 #
 # **Nada de esto se dibuja aquí.** Todo sale de los vectores de
 # `app/src/main/res/drawable/`, convertidos por `vector-a-svg.py`. Si alguien
@@ -43,13 +43,13 @@ convertir() { python3 "$aqui/vector-a-svg.py" "$@"; }
 # de alto son 28 dp a densidad xxhdpi con margen de sobra para una tele 4K, y
 # pesa unos pocos KB.
 convertir "$vectores/app_logo.xml" > "$tmp/logo.svg"
-rsvg-convert -h 144 -f png -o "$salida/palco-logo.png" "$tmp/logo.svg"
+rsvg-convert -h 144 -f png -o "$salida/palomera-logo.png" "$tmp/logo.svg"
 
 # El icono y el banner llevan fondo: se apilan los dos vectores en un lienzo,
 # que es lo mismo que hace Android con el icono adaptativo. La ficha de Play no
 # aplica máscara, así que lo que se sube es el cuadrado completo.
 convertir "$vectores/app_icon_background.xml" "$vectores/app_icon_foreground.xml" > "$tmp/icono.svg"
-rsvg-convert -w 512 -h 512 -f png -o "$salida/palco-icono-512.png" "$tmp/icono.svg"
+rsvg-convert -w 512 -h 512 -f png -o "$salida/palomera-icono-512.png" "$tmp/icono.svg"
 
 # Y una segunda versión del icono, con el símbolo más grande, **para la ficha**.
 #
@@ -68,10 +68,10 @@ rsvg-convert -w 512 -h 512 -f png -o "$salida/palco-icono-512.png" "$tmp/icono.s
 convertir --escala 1.3485 \
 	"$vectores/app_icon_background.xml" "$vectores/app_icon_foreground.xml" \
 	> "$tmp/icono-ficha.svg"
-rsvg-convert -w 512 -h 512 -f png -o "$salida/palco-icono-512-ficha.png" "$tmp/icono-ficha.svg"
+rsvg-convert -w 512 -h 512 -f png -o "$salida/palomera-icono-512-ficha.png" "$tmp/icono-ficha.svg"
 
 convertir "$vectores/app_banner_background.xml" "$vectores/app_banner_foreground.xml" > "$tmp/banner.svg"
-rsvg-convert -w 1280 -h 720 -f png -o "$salida/palco-banner-1280.png" "$tmp/banner.svg"
+rsvg-convert -w 1280 -h 720 -f png -o "$salida/palomera-banner-1280.png" "$tmp/banner.svg"
 
 printf '\n%s\n' "en $salida:"
 for f in "$salida"/*.png; do
