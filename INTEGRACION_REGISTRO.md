@@ -174,10 +174,10 @@ cat > /tmp/livetv.dev.xml <<'XML'
     <string name="registryUrlOverride">http://TU_IP:8098</string>
 </map>
 XML
-adb -s $D shell am force-stop mx.kataliziador.palco.debug
+adb -s $D shell am force-stop mx.kataliziador.palomera.debug
 adb -s $D push /tmp/livetv.dev.xml /data/local/tmp/d.xml
-adb -s $D shell run-as mx.kataliziador.palco.debug sh -c \
-  "'cat /data/local/tmp/d.xml > /data/data/mx.kataliziador.palco.debug/shared_prefs/livetv.dev.xml'"
+adb -s $D shell run-as mx.kataliziador.palomera.debug sh -c \
+  "'cat /data/local/tmp/d.xml > /data/data/mx.kataliziador.palomera.debug/shared_prefs/livetv.dev.xml'"
 ```
 
 La app compone `/v1/resolve` sobre lo que pongas ahí. Una caja apuntada a un

@@ -157,7 +157,7 @@ flowchart TB
     end
 
     subgraph caja["CAJA DEL ABONADO"]
-        APK["APK Palco<br/>mx.kataliziador.palco<br/>módulo livetv + ui/livetv"]
+        APK["APK Palomera<br/>mx.kataliziador.palomera<br/>módulo livetv + ui/livetv"]
     end
 
     APK -->|"1 · el abonado escribe la dirección"| JF

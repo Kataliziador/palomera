@@ -13,7 +13,7 @@ instrumento para empezar a medirla (`LIVETV_LOG.md`, entrada de B6).
 
 Dos cosas no se pueden deshacer, y las dos se fijan en el primer envío.
 
-**El nombre de paquete: `mx.kataliziador.palco`.** Play lo fija para siempre.
+**El nombre de paquete: `mx.kataliziador.palomera`.** Play lo fija para siempre.
 Cambiarlo después es publicar otra app y perder instalaciones, reseñas y
 posición. Ya está puesto (`app/build.gradle.kts`), y ya no es el del upstream
 —con aquél el envío se rechazaba, porque `org.jellyfin.androidtv` está
@@ -77,8 +77,8 @@ No hay que volver a tocarlo. Está aquí para no repetir trabajo ni dudar.
 
 | | Estado |
 |---|---|
-| `applicationId` propio | `mx.kataliziador.palco` |
-| Nombre e icono propios | «Palco», icono y banner en vector, sin rastro de Jellyfin (§8) |
+| `applicationId` propio | `mx.kataliziador.palomera` |
+| Nombre propio | «Palomera» desde el 27-oct (§8). **El dibujo todavía no**: el logotipo deletrea PALCO |
 | PNG de icono, banner y logo de marca | generados desde esos vectores (`herramientas/marca/`) |
 | `LEANBACK_LAUNCHER` | declarado, junto al `LAUNCHER` normal |
 | `leanback`, `touchscreen`, `faketouch`, `microphone` | los cuatro `required="false"` |
@@ -354,6 +354,11 @@ La variable es obligatoria y **el build la exige**: sin ella el
 5. La entrada correspondiente está escrita en `LIVETV_LOG.md`
 
 ### Lo verificado el 14-oct sobre `0.1.0-rc.1`
+
+**Esta tabla es un registro de lo que se leyó entonces, no el estado de hoy:**
+el 27-oct el paquete pasó a `mx.kataliziador.palomera` y la etiqueta a
+«Palomera» (§8), así que esas dos filas ya no describen lo que saldría de un
+`bundleRelease` ahora. Lo demás sigue valiendo.
 
 Construido de verdad —`bundleRelease` y `assembleRelease`— y leído con
 `aapt2 dump badging` y `apksigner verify`, no supuesto:

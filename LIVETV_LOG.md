@@ -283,7 +283,7 @@ declararla.
 | ~~29~~ | ~~**`audioDefault` se interpreta pero no se aplica**~~ | — | **cerrado 02-oct, validado por Edgar.** Activo de fábrica. La normalización es nuestra, no de Media3: `esl` no es código ISO y Media3 no lo casaría con `spa` |
 | ~~28~~ | ~~**`logoUrl` se interpreta pero no se dibuja**~~ | — | **cerrado 02-oct** en la barra, con respaldo a iniciales cuando falta o falla. ~~Queda pendiente en la guía~~ **y en las tarjetas desde el 03-oct** (`6ab994c`): la tarjeta es un mosaico con el logo y el nombre debajo. **Este renglón pedía trabajo hecho durante 17 días** y se corrige el 20-oct al leerlo: `LiveTvChannelCard.kt` llama a `LogoDeCanal` desde ese commit, con el mismo respaldo a iniciales. Nadie lo habría sabido sin abrir el archivo, que es exactamente el costo de un pendiente mal cerrado |
 | ~~27~~ | ~~**El inicio sigue consultando la LiveTV vieja de Jellyfin**~~ | — | **cerrado 02-oct:** fuera la fila de «en emisión» y los tres botones de DVR que llevaban de vuelta a la sección vieja. Cero llamadas |
-| ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct: la app se llama Palco.** Logotipo, icono y banner propios en vector, `applicationId` `mx.kataliziador.palco`. Queda **comprobar el nombre en IMPI (clases 38 y 41) y en la Play Console**: está elegido, no verificado |
+| ~~38~~ | ~~**La primera pantalla lleva el logo y el nombre de Jellyfin**~~ | — | **cerrado 03-oct**, y el nombre rehecho el **27-oct**: Palco estaba tomado en Play y en la App Store, así que la app es **Palomera** y el `applicationId` `mx.kataliziador.palomera`. Queda **el dibujo**, que todavía deletrea PALCO, y **comprobar el nombre en IMPI (38 y 41), Play Console, Samsung, LG y Roku** |
 | ~~39~~ | ~~**De la cabecera de la sección no se puede bajar a la guía**~~ | — | **cerrado 05-oct.** Era la búsqueda de foco geométrica de Compose: los dos botones viven a la derecha de donde acaba la fila de tarjetas, así que debajo no hay nada que encontrar. `focusProperties { down = … }` en la fila de cabecera, que los hijos heredan. Medido por `uiautomator` en la caja: desde «Buscar canal» y desde «Diagnóstico», ABAJO deja el foco en la tarjeta 101 |
 | ~~40~~ | ~~**`REGISTRY_URL` ya se puede fijar**~~ | — | **cerrado 04-oct:** compilada en `BuildConfig`, con override por preferencias para apuntar a un registro de pruebas |
 | ~~41~~ | ~~**El `host` que se mande al registro hay que normalizarlo aquí**~~ | — | **cerrado 04-oct:** `ServiceUrl.hostDeServidor` baja a minúsculas, quita el punto final del FQDN y acepta el esquema como opcional. Seis casos nuevos en `ServiceUrlTest` |
@@ -337,6 +337,63 @@ declararla.
 ---
 
 ## Entradas
+
+### [B] La app pasa a llamarse Palomera — 2026-10-27
+
+**Síntoma:** «Palco» estaba elegido pero no verificado desde el 03-oct, y al
+verificarlo resultó estar tomado.
+
+**Hipótesis:** ninguna. Es una comprobación, no un diagnóstico.
+
+**Instrumento, porque aquí importa:** el buscador de Google Play
+(`play.google.com/store/search`, `hl=es_MX&gl=MX`) consultado directamente, y
+la API de búsqueda de la App Store para México. Los dos **habrían enseñado una
+coincidencia si existiera**; una búsqueda web no, y por eso no se usó. Lo que
+**no** se pudo consultar: Samsung, LG y Roku, que no tienen buscador público
+alcanzable —el de Roku devuelve una página vacía de JavaScript—, y el IMPI, que
+es un formulario. **Nada de esto es una búsqueda de marcas.**
+
+**Lo encontrado:** `Palco` tiene `RTP Palco`, `Palco 90` y `Palco – Control de
+Acceso` en Play México, y cinco más en la App Store. Y en México «palco»
+significa palco de estadio: las dos apps mexicanas que salen son de renta de
+palcos. Se barrieron ~40 alternativas; cayeron entre otras `Platea`
+(`PlateaTV`), `Butaca` (`Butaca TV`, que además está en Roku y Fire TV),
+`Tramoya`, `Atalaya`, `Sintonía`, `Cartelera`, `Antena`, `Pantalla`, `Señal`,
+`Dial`, `Onda`, `Estelar` y `Zapeo` — ésta con un `Zapeo – Reproductor IPTV`
+encima, que es la categoría exacta de la app.
+
+**Cambio:** `applicationId` a `mx.kataliziador.palomera`
+(`app/build.gradle.kts:17`), `app_name_release`/`app_name_debug`,
+`welcome_title` en los tres `strings.xml`, el nombre del artefacto
+(`base.archivesName`), las referencias al paquete en `herramientas/lluvia.py` y
+`herramientas/muestrear-memoria.py`, y los bloques de `adb` de
+`INTEGRACION_CANALES.md` e `INTEGRACION_REGISTRO.md`, que son instrucciones que
+los otros dos proyectos copian y pegan. Sin toggle: no es comportamiento.
+
+**Por qué se cambió también el paquete.** El `applicationId` es público —va en
+la URL de la ficha— y Play lo fija en el primer envío. Como todavía no se ha
+enviado nada, éste era el único momento de la vida del proyecto en que se podía
+hacer. Dejarlo en `…palco` habría metido la palabra de otro en la identidad
+para siempre.
+
+**Prueba:** `:app:assembleDebug` y lectura del APK con `aapt2 dump badging`, no
+supuesto: `package name='mx.kataliziador.palomera.debug'`,
+`application-label:'Palomera Debug'`, artefacto
+`palomera-v0.0.0-dev.1-debug.apk`. `:livetv:testDebugUnitTest` pasa, y la
+comprobación b) de §4.7 sigue devolviendo sólo la excepción registrada de
+`media3-ffmpeg-decoder`.
+
+**Resultado:** la identidad publicable es Palomera.
+
+**Lo que queda, y es visible:** el dibujo. `app_logo.xml` deletrea PALCO con
+letras construidas a mano con círculos y rectángulos, y el símbolo es un palco
+—el arco de la boca del escenario y el barandal—. Hay que rehacerlo, y con él
+`app_icon_foreground`, `app_banner` y los cuatro PNG de
+`herramientas/marca/png/`, que son generados. **Hasta entonces la app dice un
+nombre y el logotipo dice otro**, y eso no se puede enviar a Play.
+
+**Estado:** cerrada en lo de código; el dibujo y la verificación en IMPI,
+Play Console, Samsung, LG y Roku siguen abiertos.
 
 ### [M-8] Maratón y zapping, cerrada con el mando en la mano — 2026-10-25
 

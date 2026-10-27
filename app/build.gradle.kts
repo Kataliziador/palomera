@@ -14,7 +14,7 @@ plugins {
 // publicado por el proyecto Jellyfin. Con él, el envío se rechaza —los nombres de
 // paquete son únicos en toda la tienda— y además la app choca con la Jellyfin de
 // verdad si alguien tiene las dos en la misma caja.
-val appId = "mx.kataliziador.palco"
+val appId = "mx.kataliziador.palomera"
 
 android {
 	// El `namespace` **no** cambia: es el paquete Kotlin de ~2.000 archivos y
@@ -158,8 +158,8 @@ android {
 // El artefacto se llama como la app que se publica, no como el proyecto del
 // que salió el fork. Es el archivo que se sube a la Play Console y el que
 // aparece en su historial de versiones: dejarlo como «jellyfin-androidtv»
-// mientras la ficha dice Palco invita a subir el equivocado.
-base.archivesName.set("palco-v${project.getVersionName()}")
+// mientras la ficha dice Palomera invita a subir el equivocado.
+base.archivesName.set("palomera-v${project.getVersionName()}")
 
 // Las dos maneras silenciosas de construir un bundle que no se puede publicar:
 // sin versión y sin firma. Las dos producen un archivo de 100 MB con buena cara.

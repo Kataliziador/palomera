@@ -7,8 +7,8 @@
     <string name="livetv_about_install_id" translatable="false">Identificador de esta instalación</string>
     <string name="livetv_about_version" translatable="false">Versión de la aplicación</string>
     <string name="livetv_licenses_description" translatable="false">Licencias de las librerías de código abierto que la aplicación utiliza</string>
-    <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">Palco</string>
-    <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">Palco Debug</string>
+    <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">Palomera</string>
+    <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">Palomera Debug</string>
     <string name="video_error_unknown_error">Failed to load video</string>
     <string name="loading">Loading…</string>
     <string name="btn_cancel">Cancel</string>
@@ -357,7 +357,7 @@
     <string name="no_network_permissions">Esta aplicación necesita permiso de red para funcionar</string>
     <string name="press_to_close">Press to close</string>
     <string name="saved_servers">Saved servers</string>
-    <string name="welcome_title">Te damos la bienvenida a Palco</string>
+    <string name="welcome_title">Te damos la bienvenida a Palomera</string>
     <string name="welcome_content">Connect to your server to get started.</string>
     <string name="no_user_warning">We couldn\'t find any accounts!\nAdd a new account by pressing the \"Add account\" button.</string>
     <string name="who_is_watching">Who\'s watching?</string>

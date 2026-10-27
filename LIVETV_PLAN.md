@@ -565,9 +565,11 @@ Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
   acento que cada ISP ponga encima
 - Caché de marca y de logo, indexada por servidor
 - ~~Renombrado de la app: fuera el nombre y el logo de Jellyfin~~ **hecho el
-  03-oct.** Se llama **Palco**; `applicationId` `mx.kataliziador.palco`;
-  logotipo, icono y banner propios, en vector. Queda comprobar el nombre en
-  IMPI (clases 38 y 41) y en la Play Console
+  03-oct**, y **rehecho el 27-oct**: se llamó Palco hasta que se comprobó que
+  estaba tomado en Play y en la App Store. Hoy se llama **Palomera**;
+  `applicationId` `mx.kataliziador.palomera`. Queda comprobar el nombre en IMPI
+  (clases 38 y 41), en la Play Console y en Samsung, LG y Roku — **y rehacer el
+  dibujo**, que todavía deletrea PALCO
 - ~~Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0~~
   **hecho el 03-oct.** La LGPL-2.1 se añade cuando entre libVLC en M6: hoy no
   viaja en el APK y declararla sería falso

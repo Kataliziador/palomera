@@ -283,10 +283,10 @@ def ip_hacia(destino: str) -> str:
 def apuntar_caja(serie: str, base: str) -> None:
 	"""Deja `configUrlOverride` puesto en la caja, y dice cómo deshacerlo."""
 	destino = f"{base}/config.json"
-	pref = "/data/data/mx.kataliziador.palco.debug/shared_prefs/livetv.dev.xml"
+	pref = "/data/data/mx.kataliziador.palomera.debug/shared_prefs/livetv.dev.xml"
 	print(f"apuntando {serie} a {destino}")
 	leer = subprocess.run(["adb", "-s", serie, "shell", "run-as",
-	                       "mx.kataliziador.palco.debug", "cat", pref],
+	                       "mx.kataliziador.palomera.debug", "cat", pref],
 	                      capture_output=True, text=True)
 	xml = leer.stdout if leer.returncode == 0 and "<map" in leer.stdout else \
 		'<?xml version="1.0" encoding="utf-8"?>\n<map />\n'
@@ -301,17 +301,17 @@ def apuntar_caja(serie: str, base: str) -> None:
 	# permiso y sale «Permission denied» aunque `run-as` funcione. Pasando la
 	# orden entera como una sola palabra, el redirector lo hace el `sh` de
 	# dentro, que ya corre como la app.
-	subprocess.run(["adb", "-s", serie, "shell", "run-as", "mx.kataliziador.palco.debug",
+	subprocess.run(["adb", "-s", serie, "shell", "run-as", "mx.kataliziador.palomera.debug",
 	                "sh", "-c", shlex.quote(f"cat > {pref}")],
 	               input=xml, text=True, check=True)
 	subprocess.run(["adb", "-s", serie, "shell", "am", "force-stop",
-	                "mx.kataliziador.palco.debug"], check=True)
+	                "mx.kataliziador.palomera.debug"], check=True)
 	print("puesto. para quitarlo cuando se termine:")
 	# Mismo motivo que arriba: la orden va entre comillas simples para que
 	# llegue entera al `sh` de dentro.
-	print(f"  adb -s {serie} shell run-as mx.kataliziador.palco.debug "
+	print(f"  adb -s {serie} shell run-as mx.kataliziador.palomera.debug "
 	      f"\"sh -c 'sed -i /configUrlOverride/d {pref}'\"")
-	print(f"  adb -s {serie} shell am force-stop mx.kataliziador.palco.debug")
+	print(f"  adb -s {serie} shell am force-stop mx.kataliziador.palomera.debug")
 
 
 def main() -> int:

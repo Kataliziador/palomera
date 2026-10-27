@@ -697,19 +697,42 @@ instalación— pero el editor de registro somos nosotros. **En v1 se acepta.** 
 algún día importa, la salida es verificar la marca contra una lista nuestra, y
 queda escrito aquí para no reinventarlo.
 
-### La app se llama Palco
+### La app se llama Palomera
 
-Decidido el 2026-10-03. El nombre nombra **el aparato, no una empresa**: dentro
-de la app la marca es la del ISP, y un nombre que suene a marca competiría con
-la de nuestro propio cliente en su propia caja. «Palco» es un sustantivo —el
-asiento desde el que se mira—, cabe en el lanzador sin truncarse y acepta el
-posesivo del ISP sin forzarlo.
+Decidido el 2026-10-27, **y antes se llamó Palco**. El criterio no cambió: el
+nombre nombra **el aparato, no una empresa**, porque dentro de la app la marca
+es la del ISP y un nombre que suene a marca competiría con la de nuestro propio
+cliente en su propia caja. Tiene que ser un sustantivo, caber en el lanzador sin
+truncarse y aceptar el posesivo del ISP sin forzarlo: «la Palomera de
+TotalPlay».
 
-**Queda por verificar** que esté libre: IMPI, clases 38 y 41, y el título en la
-Play Console. Hasta entonces es un nombre elegido, no un nombre disponible.
+**Palco se cayó porque estaba tomado**, y eso se comprobó contra el buscador de
+cada tienda, no por búsqueda web: en Play México hay `RTP Palco`, `Palco 90` y
+`Palco – Control de Acceso`, y en la App Store cinco más. Peor todavía, **en
+México «palco» significa palco de estadio**: las dos apps mexicanas que salen
+son de renta de palcos. Cayeron por lo mismo `Platea` (`PlateaTV`), `Butaca`
+(`Butaca TV`, que además está en Roku y Fire TV), `Tramoya`, `Atalaya`,
+`Sintonía`, `Cartelera` y `Zapeo` — ésta con un `Zapeo – Reproductor IPTV`
+encima, que es nuestra categoría exacta.
 
-**El `applicationId` es `mx.kataliziador.palco`, y es lo único irreversible de
-todo el proyecto.** Play lo fija en el primer envío. Veníamos arrastrando
+**Palomera está limpia en Play México y en la App Store México**, verificado
+contra el buscador de las dos. Y como marca es lo contrario de un nombre
+descriptivo: arbitraria para un servicio de televisión, que es la clase más
+fácil de registrar y de defender.
+
+**Lo que sigue sin verificar, y hay que verificar:** IMPI clases 38 y 41, el
+título en la Play Console, y Samsung, LG y Roku — estas tres no tienen buscador
+público al que se pueda llegar desde aquí, así que se miran a mano. Una
+búsqueda en tiendas **no es una búsqueda de marcas**.
+
+**Nunca se añade «Player» ni ningún apellido genérico.** `‹Marca› Player` es la
+firma de la categoría de reproductores IPTV en Play —diez de los trece primeros
+resultados se llaman así—, no aporta nada registrable porque es genérico, y
+pone la app en la estantería que un revisor de Google examina buscando señales
+sin licencia. El descriptor va en el título de la ficha, no en el nombre.
+
+**El `applicationId` es `mx.kataliziador.palomera`, y es lo único irreversible
+de todo el proyecto.** Play lo fija en el primer envío. Veníamos arrastrando
 `org.jellyfin.androidtv`, que es el paquete del upstream y ya está publicado por
 el proyecto Jellyfin: con él el envío se rechaza y la app choca con la Jellyfin
 de verdad en la misma caja.
@@ -719,9 +742,18 @@ es el paquete Kotlin de ~2.000 archivos, sólo existe en tiempo de compilación 
 renombrarlo haría ingobernable el rebase contra upstream (§4) sin que nadie
 llegue a verlo. Lo que se publica es el `applicationId`.
 
-**El nombre visible se puede cambiar; el paquete no.** Si algún día Palco no
-sirve, se edita el título de la ficha y `app_name`. Por eso el nombre no era la
-decisión urgente: lo era el paquete.
+**El nombre visible se puede cambiar; el paquete no** — pero sólo hasta el
+primer envío, y por eso el cambio del 27-oct se hizo entero: `applicationId`,
+`app_name` y el nombre del artefacto a la vez. El id de paquete es **público**,
+va en la URL de la ficha, y dejarlo diciendo `palco` habría sido dejar dentro
+la palabra de otro para siempre.
+
+**Lo que queda del cambio de nombre es el dibujo.** `app_logo.xml` deletrea
+PALCO con letras construidas a mano a partir de círculos y rectángulos, y el
+símbolo es un palco —el arco de la boca del escenario y el barandal—. Las dos
+cosas hay que rehacerlas, y con ellas `app_icon_foreground`, `app_banner` y los
+PNG de `herramientas/marca/png/`, que son generados. Hasta entonces la marca de
+la app dice un nombre y el logotipo dice otro.
 
 ### Lo que sigue siendo obligatorio
 

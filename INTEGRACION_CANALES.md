@@ -496,7 +496,7 @@ cat > /tmp/livetv.dev.xml <<'XML'
 </map>
 XML
 
-P=mx.kataliziador.palco.debug
+P=mx.kataliziador.palomera.debug
 adb -s $D shell am force-stop $P
 adb -s $D push /tmp/livetv.dev.xml /data/local/tmp/d.xml
 adb -s $D shell run-as $P sh -c \
@@ -504,9 +504,10 @@ adb -s $D shell run-as $P sh -c \
 adb -s $D shell rm /data/local/tmp/d.xml
 ```
 
-**El paquete es `mx.kataliziador.palco.debug`** — hasta el 11-oct este bloque
-decía `org.jellyfin.androidtv.debug`, que es el del upstream y no está instalado
-en ninguna caja nuestra desde que §8 fijó el `applicationId`. Quien copiara esto
+**El paquete es `mx.kataliziador.palomera.debug`** — lo fue `…palco.debug`
+hasta el 27-oct, y antes del 11-oct este bloque decía `org.jellyfin.androidtv.debug`,
+que es el del upstream y no está instalado en ninguna caja nuestra desde que §8
+fijó el `applicationId`. Quien copiara esto
 perdía media hora con un `run-as` que falla sin decir por qué.
 
 **Esto sobreescribe el archivo entero**, así que borra cualquier otra opción que

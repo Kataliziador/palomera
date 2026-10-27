@@ -42,7 +42,7 @@ suyos y no comparte estado con nadie.
     # arrancar, desatendido, junto a un remojo en curso
     setsid nohup python3 herramientas/muestrear-memoria.py \\
         --caja 192.168.20.132:5555 \\
-        --paquete mx.kataliziador.palco.debug \\
+        --paquete mx.kataliziador.palomera.debug \\
         --destino /ruta/del/remojo --cada 600 >/dev/null 2>&1 &
 
     # una sola muestra, para ver que la caja contesta
@@ -294,7 +294,7 @@ def informar_pendientes(filas: list) -> None:
 def main() -> int:
 	p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 	p.add_argument("--caja", help="serie de adb, p. ej. 192.168.20.132:5555")
-	p.add_argument("--paquete", default="mx.kataliziador.palco.debug")
+	p.add_argument("--paquete", default="mx.kataliziador.palomera.debug")
 	p.add_argument("--destino", type=Path, help="directorio donde escribir el crudo")
 	p.add_argument("--cada", type=int, default=600, help="segundos entre muestras (600)")
 	p.add_argument("--una", action="store_true", help="una sola muestra, a la salida estándar")
