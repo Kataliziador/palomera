@@ -275,7 +275,19 @@ enlace muerto dentro de un aviso legal es peor que la frase incompleta.
 
 ## 6. La ficha, y una decisión que no es técnica
 
-- **Título** (30 caracteres): «Palco — TV en vivo de tu proveedor» cabe.
+- **Título: 30 caracteres, y el que este documento proponía no cabía.**
+  «Palco — TV en vivo de tu proveedor» son **34**, y aquí ponía que cabe
+  (corregido el 27-oct, contados con `len()` y el límite confirmado contra la
+  [ayuda de Play Console](https://support.google.com/googleplay/android-developer/answer/113469);
+  bajó de 50 a 30 en 2021, así que una guía de ASO que diga 50 está vieja).
+
+  La cuenta que hay que hacer es: con un nombre de N caracteres y « — » de
+  separador, quedan **27 − N** para el descriptor. Con un nombre de 8, eso son
+  19: «TV de tu proveedor» entra, «TV en vivo de tu proveedor» no.
+
+  **Y el descriptor va aquí, no en el nombre de la app.** El título de la ficha
+  es donde se explica qué es esto; la etiqueta del lanzador es solo el nombre,
+  y es la que no puede truncarse (§8).
 - **Icono** 512×512 y **banner de TV** 1280×720: **ya generados**, en
   `herramientas/marca/png/`. Salen de los mismos vectores del APK con
   `herramientas/marca/generar.sh`, así que no hay una copia del dibujo que se
