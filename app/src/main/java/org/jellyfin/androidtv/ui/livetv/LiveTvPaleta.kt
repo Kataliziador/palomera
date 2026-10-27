@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
  *
  * La estructura es la del sistema de diseño «TV en Vivo ISP» —superficies,
  * tres tintas, estados— pero **con los valores neutros de esta app, no con los
- * del sistema**: §4.2 manda que la sección se vea como el resto de Palco, y el
+ * del sistema**: §4.2 manda que la sección se vea como el resto de Palomera, y el
  * fondo del tema es `#101010`
  * ([org.jellyfin.androidtv.ui.base.colorScheme]). Adoptar el `#05070a` azulado
  * del sistema habría puesto la sección sobre un fondo distinto al de Inicio y

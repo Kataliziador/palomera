@@ -60,6 +60,11 @@ PERMITIDO = [
 	# pantalla de toda instalación; §8 no lo permite ahí (14-oct)
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/SelectServerFragment\.kt$",
 	r"^app/src/main/res/values[^/]*/strings\.xml$",
+	# la pantalla de acceso mandaba al abonado a instalarse Jellyfin. Las
+	# cadenas de upstream vienen traducidas a cuarenta idiomas, así que
+	# sobrescribirlas en `values/` habría dejado el texto viejo en treinta y
+	# nueve: hay que apuntar los layouts a cadenas propias (27-oct)
+	r"^app/src/main/res/layout/fragment_user_login(_quick_connect)?\.xml$",
 	r"^app/src/main/res/drawable[^/]*/(app_logo|app_banner_\w+|app_icon_\w+|ic_jellyfin|qr_jellyfin_docs)\.xml$",
 	r"^app/src/main/res/mipmap[^/]*/(app_icon|app_banner)\.(png|xml)$",
 	# utilería fuera de la app

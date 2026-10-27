@@ -1,4 +1,4 @@
-# Aviso de privacidad — Palco
+# Aviso de privacidad — Palomera
 
 > **Borrador.** Lo escrito aquí está verificado contra el código: cada dato de
 > la lista se puede rastrear hasta la línea que lo envía. Lo que **no** puede
@@ -20,13 +20,13 @@
 ⟨Razón social completa⟩, con domicilio en ⟨domicilio fiscal⟩, es responsable
 del tratamiento de los datos que se describen aquí.
 
-Palco es una aplicación de televisión que instala tu proveedor de internet en
+Palomera es una aplicación de televisión que instala tu proveedor de internet en
 tu caja. **Tu proveedor no es el responsable de este aviso**: lo somos
 nosotros, que publicamos la aplicación.
 
 ## 2. Qué recoge la aplicación
 
-Palco envía a un servicio nuestro, cada vez que comprueba que tu proveedor
+Palomera envía a un servicio nuestro, cada vez que comprueba que tu proveedor
 tiene el servicio contratado, lo siguiente:
 
 | Dato | Qué es |

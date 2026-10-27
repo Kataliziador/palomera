@@ -567,9 +567,10 @@ Play nuestra; la marca sale del servidor de canales del site (`CLAUDE.md` §8).
 - ~~Renombrado de la app: fuera el nombre y el logo de Jellyfin~~ **hecho el
   03-oct**, y **rehecho el 27-oct**: se llamó Palco hasta que se comprobó que
   estaba tomado en Play y en la App Store. Hoy se llama **Palomera**;
-  `applicationId` `mx.kataliziador.palomera`. Queda comprobar el nombre en IMPI
-  (clases 38 y 41), en la Play Console y en Samsung, LG y Roku — **y rehacer el
-  dibujo**, que todavía deletrea PALCO
+  `applicationId` `mx.kataliziador.palomera`. **El dibujo se rehízo el mismo
+  día** (`e9de574`): el símbolo es un cubo de palomitas y la palabra se
+  reconstruyó con las mismas letras geométricas. Queda comprobar el nombre en
+  IMPI (clases 38 y 41), en la Play Console y a mano en Samsung, LG y Roku
 - ~~Pantalla de información: "no afiliado al proyecto Jellyfin" + GPL-2.0~~
   **hecho el 03-oct.** La LGPL-2.1 se añade cuando entre libVLC en M6: hoy no
   viaja en el APK y declararla sería falso
@@ -678,7 +679,7 @@ falta.
   que pedía `PETICION_APK` §1
 - ~~Banner de ficha 1280×720 e icono 512×512 — hay que generarlos, el del APK
   es vectorial~~ **hechos el 05-oct**, en `herramientas/marca/png/`. Del icono
-  hay dos y hay que elegir: `palco-icono-512-ficha.png` es el que conviene
+  hay dos y hay que elegir: `palomera-icono-512-ficha.png` es el que conviene
   subir (`PLAY.md` §6 dice por qué)
 - **Política de privacidad** y **formulario de Seguridad de los datos**: ahora
   obligan de verdad, porque la app manda `installId` y diagnóstico (B6)

@@ -1,4 +1,4 @@
-# Auditoría: ¿puede Palco ser una plataforma multi-operador?
+# Auditoría: ¿puede Palomera ser una plataforma multi-operador?
 
 **Fecha:** 2026-10-25 · **Alcance:** los tres proyectos que forman el producto
 —`jellyfin-livetv-v1` (la APK), `servidor-canales` y `autorizador`—.
@@ -106,7 +106,7 @@ vale igual: describe lo que hay, no lo que se quería hacer.
 ## 1. Resumen ejecutivo
 
 **Hoy no es una plataforma multi-operador, y no lo es por decisión de diseño,
-no por falta de trabajo.** Palco es una arquitectura **federada**: cada ISP
+no por falta de trabajo.** Palomera es una arquitectura **federada**: cada ISP
 corre su propio servidor de canales en su propio site, sirviendo sus propios
 streams desde su propio Flussonic, con su propio Jellyfin para el VOD
 (`CLAUDE.md` §1). Kataliziador no opera contenido: opera **un directorio** —el
@@ -273,7 +273,7 @@ administrar lo suyo, muerde el primer día.
 
 ### 4 · Autenticación del abonado — ❌
 
-**No hay abonados en Palco.** El abonado se autentica contra el **Jellyfin de
+**No hay abonados en Palomera.** El abonado se autentica contra el **Jellyfin de
 su ISP**, y el operador se deduce del host que escribió (`alias` →
 `site_id`). No hay código de operador, ni selección en la app, ni dominio
 propio: hay una dirección IP o un nombre que el ISP le dictó por teléfono.
@@ -286,7 +286,7 @@ de los tres proyectos. Buscado explícitamente, no existe.
 **La primera pantalla de la app es una caja de texto donde el abonado escribe
 la dirección de un servidor** (`ServerAddFragment.kt`, heredado del upstream).
 Eso es exactamente la «fuente arbitraria» que quieres prohibir: cualquiera
-puede apuntar Palco a su propio Jellyfin y usar la app como cliente genérico.
+puede apuntar Palomera a su propio Jellyfin y usar la app como cliente genérico.
 `CLAUDE.md` §8 ya lo reconoce y lo acepta para v1 («el daño es bajo —es su
 instalación—»), pero esa aceptación se tomó para otro producto.
 
@@ -421,7 +421,7 @@ reproduciendo indefinidamente mientras alcance la LAN del ISP.
 todos los sites; el panel del site es una contraseña compartida sin atribución.
 El día que entre un ISP, no hay forma de limitarlo ni de saber quién cambió qué.
 
-**5 · El cliente acepta cualquier servidor.** Un usuario puede usar Palco contra
+**5 · El cliente acepta cualquier servidor.** Un usuario puede usar Palomera contra
 infraestructura que no controlas, y tu marca queda asociada a lo que sea que
 sirva ese servidor.
 

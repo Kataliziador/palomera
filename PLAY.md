@@ -1,6 +1,6 @@
 # PLAY.md
 
-**Lo que hace falta para publicar Palco en Google Play, y quién lo hace.**
+**Lo que hace falta para publicar Palomera en Google Play, y quién lo hace.**
 
 Este documento existe porque el primer envío tiene una propiedad incómoda: la
 caja mayoritaria del cliente —la ZTE B866V2— **solo admite instalaciones desde
@@ -57,8 +57,8 @@ puede sustituir si no hay Play App Signing. El comando lo ejecuta Edgar, para
 que la contraseña no pase por aquí:
 
 ```bash
-keytool -genkeypair -v -keystore palco-subida.jks -storetype PKCS12 \
-  -alias palco -keyalg RSA -keysize 4096 -validity 10950 \
+keytool -genkeypair -v -keystore palomera-subida.jks -storetype PKCS12 \
+  -alias palomera -keyalg RSA -keysize 4096 -validity 10950 \
   -dname "CN=<razón social>, O=<razón social>, C=MX"
 ```
 
@@ -359,7 +359,7 @@ La variable es obligatoria y **el build la exige**: sin ella el
 `versionCode 1` publicable (§3).
 
 1. El AAB sale en `app/build/outputs/bundle/release/` y se llama
-   `palco-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
+   `palomera-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
    borra**: el riesgo real de este paso es subir el archivo equivocado
 2. `versionCode` mayor que el del envío anterior
 3. Las dos comprobaciones de aislamiento de `CLAUDE.md` §4.7 salen limpias

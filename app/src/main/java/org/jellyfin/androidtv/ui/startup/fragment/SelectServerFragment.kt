@@ -196,7 +196,7 @@ class SelectServerFragment : Fragment() {
 
 		// Versión, para soporte. **Con el nombre de la app, no con el del
 		// proyecto del que sale** (§8): esta es la primera pantalla de toda
-		// instalación, lleva el logotipo de Palco arriba y aquí no hay ningún
+		// instalación, lleva el logotipo de Palomera arriba y aquí no hay ningún
 		// contexto de licencia que justifique nombrar al upstream — leído de
 		// corrido, el pie decía que la app se llama «jellyfin-androidtv».
 		//
