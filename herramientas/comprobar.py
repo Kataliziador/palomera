@@ -65,6 +65,13 @@ PERMITIDO = [
 	# sobrescribirlas en `values/` habría dejado el texto viejo en treinta y
 	# nueve: hay que apuntar los layouts a cadenas propias (27-oct)
 	r"^app/src/main/res/layout/fragment_user_login(_quick_connect)?\.xml$",
+	# el nombre con el que la app se presenta al Jellyfin del ISP: el
+	# `ClientInfo` del SDK, la cabecera de autorización del informe de fallos y
+	# el encabezado de los dos informes que se suben al servidor. Decía
+	# «Jellyfin Android TV» en la lista de sesiones del site (27-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/di/AppModule\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/telemetry/TelemetryService\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/util/profile/deviceProfileReport\.kt$",
 	r"^app/src/main/res/drawable[^/]*/(app_logo|app_banner_\w+|app_icon_\w+|ic_jellyfin|qr_jellyfin_docs)\.xml$",
 	r"^app/src/main/res/mipmap[^/]*/(app_icon|app_banner)\.(png|xml)$",
 	# utilería fuera de la app

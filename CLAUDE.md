@@ -262,9 +262,24 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      los `res/values*/strings.xml`, **los dos layouts de la pantalla de acceso
      —`layout/fragment_user_login.xml` y
      `layout/fragment_user_login_quick_connect.xml`— (añadidos el 27-oct)**,
+     **los tres sitios donde la app dice su propio nombre al servidor del ISP
+     —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
+     `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,
      los recursos de marca (`app_logo`, `app_icon*`,
      `app_banner*`, `mipmap/`) y los atributos `icon`, `banner` y `label` del
      `AndroidManifest.xml`.
+
+     **Por qué tres archivos para un nombre:** la app se presentaba al Jellyfin
+     del ISP como «Jellyfin Android TV», y eso sale en su lista de sesiones y de
+     dispositivos — justo lo que el panel de abonados enseña al operador al
+     confirmar un alta. El valor estaba escrito a mano en tres sitios que mandan
+     al **mismo** servidor: el `ClientInfo` del SDK, la cabecera de autorización
+     con la que se sube un informe de fallo y el encabezado `client:` de los dos
+     informes que se suben (`clientLogApi.logFile`). Arreglar uno y dejar los
+     otros deja el nombre viejo en los registros del site, que es donde alguien
+     lo encontraría dentro de un mes. El nombre vive ahora en
+     `BuildConfig.CLIENT_NAME`, declarado en `app/build.gradle.kts`, que ya es
+     territorio permitido. Son cambios de texto; ninguno de lógica.
 
      **Por qué los layouts y no solo las cadenas:** las de upstream vienen
      traducidas a cuarenta idiomas, así que sobrescribir
@@ -799,10 +814,35 @@ GPL-2.0 (fork) y LGPL-2.1 (libVLC, **puesto el 08-oct con M6**). Con una sola ap
 
 **Lo que sí sigue diciendo Jellyfin, y debe seguir diciéndolo:** todo lo que
 habla del **servidor** del ISP —«este servidor usa Jellyfin %1$s», «abra
-Jellyfin en un navegador para terminar la configuración», el informe de perfil
-de dispositivo—. §8 prohíbe usar el nombre **como marca nuestra**, no nombrar el
-software que el abonado tiene enfrente. Cambiarlo haría los mensajes de error
-inservibles para quien instala el site.
+Jellyfin en un navegador para terminar la configuración», el cuerpo del informe
+de perfil de dispositivo, que describe lo que ese servidor va a recibir—. §8
+prohíbe usar el nombre **como marca nuestra**, no nombrar el software que el
+abonado tiene enfrente. Cambiarlo haría los mensajes de error inservibles para
+quien instala el site.
+
+### La app se presenta al servidor como «Palomera»
+
+Corregido el 27-oct. Decía **«Jellyfin Android TV»**, que es el caso contrario
+al párrafo de arriba: ahí el nombre no describe el software del ISP, somos
+nosotros llamándonos Jellyfin. Y no es una cadena escondida: es lo que el
+servidor guarda por dispositivo y enseña en su lista de sesiones, o sea **lo
+primero que el panel de abonados le muestra al operador** al confirmar un alta
+(`DISENO.md` §6.2). Un operador que ve «Jellyfin Android TV» no sabe si lo que
+acaba de entrar es la caja que vendimos o el teléfono del abonado.
+
+El valor es `BuildConfig.CLIENT_NAME`, y **es «Palomera», no la marca del ISP**.
+Identifica el aparato, no al proveedor: las ranuras de marca de arriba visten la
+app por dentro, pero quien pregunta «qué cliente es esta sesión» necesita saber
+que es nuestra app. Por eso tampoco se traduce y no cambia en caliente, igual
+que el `applicationId`.
+
+Los tres sitios que lo usan están en §4.7. Lo que **sigue mal y no se puede
+arreglar todavía** es la línea vecina de esos informes,
+`client_repository: https://github.com/jellyfin/jellyfin-androidtv`: apunta al
+upstream y no a nuestro fork, así que un informe de fallo de esta app manda a
+quien lo lea al repositorio equivocado. Se corrige con la **misma** URL que
+espera `livetv_legal_licenses` (`PLAY.md` §5), y las dos van juntas en cuanto
+Edgar la dé.
 
 ### Datos de abonados: dos capas, y no se mezclan
 

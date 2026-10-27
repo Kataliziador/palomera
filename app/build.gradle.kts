@@ -34,6 +34,14 @@ android {
 		versionName = project.getVersionName()
 		versionCode = getVersionCode(versionName!!)
 
+		// El nombre con el que la app se identifica ante el Jellyfin del ISP:
+		// es lo que sale en su lista de sesiones y de dispositivos, y lo que el
+		// panel de abonados enseña al operador al confirmar un alta. Venía
+		// diciendo «Jellyfin Android TV», que es §8 sin cumplir. Va aquí y no en
+		// `strings.xml` porque es identidad, como el `applicationId`: no se
+		// traduce y no cambia con la marca del ISP.
+		buildConfigField("String", "CLIENT_NAME", "\"Palomera\"")
+
 		// LiveTV — nada de esto se codifica en el módulo (CLAUDE.md regla 12).
 		// En B5 cada uno pasa a ser un valor por product flavor.
 		buildConfigField("boolean", "VOD_ENABLED", "true")
