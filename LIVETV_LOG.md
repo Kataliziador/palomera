@@ -338,6 +338,50 @@ declararla.
 
 ## Entradas
 
+### [B] La app se presentaba al servidor como «Jellyfin Android TV» — 2026-10-27
+
+**Síntoma:** en la lista de sesiones y de dispositivos del Jellyfin del ISP, la
+app aparecía como `Jellyfin Android TV`. Salió midiendo F0 del panel de
+abonados, mirando `/Sessions` del servidor de pruebas — no se buscaba.
+
+**Por qué importa más que una cadena:** esa lista es justo lo que el panel le
+enseña al operador para confirmar un alta (`panel-abonados/docs/DISENO.md`
+§6.2). Un operador que lee «Jellyfin Android TV» no sabe si lo que acaba de
+entrar es la caja que vendimos o el teléfono del abonado. Y es §8 sin cumplir
+del lado contrario al habitual: no es nombrar el software del ISP —eso §8 lo
+exige—, es la app llamándose Jellyfin a sí misma.
+
+**Estaba escrito a mano en tres sitios que hablan con el mismo servidor**, y
+arreglar uno dejaba el nombre viejo en los registros del site:
+`di/AppModule.kt` (el `ClientInfo` del SDK), `telemetry/TelemetryService.kt`
+(la cabecera `Authorization` del informe de fallo y su encabezado `client:`) y
+`util/profile/deviceProfileReport.kt` (el mismo encabezado del informe de
+capacidades). Los dos informes no van al proyecto Jellyfin: van al Jellyfin del
+ISP por `clientLogApi.logFile`. Ahora los tres leen `BuildConfig.CLIENT_NAME`,
+declarado en `app/build.gradle.kts`.
+
+**Medido en la caja real contra Jellyfin 12.0.0**, instalando y entrando con
+contraseña:
+
+- `/Sessions` → `Client='Palomera (debug)'`, `v=0.0.0-dev.1`;
+- `/Devices` → el registro del aparato **se actualiza en su sitio**: el mismo
+  `deviceId` que antes decía `Jellyfin Android TV (debug)` pasó a decir
+  `Palomera (debug)` al reautenticarse. O sea que los sites que ya tienen la
+  app instalada no arrastran el nombre viejo.
+
+**Y un hallazgo de paso que le toca al panel, con su límite:** mientras la app
+corría apareció en `/Sessions` una **segunda** sesión, con otro `deviceId`, que
+`/Devices` no tenía —`/Devices/Info` devolvió `404`— y que desapareció al parar
+la app. O sea que `/Sessions` puede listar algo sobre lo que el panel no puede
+actuar, y `/Devices` no. Para la confirmación de §6.2 la lista buena es
+`/Devices`, que es la que el diseño ya usa. **Una muestra, y el mecanismo es
+inferido, no medido:** no se estableció de dónde sale esa sesión.
+
+**Queda mal y no se puede arreglar hoy:** la línea vecina de esos dos informes,
+`client_repository: https://github.com/jellyfin/jellyfin-androidtv`, apunta al
+upstream y no a nuestro fork. Se corrige con la misma URL pública que espera
+`livetv_legal_licenses` (`PLAY.md` §5), pendiente de Edgar.
+
 ### [B] La primera pantalla deja de mandar al abonado a instalarse Jellyfin — 2026-10-27
 
 **Síntoma:** al estrenar una caja, lo primero que la app enseñaba era *«1. Abra
