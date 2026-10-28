@@ -9,6 +9,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.auth.model.Server
+import org.jellyfin.androidtv.auth.model.SessionFailure
+import org.jellyfin.androidtv.auth.model.asSessionFailure
 import org.jellyfin.androidtv.auth.store.AuthenticationPreferences
 import org.jellyfin.androidtv.auth.store.AuthenticationStore
 import org.jellyfin.androidtv.preference.PreferencesRepository
@@ -32,6 +34,23 @@ data class Session(
 	val accessToken: String,
 )
 
+/**
+ * Cómo acabó el intento de usar una sesión.
+ *
+ * Antes era un `Boolean`, y ahí se perdía el único dato que distingue a un
+ * abonado suspendido de uno dado de baja y de un site que no contesta: el
+ * motivo. Quien llama necesita los tres para enseñar cosas distintas.
+ */
+sealed interface SessionOutcome {
+	data object Ok : SessionOutcome
+
+	/** No se llegó a preguntarle al servidor: no existe o su versión no vale. */
+	data object NotAttempted : SessionOutcome
+
+	/** Se preguntó —o se intentó— y la sesión no sirve. */
+	data class Rejected(val failure: SessionFailure) : SessionOutcome
+}
+
 enum class SessionRepositoryState {
 	READY,
 	RESTORING_SESSION,
@@ -43,7 +62,7 @@ interface SessionRepository {
 	val state: StateFlow<SessionRepositoryState>
 
 	suspend fun restoreSession(destroyOnly: Boolean)
-	suspend fun switchCurrentSession(serverId: UUID, userId: UUID): Boolean
+	suspend fun switchCurrentSession(serverId: UUID, userId: UUID): SessionOutcome
 	fun destroyCurrentSession()
 }
 
@@ -87,11 +106,11 @@ class SessionRepositoryImpl(
 		}
 	}
 
-	override suspend fun switchCurrentSession(serverId: UUID, userId: UUID): Boolean {
+	override suspend fun switchCurrentSession(serverId: UUID, userId: UUID): SessionOutcome {
 		// No change in user - don't switch
 		if (currentSession.value?.userId == userId) {
 			Timber.d("Current session user is the same as the requested user")
-			return false
+			return SessionOutcome.NotAttempted
 		}
 
 		_state.value = SessionRepositoryState.SWITCHING_SESSION
@@ -101,7 +120,7 @@ class SessionRepositoryImpl(
 		if (session == null) {
 			Timber.w("Could not switch to non-existing session for user $userId")
 			_state.value = SessionRepositoryState.READY
-			return false
+			return SessionOutcome.NotAttempted
 		}
 
 		val switched = setCurrentSession(session)
@@ -118,12 +137,12 @@ class SessionRepositoryImpl(
 		_state.value = SessionRepositoryState.READY
 	}
 
-	private suspend fun setCurrentSession(session: Session?): Boolean {
+	private suspend fun setCurrentSession(session: Session?): SessionOutcome {
 		var server: Server? = null
 
 		if (session != null) {
 			// No change in session - don't switch
-			if (currentSession.value?.userId == session.userId) return true
+			if (currentSession.value?.userId == session.userId) return SessionOutcome.Ok
 
 			// Update last active user
 			authenticationPreferences[AuthenticationPreferences.lastServerId] = session.serverId.toString()
@@ -131,7 +150,7 @@ class SessionRepositoryImpl(
 
 			// Check if server version is supported
 			server = serverRepository.getServer(session.serverId, true)
-			if (server == null || !server.versionSupported) return false
+			if (server == null || !server.versionSupported) return SessionOutcome.NotAttempted
 		}
 
 		// Update session after binding the apiclient settings
@@ -147,9 +166,19 @@ class SessionRepositoryImpl(
 				userRepository.setCurrentUser(user)
 				serverRepository.setCurrentServer(server)
 			} catch (err: ApiClientException) {
-				Timber.e(err, "Unable to authenticate: bad response when getting user info")
+				// **El motivo no se tira.** Esta llamada es la misma que hace
+				// `AuthenticationRepository.authenticateToken`, y como se hacía aquí
+				// primero, su `catch` —que sí separa el tiempo de espera— no llegaba a
+				// ejecutarse nunca: los tres casos salían por este `return false` y
+				// acababan en la pantalla del código.
+				val failure = err.asSessionFailure()
+				Timber.e(err, "Unable to authenticate: bad response when getting user info ($failure)")
+				// Se destruye la sesión en los tres casos, también en el 403: con un
+				// token que el servidor rechaza no se puede entrar a nada. Lo que esto
+				// **no** hace es borrar el token guardado —sólo «Cerrar sesión» lo
+				// borra—, y por eso un abonado reactivado vuelve a entrar sin código.
 				destroyCurrentSession()
-				return false
+				return SessionOutcome.Rejected(failure)
 			}
 
 			// Update crash reporting URL
@@ -163,7 +192,7 @@ class SessionRepositoryImpl(
 		preferencesRepository.onSessionChanged()
 		_currentSession.value = session
 
-		return true
+		return SessionOutcome.Ok
 	}
 
 	private fun createLastUserSession(): Session? {

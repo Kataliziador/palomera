@@ -74,6 +74,15 @@ PERMITIDO = [
 	r"^app/src/main/java/org/jellyfin/androidtv/util/profile/deviceProfileReport\.kt$",
 	r"^app/src/main/res/drawable[^/]*/(app_logo|app_banner_\w+|app_icon_\w+|ic_jellyfin|qr_jellyfin_docs)\.xml$",
 	r"^app/src/main/res/mipmap[^/]*/(app_icon|app_banner)\.(png|xml)$",
+	# la puerta de la sesión del abonado: 403 (suspendido) y «no contesta» se
+	# trataban como un 401 y mandaban a la pantalla del código (28-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/model/LoginState\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/model/SessionFailure\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/repository/SessionRepository\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/repository/AuthenticationRepository\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ServerFragment\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/UserLogin(Credentials|QuickConnect)Fragment\.kt$",
+	r"^app/src/test/kotlin/auth/",
 	# utilería fuera de la app
 	r"^herramientas/",
 	r"^headend/",

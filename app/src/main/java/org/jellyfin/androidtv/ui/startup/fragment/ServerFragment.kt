@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -18,6 +19,8 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -30,6 +33,7 @@ import org.jellyfin.androidtv.auth.model.RequireSignInState
 import org.jellyfin.androidtv.auth.model.Server
 import org.jellyfin.androidtv.auth.model.ServerUnavailableState
 import org.jellyfin.androidtv.auth.model.ServerVersionNotSupported
+import org.jellyfin.androidtv.auth.model.ServiceSuspendedState
 import org.jellyfin.androidtv.auth.model.User
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
 import org.jellyfin.androidtv.auth.repository.ServerRepository
@@ -48,6 +52,16 @@ import org.koin.androidx.viewmodel.ext.android.activityViewModel
 class ServerFragment : Fragment() {
 	companion object {
 		const val ARG_SERVER_ID = "server_id"
+
+		/**
+		 * Cada cuánto vuelve a preguntar una caja suspendida.
+		 *
+		 * Dos minutos: lo que tarda en enterarse de que el abonado ya pagó, y es
+		 * lo que convierte la reactivación en «se arregla solo» en vez de «vuelve
+		 * a llamar». Sólo corre mientras el aviso está en pantalla, contra el
+		 * Jellyfin del propio site, que está en la LAN.
+		 */
+		private const val REINTENTO_SUSPENDIDO_MS = 2L * 60 * 1000
 	}
 
 	private val startupViewModel: StartupViewModel by activityViewModel()
@@ -56,6 +70,8 @@ class ServerFragment : Fragment() {
 	private val serverUserRepository: ServerUserRepository by inject()
 	private val backgroundService: BackgroundService by inject()
 	private var _binding: FragmentServerBinding? = null
+	private var avisoSuspendido: AlertDialog? = null
+	private var reintentoSuspendido: Job? = null
 	private val binding get() = _binding!!
 
 	private val serverIdArgument get() = arguments?.getString(ARG_SERVER_ID)?.ifBlank { null }?.toUUIDOrNull()
@@ -71,33 +87,7 @@ class ServerFragment : Fragment() {
 		_binding = FragmentServerBinding.inflate(inflater, container, false)
 
 		val userAdapter = UserAdapter(requireContext(), server, startupViewModel, authenticationRepository, serverUserRepository)
-		userAdapter.onItemPressed = { user ->
-			startupViewModel.authenticate(server, user).onEach { state ->
-				when (state) {
-					// Ignored states
-					AuthenticatingState -> Unit
-					AuthenticatedState -> Unit
-					// Actions
-					RequireSignInState -> navigateFragment<UserLoginFragment>(bundleOf(
-						UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
-						UserLoginFragment.ARG_USERNAME to user.name,
-					))
-					// Errors
-					ServerUnavailableState,
-					is ApiClientErrorLoginState -> Toast.makeText(context, R.string.server_connection_failed, Toast.LENGTH_LONG).show()
-
-					is ServerVersionNotSupported -> Toast.makeText(
-						context,
-						getString(
-							R.string.server_issue_outdated_version,
-							state.server.version,
-							ServerRepository.recommendedServerVersion.toString()
-						),
-						Toast.LENGTH_LONG
-					).show()
-				}
-			}.launchIn(lifecycleScope)
-		}
+		userAdapter.onItemPressed = { user -> autenticar(server, user) }
 		binding.users.adapter = userAdapter
 
 		startupViewModel.users
@@ -124,9 +114,84 @@ class ServerFragment : Fragment() {
 		return binding.root
 	}
 
+	/**
+	 * Entra con el usuario elegido y reacciona a lo que conteste el servidor.
+	 *
+	 * Estaba dentro del `onItemPressed`; se saca aquí porque el reintento
+	 * automático de [avisarSuspendido] tiene que pasar por exactamente el mismo
+	 * camino, y dos copias del `when` se habrían separado a la primera.
+	 */
+	private fun autenticar(server: Server, user: User) {
+		startupViewModel.authenticate(server, user).onEach { state ->
+			when (state) {
+				// Ignored states
+				AuthenticatingState -> Unit
+				AuthenticatedState -> Unit
+				// Actions
+				RequireSignInState -> navigateFragment<UserLoginFragment>(bundleOf(
+					UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
+					UserLoginFragment.ARG_USERNAME to user.name,
+				))
+				// El contrato está suspendido: ni es un error de red ni lleva al código
+				ServiceSuspendedState -> avisarSuspendido(server, user)
+				// Errors
+				ServerUnavailableState,
+				is ApiClientErrorLoginState -> Toast.makeText(context, R.string.server_connection_failed, Toast.LENGTH_LONG).show()
+
+				is ServerVersionNotSupported -> Toast.makeText(
+					context,
+					getString(
+						R.string.server_issue_outdated_version,
+						state.server.version,
+						ServerRepository.recommendedServerVersion.toString()
+					),
+					Toast.LENGTH_LONG
+				).show()
+			}
+		}.launchIn(lifecycleScope)
+	}
+
+	/**
+	 * Lo que ve un abonado suspendido, que hasta hoy era la pantalla del código.
+	 *
+	 * Dice qué pasa —y que **no** hay que activar el aparato otra vez—, y vuelve
+	 * a probar sola cada [REINTENTO_SUSPENDIDO_MS]. Si para entonces el proveedor
+	 * ya reactivó, `setCurrentSession` deja la sesión puesta y `StartupActivity`
+	 * entra sin que nadie toque el mando: eso es lo que hace que la suspensión
+	 * salga gratis en soporte, y es la mitad que faltaba del 403.
+	 */
+	private fun avisarSuspendido(server: Server, user: User) {
+		if (avisoSuspendido?.isShowing == true) return
+
+		avisoSuspendido = AlertDialog.Builder(requireContext())
+			.setTitle(R.string.livetv_acceso_suspendido_titulo)
+			.setMessage(R.string.livetv_acceso_suspendido_mensaje)
+			.setPositiveButton(R.string.livetv_acceso_suspendido_reintentar) { dialogo, _ ->
+				dialogo.dismiss()
+				autenticar(server, user)
+			}
+			.setOnDismissListener {
+				reintentoSuspendido?.cancel()
+				reintentoSuspendido = null
+				avisoSuspendido = null
+			}
+			.show()
+
+		reintentoSuspendido = viewLifecycleOwner.lifecycleScope.launch {
+			while (true) {
+				delay(REINTENTO_SUSPENDIDO_MS)
+				autenticar(server, user)
+			}
+		}
+	}
+
 	override fun onDestroyView() {
 		super.onDestroyView()
 
+		reintentoSuspendido?.cancel()
+		reintentoSuspendido = null
+		avisoSuspendido?.dismiss()
+		avisoSuspendido = null
 		_binding = null
 	}
 

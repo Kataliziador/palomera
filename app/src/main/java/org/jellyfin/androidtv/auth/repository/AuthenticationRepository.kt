@@ -20,6 +20,9 @@ import org.jellyfin.androidtv.auth.model.RequireSignInState
 import org.jellyfin.androidtv.auth.model.Server
 import org.jellyfin.androidtv.auth.model.ServerUnavailableState
 import org.jellyfin.androidtv.auth.model.ServerVersionNotSupported
+import org.jellyfin.androidtv.auth.model.ServiceSuspendedState
+import org.jellyfin.androidtv.auth.model.SessionFailure
+import org.jellyfin.androidtv.auth.model.asSessionFailure
 import org.jellyfin.androidtv.auth.model.User
 import org.jellyfin.androidtv.auth.store.AuthenticationPreferences
 import org.jellyfin.androidtv.auth.store.AuthenticationStore
@@ -91,7 +94,11 @@ class AuthenticationRepositoryImpl(
 			return@flow
 		} catch (err: ApiClientException) {
 			Timber.e(err, "Unable to sign in as $username")
-			emit(ApiClientErrorLoginState(err))
+			// Medido el 28-oct: con el contrato suspendido, `AuthenticateByName`
+			// también contesta 403. Sin esto el abonado leería «no se pudo conectar
+			// con el servidor», que es falso y le manda a revisar su red.
+			if (err.asSessionFailure() == SessionFailure.SUSPENDED) emit(ServiceSuspendedState)
+			else emit(ApiClientErrorLoginState(err))
 			return@flow
 		}
 
@@ -109,7 +116,8 @@ class AuthenticationRepositoryImpl(
 			return@flow
 		} catch (err: ApiClientException) {
 			Timber.e(err, "Unable to sign in with Quick Connect secret")
-			emit(ApiClientErrorLoginState(err))
+			if (err.asSessionFailure() == SessionFailure.SUSPENDED) emit(ServiceSuspendedState)
+			else emit(ApiClientErrorLoginState(err))
 			return@flow
 		}
 
@@ -129,23 +137,21 @@ class AuthenticationRepositoryImpl(
 		)
 
 		authenticateFinish(server, userInfo, accessToken)
-		val success = setActiveSession(user, server)
-		if (success) {
+		val outcome = setActiveSession(user, server)
+		if (outcome == SessionOutcome.Ok) {
 			emit(AuthenticatedState)
 		} else {
 			Timber.w("Failed to set active session after authenticating")
-			if (!server.versionSupported) emit(ServerVersionNotSupported(server))
-			else emit(RequireSignInState)
+			emit(loginStateFor(outcome, server))
 		}
 	}.flowOn(Dispatchers.IO)
 
 	private fun authenticateToken(server: Server, user: User) = flow {
 		emit(AuthenticatingState)
 
-		val success = setActiveSession(user, server)
-		if (!success) {
-			if (!server.versionSupported) emit(ServerVersionNotSupported(server))
-			else emit(RequireSignInState)
+		val outcome = setActiveSession(user, server)
+		if (outcome != SessionOutcome.Ok) {
+			emit(loginStateFor(outcome, server))
 		} else try {
 			// Update user info
 			val userInfo by userApiClient.userApi.getCurrentUser()
@@ -177,10 +183,36 @@ class AuthenticationRepositoryImpl(
 		authenticationStore.putUser(server.id, userInfo.id, updatedUser)
 	}
 
-	private suspend fun setActiveSession(user: User, server: Server): Boolean {
+	/**
+	 * Qué se le enseña al abonado según por qué no sirvió la sesión.
+	 *
+	 * El caso que obliga a esto es el **403**: hasta hoy caía en
+	 * [RequireSignInState] y la caja enseñaba la pantalla del código, así que un
+	 * abonado suspendido llamaba a su proveedor a pedir un código en vez de a
+	 * pagar — y con uno nuevo entraba con otra sesión, dejando un dispositivo de
+	 * más en el panel. Ver [SessionFailure] para lo medido.
+	 *
+	 * El de [SessionFailure.UNREACHABLE] no lo pidió nadie y es un fallo aparte:
+	 * una caja encendida antes que su router perdía la cuenta igual que una dada
+	 * de baja. [ServerUnavailableState] ya existía y ya se pinta como toca —un
+	 * aviso, sin salir de la lista de usuarios—; lo que faltaba era llegar a él.
+	 */
+	private fun loginStateFor(outcome: SessionOutcome, server: Server): LoginState = when {
+		outcome is SessionOutcome.Rejected && outcome.failure == SessionFailure.SUSPENDED ->
+			ServiceSuspendedState
+
+		outcome is SessionOutcome.Rejected && outcome.failure == SessionFailure.UNREACHABLE ->
+			ServerUnavailableState
+
+		!server.versionSupported -> ServerVersionNotSupported(server)
+
+		else -> RequireSignInState
+	}
+
+	private suspend fun setActiveSession(user: User, server: Server): SessionOutcome {
 		val authenticated = sessionRepository.switchCurrentSession(server.id, user.id)
 
-		if (authenticated) {
+		if (authenticated == SessionOutcome.Ok) {
 			// Update last use in store
 			authenticationStore.getServer(server.id)?.let { storedServer ->
 				authenticationStore.putServer(server.id, storedServer.copy(lastUsed = Instant.now().toEpochMilli()))

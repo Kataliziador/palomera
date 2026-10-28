@@ -241,7 +241,7 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      ':!*/flavors/*' ':!*.md'
    ```
 
-   Lo que aparezca aquí son **seis cosas y ninguna más**, y se justifican una
+   Lo que aparezca aquí son **siete cosas y ninguna más**, y se justifican una
    a una en el commit:
 
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
@@ -293,6 +293,36 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      legal el envío a Play, y vive por fuerza en las pantallas del upstream
      —no existe una sección de información propia y hacerla costaría más
      diff que reusar la suya—;
+   - **la puerta de la sesión del abonado** — `auth/model/LoginState.kt`,
+     `auth/model/SessionFailure.kt`, `auth/repository/SessionRepository.kt`,
+     `auth/repository/AuthenticationRepository.kt`,
+     `ui/startup/fragment/ServerFragment.kt` y los dos
+     `ui/startup/fragment/UserLogin{Credentials,QuickConnect}Fragment.kt`, más
+     su prueba en `app/src/test/kotlin/auth/` **(añadidos el 28-oct)**.
+
+     **Qué arregla:** el servidor del ISP distingue tres cosas y la app las
+     trataba como una. `SessionRepository` atrapaba `ApiClientException` a
+     secas, así que un **403** —contrato suspendido, el token sigue vivo— y un
+     **«no contesta»** acababan los dos donde acaba un 401: en la pantalla del
+     código. Medido el 28-oct contra Jellyfin 10.11.11 **y** 12.0.0, tres
+     llamadas por estado y cuatro rutas. El daño del primero lo vio el panel de
+     abonados en la caja: un abonado suspendido llama a pedir un código en vez
+     de a pagar, y con uno nuevo entra con otra sesión. El del segundo no lo
+     había pedido nadie: una caja encendida antes que su router perdía la
+     cuenta igual que una dada de baja, porque el SDK convierte
+     `ConnectException`, `InterruptedIOException` y `UnknownHostException` en
+     `TimeoutException`, que hereda de `ApiClientException`.
+
+     **Esto no es Modo B, y es la primera vez que esta lista admite lógica.**
+     Las seis categorías de arriba son texto, recursos o enganches; ésta cambia
+     el comportamiento de una pantalla **compartida con el VOD**, que es lo que
+     el párrafo del final de esta sección manda tratar aparte. El invariante no
+     se rompe —películas y series se siguen reproduciendo igual—, pero el
+     camino de entrada cambia en dos casos para **todos** los usuarios, VOD
+     incluido: con un 403 se ve «Servicio suspendido» en vez de la pantalla del
+     código, y con el servidor mudo se ve el aviso de siempre sin salir de la
+     lista de usuarios. Los dos son mejores que lo anterior y los dos **exigen
+     que Edgar valide la entrada al VOD en pantalla**, no sólo la del canal;
    - **utilería fuera de la app** — `herramientas/`, `headend/` y `.claude/`,
      que no se compilan ni viajan en el APK. `.claude/` son las skills y
      agentes del repositorio **(añadido el 10-oct)**: viven aquí y no en la

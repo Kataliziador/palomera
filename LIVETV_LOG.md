@@ -331,6 +331,7 @@ declararla.
 | 81 | ~~**`frames.first` mide dos cosas distintas según el motor**~~ | — | Media3 lo emite en `onRenderedFirstFrame` —un fotograma **pintado**— (`Media3LiveEngine.kt:1641`); libVLC lo emite en `MediaPlayer.Event.Vout`, cuando se **crea la salida de vídeo** (`VlcLiveEngine.kt:377`), bastante antes de que haya imagen. Medido el 20-oct en los 56 zapeos: **1 459 ms de mediana en Media3 contra 226 ms en libVLC**, y la diferencia no es que libVLC sea seis veces más rápido, es que mide otra cosa. Mezclarlos en un percentil contamina el número de §10, y el riesgo es de los caros: los SD MPEG-2 de cualquier site con cajas sin ese decoder van **todos** por libVLC, así que el zapping del caso mayoritario está sin medir y parecería excelente. El arreglo es emitirlo en el primer fotograma de verdad también en libVLC, o nombrarlo distinto. **Hecho el 22-oct.** libVLC no tiene evento de primer fotograma, pero sí un contador: `IMedia.Stats.displayedPictures`. En cuanto `Event.Vout` crea la salida se sondea ese contador cada 25 ms (`LiveTuning.VLC_SONDEO_PRIMER_FOTOGRAMA_MS`) hasta que pasa de cero, y **ahí** se emite `frames.first`; el momento del Vout se sigue registrando con su propio nombre, `vlc.voutCreado`, para que las series anteriores al 22-oct se puedan comparar. Si a los 10 s no hay imagen no se escribe la métrica: sale `frames.sinImagenTrasVout`, que es otro síntoma —salida creada y pantalla negra— y no un arranque lento. **Medido en la Skyworth, 6 sintonías por libVLC forzado:** `once` ×5 da 326 ms de mediana en el Vout contra **604 ms** en el primer fotograma de verdad (huecos de 63 a 299 ms) y `mileniosd` ×1 da 907 contra **1 248**. El número viejo se quedaba corto en todos. **Lo que esto NO cierra:** la comparación de §10 entre motores. Estas 6 son repeticiones en caliente de dos canales y el p50 de Media3 salió de 49 zapeos; hace falta repetir el experimento del 20-oct ahora que los dos eventos miden lo mismo. Y el camino de `frames.sinImagenTrasVout` no está ejercitado: haría falta un stream que cree salida y no pinte. **Cerrado el 27-oct rehaciendo el experimento: 94 zapeos en cuatro corridas sobre la misma ventana.** Con los dos eventos midiendo ya lo mismo, libVLC parecía el doble de rápido que Media3 — y **no era el motor, era el tunneled**: apagándolo, Media3 baja de 612 a 374 ms y empata con libVLC (347-379). El caso mayoritario que preocupaba, `estrellassd` MPEG-2 por libVLC, da **379 ms de mediana** por el camino real: excelente de verdad, no por el instrumento. Las cuatro condiciones quedan bajo el objetivo de §10. Medido en **debug**, no en release: los 1 459 ms del 20-oct no son comparables. **Lo único que queda abierto de esta fila es `frames.sinImagenTrasVout`**, que sigue sin ejercitarse. Ver la entrada |
 | ~~82~~ | ~~**Zapear a un canal no disponible deja el zapeo muerto: las flechas dejan de responder y solo se sale con ATRÁS**~~ | — | medido el 20-oct: `canal.noDisponible canal=universal` → `engine.release habiaPlayer=true`, y la app vuelve a la lista. `CONTRATO.md` dice que un canal `unavailable` sale «con su número y su sitio, y la app explica por qué no se puede ver»; no que te eche de lo que estabas viendo. El lineup de pruebas tiene dos (`universal`, `foxny`); en uno real de 120 se topa constantemente, y recuperarse exige volver a entrar a mano. **El enunciado hay que volver a comprobarlo antes de tocarlo.** El 22-oct, zapeando con la flecha **dentro del reproductor** del 103 al 102 —`estrellassd`, marcado sin señal—, salió `canal.noDisponible` pero **no** hubo `engine.release` y la app **no** volvió a la lista: se quedó en una pantalla del reproductor con «Estrellas SD / Sin señal en este momento», que es lo que `CONTRATO.md` pide. Una muestra, un canal y un camino —el original se midió sobre `universal` el 20-oct—, así que no lo da por cerrado: puede ser que el comportamiento dependa del camino, o que algo de B-4 lo cambiara. Medirlo otra vez cuesta cinco minutos y decide si este pendiente existe. **Medido otra vez el 23-oct sobre la release `0.1.0-rc.2`, y el enunciado era falso: no expulsa de nada — lo que hace es dejarte encerrado.** Mismo canal que la medida del 20-oct (`universal`) y el mismo camino que lo destapó: zapeo con la flecha **dentro del reproductor**, de `discoveryhd` (301) a `universal` (210). El log da la firma idéntica a la del 20-oct —`canal.noDisponible canal=universal motivo=Canal no disponible` seguido de `engine.release canal=discoveryhd habiaPlayer=true`—, y soltar el motor de un canal que no se puede enseñar es lo correcto, no una fuga. **Pero la app no vuelve a la lista:** se queda en el reproductor con «Universal / Canal no disponible», que es exactamente lo que pide `CONTRATO.md`. **Lo que sí está roto es la salida:** desde esa pantalla las flechas no hacen nada —ARRIBA, ABAJO y ABAJO otra vez, y ni una línea nueva en una captura de `logcat` que seguía viva (última línea a las 12:05:55, tres pulsaciones después)—, así que el zapeo se para en el primer canal caído y solo se sale con ATRÁS, que devuelve a la lista con el foco en el canal que se estaba viendo. En un lineup de 120 con varios caídos, eso es la flecha muerta hasta volver a entrar a mano. **El título de esta fila queda corregido** y el pendiente sigue abierto y sigue siendo Modo A, porque el arreglo cambia el comportamiento del zapeo. **Aviso de instrumento:** con tunneled puesto `screencap` no ve el vídeo (§6), así que que `discoveryhd` estuviera reproduciendo se juzgó por `frames.first msDesdePrepare=2052` y el latido, no por la captura — una captura negra ahí no significa nada **Cerrado el 25-oct con el visto bueno de Edgar en pantalla, sobre la release `0.1.0-rc.3`.** La causa no estaba en el zapeo: `LiveTvPlayerFragment` dibujaba la pantalla de aviso con un `return` anticipado (`:156`), **460 líneas antes del manejador de teclas** (`:617`), que cuelga del contenedor del reproductor. Las flechas no fallaban — no existían ahí. ATRÁS funcionaba porque lo atiende el fragmento. Y el mismo `return` estaba en otras dos pantallas de la misma forma —«canal no encontrado» y «canal sin camino de decodificación»—, así que el defecto era uno en tres sitios y arreglar solo el medido habría dejado dos iguales esperando número. Las tres comparten ahora una sola `PantallaDeAviso` que escucha el mando: ▲▼ cambian de canal igual que sobre la imagen y todo lo demás se deja pasar, ATRÁS incluido. Lleva además la línea «▲▼ cambia de canal · ATRÁS vuelve a la lista», que es §2 —un canal que explica no genera llamada a soporte—. Interruptor `zapeoEnAvisoEnabled` (`LiveTuning.ZAPEO_EN_AVISO_DEFAULT`), activo de fábrica como el rescate del tunneled, porque el comportamiento anterior es un callejón y no una alternativa. **Medido en la validación** (Edgar con el mando, Discovery HD 301 → ▲ → Universal 210 → ▲ → HBO HD 201 → ▼ → Universal): `engine.release canal=discoveryhd habiaPlayer=true` a las 15:14:58.830, `canal.noDisponible canal=universal` a las 15:14:58.893, y la segunda ▲ **sí produce línea** —`plan.construido canal=hbohd` a las 15:15:12.324— que es exactamente lo que el 23-oct no ocurría; `frames.first msDesdePrepare=900`, o sea **952 ms** de salir del aviso a imagen. Los 13,4 s entre una cosa y otra son Edgar leyendo la pantalla, no latencia. **Una pasada en cada sentido, un solo canal caído (`universal`) y una sola caja** (§9). **Corregido de paso un ruido que este mismo arreglo habría metido:** `canal.noDisponible` se escribía suelto en el cuerpo del composable, o sea una línea por recomposición; atado ahora a `LaunchedEffect(channel.id)`, sale una por visita, y así se lee en el log de la validación. **Lo que NO se pudo probar:** el interruptor apagado, para ver el comportamiento anterior al lado del nuevo. El menú de diagnóstico está detrás de `BuildConfig.DEBUG` (decisión del 11-oct) y rc.3 es release, así que desde el mando no se llega; el «antes» queda respaldado por las medidas del 23 y el 25-oct, no por una comparación en la misma sesión |
 | 83 | ~~**El motor libVLC dice no saber cosas que sí publica**~~ | — | el comentario de `VlcLiveEngine.stats()` afirma que libVLC «no expone el nombre del decodificador activo, ni fotogramas perdidos, ni la ventana DVR, ni el offset al directo», y por eso esos campos van en cero a propósito —decisión correcta: rellenarlos con estimaciones los haría indistinguibles de los de Media3, que sí están medidos—. **Pero de fotogramas perdidos sí sabe.** Leído el 22-oct en el binding 3.6.5 (`org.videolan.libvlc.interfaces.IMedia$Stats`): publica `lostPictures`, `displayedPictures`, `decodedVideo`, `lostAbuffers`, `demuxCorrupted` y `demuxDiscontinuity`. El `displayedPictures` ya se usa desde el 81; los otros cinco siguen sin leerse, y `lostPictures` con `demuxCorrupted` son justo lo que hace falta para juzgar una sesión con lluvia por este camino, que hoy es ciega. El arreglo es llenar esos campos del latido **y corregir el comentario**, que es lo que hizo que nadie volviera a mirar. **Cerrado el 27-oct, y el binding tiene quince campos, no seis** —verificado con `javap`, no leído de aquí—: se publican `droppedFrames`, `measuredFps` y tres campos nuevos y nullables (`demuxCorrupted`, `demuxDiscontinuity`, `lostAudioBuffers`). Medido en la caja en tres corridas, y **la tercera refuta la lectura de las dos primeras**: los contadores se mueven pero todavía no distinguen sano de degradado. `demuxCorrupted` **no se ha visto moverse nunca** y eso queda escrito en el campo; ejercitarlo pide el golden sample con `--tei` en bucle. El bitrate desde `readBytes` se intentó y se retiró: no avanza sobre HLS. Ver la entrada || ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
+| 84 | **La TV en vivo no se entera de una suspensión mientras está abierta** | **A** | el punto 2 de A2 del panel de abonados, y lo único de esa petición que queda abierto tras el 28-oct. La sección sólo usa la sesión de Jellyfin para sacar el host (`LiveTvCatalog.kt`), así que una caja **encendida** sigue dando canales después de suspender al abonado; el corte sólo ocurre al siguiente arranque. El panel sugiere revalidar al entrar a la sección y cada ~15 min. Es **Modo A**: lo que se discute no es la llamada —eso es trivial— sino qué le pasa a la imagen cuando contesta 403, y una caja de TV se apaga por la noche, así que un corte que espera al siguiente encendido puede ser suficiente y uno que apaga la tele a media película no lo es. Decisión de Edgar antes de escribir nada. Lo que **no** queda abierto es distinguir el 403 del 401 ni el «no contesta»: hecho y medido en la caja el 28-oct |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
 
@@ -7192,3 +7193,100 @@ bueno de Edgar**, que es lo que cierra una fase de Modo A (§3). Las dos pruebas
 que M8 le pedía —un canal 48 h continuas y 50 cambios de canal seguidos— las
 hizo `adb`, no él delante de la tele. Lo que queda sin medir de la fase es el
 **zapeo repetido**: las dos series de memoria son de un canal fijo.
+
+
+### [B] Un abonado suspendido veía la pantalla del código — 2026-10-28
+
+**Síntoma:** la caja de un abonado suspendido enseña «Activa tu televisión» y
+un código, una y otra vez. Lo vio el panel de abonados en la Skyworth (su
+`PETICIONES.md`, A3) y de ahí salió su petición A4. El abonado lo lee como
+«hay que activar la caja otra vez», llama a su proveedor a pedir un código en
+vez de a pagar, y si se lo dan entra con **otra** sesión y el panel ve un
+dispositivo de más.
+
+**Hipótesis:** el servidor del ISP distingue tres cosas y la app las trataba
+como una. `SessionRepository.setCurrentSession` atrapaba `ApiClientException` a
+secas, así que un **403** —contrato suspendido, el token sigue vivo—, un
+**401** —baja— y un **«no contesta»** acababan los tres en el mismo
+`destroyCurrentSession()` y en la misma pantalla.
+
+Y había una razón de fondo para que no se arreglara donde parecía:
+`AuthenticationRepository.authenticateToken` **sí** separa `TimeoutException`,
+pero su `catch` no llega a ejecutarse nunca, porque `setCurrentSession` hace la
+misma llamada antes y se come el motivo.
+
+**Medido antes de tocar código**, contra Jellyfin **10.11.11 y 12.0.0** —no
+sólo la demo—, tres llamadas por estado y cuatro rutas (`/Users/Me`, `/Items`,
+`/Sessions` y una pública), reutilizando el token de una caja ya autenticada,
+sin volver a entrar:
+
+| Estado del abonado | `GET /Users/Me` | su dispositivo |
+|---|---|---|
+| activo | 200 | registrado |
+| suspendido (horario que no cubre ninguna hora) | **403** | sigue registrado |
+| reactivado, con el mismo token | 200 | registrado |
+| baja (`IsDisabled`) | **401**, también al reactivar | borrado |
+
+Que el token se reutilice sin reautenticar es lo que prueba que la política se
+evalúa **en cada petición**, y es lo que hace posible el pendiente 84.
+
+**Dos cosas que la medición del panel no tenía:**
+
+- **al administrador no le aplica.** Una muestra, 12.0.0: con el horario puesto,
+  un token de administrador que ya existía siguió contestando 200, y sólo el
+  inicio de sesión nuevo dio 403. Sólo mordería si un site diera permisos de
+  administrador a un abonado — que es justo lo que evita dar de alta desde el
+  panel. Obligó además a crear un abonado de prueba para medir en la caja: la
+  Skyworth está dentro como `test`, que es el administrador;
+- **el hueco del VOD es peor de lo anotado.** `GET /Videos/{id}/stream?static=true`
+  contestó **206 sin ningún token**, 3 de 3, en **las dos versiones** y en los
+  **tres** estados, baja incluida. Suspender no para una película, ni una ya
+  empezada ni una nueva. No es algo que la APK pueda arreglar, y contesta por
+  API la fila que A3 tenía como «sin medir».
+
+**Cambio:** se propaga el motivo en vez de añadir otro `catch`.
+`setCurrentSession` devuelve `SessionOutcome` en vez de `Boolean`;
+`auth/model/SessionFailure.kt` clasifica la excepción; `ServiceSuspendedState`
+es nuevo y `ServerUnavailableState` ya existía y ya se pintaba bien — lo que
+faltaba era llegar a él. En `ServerFragment` el aviso es un diálogo que además
+**vuelve a preguntar solo cada 2 min** mientras está en pantalla.
+
+El mapeo de excepciones está **leído del bytecode** de
+`jellyfin-api-okhttp-jvm` 1.7.1, no supuesto: `ConnectException`,
+`InterruptedIOException` y `UnknownHostException` se convierten **las tres** en
+`TimeoutException`, que hereda de `ApiClientException`. Por eso el segundo
+arreglo —que nadie había pedido— importa: una caja encendida antes que su
+router perdía la cuenta igual que una dada de baja.
+
+Se sigue destruyendo la sesión también con el 403: con un token que el servidor
+rechaza no se entra a nada. Lo que eso **no** hace es borrar el token guardado
+—sólo «Cerrar sesión» lo borra—, y es la razón de que el abonado reactivado
+vuelva a entrar sin código.
+
+**Prueba:** en la Skyworth, con un abonado **no administrador** creado y
+borrado para esto, contra el Jellyfin 12.0.0 de la oficina. Tres casos:
+
+| Caso | Lo que hizo la caja |
+|---|---|
+| suspendido, elegir al abonado | **«Servicio suspendido. Comunícate con tu proveedor»**, sin pantalla de código |
+| reactivar, sin tocar el mando | **entró sola a los 91 s** (el reintento es de 120 s) |
+| baja (`IsDisabled`), elegir al abonado | **la pantalla del código**, que es lo que A4 pide que siga pasando |
+
+Más seis pruebas unitarias de la clasificación
+(`app/src/test/kotlin/auth/SessionFailureTests.kt`) y `comprobar.py` en verde
+con la categoría nueva.
+
+**Lo que no se midió:** el arranque automático. `restoreSession` sigue sin
+emitir estado —descarta el `SessionOutcome`—, así que al encender, una caja
+suspendida cae en la lista de usuarios **sin mensaje**, y el aviso aparece al
+elegir al abonado. Es exactamente el flujo que A3 observó y lo que A4 pide, así
+que se deja; si alguna vez molesta, el dato ya está disponible en ese punto.
+
+**Resultado:** A4 cerrada y con ella el punto 3 de A2. El punto 2 queda como
+pendiente 84, que es Modo A.
+
+**Estado:** cerrada en lo medible por aquí, **pendiente del visto bueno de
+Edgar para el VOD**. Es la primera vez que §4.7 admite lógica en una pantalla
+compartida: el invariante no se rompe —las películas se reproducen igual— pero
+el camino de **entrada** cambia para todos los usuarios en dos casos, y eso se
+valida en pantalla, no por lectura.

@@ -20,6 +20,7 @@ import org.jellyfin.androidtv.auth.model.ConnectedQuickConnectState
 import org.jellyfin.androidtv.auth.model.PendingQuickConnectState
 import org.jellyfin.androidtv.auth.model.RequireSignInState
 import org.jellyfin.androidtv.auth.model.ServerUnavailableState
+import org.jellyfin.androidtv.auth.model.ServiceSuspendedState
 import org.jellyfin.androidtv.auth.model.ServerVersionNotSupported
 import org.jellyfin.androidtv.auth.model.UnavailableQuickConnectState
 import org.jellyfin.androidtv.auth.model.UnknownQuickConnectState
@@ -78,6 +79,10 @@ class UserLoginQuickConnectFragment : Fragment() {
 
 						AuthenticatingState -> binding.error.setText(R.string.login_authenticating)
 						RequireSignInState -> binding.error.setText(R.string.login_invalid_credentials)
+						// El 403 dice «suspendido», no «no se pudo conectar»: lo segundo manda
+						// al abonado a revisar su red, y aquí además hay que desmentir lo que
+						// esta pantalla sugiere, que es pedir otro código.
+						ServiceSuspendedState -> binding.error.setText(R.string.livetv_acceso_suspendido_breve)
 						ServerUnavailableState,
 						is ApiClientErrorLoginState -> binding.error.setText(R.string.login_server_unavailable)
 						// Do nothing because the activity will respond to the new session

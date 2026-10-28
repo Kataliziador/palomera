@@ -35,6 +35,10 @@
     <string name="livetv_acceso_codigo_paso_2" translatable="false">2. Dile que quieres activar este aparato.</string>
     <string name="livetv_acceso_codigo_paso_3" translatable="false">3. Dale este código:</string>
     <string name="livetv_acceso_usar_codigo" translatable="false">Activar con código</string>
+    <string name="livetv_acceso_suspendido_titulo" translatable="false">Servicio suspendido</string>
+    <string name="livetv_acceso_suspendido_mensaje" translatable="false">Tu servicio está suspendido. Comunícate con tu proveedor de televisión.\n\nNo hace falta activar el aparato otra vez: en cuanto tu servicio se reanude, esta televisión entrará sola.</string>
+    <string name="livetv_acceso_suspendido_breve" translatable="false">Servicio suspendido. Comunícate con tu proveedor; no hace falta un código nuevo.</string>
+    <string name="livetv_acceso_suspendido_reintentar" translatable="false">Volver a probar</string>
     <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">Palomera</string>
     <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">Palomera Debug</string>
     <string name="video_error_unknown_error">Failed to load video</string>
