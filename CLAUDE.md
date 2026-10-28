@@ -457,6 +457,17 @@ servidor que el hardware no puede cumplir.
   Validado en pantalla dos veces y sin penalización de zapping (1.1 a 1.5 s en
   arranque limpio).
 
+  **Matizado el 27-oct: en zapeo en caliente la penalización existe y está
+  medida.** Aquella frase salió de comparar arranques en frío, que no podían
+  verla. Sobre 94 zapeos en cuatro corridas de la misma ventana y la misma APK
+  —debug—, Media3 con tunneled da **612 ms de p50** al primer fotograma pintado
+  y **374 ms** con el tunneled apagado: **~240 ms de p50 y ~480 de p95 por
+  zapeo**. **No es un motivo para apagarlo**, y conviene leer las dos cifras
+  juntas: 1,6 min sin tunneled dieron 15 rebuffers y el offset trepando a 20,7 s
+  (08-oct), y las cuatro condiciones quedan muy por debajo del objetivo de §10.
+  240 ms al zapear es barato frente a un canal que se corta cada cuatro
+  segundos.
+
   **El riesgo era pantalla negra silenciosa**, y es la función más dependiente
   del fabricante de toda la pila. Desde el 05-oct hay red: si a los 8 s no ha
   llegado el primer fotograma estando el reproductor en marcha y la posición
