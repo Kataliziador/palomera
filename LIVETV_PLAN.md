@@ -452,6 +452,55 @@ en el módulo.
 
 La navegación de películas y series se conserva tal cual. **Dependencia:** B2.
 
+### Lo que pide el proyecto del panel de abonados
+
+Entregado el 28-oct en `/home/proyectos/panel-abonados/docs/PETICIONES.md`,
+apartados A1 a A3. El contrato no cambia. **A1 ya está hecha aquí**: la
+pantalla del código con texto propio (`e6d4954`, comprobada en la Skyworth el
+27-oct). Del A1 queda un solo dato para ese texto: **el código vive 10
+minutos** (medido en el Jellyfin 10.11.11 de la demo, dos muestras), y si
+Jellyfin se reinicia se pierden los códigos pendientes. Si la pantalla dice
+cuánto le queda, que no prometa más.
+
+**A2. Que la caja se entere de una suspensión.** El panel suspende con un
+horario de acceso vacío (`AccessSchedules`), no con `IsDisabled`, porque
+deshabilitar revoca la caja y obligaría al abonado a meter otro código cada
+vez que paga. Medido, 3 de 3:
+
+| | `GET /Users/Me` con el token de la caja | dispositivo |
+|---|---|---|
+| activo | 200 | registrado |
+| suspendido | **403** | sigue registrado |
+| reactivado | 200, el mismo token | registrado |
+| baja (`IsDisabled`) | 401, también al reactivar | borrado |
+
+**403 = suspendido, vuelve solo; 401 = fuera, hay que activar otra vez.**
+Hoy, leyendo el código, `SessionRepository.setCurrentSession` trata cualquier
+`ApiClientException` igual y llama a `destroyCurrentSession()`, que limpia la
+sesión pero no borra el token guardado. Con un 403, la caja cae a la pantalla
+de usuarios con un error genérico. Lo que se pide, de más a menos importante:
+
+1. **Distinguir 403 de 401** en `getCurrentUser()`. Ante un 403, mostrar
+   «Tu servicio está suspendido. Comunícate con tu proveedor.», **sin borrar el
+   token**, y reintentar (al pulsar y cada pocos minutos) hasta que conteste
+   200. Ante un 401, lo de hoy.
+2. **Revalidar al entrar a TV en vivo y cada cierto tiempo mientras está
+   abierta.** Hoy la sección solo usa la sesión para sacar el host
+   (`LiveTvCatalog.kt`), así que una caja encendida sigue dando canales después
+   de suspenderla. El intervalo lo decide este proyecto; para un corte por
+   falta de pago bastarían 15 minutos.
+3. **Que una suspensión no tumbe la TV si Jellyfin no contesta.** Hay que
+   distinguir «el servidor dice 403» de «el servidor no contesta», y lo segundo
+   no corta nada. Es la misma razón por la que la sección sobrevive hoy a que
+   se caiga el registro.
+
+**A3, sin código: comprobarlo en la caja.** Lo hace Edgar con la caja del
+site y el panel de abonados instalado. Hay que ver qué pasa con el VOD y con
+TV en vivo al suspender, y si tras reactivar y reiniciar la app **entra sola,
+sin código**. Una nota medida que afecta al VOD: en 10.11.11,
+`/Videos/{id}/stream?static=true` contesta 200 **sin token**, así que suspender
+no para una película ya empezada.
+
 ## B8 — EPG — **cerrado 2026-10-05**
 Consumo del XMLTV, programa actual y siguiente en la barra.
 
