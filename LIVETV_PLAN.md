@@ -501,6 +501,29 @@ sin código**. Una nota medida que afecta al VOD: en 10.11.11,
 `/Videos/{id}/stream?static=true` contesta 200 **sin token**, así que suspender
 no para una película ya empezada.
 
+**A3 medido en la Skyworth el 28-oct** (Palomera debug contra la demo, panel
+instalado):
+
+| Caso | Lo que pasó |
+|---|---|
+| suspendido (a mano o por vencimiento), abrir la app | no entra. Enseña el usuario y, al elegirlo, **la pantalla del código**, una y otra vez |
+| reactivado | **entra sola, sin código**, y sin reiniciar la app |
+| baja, abrir la app | no entra |
+| baja y vuelta | pide código; con uno nuevo entra |
+| VOD y TV en vivo abiertos al suspender | sin medir |
+
+La suspensión blanda funciona: el token sobrevive al 403 y vuelve solo.
+
+**A4. Antes de vender la suspensión: el punto 1 de A2 sube de prioridad.** Lo
+que se vio en la caja es peor que el error genérico que se leyó en el código.
+Suspendida, la caja **pide un código**, y el abonado lo lee como «hay que
+activarla otra vez». Llama al ISP a pedirlo, cuando lo que tiene que hacer es
+pagar. Y si el ISP se lo da, la caja entra con otra sesión y el panel ve un
+dispositivo de más. Lo que se pide es lo mismo del punto 1, ahora con plazo:
+**ante un 403, «Tu servicio está suspendido. Comunícate con tu proveedor.»,
+sin pantalla de código y reintentando sola. Solo el 401 lleva al código.**
+Los puntos 2 y 3 de A2 siguen sin plazo.
+
 ## B8 — EPG — **cerrado 2026-10-05**
 Consumo del XMLTV, programa actual y siguiente en la barra.
 
