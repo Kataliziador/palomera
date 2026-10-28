@@ -44,6 +44,12 @@ data class ConfigResult(
  */
 class ConfigRepository(context: Context) {
 
+	/**
+	 * Hace falta para las raíces incluidas de [RegistryTrust], y es el de la
+	 * aplicación a propósito: este repositorio vive más que cualquier pantalla.
+	 */
+	private val contexto = context.applicationContext
+
 	private val directorio = File(context.filesDir, "livetv")
 
 	/**
@@ -144,6 +150,15 @@ class ConfigRepository(context: Context) {
 
 	private fun descargar(configUrl: String): String {
 		val conexion = (URL(configUrl).openConnection() as HttpURLConnection).apply {
+			// **Si el site sirve el `config.json` por HTTPS con Let's Encrypt,
+			// aquí pasa lo mismo que con el registro:** una caja de Android 5.0
+			// a 7.1.0 no trae ninguna raíz de ISRG, no valida la cadena y se
+			// queda sin lista de canales sin dar error visible. Entra a
+			// Jellyfin, consigue autorización y la sección aparece vacía.
+			//
+			// En la LAN lo normal es `http` y esto no hace nada; un ISP que
+			// publique su site hacia fuera se llevaba el fallo entero.
+			RegistryTrust.aplicarA(this, contexto)
 			connectTimeout = LiveTuning.CONFIG_CONNECT_TIMEOUT_MS
 			readTimeout = LiveTuning.CONFIG_READ_TIMEOUT_MS
 			requestMethod = "GET"

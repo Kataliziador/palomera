@@ -25,3 +25,6 @@ streambox-iptv/
 
 # Salida de herramientas/scan-canales.sh: muestras .ts y reportes, se regeneran
 herramientas/out/
+
+# Las herramientas son scripts, no un paquete: su caché no se versiona.
+herramientas/__pycache__/

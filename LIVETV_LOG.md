@@ -339,6 +339,91 @@ declararla.
 
 ## Entradas
 
+### [B] El `config.json` y la guía se bajaban sin las raíces que llevamos dentro — 2026-10-28
+
+**Qué estaba mal.** Desde el 05-oct la app lleva dentro cuatro raíces de ISRG
+porque **Android no trae ninguna hasta la 7.1.1**, y `minSdk` es 21: sin ellas,
+una caja de Android 5.0 a 7.1.0 no valida el certificado de Let's Encrypt del
+registro y **nunca entra a TV en vivo, sin dar error visible**. Eso se arregló
+entonces para el registro, y el 08-oct para el logo de la marca.
+
+Faltaban dos, y una no la había contado nadie:
+
+| conexión | la pide | estado antes |
+|---|---|---|
+| registro | `RegistryRepository` | **con** confianza (05-oct) |
+| logo de la marca | `LogoLoader` | **con** confianza (08-oct) |
+| `config.json` | `ConfigRepository` | **sin** |
+| XMLTV de la guía | `EpgRepository` | **sin**, y sin que nadie lo supiera |
+
+Las dos últimas abren `HttpURLConnection` igual que el registro. En la LAN del
+ISP van por `http` y da lo mismo; un site que publique el `config.json` o el
+puntero del XMLTV hacia fuera con un certificado de Let's Encrypt se llevaba el
+fallo entero, y el síntoma no se parece a un problema de TLS: la caja entra a
+Jellyfin, consigue autorización y **la sección de canales aparece vacía**, o con
+la guía vacía, mientras las modernas del mismo site funcionan.
+
+**Cómo se encontró, que es la parte que importa.** El `config.json` estaba
+anotado en `LIVETV_PLAN.md` §B9 desde el 02-oct, **sin tachar y sin arreglar
+durante tres semanas**: «el arreglo debe cubrir las dos conexiones, no solo la
+del registro». No lo encontró una prueba —la confianza estaba bien construida y
+probada desde el 05-oct— ni un fallo en la caja: lo encontró releer el plan.
+
+Y la EPG no la encontré yo. Al añadir la comprobación `e)` a
+`herramientas/comprobar.py` —que exige que todo archivo de `livetv/` que abra
+una conexión nombre `RegistryTrust.aplicarA`— **falló en su primera ejecución
+señalando `EpgRepository.kt`**, que no estaba ni en el plan ni en mi lista. El
+puntero del XMLTV lo pone el `config.json` del site (§6), así que es tan público
+como él.
+
+**El arreglo, y por qué no son tres líneas repetidas.** El fallo no era de
+lógica: era de **olvido**, y el olvido venía de que la decisión «¿esta conexión
+necesita las raíces incluidas?» estaba escrita a mano en cada cliente. Ahora hay
+un punto único:
+
+```kotlin
+fun aplicarA(conexion: URLConnection, context: Context) =
+	aplicarA(conexion) { socketFactory(context) }
+
+internal fun aplicarA(conexion: URLConnection, fabrica: () -> SSLSocketFactory?) {
+	if (conexion !is HttpsURLConnection) return
+	fabrica()?.let { conexion.sslSocketFactory = it }
+}
+```
+
+La fábrica entra **perezosa** a propósito: en claro no se construye la confianza,
+que son cuatro certificados leídos de los recursos en cada sintonía y en la LAN
+eso es siempre. Y el encabezado de `RegistryTrust.kt` decía «se aplica **solo a
+la conexión con el registro**», que ya era falso cuando se escribió —el logo la
+usaba— y es justo el tipo de comentario que hace que nadie vuelva a mirar, como
+en el pendiente 83. Corregido a la regla que de verdad gobierna: **todo lo que
+puede llegar por TLS desde fuera de la LAN del ISP, y nunca la confianza global
+de la app.**
+
+**Cómo está verificado, y qué no lo está.** Tres pruebas nuevas en
+`RegistryTrustTest` (8 en total, todas en verde): a una conexión TLS se le pone
+la fábrica; una en claro no se toca **y no llega a construir la confianza**; y si
+la confianza no se pudo construir, la conexión se queda con la del sistema en vez
+de reventar. **Y la contraprueba**: vaciando el cuerpo de `aplicarA` la primera
+falla —`tests=8 failures=1`—, así que el instrumento ve el resultado contrario.
+
+Lo que **no** es una medida nueva: que Conscrypt de API 22 acepte la cadena. Eso
+se verificó el 05-oct para el registro, en el emulador de API 22, y el
+`config.json` y la EPG pasan ahora por **el mismo código**; que funcionen ahí
+está **inferido**, no medido. La cadena real de `authjelly.satmx.net` sí se
+valida contra las raíces empaquetadas en cada ejecución de las pruebas, y un
+autofirmado con el nombre del registro sigue siendo rechazado.
+
+`comprobar.py` queda con cinco comprobaciones y en verde después del commit.
+
+**Para el otro proyecto:** `INTEGRACION_CANALES.md` §3 lleva la consecuencia que
+el autor del servicio de canales necesita —puede servir por HTTPS con Let's
+Encrypt y ya vale para las cajas viejas, un autofirmado sigue sin valer en
+ninguna, y otra autoridad hay que probarla en una caja anterior a 7.1.1—. Va en
+este mismo commit, que es lo que manda la regla de sincronía de §1.
+
+---
+
 ### [B] Pendiente 81: repetido el experimento de zapeo, y la brecha entre motores era el tunneled — 2026-10-27
 
 **Qué faltaba.** El 22-oct se arregló que los dos motores emitieran

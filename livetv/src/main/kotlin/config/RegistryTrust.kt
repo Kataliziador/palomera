@@ -4,9 +4,11 @@ import android.content.Context
 import org.jellyfin.livetv.R
 import org.jellyfin.livetv.diagnostics.LiveLog
 import java.io.InputStream
+import java.net.URLConnection
 import java.security.KeyStore
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManagerFactory
@@ -46,9 +48,22 @@ import javax.net.ssl.X509TrustManager
  * proyectos. Aquí la verificación sigue siendo completa por los dos caminos: si
  * ninguno valida la cadena, se rechaza.
  *
- * Y se aplica **solo a la conexión con el registro**, nunca a la confianza
- * global de la app: el VOD y los canales van por HTTP en la LAN del ISP y no
- * tienen nada que ver con esto.
+ * ## A qué conexiones se aplica, y por qué a más de una
+ *
+ * **Corregido el 28-oct, y el encabezado de este archivo decía otra cosa.** La
+ * frase era «solo a la conexión con el registro», y para cuando se escribió ya
+ * era falsa: `LogoLoader` la usa para el logo de la marca desde el 08-oct. Y
+ * faltaba la tercera, que es la que `LIVETV_PLAN.md` había anotado sin tachar:
+ * **el `config.json`**, que `ConfigRepository` baja con `HttpURLConnection` y
+ * por tanto se lleva el mismo fallo entero si un site lo sirve por HTTPS.
+ *
+ * La regla que de verdad gobierna no es «el registro»: es **todo lo que puede
+ * llegar por TLS desde fuera de la LAN del ISP** —registro, `config.json` y
+ * logo—, y **nunca la confianza global de la app**. El VOD y los streams van
+ * por HTTP dentro de la LAN y no tienen nada que ver con esto.
+ *
+ * Por eso [aplicarA] existe: con la decisión escrita a mano en cada cliente,
+ * añadir un cuarto es olvidarse otra vez, y el olvido no da error visible.
  */
 object RegistryTrust {
 
@@ -102,6 +117,31 @@ object RegistryTrust {
 
 	/** La fábrica de sockets sola, para quien no necesita más. */
 	fun socketFactory(context: Context): SSLSocketFactory? = confianza(context)?.socketFactory
+
+	/**
+	 * Aplica la confianza ampliada a una conexión **si va por TLS**.
+	 *
+	 * Es el punto único por el que pasan los tres clientes de
+	 * `HttpURLConnection`. No es azúcar: la decisión «¿esta conexión necesita
+	 * las raíces incluidas?» tiene una sola respuesta correcta y escribirla en
+	 * cada sitio es cómo se quedó fuera el `config.json` durante tres semanas.
+	 *
+	 * En claro no hace nada, y eso es lo normal en la LAN de un ISP.
+	 */
+	fun aplicarA(conexion: URLConnection, context: Context) =
+		aplicarA(conexion) { socketFactory(context) }
+
+	/**
+	 * La parte que se puede probar sin Android.
+	 *
+	 * Recibe la fábrica **perezosa** para que una conexión en claro no llegue a
+	 * construir la confianza: en una caja vieja eso son cuatro certificados
+	 * leídos de los recursos para nada.
+	 */
+	internal fun aplicarA(conexion: URLConnection, fabrica: () -> SSLSocketFactory?) {
+		if (conexion !is HttpsURLConnection) return
+		fabrica()?.let { conexion.sslSocketFactory = it }
+	}
 
 	/**
 	 * Construye el `TrustManager` compuesto a partir de las raíces dadas.

@@ -704,11 +704,27 @@ contrato no cambia; esto es lo que `INTEGRACION_REGISTRO.md` §7 dejaba abierto.
   app—: `LogoLoader.kt` construye uno aparte, con `RegistryTrust` y solo para el
   logo de la marca.
 
-**Añadido desde este lado, que allí no podían ver:** `ConfigRepository` usa
+~~**Añadido desde este lado, que allí no podían ver:** `ConfigRepository` usa
 `HttpURLConnection`, así que **el mismo fallo alcanza al `config.json`** si un
 site lo sirve por HTTPS con Let's Encrypt. En la LAN lo normal será `http`, pero
 un ISP que publique su Jellyfin hacia fuera se lleva el problema entero. El
-arreglo debe cubrir las dos conexiones, no solo la del registro.
+arreglo debe cubrir las dos conexiones, no solo la del registro.~~
+
+**Hecho el 28-oct, y no eran dos conexiones: eran cuatro.** La confianza se
+aplica ahora por un punto único, `RegistryTrust.aplicarA`, y lo usan el
+registro, el `config.json`, el XMLTV de la guía y el logo de la marca. **La
+cuarta —la EPG— no la había contado nadie**, ni este párrafo ni yo al empezar: la
+encontró la comprobación nueva `e)` de `herramientas/comprobar.py` en su primera
+ejecución, que exige que todo archivo de `livetv/` que abra una conexión nombre
+`aplicarA`. El puntero del XMLTV lo pone el `config.json` del site, así que es
+tan público como él.
+
+**Por qué un punto único y un comprobador, y no tres líneas repetidas:** el
+fallo no era de lógica sino de olvido, y se escribió a mano en cada cliente. Lo
+que lo delató no fue una prueba de unidad —la confianza estaba bien construida y
+probada desde el 05-oct— sino leer el plan. Tres semanas sin que nadie mirase.
+Ver `INTEGRACION_CANALES.md` §3, que es donde el autor del servicio de canales
+necesita saberlo, y la entrada de `LIVETV_LOG.md`.
 
 ## B6 — Telemetría
 **Dos capas que no se mezclan** (`CLAUDE.md` §8):

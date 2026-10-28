@@ -3,9 +3,12 @@ package org.jellyfin.livetv.config
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import java.io.File
+import java.net.URL
 import java.security.cert.CertificateException
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLSocketFactory
 
 /**
  * La confianza con el registro, probada **sin Android y sin emulador**.
@@ -82,5 +85,42 @@ class RegistryTrustTest : StringSpec({
 		// Y sigue habiendo muchas del sistema: no hemos sustituido la confianza,
 		// la hemos ampliado.
 		(aceptados.size > 10) shouldBe true
+	}
+
+	// ---- A qué conexiones se aplica (28-oct) ----
+	//
+	// El cuarto modo de fallo, y el que de verdad ocurrió: la confianza está
+	// bien construida y **no se le aplica a una de las conexiones**. Costó tres
+	// semanas con el `config.json` y no da error visible, así que se prueba
+	// aquí y no mirando una caja. `openConnection()` no conecta, de modo que
+	// esto no toca la red.
+
+	fun fabricaDeMentira(): SSLSocketFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
+
+	"a una conexión TLS se le pone la fábrica con las raíces incluidas" {
+		val conexion = URL("https://authjelly.satmx.net/v1/resolve").openConnection() as HttpsURLConnection
+		val nuestra = fabricaDeMentira()
+		RegistryTrust.aplicarA(conexion) { nuestra }
+		conexion.sslSocketFactory shouldBe nuestra
+	}
+
+	"una conexión en claro no se toca, y ni siquiera se construye la confianza" {
+		// Lo segundo importa en una caja vieja: construirla son cuatro
+		// certificados leídos de los recursos, y en la LAN del ISP el
+		// `config.json` va por `http` en todas las sintonías.
+		var preguntada = false
+		val conexion = URL("http://192.168.20.249:8097/config.json").openConnection()
+		RegistryTrust.aplicarA(conexion) { preguntada = true; fabricaDeMentira() }
+		preguntada shouldBe false
+	}
+
+	"si la confianza no se pudo construir, la conexión se queda con la del sistema" {
+		// `confianza()` devuelve `null` cuando falla, y eso no puede dejar la
+		// conexión sin fábrica ni reventar: en una caja moderna la del sistema
+		// funciona igual.
+		val conexion = URL("https://authjelly.satmx.net/v1/resolve").openConnection() as HttpsURLConnection
+		val delSistema = conexion.sslSocketFactory
+		RegistryTrust.aplicarA(conexion) { null }
+		conexion.sslSocketFactory shouldBe delSistema
 	}
 })

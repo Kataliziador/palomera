@@ -88,6 +88,30 @@ Dos cosas que esto implica y conviene tener presentes:
 La caché se guarda **por servidor** (`config-<uuid>.json`). Una caja que cambie
 de site no hereda la lista de la anterior.
 
+### Podéis servir por HTTPS, y desde el 28-oct también a las cajas viejas
+
+Lo normal es `http` dentro de la LAN del ISP y ahí no hay nada que decidir. Pero
+si publicáis el `config.json` o el XMLTV **hacia fuera con un certificado de
+Let's Encrypt**, hasta el 28-oct eso rompía en silencio una parte del parque:
+
+**Android no trae ninguna raíz de ISRG hasta la 7.1.1.** En una caja de Android
+5.0 a 7.1.0 la descarga fallaba por certificado, y el síntoma no se parecía a un
+problema de TLS: la caja entraba a Jellyfin, conseguía autorización y la sección
+de canales aparecía **vacía**, o con la guía vacía, mientras las cajas modernas
+del mismo site funcionaban. `minSdk` de la APK es 21, así que ese parque existe.
+
+Ahora la app lleva dentro las raíces **ISRG Root X1, X2, YR y YE** y las usa
+para sus tres descargas propias —registro, `config.json` y XMLTV— además de las
+del sistema. Para vosotros significa:
+
+- **un certificado de Let's Encrypt vale**, sin hacer nada por vuestra parte;
+- **un certificado autofirmado sigue sin valer**, y seguirá: la verificación es
+  completa, lo que se añadió es una autoridad legítima más, no una excepción.
+  Si lo probáis con uno autofirmado, falla en todas las cajas, no solo en las
+  viejas;
+- si usáis **otra** autoridad, comprobadlo en una caja anterior a 7.1.1 antes de
+  desplegar, porque ahí solo valen las del sistema.
+
 ---
 
 ## 4. Qué hace la app con cada cosa, de verdad

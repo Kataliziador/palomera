@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jellyfin.livetv.LiveTuning
+import org.jellyfin.livetv.config.RegistryTrust
 import org.jellyfin.livetv.diagnostics.LiveLog
 import java.io.File
 import java.io.FileOutputStream
@@ -40,6 +41,9 @@ data class EpgResult(val guia: Guia, val origen: EpgOrigin)
  * necesita lo segundo y no lo primero.
  */
 class EpgRepository(context: Context) {
+
+	/** Para las raíces incluidas de [RegistryTrust]; ver [descargar]. */
+	private val contexto = context.applicationContext
 
 	private val directorio = File(context.filesDir, "livetv")
 
@@ -127,6 +131,12 @@ class EpgRepository(context: Context) {
 	 */
 	private fun descargar(epgUrl: String, destino: File) {
 		val conexion = (URL(epgUrl).openConnection() as HttpURLConnection).apply {
+			// La cuarta conexión, y la que nadie había contado: el puntero del
+			// XMLTV lo pone el `config.json` del site (§6), así que puede ser
+			// un dominio público por HTTPS aunque los canales vayan por la LAN.
+			// Sin esto, en una caja anterior a 7.1.1 la sección funciona y la
+			// guía sale vacía para siempre.
+			RegistryTrust.aplicarA(this, contexto)
 			connectTimeout = LiveTuning.EPG_CONNECT_TIMEOUT_MS
 			readTimeout = LiveTuning.EPG_READ_TIMEOUT_MS
 			requestMethod = "GET"

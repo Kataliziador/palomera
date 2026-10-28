@@ -254,6 +254,35 @@ def interruptores_cableados(inf: Informe) -> None:
 		print(f"{GRIS}    · {a}{FIN}")
 
 
+def confianza_en_cada_conexion(inf: Informe) -> None:
+	"""Toda conexión propia que pueda ir por TLS pasa por `RegistryTrust`.
+
+	El fallo que esto atrapa no es de lógica: es de **olvido**. La confianza
+	ampliada estaba bien construida y probada desde el 05-oct, y al
+	`config.json` no se le aplicaba —tres semanas, anotado sin tachar en
+	`LIVETV_PLAN.md`—. No da error visible: la caja vieja entra a Jellyfin,
+	consigue autorización y se queda con la sección de canales vacía.
+
+	Grano de archivo, no de llamada: si un archivo abre conexiones, tiene que
+	nombrar `RegistryTrust.aplicarA`. No distingue dos conexiones en el mismo
+	archivo donde solo una lo use; para eso están las pruebas de unidad.
+	"""
+	culpables = []
+	for ruta in sorted((RAIZ / "livetv/src/main").rglob("*.kt")):
+		fuente = ruta.read_text(encoding="utf-8")
+		if "openConnection()" not in fuente:
+			continue
+		if "RegistryTrust.aplicarA" not in fuente:
+			culpables.append(str(ruta.relative_to(RAIZ)))
+	if culpables:
+		inf.mal(
+			"e) hay conexiones propias sin la confianza de RegistryTrust",
+			[*culpables, "una caja con Android 5.0-7.1.0 se queda sin lista y sin error visible"],
+		)
+	else:
+		inf.bien("e) las conexiones propias pasan por RegistryTrust")
+
+
 def pruebas(inf: Informe) -> None:
 	r = subprocess.run(
 		["./gradlew", ":livetv:test", "--console=plain", "-q"],
@@ -292,6 +321,7 @@ def main() -> int:
 	fuera_del_territorio(inf)
 	camino_de_vod(inf)
 	interruptores_cableados(inf)
+	confianza_en_cada_conexion(inf)
 	if "--rapido" in sys.argv:
 		print(f"{GRIS}    d) pruebas de unidad omitidas (--rapido){FIN}")
 	else:
