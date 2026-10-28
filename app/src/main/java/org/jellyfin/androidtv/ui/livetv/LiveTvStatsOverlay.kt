@@ -90,6 +90,26 @@ fun LiveTvStatsOverlay(
 		Line("bitrate canal", if (stats.bitrateBps > 0) "${stats.bitrateBps / 1000} kbps" else "—")
 		Line("ancho de banda", if (stats.bandwidthBps > 0) "${stats.bandwidthBps / 1000} kbps" else "—")
 		Line("frames perdidos", stats.droppedFrames.toString())
+		// Corrupción y discontinuidad del demuxer: la señal de **lluvia**, que
+		// es otra cosa que perder un frame. Perder un frame puede ser que la
+		// caja no dé abasto; un bloque corrupto solo puede venir del
+		// transporte. Un guion significa que este motor no lo mide — un cero
+		// diría «no hubo», que es lo contrario (pendiente 83).
+		Line(
+			"bloques corruptos",
+			stats.demuxCorrupted?.toString() ?: "—",
+			warn = (stats.demuxCorrupted ?: 0) > 0,
+		)
+		Line(
+			"discontinuidades",
+			stats.demuxDiscontinuity?.toString() ?: "—",
+			warn = (stats.demuxDiscontinuity ?: 0) > 0,
+		)
+		Line(
+			"audio perdido",
+			stats.lostAudioBuffers?.toString() ?: "—",
+			warn = (stats.lostAudioBuffers ?: 0) > 0,
+		)
 		// Distinto de «perdidos»: estos llegan, pero fuera de tiempo. Es lo que
 		// se ve como tirón cuando todo lo demás marca cero.
 		Line(

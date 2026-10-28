@@ -105,6 +105,26 @@ class VlcLiveEngine(
 	/** Lo último que midió el latido. El overlay lo lee entre latido y latido. */
 	private var ultimaCpu = 0f
 
+	/**
+	 * La última lectura de `IMedia.Stats`, y lo que se deriva de ella.
+	 *
+	 * libVLC publica **contadores acumulados**, no tasas. Los fps y el bitrate
+	 * salen de la diferencia entre dos latidos, que es la misma definición que
+	 * usa Media3 («medido sobre los frames realmente renderizados»), no una
+	 * estimación. Por eso hace falta guardar la lectura anterior y el momento
+	 * en que se tomó.
+	 */
+	private var ultimaStatsMs = 0L
+	private var ultimasMostradas = 0
+	private var ultimosPerdidos = 0
+	private var ultimaCorrupcion: Int? = null
+	private var ultimaDiscontinuidad: Int? = null
+	private var ultimosAudioPerdidos: Int? = null
+	private var ultimoFps = 0f
+
+	/** Para no repetir el aviso en cada latido si las estadísticas no se leen. */
+	private var statsIlegiblesAvisado = false
+
 	/** El modo pedido, para reaplicarlo cuando se sepa el tamaño del vídeo. */
 	private var modoActual: AspectMode? = null
 
@@ -156,6 +176,10 @@ class VlcLiveEngine(
 		sondeoPrimerFotograma?.cancel()
 		sondeoPrimerFotograma = null
 		sesionDesdeMs = prepareAtMs
+		// Los contadores de `IMedia.Stats` son del **medio**, y cada sintonía
+		// crea uno nuevo: sin borrar la base, el primer latido de un canal
+		// restaría contra el anterior y daría un fps absurdo.
+		reiniciarStats()
 
 		LiveLog.startSession(channel.id, channel.url, channel.videoCodec, channel.audioCodec)
 		LiveLog.info(
@@ -455,18 +479,90 @@ class VlcLiveEngine(
 				n++
 				val carga = runCatching { medidor.sample() }.getOrNull()
 				carga?.let { ultimaCpu = it.cpuPercent }
+				leerStats(mp)
 				LiveLog.debug(
 					"latido",
 					"n" to n,
 					"motor" to id,
 					"estado" to if (mp.isPlaying) "reproduciendo" else "parado",
 					"posS" to "%.1f".format(mp.time / 1000.0),
+					"frames" to ultimasMostradas,
+					"fps" to "%.1f".format(ultimoFps),
+					"perdidos" to ultimosPerdidos,
+					// Los tres que delatan el transporte. Son los que hacían
+					// ciega una sesión con lluvia por este motor (pendiente 83).
+					"corruptos" to ultimaCorrupcion,
+					"discontinuidades" to ultimaDiscontinuidad,
+					"audioPerdidos" to ultimosAudioPerdidos,
 					"rebuffers" to rebuffers,
 					"cpu" to carga?.let { "%.0f%%".format(it.cpuPercent) },
 					"ramLibreMb" to carga?.ramAvailableMb,
 				)
 			}
 		}
+	}
+
+	/** Borra la base de los contadores acumulados. Una sintonía, un medio. */
+	private fun reiniciarStats() {
+		ultimaStatsMs = 0L
+		ultimasMostradas = 0
+		ultimosPerdidos = 0
+		ultimaCorrupcion = null
+		ultimaDiscontinuidad = null
+		ultimosAudioPerdidos = null
+		ultimoFps = 0f
+		statsIlegiblesAvisado = false
+	}
+
+	/**
+	 * Lee `IMedia.Stats` y deriva de ella lo que son tasas.
+	 *
+	 * **Lo que libVLC publica de verdad** (verificado el 27-oct contra el
+	 * binding 3.6.5, `javap` sobre `IMedia$Stats`): quince campos públicos,
+	 * entre ellos `displayedPictures`, `lostPictures`, `lostAbuffers`,
+	 * `demuxCorrupted`, `demuxDiscontinuity` y `readBytes`. Son **contadores
+	 * acumulados desde que arrancó el medio**, así que los fps y el bitrate
+	 * hay que sacarlos por diferencia entre dos latidos.
+	 *
+	 * **El bitrate no se publica, y se intentó.** `inputBitrate` y
+	 * `demuxBitrate` vienen como `float` sin unidad documentada en el binding,
+	 * así que se calculó desde `readBytes`, que son bytes y no admiten duda —
+	 * y **medido en la caja el 27-oct, no sirve**: sobre HLS el contador no
+	 * avanza entre latidos aunque `displayedPictures` y `lostPictures` sí lo
+	 * hagan, y salía `0 kbps` en toda la sesión. Un cero ahí habría dicho «el
+	 * canal va a cero», que es una medida falsa, así que el campo se queda
+	 * vacío y el overlay enseña un guion.
+	 *
+	 * Si la lectura falla se avisa **una vez por sesión**: un aviso por latido
+	 * son 1 800 líneas por hora y tapa todo lo demás.
+	 */
+	private fun leerStats(mp: MediaPlayer) {
+		val st = runCatching { mp.media?.stats }
+			.onFailure {
+				if (!statsIlegiblesAvisado) {
+					statsIlegiblesAvisado = true
+					LiveLog.warn("vlc.statsIlegibles", "motivo" to it.message, "motor" to id)
+				}
+			}
+			.getOrNull() ?: return
+
+		val ahora = System.currentTimeMillis()
+		val transcurridoMs = ahora - ultimaStatsMs
+		// La primera lectura no tiene con qué compararse: solo fija la base.
+		if (ultimaStatsMs > 0 && transcurridoMs > 0) {
+			val nuevasImagenes = st.displayedPictures - ultimasMostradas
+			// Los contadores son `int` y el medio se reinicia en cada sintonía:
+			// una diferencia negativa es un reinicio, no una medida.
+			// Cero imágenes nuevas **sí** es una medida: es la imagen congelada.
+			if (nuevasImagenes >= 0) ultimoFps = nuevasImagenes * 1000f / transcurridoMs
+		}
+
+		ultimaStatsMs = ahora
+		ultimasMostradas = st.displayedPictures
+		ultimosPerdidos = st.lostPictures
+		ultimaCorrupcion = st.demuxCorrupted
+		ultimaDiscontinuidad = st.demuxDiscontinuity
+		ultimosAudioPerdidos = st.lostAbuffers
 	}
 
 	/**
@@ -637,12 +733,25 @@ class VlcLiveEngine(
 	/**
 	 * Lo que se puede medir, y **solo** lo que se puede medir.
 	 *
-	 * libVLC no expone el nombre del decodificador activo, ni fotogramas
-	 * perdidos, ni la ventana DVR, ni el offset al directo. Eso se queda en
-	 * cero: el overlay enseñará huecos, que es honesto. Rellenarlos con
-	 * estimaciones los haría indistinguibles de los de Media3, que sí están
-	 * medidos, y la primera vez que alguien comparase los dos motores sacaría
-	 * una conclusión falsa.
+	 * La regla no cambia: rellenar un campo con una estimación lo haría
+	 * indistinguible de los de Media3, que sí están medidos, y el primero que
+	 * comparase los dos motores sacaría una conclusión falsa.
+	 *
+	 * **Lo que este comentario decía mal, y costó caro** (pendiente 83,
+	 * corregido el 27-oct): afirmaba que libVLC «no expone el nombre del
+	 * decodificador activo, ni fotogramas perdidos, ni la ventana DVR, ni el
+	 * offset al directo». De los cuatro, **el segundo era falso**, y como el
+	 * comentario parecía cerrar el asunto nadie volvió a mirar. Verificado con
+	 * `javap` sobre el binding 3.6.5, `IMedia.Stats` publica quince campos
+	 * públicos: de ahí salen ahora los fotogramas perdidos, los mostrados, los
+	 * bytes leídos y —lo que de verdad hacía falta— la **corrupción y las
+	 * discontinuidades del demuxer**, que son la señal de lluvia. Sin ellos,
+	 * una sesión con lluvia por este motor no dejaba rastro, y por este motor
+	 * van **todos los SD MPEG-2 de una caja sin ese decoder**.
+	 *
+	 * **Lo que sigue sin exponerse de verdad:** el nombre del decodificador
+	 * activo, la ventana DVR y el offset al directo. Esos tres sí se quedan en
+	 * cero, y el overlay enseñará huecos, que es honesto.
 	 */
 	override fun stats(): EngineStats {
 		val mp = player
@@ -672,6 +781,13 @@ class VlcLiveEngine(
 			// mal encendía un «⚠AAC» sobre un canal correctamente normalizado.
 			audioMime = null,
 			cpuPercent = ultimaCpu,
+			// Los seis que salen de `IMedia.Stats`, por delta entre latidos los
+			// que son tasas. Antes iban en cero por un comentario equivocado.
+			droppedFrames = ultimosPerdidos,
+			demuxCorrupted = ultimaCorrupcion,
+			demuxDiscontinuity = ultimaDiscontinuidad,
+			lostAudioBuffers = ultimosAudioPerdidos,
+			measuredFps = ultimoFps,
 			msToFirstFrame = if (firstFrameAtMs > 0) firstFrameAtMs - prepareAtMs else 0,
 			rebufferCount = rebuffers,
 			sessionUptimeMs = if (sesionDesdeMs > 0) ahora - sesionDesdeMs else 0,

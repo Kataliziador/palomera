@@ -57,6 +57,46 @@ data class EngineStats(
 	/** Estimación de ancho de banda de la red. Otra cosa distinta. */
 	val bandwidthBps: Long = 0,
 	val droppedFrames: Int = 0,
+	/**
+	 * Bloques que el demuxer recibió corruptos, o `null` si el motor no lo mide.
+	 *
+	 * **Es la señal de lluvia**, y es distinta de un frame perdido: perder un
+	 * frame puede ser que la caja no dé abasto; recibir un bloque corrupto solo
+	 * puede venir del transporte. Sin separarlos, «se ve a saltos» tiene dos
+	 * causas que en pantalla se parecen y se arreglan en sitios opuestos.
+	 *
+	 * **`null` y no `0` a propósito.** Media3 no publica nada equivalente, y un
+	 * cero diría «no hubo corrupción» donde la verdad es «nadie miró». Es la
+	 * misma regla que ya rige para `videoMime` y `loadAvg1`: un hueco se lee
+	 * «no lo sé», un cero se lee como una medida.
+	 *
+	 * **Este contador no se ha visto moverse nunca.** El 27-oct se ejercitó el
+	 * camino degradado con el 60 % de los segmentos truncados y se quedó en 0
+	 * mientras `demuxDiscontinuity` y `lostAudioBuffers` sí subían: truncar
+	 * produce discontinuidad, no bloques corruptos. Para moverlo hace falta el
+	 * golden sample con el bit de error de transporte puesto
+	 * (`herramientas/corromper-ts.py --tei`) servido en bucle;
+	 * `herramientas/lluvia.py` no corrompe bits **a propósito**, y su propio
+	 * encabezado dice por qué. Hasta que eso se haga, un 0 aquí significa «no
+	 * he visto corrupción», **no** «sé que este contador funciona».
+	 */
+	val demuxCorrupted: Int? = null,
+	/**
+	 * Discontinuidades vistas por el demuxer, o `null` si el motor no lo mide.
+	 *
+	 * **Se mueve, y todavía no se sabe con qué.** Tres corridas del 27-oct
+	 * sobre `estrellashd` con libVLC forzado: la primera por el camino normal
+	 * dio **0**, la segunda con el 60 % de los segmentos truncados dio **22-27**
+	 * y la tercera, **otra vez por el camino normal, dio 15-17**. O sea que el
+	 * contador no está muerto —que es lo que había que demostrar— pero la
+	 * tercera corrida **refuta** la lectura fácil de las dos primeras: esto
+	 * todavía no distingue un canal sano de uno degradado. Hace falta repetirlo
+	 * con varias corridas por condición antes de apoyar nada en el número.
+	 */
+	val demuxDiscontinuity: Int? = null,
+	/** Buffers de audio perdidos, o `null` si el motor no lo mide. El equivalente
+	 *  sonoro de `droppedFrames`: es lo que hay detrás de «se oye entrecortado». */
+	val lostAudioBuffers: Int? = null,
 	/** Tiempo sin que avance la posición: es lo que delata imagen congelada. */
 	val msSinceProgress: Long = 0,
 	val liveOffsetMs: Long = 0,
