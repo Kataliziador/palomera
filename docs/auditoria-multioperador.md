@@ -141,7 +141,7 @@ la operación. El 70 % que falta es identidad, contenido y entrega.
 ```mermaid
 flowchart TB
     subgraph nube["NUBE — lo único que opera Kataliziador"]
-        REG["autorizador (FastAPI + SQLite)<br/>authjelly.satmx.net<br/>POST /v1/resolve · GET /marca/{n}<br/>panel /admin con TOTP"]
+        REG["autorizador (FastAPI + SQLite)<br/>authjelly.satmx.net<br/>POST /v1/resolve · GET /marca/{n}<br/>panel en admin-authjelly.satmx.net, con TOTP"]
     end
 
     subgraph siteA["SITE DEL ISP A — su edificio, su LAN"]
