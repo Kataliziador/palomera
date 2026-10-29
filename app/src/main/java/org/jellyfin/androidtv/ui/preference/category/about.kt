@@ -28,6 +28,18 @@ fun OptionsScreen.aboutCategory() = category {
 		icon = R.drawable.ic_tv
 	}
 
+	// **De quién es lo que se ve.** Una sola app sirve a varios ISPs y el
+	// contenido es de cada uno: nosotros no lo producimos, no lo elegimos y
+	// no tenemos sus derechos. Decirlo aquí es lo que un revisor de Google
+	// busca en una app de televisión, y es lo que le dice al abonado a quién
+	// reclamar. **No sustituye al contrato con el ISP**, que es donde él
+	// declara tener los derechos; esto describe el acuerdo, no lo crea.
+	link {
+		setTitle(R.string.livetv_legal_content_title)
+		setContent(R.string.livetv_legal_content)
+		icon = R.drawable.ic_tv
+	}
+
 	link {
 		setTitle(R.string.livetv_legal_licenses_title)
 		// La dirección se interpola aquí y no se escribe en la cadena: vive

@@ -29,7 +29,7 @@ La TV en vivo y las películas de tu proveedor de internet, en tu Android TV.
 ```
 Palomera es la aplicación de televisión de tu proveedor de internet. Con ella ves en tu caja o pantalla Android TV los canales en vivo y las películas y series que tu proveedor incluye en tu servicio.
 
-Necesitas un servicio de televisión contratado con un proveedor que use Palomera. La aplicación no incluye contenido propio: lo que ves lo pone tu proveedor.
+Necesitas un servicio de televisión contratado con un proveedor que use Palomera. La aplicación no incluye contenido propio: los canales y el catálogo los emite tu proveedor de internet, que es el responsable de ese contenido y de los derechos para transmitirlo. Si algo de lo que ves te parece mal, la reclamación va a tu proveedor.
 
 TELEVISIÓN EN VIVO
 • Cambia de canal con las flechas del control, como en una tele de siempre.
@@ -64,6 +64,7 @@ de una estrella:
 | activación con código | la pantalla de acceso, `livetv_acceso_*` |
 | suspendido, sin código nuevo | `ServiceSuspendedState`, 28-oct |
 | no registra lo que ves | `PLAY.md` §4, `AVISO_PRIVACIDAD.md` |
+| el contenido es del proveedor | la fila «De quién es el contenido» de Información, `livetv_legal_content` |
 
 **Lo que no se dice a propósito:** marcas de canales, «gratis», «miles de
 canales», ni nada del contenido de un ISP concreto. La ficha es una sola para
@@ -77,7 +78,7 @@ revisor que no habla español, y la caja de pruebas de Google puede estar en
 inglés, así que el botón se nombra en los dos idiomas.
 
 ```
-Palomera is a client for a TV service provided by internet service providers (ISPs). It has no content of its own. We provide a demo server with our own test content (test-card channels and two generated videos, no third-party material).
+Palomera is a client for a TV service provided by internet service providers (ISPs). It has no content of its own: channels and catalogue are broadcast by each ISP, who holds the rights and is responsible for them. We provide a demo server with our own test content (test-card channels and two generated videos, no third-party material).
 
 1. Open the app. On the "Add server" screen enter: http://xtsrt01.ddns.net:8096
 2. The first screen shows an activation code, because real subscribers call their provider to activate. As a reviewer, press "Use a password" ("Usar contraseña" in Spanish).

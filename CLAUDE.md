@@ -866,6 +866,26 @@ incluye "no afiliado al proyecto Jellyfin" junto con los avisos de licencia
 GPL-2.0 (fork) y LGPL-2.1 (libVLC, **puesto el 08-oct con M6**). Con una sola app esto es
 **una pantalla**, no N.
 
+### El contenido es del ISP, y eso se dice en tres sitios
+
+**Decidido el 29-oct, a petición de Edgar.** Una sola APK sirve a varios ISPs
+y lo que se ve en ella es de cada uno: nosotros no lo producimos, no lo
+elegimos y no tenemos sus derechos. Eso tiene que estar escrito donde se lea,
+y está en tres sitios porque cada uno sirve a alguien distinto:
+
+| dónde | para quién |
+|---|---|
+| fila «De quién es el contenido» en Información (`livetv_legal_content`) | el abonado, y viaja con cada instalación para siempre |
+| descripción completa y notas al revisor (`FICHA.md` §3 y §4) | quien revisa el envío en Google |
+| <https://kataliziador.github.io/palomera/> | cualquiera que llegue de fuera |
+
+**Y lo que un aviso no hace:** transferir la responsabilidad. Describe el
+acuerdo, no lo crea. Lo que protege de verdad es la cláusula del contrato con
+cada ISP en la que él declara tener los derechos de lo que emite y responde
+por ello. El aviso es necesario —es lo que un revisor de una app de televisión
+busca, y es lo que le dice al abonado a quién reclamar— y **no es suficiente**.
+Queda escrito aquí para que nadie confunda una cosa con la otra.
+
 **Lo que sí sigue diciendo Jellyfin, y debe seguir diciéndolo:** todo lo que
 habla del **servidor** del ISP —«este servidor usa Jellyfin %1$s», «abra
 Jellyfin en un navegador para terminar la configuración», el cuerpo del informe
