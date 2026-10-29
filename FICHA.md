@@ -146,6 +146,28 @@ Con tunneled puesto, `screencap` sale **negro** sobre un canal (§6); la 2 se
 saca en el emulador de TV o con el interruptor de diagnóstico apagado en una
 compilación de depuración.
 
+**Lo aprendido el 29-oct intentando sacarlas**, que cambia cómo hay que
+hacerlas:
+
+- **tienen que salir de una compilación de `release`**, no de depuración. En
+  depuración la cabecera de la sección lleva el botón **«Diagnóstico»**
+  (`LiveTvFragment.kt:396`, detrás de `BuildConfig.DEBUG`) y, si se usa un
+  override del menú, la píldora ámbar **`registro=manual`**. Ninguna de las dos
+  existe en el APK que se publica, pero las dos saldrían en la foto;
+- **y por tanto contra la demo de OVH**, no contra una copia local: el menú de
+  desarrollador no existe en `release`, así que no hay forma de desviar el
+  registro y el host tiene que estar dado de alta de verdad. Lo está;
+- **el emulador `api22tv` no sirve para la captura del canal.** Decodifica por
+  software en x86 y da `ERROR_CODE_DECODING_FAILED`: la pantalla muestra «Sin
+  señal / Reconectando…». Sirve para todo lo demás —y fue donde apareció lo de
+  «¡Bienvenido a Jellyfin!»—, pero la 2 necesita un emulador moderno o la caja;
+- **la demo tiene tres canales y la rejilla se ve vacía.** Dos tarjetas en
+  «Demostración» y una en «Música» dejan media pantalla en negro. Un lineup de
+  verdad la llena; si la captura 1 va a ser la primera de la ficha, conviene
+  **generar más canales de carta de ajuste en la demo** antes de dispararla;
+- **los canales de la demo no tienen logo**, así que las tarjetas salen con el
+  número y nada más. Es el respaldo correcto, pero no enseña el producto.
+
 ## 6. Otros campos
 
 | campo | valor |
