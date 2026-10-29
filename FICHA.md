@@ -79,23 +79,59 @@ inglés, así que el botón se nombra en los dos idiomas.
 ```
 Palomera is a client for a TV service provided by internet service providers (ISPs). It has no content of its own. We provide a demo server with our own test content (test-card channels and two generated videos, no third-party material).
 
-1. Open the app. On the "Add server" screen enter: ⟨https://dirección-pública-de-la-demo⟩
+1. Open the app. On the "Add server" screen enter: http://xtsrt01.ddns.net:8096
 2. The first screen shows an activation code, because real subscribers call their provider to activate. As a reviewer, press "Use a password" ("Usar contraseña" in Spanish).
-3. Username: ⟨usuario⟩   Password: ⟨contraseña⟩
+3. Username: revisor   Password: ⟨PALCO_DEMO_REVISOR_CLAVE del .env de la demo⟩
 4. Live TV: open the "Live TV" section ("TV en vivo" in Spanish) and use the D-pad up/down to change channels. Movies: open the library row on the home screen.
 
 The demo server is available 24/7. Contact: ⟨correo⟩
 ```
 
-**Antes de pegarlo hay que comprobar tres cosas contra la demo de OVH**, que
-son las que hacen que un revisor vea algo o no vea nada:
+**Comprobado el 29-oct contra la demo de OVH** (`xtsrt01.ddns.net`, la misma
+máquina que el Flussonic de producción, que ocupa el 80 y el 443 — por eso la
+demo va por HTTP y en sus puertos):
 
-- que la dirección resuelve desde fuera y lleva TLS;
-- que el host está dado de alta en el registro del autorizador — si no, la
-  sección se **deniega**, no se degrada (`/home/proyectos/palco-demo/README.md`);
-- que el usuario `⟨usuario⟩` **no es administrador** — con el panel de abonados
-  el 403 de suspensión no le aplica a un administrador (commit `b3569d4`), y
-  además un revisor no tiene por qué ver el menú de administración de Jellyfin.
+- Jellyfin 10.11.11 «Palomera Demo», canales «Palomera Uno/Dos/Tres» con guía
+  al día, dos películas «Demostracion Palomera»;
+- `revisor` entra y **no es administrador**: `/System/Logs`, `/Devices`,
+  `/Auth/Keys` y `/Library/VirtualFolders` le dan 403. La clave de fábrica del
+  administrador ya no entra (401);
+- **el host está dado de alta**, comprobado contra el registro de producción
+  (`https://authjelly.satmx.net`) y **sin escribir nada en él**: la consulta se
+  mandó sin `installId`, y sin ese campo `apuntar()` no registra caja ni
+  diagnóstico (`autorizador/app.py:149`). Respuesta: `authorized: true`, site
+  `demo`, `channelsUrl` correcta.
+
+**Y un fallo que saldría en las capturas:** el registro devuelve
+
+```json
+"brand": { "displayName": "xtsrt01.ddns.net" }
+```
+
+El `config.json` de la demo **no trae bloque `brand`**, así que gana el del
+registro (`CLAUDE.md` §8: registro → site → neutra) y la cabecera de la sección
+de TV en vivo se dibuja con ese texto (`LogoDeCanal.kt:157`, el nombre sólo
+aparece porque tampoco hay logo). Un revisor —y la ficha para siempre— vería
+una dirección DDNS cruda donde va el nombre del proveedor.
+
+Se arregla en **«Sites» del autorizador**, campo *marca_nombre* del site `demo`,
+y son dos salidas:
+
+- **dejarlo en blanco** → el registro omite `brand` y la app usa la **marca
+  neutra**, que dice «TV en vivo» y está diseñada exactamente para un site sin
+  marca configurada. Es la opción sin riesgo;
+- **poner un nombre de demostración**, p. ej. «TV Demostración». Enseña la
+  ranura de marca funcionando, que es más vistoso en una captura. **No un
+  nombre de ISP real ni inventado con pinta de serlo:** la ficha es una sola
+  para todos los proveedores y no puede dar a entender que uno concreto está
+  detrás.
+
+**Un segundo dato del mismo sondeo:** `until` vino a exactamente 21 días
+(2026-11-19T12:48:52Z), que es la ventana de caché del registro. Eso sólo
+prueba que `fin_contrato` del site `demo` es **igual o posterior** a esa fecha
+—la respuesta se recorta al contrato si éste cae antes—, así que **no descarta**
+que el contrato de la demo venza el 19-nov, en plena revisión de Google.
+Conviene mirarlo en el panel y ponerlo lejos.
 
 ## 5. Capturas de TV — mínimo 1, 1920×1080
 
@@ -121,4 +157,4 @@ compilación de depuración.
 | público objetivo | 18+ — el contenido lo pone el ISP y la app no puede garantizar que sea para menores |
 | anuncios | no |
 | clasificación de contenido | el cuestionario de IARC; la app no tiene contenido propio, pero da acceso a televisión abierta y de paga, así que se contesta como app de *streaming* de vídeo |
-| factores de forma | Android TV. El manifiesto declara también `LAUNCHER` y no exige pantalla táctil, así que Play la dejaría instalar en teléfonos: si no se quiere, se excluyen en *Catálogo de dispositivos* y no se suben capturas de teléfono |
+| factores de forma | Android TV. El manifiesto declara también `LAUNCHER` y no exige pantalla táctil, así que Play la dejaría instalar en teléfonos: si no se quiere, se excluyen en *Catálogo de dispositivos* y no se suben capturas de teléfono. **Al revisar ese catálogo, comprobar que las cajas sin WiFi aparecen**: hasta el 29-oct `ACCESS_WIFI_STATE` las excluía en silencio (`LIVETV_LOG.md`, entrada del 29-oct) |
