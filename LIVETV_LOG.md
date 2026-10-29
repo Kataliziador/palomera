@@ -340,6 +340,82 @@ declararla.
 
 ## Entradas
 
+### [B] La oferta de código de la GPL-2.0, cumplida — 2026-10-29
+
+**Qué estaba mal.** Dos cosas que pedían el mismo dato y llevaban semanas
+esperándolo:
+
+- la pantalla de Información decía «El código fuente de ambos está disponible
+  bajo sus respectivos términos». Dice que **existe**; no dice **dónde**. La
+  GPL-2.0 pide acompañar el binario con el código o con una oferta escrita de
+  entregarlo, y una oferta sin dirección no es una oferta;
+- los dos informes que la app sube al servidor del ISP —el de fallo y el de
+  capacidades— llevaban en su cabecera
+  `client_repository: https://github.com/jellyfin/jellyfin-androidtv`, o sea
+  el upstream. Quien leyera un informe de **esta** app iba al repositorio de
+  otro proyecto.
+
+**El repositorio.** `https://github.com/Kataliziador/palomera`, público, con
+el historial completo. Tres cosas que no eran obvias al crearlo:
+
+1. **El clon era superficial** (profundidad 1, del 22-sep), así que el commit
+   raíz apuntaba a un padre inexistente y GitHub rechazó el empuje. Se
+   completó con `git fetch --unshallow upstream` en vez de injertar la raíz:
+   injertarla reescribe todos los SHA, y esta bitácora cita commits por hash.
+2. **El README era el del upstream** —«Jellyfin Android TV / Part of the
+   Jellyfin Project», con su logotipo— y ésa iba a ser la primera página que
+   viera quien siguiera el enlace del aviso legal. Reescrito: qué es Palomera,
+   que **no está afiliada al proyecto Jellyfin**, enlace al upstream, GPL-2.0 y
+   la LGPL-2.1 de libVLC. La atribución se conserva; lo que se quita es
+   presentarnos como ellos.
+3. **Barrido de secretos sobre todos los objetos del historial** antes de
+   empujar, no sobre el árbol de trabajo: cero claves privadas y cero tokens.
+   Los `.pem` que aparecen son raíces públicas de ISRG y fixtures de prueba.
+   Lo único que queda expuesto es `test`/`test` contra `192.168.20.249`, que
+   es una dirección privada e inalcanzable desde internet.
+
+**Y está bajo una organización, no bajo una cuenta personal.** No es
+cosmética: la oferta escrita de la GPL-2.0 tiene que seguir siendo válida
+**tres años** por cada binario distribuido, y esa dirección queda impresa
+dentro de cada APK instalado en una caja que nadie va a actualizar a mano. Un
+repositorio personal muere con la cuenta; una organización admite varios
+propietarios.
+
+**Cambio.** La dirección **no se escribe en la cadena**. Son tres sitios que
+la necesitan, que es exactamente el reparto con el que el nombre del cliente
+acabó mal durante un mes (§8). Vive en **`BuildConfig.CLIENT_REPOSITORY`**,
+declarada en `app/build.gradle.kts` al lado de `CLIENT_NAME`:
+
+| sitio | antes | ahora |
+|---|---|---|
+| `livetv_legal_licenses` | sin dirección | `%1$s`, que rellena `about.kt` |
+| `TelemetryService.kt:102` | el upstream | `BuildConfig.CLIENT_REPOSITORY` |
+| `deviceProfileReport.kt:76` | el upstream | `BuildConfig.CLIENT_REPOSITORY` |
+
+Si el repositorio se mueve, se cambia una línea.
+
+**Prueba, y por qué no bastaba compilar.** La primera redacción compilaba,
+estaba en el APK —`aapt2 dump strings` la encontraba entera— y **en pantalla
+salía cortada**: la fila de Información da cuatro líneas y el texto se comía
+justo el final, que era dónde está el fuente de libVLC. La LGPL-2.1 también
+obliga a ofrecerlo, así que eso no podía quedar fuera de la pantalla. Se
+reescribió a 123 caracteres y ahora entra completo:
+
+> Derivada de jellyfin-androidtv, bajo GPL-2.0. Incluye libVLC de VideoLAN,
+> bajo LGPL-2.1. Código fuente: https://github.com/Kataliziador/palomera y
+> videolan.org
+
+Verificado leyéndolo en Ajustes → Información en el emulador `tv34`. Una
+muestra y un dispositivo. **Un aviso legal que el compilador da por bueno
+puede ser ilegible en la tele**, y eso no lo ve ninguna prueba de unidad.
+
+**Lo que no cierra esto.** La oferta es del código **correspondiente al
+binario**, y hoy no hay forma de saber qué commit produjo qué versión: hay que
+etiquetar en el repositorio el commit de cada versión que se publique en Play.
+Anotado en `PLAY.md` §5.
+
+**Estado:** cerrada.
+
 ### [B] En español la app se presentaba como Jellyfin — 2026-10-29
 
 **Síntoma.** La primera pantalla de toda instalación decía **«¡Bienvenido a

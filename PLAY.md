@@ -256,20 +256,29 @@ dirección en la pantalla de Información y en la ficha.
 No es opcional ni es un detalle legal menor: es la condición bajo la que se
 puede distribuir esto.
 
-**Y hoy no se cumple, por una palabra que falta.** La pantalla de Información
-dice, en `livetv_legal_licenses`:
+**Cumplido el 29-oct.** Hasta ese día la pantalla de Información decía que el
+código **existe** sin decir **dónde** —«disponible bajo sus respectivos
+términos»—, y una oferta sin dirección no es una oferta.
 
-> Derivada de jellyfin-androidtv, bajo licencia GPL-2.0. Incluye libVLC, de
-> VideoLAN, bajo LGPL-2.1. El código fuente de ambos está disponible bajo sus
-> respectivos términos.
+El repositorio público es **<https://github.com/Kataliziador/palomera>**, con
+el historial completo y el README reescrito: el que venía del upstream decía
+«Jellyfin Android TV / Part of the Jellyfin Project» con su logotipo, y ésa
+iba a ser la primera página que viera quien siguiera el enlace desde la app.
 
-Dice que el código **existe**; no dice **dónde**. La GPL-2.0 pide acompañar el
-binario con el código o con una oferta escrita de entregarlo, y una oferta sin
-dirección no es una oferta. Es el **único cambio de código que le queda al
-envío**, y necesita exactamente un dato de Edgar —la URL del repositorio
-público—; con ella es editar una cadena en
-`app/src/main/res/values/strings.xml`. No se pone una URL provisional: un
-enlace muerto dentro de un aviso legal es peor que la frase incompleta.
+La dirección **no se escribió en la cadena**. Vive en
+`BuildConfig.CLIENT_REPOSITORY` (`app/build.gradle.kts`) y la leen los tres
+sitios que la necesitan: el aviso de licencias y la cabecera de los dos
+informes que se suben al servidor del ISP, que hasta ese día apuntaban al
+upstream. Ver `CLAUDE.md` §8.
+
+**Está bajo una organización y no bajo una cuenta personal** porque la oferta
+escrita de la GPL-2.0 debe seguir siendo válida **tres años** por cada binario
+distribuido, y la dirección queda impresa dentro de cada APK instalado en una
+caja que nadie va a actualizar a mano.
+
+Lo que **sigue pendiente** de este apartado: etiquetar en el repositorio el
+commit exacto de cada versión que se publique en Play. La oferta es del código
+*correspondiente al binario*, y sin etiqueta nadie puede saber cuál es.
 
 ---
 

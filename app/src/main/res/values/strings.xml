@@ -3,7 +3,7 @@
     <string name="livetv_legal_title" translatable="false">Avisos legales</string>
     <string name="livetv_legal_affiliation" translatable="false">Esta aplicación no está afiliada al proyecto Jellyfin ni cuenta con su respaldo.</string>
     <string name="livetv_legal_licenses_title" translatable="false">Licencias del software</string>
-    <string name="livetv_legal_licenses" translatable="false">Derivada de jellyfin-androidtv, bajo licencia GPL-2.0. Incluye libVLC, de VideoLAN, bajo LGPL-2.1. El código fuente de ambos está disponible bajo sus respectivos términos.</string>
+    <string name="livetv_legal_licenses" translatable="false">Derivada de jellyfin-androidtv, bajo GPL-2.0. Incluye libVLC de VideoLAN, bajo LGPL-2.1. Código fuente: %1$s y videolan.org</string>
     <string name="livetv_about_install_id" translatable="false">Identificador de esta instalación</string>
     <string name="livetv_about_version" translatable="false">Versión de la aplicación</string>
     <string name="livetv_licenses_description" translatable="false">Licencias de las librerías de código abierto que la aplicación utiliza</string>

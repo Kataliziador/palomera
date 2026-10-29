@@ -905,13 +905,30 @@ app por dentro, pero quien pregunta «qué cliente es esta sesión» necesita sa
 que es nuestra app. Por eso tampoco se traduce y no cambia en caliente, igual
 que el `applicationId`.
 
-Los tres sitios que lo usan están en §4.7. Lo que **sigue mal y no se puede
-arreglar todavía** es la línea vecina de esos informes,
-`client_repository: https://github.com/jellyfin/jellyfin-androidtv`: apunta al
-upstream y no a nuestro fork, así que un informe de fallo de esta app manda a
-quien lo lea al repositorio equivocado. Se corrige con la **misma** URL que
-espera `livetv_legal_licenses` (`PLAY.md` §5), y las dos van juntas en cuanto
-Edgar la dé.
+Los tres sitios que lo usan están en §4.7.
+
+### Y la dirección del código vive junto al nombre, por lo mismo
+
+**Arreglado el 29-oct.** La línea vecina de esos informes decía
+`client_repository: https://github.com/jellyfin/jellyfin-androidtv` —el
+upstream, no nuestro fork—, así que un informe de fallo de esta app mandaba a
+quien lo leyera al repositorio equivocado. Y el aviso de licencias de la
+pantalla de Información decía que el código existe sin decir dónde, que es una
+oferta sin dirección y no cumple la GPL-2.0 (`PLAY.md` §5).
+
+Las dos cosas pedían el **mismo** dato, y eran **tres** sitios a mano: justo la
+forma en que el nombre del cliente acabó mal durante un mes. Así que la
+dirección vive donde vive el nombre, en
+**`BuildConfig.CLIENT_REPOSITORY`** (`app/build.gradle.kts`), y los tres la
+leen de ahí. `livetv_legal_licenses` pasa a llevar un `%1$s` que rellena
+`about.kt`. Si el repositorio se mueve, se cambia una línea.
+
+El repositorio público es **`https://github.com/Kataliziador/palomera`**, y
+está bajo una organización y no bajo una cuenta personal por una razón
+concreta: la oferta escrita de la GPL-2.0 tiene que seguir siendo válida
+**tres años** por cada binario distribuido, y esa dirección queda impresa
+dentro de cada APK instalado en una caja que nadie va a actualizar a mano. Una
+organización sobrevive a que una persona se vaya.
 
 ### Datos de abonados: dos capas, y no se mezclan
 

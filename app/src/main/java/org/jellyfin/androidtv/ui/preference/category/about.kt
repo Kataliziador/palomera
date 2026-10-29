@@ -30,7 +30,11 @@ fun OptionsScreen.aboutCategory() = category {
 
 	link {
 		setTitle(R.string.livetv_legal_licenses_title)
-		setContent(R.string.livetv_legal_licenses)
+		// La dirección se interpola aquí y no se escribe en la cadena: vive
+		// en `BuildConfig.CLIENT_REPOSITORY`, que es el mismo valor que
+		// viaja en la cabecera de los informes. Una oferta de código y dos
+		// informes que apunten a sitios distintos serían peor que ninguno.
+		content = context.getString(R.string.livetv_legal_licenses, BuildConfig.CLIENT_REPOSITORY)
 		icon = R.drawable.ic_guide
 	}
 

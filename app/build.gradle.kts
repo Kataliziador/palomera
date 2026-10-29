@@ -42,6 +42,14 @@ android {
 		// traduce y no cambia con la marca del ISP.
 		buildConfigField("String", "CLIENT_NAME", "\"Palomera\"")
 
+		// La oferta de código que exige la GPL-2.0 (`PLAY.md` §5). Va aquí por
+		// lo mismo que el nombre: la necesitan **tres** sitios —el aviso de
+		// licencias de la pantalla de Información y la cabecera de los dos
+		// informes que se suben al servidor del ISP— y escribirla a mano en
+		// los tres es cómo acabó el nombre apuntando al upstream durante un
+		// mes. Si el repositorio se mueve, se cambia una línea.
+		buildConfigField("String", "CLIENT_REPOSITORY", "\"https://github.com/Kataliziador/palomera\"")
+
 		// LiveTV — nada de esto se codifica en el módulo (CLAUDE.md regla 12).
 		// En B5 cada uno pasa a ser un valor por product flavor.
 		buildConfigField("boolean", "VOD_ENABLED", "true")

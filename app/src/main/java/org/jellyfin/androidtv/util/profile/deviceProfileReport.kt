@@ -73,7 +73,7 @@ fun createDeviceProfileReport(
 	appendLine("---")
 	appendLine("client: ${BuildConfig.CLIENT_NAME}")
 	appendLine("client_version: ${BuildConfig.VERSION_NAME}")
-	appendLine("client_repository: https://github.com/jellyfin/jellyfin-androidtv")
+	appendLine("client_repository: ${BuildConfig.CLIENT_REPOSITORY}")
 	appendLine("type: media_capabilities_report")
 	appendLine("format: markdown")
 	appendLine("---")
