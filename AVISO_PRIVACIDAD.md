@@ -1,24 +1,23 @@
 # Aviso de privacidad — Palomera
 
-> **Borrador.** Lo escrito aquí está verificado contra el código: cada dato de
-> la lista se puede rastrear hasta la línea que lo envía. Lo que **no** puede
-> salir de aquí son los datos del responsable, el plazo de conservación y la
-> dirección de contacto: esos los decide Edgar y están marcados `⟨así⟩`.
+> **Lo escrito aquí está verificado contra el código:** cada dato de la lista
+> se puede rastrear hasta la línea que lo envía.
 >
-> Hay que publicarlo en una **URL pública y permanente** antes del primer envío
-> a Google Play, que la exige. La misma dirección va en la ficha y en la
-> pantalla de Información de la app.
+> Publicado en <https://kataliziador.github.io/palomera/privacidad>. Esa es la
+> dirección que va en la ficha de Google Play, que no acepta el envío sin ella.
 >
 > Esto no es asesoría legal. Está redactado siguiendo lo que pide la LFPDPPP
-> para un aviso simplificado, pero conviene que lo lea quien lleve lo legal
-> antes de publicarlo.
+> para un aviso simplificado. **Dos cosas que conviene que revise quien lleve
+> lo legal:** que «LLC» sea la figura correcta para una responsable con
+> domicilio en México, y el plazo de conservación.
 
 ---
 
 ## 1. Quién es responsable de tus datos
 
-⟨Razón social completa⟩, con domicilio en ⟨domicilio fiscal⟩, es responsable
-del tratamiento de los datos que se describen aquí.
+**Kataliziador LLC**, con domicilio en Calle Ignacio Allende SN, C.P. 86927,
+Tenosique, Tabasco, México, es responsable del tratamiento de los datos que se
+describen aquí.
 
 Palomera es una aplicación de televisión que instala tu proveedor de internet en
 tu caja. **Tu proveedor no es el responsable de este aviso**: lo somos
@@ -83,9 +82,10 @@ programa sobre el que está construida la aplicación.
 
 ## 5. Cuánto tiempo se conserva
 
-⟨Plazo. Recomendación: 12 meses, que cubre un ciclo estacional completo y
-permite comparar un problema con el mismo mes del año anterior. Pasado ese
-plazo se borra.⟩
+**12 meses**, y después se borra. Ese plazo cubre un ciclo estacional
+completo, que es lo que permite comparar un problema con el mismo mes del año
+anterior — en televisión por satélite eso importa, porque la lluvia es
+estacional y degrada la señal.
 
 ## 6. Tus derechos
 
@@ -93,7 +93,8 @@ Puedes pedirnos **acceder** a tus datos, **rectificarlos** si son incorrectos,
 **cancelarlos** u **oponerte** a que los tratemos. También puedes revocar tu
 consentimiento.
 
-Escribe a ⟨correo de contacto⟩ indicando **el identificador de instalación**,
+Escribe a **avhelmc@icloud.com** indicando **el identificador de
+instalación**,
 que puedes ver en la aplicación en **Ajustes → Información → Identificador de
 esta instalación**. Sin él no podemos localizar tus datos, porque es lo único
 que los identifica: no sabemos tu nombre.
@@ -113,7 +114,7 @@ antes de que entre en vigor.
 
 ---
 
-*Última actualización: ⟨fecha de publicación⟩*
+*Última actualización: 29 de octubre de 2026*
 
 ---
 
