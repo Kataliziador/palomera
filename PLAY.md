@@ -231,8 +231,16 @@ Los otros permisos son de infraestructura y no tocan datos personales:
 `RECEIVE_BOOT_COMPLETED` y el `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` que
 genera AndroidX.
 
+**Y las respuestas, pantalla por pantalla, están en `FICHA.md` §7**, listas
+para marcar. Este apartado explica **por qué** cada una es la que es; aquél
+dice **qué** se marca. Igual para el cuestionario de clasificación de
+contenido, en `FICHA.md` §8.
+
 **La política de privacidad es obligatoria** y necesita una URL pública
-permanente. **Redactada el 08-oct en `AVISO_PRIVACIDAD.md`**, verificada campo
+permanente. **Publicada el 29-oct** en
+<https://kataliziador.github.io/palomera/privacidad>, desde el propio
+repositorio con `herramientas/publicar-aviso.py`. **Redactada el 08-oct en
+`AVISO_PRIVACIDAD.md`**, verificada campo
 por campo contra el código y con un apéndice que liga cada frase a la línea que
 la sostiene. Le faltan cinco datos que solo puede poner Edgar —razón social,
 domicilio, plazo de conservación, correo de contacto y la fecha de

@@ -181,3 +181,78 @@ hacerlas:
 | anuncios | no |
 | clasificación de contenido | el cuestionario de IARC; la app no tiene contenido propio, pero da acceso a televisión abierta y de paga, así que se contesta como app de *streaming* de vídeo |
 | factores de forma | Android TV. El manifiesto declara también `LAUNCHER` y no exige pantalla táctil, así que Play la dejaría instalar en teléfonos: si no se quiere, se excluyen en *Catálogo de dispositivos* y no se suben capturas de teléfono. **Al revisar ese catálogo, comprobar que las cajas sin WiFi aparecen**: hasta el 29-oct `ACCESS_WIFI_STATE` las excluía en silencio (`LIVETV_LOG.md`, entrada del 29-oct) |
+
+## 7. Seguridad de los datos — qué se marca en cada pantalla
+
+Play Console → *Contenido de la aplicación* → *Seguridad de los datos*. El
+análisis de por qué cada respuesta es la que es está en `PLAY.md` §4; esto es
+lo que hay que marcar, pantalla por pantalla.
+
+**No es un trámite: es una declaración jurada y el editor somos nosotros.** Si
+no coincide con lo que la app hace de verdad, es causa de retirada.
+
+### Pantalla 1 — «Recopilación y seguridad de los datos»
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿Tu app recopila o comparte alguno de los tipos de datos de usuario obligatorios? | **Sí** |
+| ¿Todos los datos de usuario recopilados por tu app se cifran en tránsito? | **Sí** — el registro va por HTTPS y la app lleva dentro las raíces de ISRG para que también lo sea en cajas anteriores a Android 7.1.1 (`RegistryTrust`) |
+| ¿Proporcionas una forma de que los usuarios soliciten que se eliminen sus datos? | **Sí** — por correo, y desinstalar la app borra el identificador. Está en el aviso §6 |
+
+### Pantalla 2 — Tipos de datos
+
+De toda la lista de Play, se marca **un solo tipo**:
+
+- **Identificadores del dispositivo o de otro tipo** → sí.
+
+**Nada más.** Ni nombre, ni correo, ni ubicación aproximada o precisa, ni
+contactos, ni fotos, ni archivos, ni audio, ni actividad de la app, ni
+historial de navegación, ni información financiera, ni de salud. La app no los
+pide y no los puede leer.
+
+**Dos que sorprenden y hay que contestar que no, con su razón:**
+
+| Tipo | Respuesta | Por qué |
+|---|---|---|
+| Grabaciones de audio | **no** | `RECORD_AUDIO` existe para la búsqueda por voz del upstream; el audio va al reconocedor del sistema y no llega ni a nosotros ni al servidor del ISP |
+| Actividad en la app | **no** | el diagnóstico cuenta **qué canales fallaron**, sin marcas de tiempo, sin orden y sin duraciones individuales. De ahí no se reconstruye qué vio nadie |
+
+### Pantalla 3 — Detalle del identificador
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿Se recopila o se comparte? | **Se recopila** (no se comparte) |
+| ¿Es obligatorio o puede el usuario elegir? | **Obligatorio** — va siempre |
+| Finalidades | **Funciones de la app** y **Estadísticas** |
+| ¿Está vinculado a la identidad del usuario? | **No** — es un UUID aleatorio que crea la propia app y se borra al desinstalar |
+
+### Y lo que casi se queda fuera: los informes de fallo
+
+El upstream sube el informe de fallo **al servidor Jellyfin del propio ISP**,
+no a nosotros (`clientLogApi.logFileUrl()`), y viene activado de fábrica.
+
+Sale de la caja hacia un tercero respecto del usuario, así que **se declara**:
+tipo **«Registros de fallos»**, *se recopila*, **opcional** —se apaga en
+Ajustes → Informes de fallo— y finalidad **Estadísticas**.
+
+Es el único dato que no va a un servicio nuestro, y es el que más fácil se
+olvida porque no lo escribimos nosotros.
+
+## 8. Clasificación de contenido — el cuestionario de IARC
+
+Se contesta como **app de reproducción de vídeo en continuo**, no como app con
+contenido propio. Las respuestas que importan:
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿La app permite a los usuarios interactuar o intercambiar contenido? | **No** — no hay chat, comentarios, perfiles ni subida de nada |
+| ¿Comparte la ubicación del usuario? | **No** |
+| ¿Permite compras? | **No** — el servicio lo contrata el abonado con su proveedor, fuera de la app |
+| ¿Contiene violencia, sexo, lenguaje, drogas o juegos de azar propios? | **No propios.** La app da acceso a televisión abierta y de paga que programa cada proveedor |
+
+**Esa última es la que hay que contestar con cuidado**, y conviene declarar en
+el campo de texto libre que el contenido lo programa un tercero —el proveedor—
+y que la app no lo produce ni lo selecciona. Es lo mismo que dicen la pantalla
+de Información, la descripción y la página pública: **los cuatro textos tienen
+que decir lo mismo**, porque una contradicción entre el cuestionario y la ficha
+es lo que dispara una revisión manual.
