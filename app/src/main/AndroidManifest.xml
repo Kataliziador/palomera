@@ -35,6 +35,15 @@
     <uses-feature
         android:name="android.hardware.microphone"
         android:required="false" />
+    <!--
+      `ACCESS_WIFI_STATE` **implica** `android.hardware.wifi` como obligatorio,
+      y Play filtra por eso: una caja de ISP sólo-Ethernet no vería la ficha.
+      El `tools:ignore` de arriba calla a lint, no a la tienda — y lint avisaba
+      de esto exactamente. Declararlo aquí es lo que deshace la implicación.
+    -->
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
 
     <queries>
         <intent>

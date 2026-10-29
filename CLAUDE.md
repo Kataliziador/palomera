@@ -241,7 +241,7 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      ':!*/flavors/*' ':!*.md'
    ```
 
-   Lo que aparezca aquí son **siete cosas y ninguna más**, y se justifican una
+   Lo que aparezca aquí son **ocho cosas y ninguna más**, y se justifican una
    a una en el commit:
 
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
@@ -335,6 +335,19 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      claro hacia el registro**, sin tocar la base: el resto de la app sigue
      pudiendo hablar por HTTP con el Jellyfin y los streams de la LAN del ISP,
      que es de lo que vive. No afecta al VOD.
+   - **el alcance de la ficha de Play** — los `uses-feature` del
+     `AndroidManifest.xml` **(añadido el 29-oct)**. Un permiso puede *implicar*
+     un requisito de hardware que nadie escribió: `ACCESS_WIFI_STATE` implica
+     `android.hardware.wifi` como obligatorio, y Play lo usa para **filtrar el
+     catálogo de dispositivos**. Una caja de ISP sólo-Ethernet no habría visto
+     la ficha, que es justo nuestro cliente. El upstream lleva ahí un
+     `tools:ignore="LeanbackUsesWifi"`: eso calla a lint, no a la tienda.
+     Declarar la característica con `required="false"` deshace la implicación
+     y **no cambia una línea de comportamiento** — ningún `uses-feature` se
+     consulta en tiempo de ejecución; sólo decide a quién le aparece la app.
+     Medido con `aapt2 dump badging`, que antes imprimía
+     `uses-implied-feature … reason='requested android.permission.ACCESS_WIFI_STATE permission'`
+     y ahora imprime `uses-feature-not-required: name='android.hardware.wifi'`.
 
    Cualquier otra cosa exige justificarse en el commit **y** decirlo aquí.
 

@@ -339,6 +339,66 @@ declararla.
 
 ## Entradas
 
+### [B] Play habría escondido la app a las cajas sin WiFi — 2026-10-29
+
+**Síntoma.** Ninguno visible, y ése es el problema: se encontró leyendo el AAB
+de hoy con `aapt2 dump badging`, no usando la app. Entre las líneas de
+características salía ésta:
+
+```
+uses-implied-feature: name='android.hardware.wifi'
+  reason='requested android.permission.ACCESS_WIFI_STATE permission'
+```
+
+**Qué significa.** Un permiso puede *implicar* un requisito de hardware que
+nadie escribió en el manifiesto, y Play usa esos requisitos para decidir a qué
+dispositivos les aparece la ficha. Con `android.hardware.wifi` **obligatorio**,
+una caja de televisión sin radio WiFi —es decir, un decodificador de ISP
+conectado por Ethernet, que es exactamente nuestro cliente— no habría
+encontrado la app en la tienda. No hay error, no hay rechazo y no hay aviso: la
+ficha simplemente no sale.
+
+**Por qué estaba ahí.** Viene del upstream, con la supresión al lado:
+
+```xml
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"
+    tools:ignore="LeanbackUsesWifi" />
+```
+
+`LeanbackUsesWifi` es la regla de lint que avisa **de esto exactamente**. El
+`tools:ignore` calla a lint; no calla a la tienda.
+
+**Cambio.** Una declaración en `app/src/main/AndroidManifest.xml`:
+
+```xml
+<uses-feature android:name="android.hardware.wifi" android:required="false" />
+```
+
+No va detrás de un interruptor y no hace falta: **ningún `uses-feature` se
+consulta en tiempo de ejecución**. No decide qué hace la app, sólo a quién le
+aparece. El permiso se conserva — se usa de verdad, y seguirá funcionando igual
+donde haya WiFi.
+
+**Prueba.** `aapt2 dump badging` sobre el APK de depuración reconstruido. Una
+muestra, pero el instrumento es el mismo que imprimió lo contrario una hora
+antes, así que sí podía ver el caso negativo:
+
+| antes | después |
+|---|---|
+| `uses-implied-feature: name='android.hardware.wifi'` | — |
+| — | `uses-feature-not-required: name='android.hardware.wifi'` |
+
+**Lo que esto no prueba.** Que el filtro de Play se comportara como dice su
+documentación: eso es **inferido**, no medido, y sólo se podrá comprobar
+mirando el catálogo de dispositivos de la Play Console después del primer
+envío. Lo medido es lo que el manifiesto compilado declara.
+
+**Registrado en `CLAUDE.md` §4.7** como la octava categoría permitida fuera del
+módulo: los `uses-feature` del manifiesto, que hasta hoy sólo admitía sus
+atributos `icon`, `banner` y `label`.
+
+**Estado:** cerrada.
+
 ### [B] El `config.json` y la guía se bajaban sin las raíces que llevamos dentro — 2026-10-28
 
 **Qué estaba mal.** Desde el 05-oct la app lleva dentro cuatro raíces de ISRG
