@@ -81,10 +81,10 @@ Palomera is a client for a TV service provided by internet service providers (IS
 
 1. Open the app. On the "Add server" screen enter: http://xtsrt01.ddns.net:8096
 2. The first screen shows an activation code, because real subscribers call their provider to activate. As a reviewer, press "Use a password" ("Usar contraseña" in Spanish).
-3. Username: revisor   Password: ⟨PALCO_DEMO_REVISOR_CLAVE del .env de la demo⟩
+3. Username: revisor   Password: ⟨la de `PALCO_DEMO_REVISOR_CLAVE` en el `.env` de la demo — se escribe al pegar en la Console, no se guarda aquí⟩
 4. Live TV: open the "Live TV" section ("TV en vivo" in Spanish) and use the D-pad up/down to change channels. Movies: open the library row on the home screen.
 
-The demo server is available 24/7. Contact: ⟨correo⟩
+The demo server is available 24/7. Contact: avhelmc@icloud.com
 ```
 
 **Comprobado el 29-oct contra la demo de OVH** (`xtsrt01.ddns.net`, la misma
@@ -173,8 +173,8 @@ hacerlas:
 | campo | valor |
 |---|---|
 | categoría | Entretenimiento |
-| correo de contacto | ⟨correo⟩ — se publica en la ficha |
-| política de privacidad | ⟨URL de `AVISO_PRIVACIDAD.md` publicado⟩ |
+| correo de contacto | `avhelmc@icloud.com` — **se publica en la ficha**, así que lo encuentran los recolectores de direcciones |
+| política de privacidad | `https://kataliziador.github.io/palomera/privacidad` |
 | países | México |
 | público objetivo | 18+ — el contenido lo pone el ISP y la app no puede garantizar que sea para menores |
 | anuncios | no |
