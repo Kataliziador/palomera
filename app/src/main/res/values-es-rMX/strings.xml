@@ -290,7 +290,6 @@
     <string name="pref_default_rating">Tipo de calificación por defecto</string>
     <string name="lbl_tomatoes">Tomatazos</string>
     <string name="lbl_stars">Estrellas</string>
-    <string name="no_network_permissions">Jellyfin requiere permisos de acceso a red para funcionar</string>
     <string name="pref_theme_muted_purple">Púrpura silencioso</string>
     <string name="lbl_switch_user">Cambiar de cuenta</string>
     <string name="user_picker_last_user_summary">Utilizar la última cuenta activa</string>
@@ -302,7 +301,6 @@
     <string name="lbl_use_series_thumbnails">Preferir miniaturas de series</string>
     <string name="lbl_hide_unwatched_count">Cuando el contenido fue visto</string>
     <string name="pref_watched_indicator">Mostrar indicadores de contenido visto</string>
-    <string name="login_help_description">Jellyfin requiere de un servidor al cual conectarse. Visita nuestra documentación en docs.jellyfin.org o escanea el código QR para comenzar a usar Jellyfin.</string>
     <string name="login_help_title">¿Necesita ayuda\?</string>
     <string name="connect_manually_by_address">Introducir dirección del servidor</string>
     <string name="discovered_servers_empty">No se encontraron servidores en la red local.</string>
@@ -325,7 +323,6 @@
     <string name="help">Ayuda</string>
     <string name="add_user">Agregar cuenta</string>
     <string name="who_is_watching">¿Quién está viendo\?</string>
-    <string name="welcome_title">¡Bienvenido a Jellyfin!</string>
     <string name="saved_servers">Servidores guardados</string>
     <string name="press_to_close">Presione para cerrar</string>
     <string name="pref_next_up_behavior_title">Mostrar información del siguiente video</string>
@@ -360,7 +357,6 @@
     <string name="licenses_link_description">Ve las licencias de las librerías usadas por la aplicación Jellyfin</string>
     <string name="licenses_link">Licencias</string>
     <string name="searchable_settings_description">Contenido</string>
-    <string name="searchable_hint">Buscar en Jellyfin</string>
     <string name="home_section_i">Sección de Inicio %1$d</string>
     <string name="home_section_none">Nada</string>
     <string name="home_section_livetv">TV en vivo</string>
@@ -526,7 +522,6 @@
     <string name="color_green">Verde</string>
     <string name="pref_enable_media_management">Habilitar administración de medios</string>
     <string name="pref_enable_media_management_description">Mostrar opción para administrar los medios mientras navega</string>
-    <string name="pref_screensaver_inapp_enabled_description">Mostrar el salvapantallas de Jellyfin mientras la aplicación está abierta</string>
     <string name="clear_image_cache_content">Utilizado: %1$s</string>
     <string name="unreleased">Sin estrenar</string>
     <string name="pref_screensaver_ageratingrequired_disabled">Mostrando todos los elementos</string>
@@ -551,8 +546,6 @@
     <string name="pref_screensaver_ageratingmax_entry">Hasta los %1$d años</string>
     <string name="color_red">Rojo</string>
     <string name="item_deleted">%1$s eliminado</string>
-    <string name="app_notification_beta">Aplicación actualizada a la versión %1$s
-\nGracias por participar en el programa beta de Jellyfin.</string>
     <string name="item_deletion_failed">No fue posible eliminar %1$s</string>
     <plurals name="hours">
         <item quantity="one">%1$s hora</item>

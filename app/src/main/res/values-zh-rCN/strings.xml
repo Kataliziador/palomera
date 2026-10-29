@@ -278,7 +278,6 @@
     <string name="server_connecting">正在连接服务器 %1$s</string>
     <string name="lbl_user_server">%1$s 于 %2$s</string>
     <string name="lbl_user_last_used">上次在 %1$s 于 %2$s 使用</string>
-    <string name="login_help_description">Jellyfin需要服务器进行连接。 请访问docs.jellyfin.org或扫描二维码来阅读相关文档，以开始使用Jellyfin。</string>
     <string name="login_help_title">需要帮助？</string>
     <string name="connect_manually_by_address">输入服务器地址</string>
     <string name="discovered_servers_empty">在本地网络上未发现服务器。</string>
@@ -311,14 +310,12 @@
     <string name="user_picker_disable_title">禁用</string>
     <string name="auto_sign_in">自动登录</string>
     <string name="lbl_switch_user">切换账户</string>
-    <string name="no_network_permissions">Jellyfin需要网络权限才能运行</string>
     <string name="pref_theme_muted_purple">淡紫色</string>
     <string name="lbl_episode_number">第%1$d集</string>
     <string name="lbl_season_number">第%1$d季</string>
     <string name="add_user">添加帐号</string>
     <string name="help">帮助</string>
     <string name="welcome_content">请连接您的服务器以开始使用。</string>
-    <string name="welcome_title">欢迎来到Jellyfin!</string>
     <string name="saved_servers">已保存的服务器</string>
     <string name="press_to_close">点击关闭</string>
     <string name="pref_next_up_behavior_title">显示下一个视频信息</string>
@@ -360,7 +357,6 @@
     <string name="licenses_link_description">查看Jellyfin应用程序使用的库的许可证</string>
     <string name="licenses_link">许可证</string>
     <string name="searchable_settings_description">媒体</string>
-    <string name="searchable_hint">搜索 Jellyfin</string>
     <string name="home_section_i">首页部分 %1$d</string>
     <string name="home_section_none">从不</string>
     <string name="home_section_livetv">直播电视</string>
@@ -443,8 +439,6 @@
     <string name="lbl_quality_profile">质量配置</string>
     <string name="desc_audio_night_mode">自动调平音量</string>
     <string name="pref_audio_night_mode">音频夜间模式（实验性）</string>
-    <string name="app_notification_beta">应用已更新至 %1$s
-\n感谢您参与 Jellyfin 测试计划。</string>
     <string name="color_white">白色</string>
     <string name="color_black">黑色</string>
     <string name="color_darkgrey">深灰色</string>
@@ -461,7 +455,6 @@
     <string name="item_delete_confirm_title">删除</string>
     <string name="item_delete_confirm_message">您确定要从服务器删除此项目吗？此操作无法撤消。</string>
     <string name="pref_screensaver_inapp_enabled">使用应用内的屏保</string>
-    <string name="pref_screensaver_inapp_enabled_description">在应用开启时显示 Jellyfin 屏保</string>
     <string name="pref_screensaver_inapp_timeout">在多长时间后开始屏保</string>
     <string name="pref_screensaver">屏幕保护程序</string>
     <plurals name="minutes">

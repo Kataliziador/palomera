@@ -283,7 +283,6 @@
         <item quantity="other">%1$s episoodi</item>
     </plurals>
     <string name="pref_developer_link_description">Täiustatud ja eksperimentaalsed funktsioonid</string>
-    <string name="login_help_description">Jellyfin vajab ühenduse loomiseks serverit. Jellyfini kasutamise alustamiseks külastage meie dokumentatsiooni aadressil docs.jellyfin.org või skannige QR-koodi.</string>
     <string name="home_prefs">Avaleht</string>
     <string name="pref_crash_reports_disabled">Krahhiaruandeid ei esitata</string>
     <string name="item_delete_confirm_title">Kustuta üksus</string>
@@ -353,7 +352,6 @@
     <string name="action_use_password">Kasutage parooli</string>
     <string name="pref_crash_report_logs_disabled">Logisid krahhiaruannetesse ei kaasata</string>
     <string name="lbl_special">Eriepisoodid</string>
-    <string name="welcome_title">Jellyfin tervitab!</string>
     <string name="watch_count_overflow">99+</string>
     <string name="pref_clock_display">Näita kella</string>
     <string name="enable_smart_view">Luba nutikas ekraan</string>
@@ -443,7 +441,6 @@
     <string name="user_picker_disable_summary">Kuva alati sisselogimiskuva</string>
     <string name="user_picker_last_user_summary">Kasutage viimast aktiivset kontot</string>
     <string name="lbl_switch_user">Vaheta kontot</string>
-    <string name="no_network_permissions">Jellyfin vajab töötamiseks võrgulubasid</string>
     <string name="press_to_close">Vajutage sulgemiseks</string>
     <string name="saved_servers">Salvestatud serverid</string>
     <string name="welcome_content">Alustamiseks looge oma serveriga ühendus.</string>
@@ -455,12 +452,9 @@
     <string name="lbl_next_up_extended">Pisipildiga</string>
     <string name="lbl_name_date">%1$s (%2$s)</string>
     <string name="last_use">Viimati kasutatud</string>
-    <string name="searchable_hint">Otsige Jellyfinist</string>
     <string name="color_darkgrey">Tumehall</string>
     <string name="input_password">Parool</string>
     <string name="pref_telemetry_description">Saatke krahhiaruandeid, kaasake logisid</string>
-    <string name="app_notification_beta">Rakendus värskendati versioonile %1$s
-\nTäname, et osalesite Jellyfini beetaprogrammis.</string>
     <string name="select_version">Versioon</string>
     <string name="alphabetical">Tähestikuline</string>
     <string name="always_authenticate_description">Selle funktsiooni lubamine keelab automaatse sisselogimise</string>
@@ -488,7 +482,6 @@
     <string name="episode_name_special">eriosa</string>
     <string name="item_deletion_failed">%1$s ei saa kustutada</string>
     <string name="pref_enable_media_management_description">Kuva sirvimise ajal meedia haldamise suvand</string>
-    <string name="pref_screensaver_inapp_enabled_description">Kuvage Jellyfini ekraanisäästja, kui rakendus on avatud</string>
     <plurals name="minutes">
         <item quantity="one">%1$s minut</item>
         <item quantity="other">%1$s minutit</item>

@@ -276,7 +276,6 @@
     <string name="server_field_empty">Az elérhetőség nem lehet üres</string>
     <string name="server_connection_failed">Nem sikerült csatlakozni a szerverhez</string>
     <string name="server_connecting">Csatlakozás a következőhöz: %1$s</string>
-    <string name="login_help_description">A Jellyfin szerverre van szüksége a kapcsolat létrehozásához. Látogassa meg dokumentációnkat a docs.jellyfin.org címen, vagy olvassa be a QR-kódot a Jellyfin használatának megkezdéséhez.</string>
     <string name="login_help_title">Kell segítség\?</string>
     <string name="connect_manually_by_address">Szerver címének megadása</string>
     <string name="discovered_servers_empty">Nem található szerverek a helyi hálózaton.</string>
@@ -311,7 +310,6 @@
     <string name="user_picker_disable_title">Letiltás</string>
     <string name="auto_sign_in">Automatikus bejelentkezés</string>
     <string name="lbl_switch_user">Felhasználóváltás</string>
-    <string name="no_network_permissions">A Jellyfin működéséhez hálózati engedélyekre van szükség</string>
     <string name="pref_theme_muted_purple">Tompa lila</string>
     <string name="press_to_close">Nyomja meg a bezáráshoz</string>
     <string name="add_user">Felhasználó hozzáadása</string>
@@ -319,7 +317,6 @@
     <string name="no_user_warning">Nem találtunk felhasználói fiókot!
 \nAdjon hozzá egy új felhasználót a \"Felhasználó hozzáadása\" gombbal.</string>
     <string name="welcome_content">Csatlakozzon a kiszolgálóhoz az induláshoz.</string>
-    <string name="welcome_title">Üdvözöljük a Jellyfinben!</string>
     <string name="saved_servers">Elmentett szerverek</string>
     <string name="lbl_next_up_minimal">Bélyegkép nélkül</string>
     <string name="lbl_next_up_extended">Bélyegképpel</string>
@@ -372,7 +369,6 @@
     <string name="home_sections">Kezdőoldal szekciók</string>
     <string name="home_prefs">Kezdőlap</string>
     <string name="searchable_settings_description">Média</string>
-    <string name="searchable_hint">Jellyfin keresés</string>
     <string name="pref_subtitles_size">Felirat mérete</string>
     <string name="pref_subtitles_background_summary">Mutasson fekete hátteret a feliratok mögött</string>
     <string name="pref_subtitles_background_title">Háttér engedélyezése</string>
@@ -452,8 +448,6 @@
     <string name="color_yellow">Citromsárga</string>
     <string name="color_pink">Rózsaszín</string>
     <string name="color_cyan">Cián</string>
-    <string name="app_notification_beta">Az alkalmazás frissítve a következőre: %1$s
-\nKöszönjük, hogy részt vettél a Jellyfin béta programban.</string>
     <string name="item_deleted">%1$s törölve</string>
     <string name="item_delete_confirm_title">Elem törlése</string>
     <string name="item_deletion_failed">Nem sikerült törölni %1$s-t</string>
@@ -476,7 +470,6 @@
         <item quantity="other">%1$s másodpercek</item>
     </plurals>
     <string name="lbl_latest_in">Nemrég hozzáadott %1$s</string>
-    <string name="pref_screensaver_inapp_enabled_description">Jellyfin képernyővédő használata, amíg az alkalmazás nyitva van</string>
     <string name="lbl_album_artists">Album szerzői</string>
     <plurals name="episodes">
         <item quantity="one">%1$s epizód</item>

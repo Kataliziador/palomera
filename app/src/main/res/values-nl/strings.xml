@@ -293,7 +293,6 @@
     <string name="lbl_remove_user_content">Account verwijderen</string>
     <string name="lbl_remove_users">Dit zal ook alle bijbehorende accounts verwijderen</string>
     <string name="lbl_manage_servers">Servers beheren</string>
-    <string name="login_help_description">Jellyfin vereist een server om mee te verbinden. Raadpleeg onze documentatie op docs.jellyfin.org of scan de QR-code om met Jellyfin van start te gaan.</string>
     <string name="login_help_title">Hulp nodig\?</string>
     <string name="connect_manually_by_address">Serveradres invoeren</string>
     <string name="discovered_servers_empty">Geen servers gevonden op het lokale netwerk.</string>
@@ -308,7 +307,6 @@
     <string name="lbl_use_series_thumbnails_description">Serieminiatuur gebruiken bij weergeven van afleveringen</string>
     <string name="lbl_use_series_thumbnails">Voorkeur voor serieminiaturen</string>
     <string name="lbl_sign_out_content">De volgende keer is aanmelden vereist</string>
-    <string name="no_network_permissions">Jellyfin heeft netwerktoestemming nodig om te functioneren</string>
     <string name="lbl_switch_user">Account wisselen</string>
     <string name="pref_theme_muted_purple">Muted purple</string>
     <string name="lbl_hide_unwatched_count">Als het item is gekeken</string>
@@ -339,7 +337,6 @@
     <string name="no_user_warning">Er zijn geen accounts gevonden!
 \nVoeg een nieuw account toe met de knop \"Account toevoegen\".</string>
     <string name="welcome_content">Maak verbinding met je server om te beginnen.</string>
-    <string name="welcome_title">Welkom bij Jellyfin!</string>
     <string name="saved_servers">Opgeslagen servers</string>
     <string name="pref_next_up_behavior_title">Informatie volgende video tonen</string>
     <string name="lbl_fit">Normaal</string>
@@ -350,7 +347,6 @@
     <string name="lbl_starting_early_ending_on_schedule">Begint %1$s eerder en eindigt op schema</string>
     <string name="lbl_starting_early_ending_after">Begint %1$s eerder en eindigt %2$s na schema</string>
     <string name="searchable_settings_description">Media</string>
-    <string name="searchable_hint">Jellyfin doorzoeken</string>
     <string name="home_section_none">Geen</string>
     <string name="home_section_livetv">Live-tv</string>
     <string name="home_section_active_recordings">Actieve opnames</string>
@@ -449,8 +445,6 @@
     <string name="desc_audio_night_mode">Vlakt geluidsvolume automatisch uit</string>
     <string name="episode_name_special">special</string>
     <string name="pref_crash_report_logs_disabled">Logboeken worden niet bijgevoegd bij crashrapporten</string>
-    <string name="app_notification_beta">App bijgewerkt naar %1$s
-\nBedankt voor je deelname aan het bètaprogramma van Jellyfin.</string>
     <string name="crash_report_toast">Oeps! Er is iets misgegaan; er is een crashrapport naar je Jellyfin-server verzonden.</string>
     <string name="pref_crash_report_logs_enabled">Logboeken worden bijgevoegd bij crashrapporten</string>
     <string name="server_setup_incomplete">Het instellen van deze server is nog niet voltooid. Open Jellyfin eerst in een webbrowser om het instellen te voltooien.</string>
@@ -467,7 +461,6 @@
         <item quantity="other">%1$s seconden</item>
     </plurals>
     <string name="pref_screensaver_inapp_enabled">Schermbeveiliging van app gebruiken</string>
-    <string name="pref_screensaver_inapp_enabled_description">Toon de Jellyfin-schermbeveiliging als de app geopend is</string>
     <plurals name="minutes">
         <item quantity="one">%1$s minuut</item>
         <item quantity="other">%1$s minuten</item>

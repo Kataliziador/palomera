@@ -334,14 +334,11 @@
     <string name="no_user_warning">Ne mogu pronaći korisnike!
 \nDodajte novog korisnika pritiskom na gumb \"Dodaj korisnika\".</string>
     <string name="welcome_content">Za početak se povežite s poslužiteljem.</string>
-    <string name="welcome_title">Dobro došli u Jellyfin!</string>
     <string name="press_to_close">Pritisni za zatvaranje</string>
-    <string name="no_network_permissions">Jellyfin zahtijeva mrežna dopuštenja za rad</string>
     <string name="pref_theme_muted_purple">Prigušena ljubičasta</string>
     <string name="user_picker_disable_summary">Uvijek prikaži ekran za prijavu</string>
     <string name="user_picker_disable_title">Onemogući</string>
     <string name="saved_servers">Spremljeni poslužitelji</string>
-    <string name="login_help_description">Jellyfin zahtijeva poslužitelj za povezivanje. Posjetite našu dokumentaciju na docs.jellyfin.org ili skenirajte QR kôd za početak rada s Jellyfinom.</string>
     <string name="login_help_title">Trebate pomoć\?</string>
     <string name="lbl_sign_out">Odjava</string>
     <string name="help">Pomoć</string>
@@ -391,8 +388,6 @@
     <string name="pref_crash_report_logs_disabled">Zapisi neće biti uključeni u prijavi o greški</string>
     <string name="crash_report_toast">Oops! Nešto je pošlo po zlu, prijava o grešci poslana je na vaš Jellyfin server.</string>
     <string name="server_setup_incomplete">Postavljanje ovoga servera nije završena. Otvorite Jellyfin u web pregledniku kako bi završili postavljanje prije prijave.</string>
-    <string name="app_notification_beta">Aplikacija ažurirana na %1$s
-\nHvala vam za sudjelovanje u Jellyfin beta programu.</string>
     <string name="item_deleted">%1$s obrisano</string>
     <string name="lbl_shuffle_queue">Nasumično</string>
     <string name="item_deletion_failed">Nije moguće obrisati %1$s</string>
@@ -458,7 +453,6 @@
     <string name="pref_video">Video</string>
     <string name="pref_subtitles">Podnatpisi</string>
     <string name="pref_audio">Audio</string>
-    <string name="searchable_hint">Pretraži Jellyfin</string>
     <string name="episode_name_special">specijalna</string>
     <string name="pref_screensaver_inapp_enabled">Koristi čuvar zaslona u aplikaciji</string>
     <string name="not_set">Nije postavljeno</string>
@@ -467,7 +461,6 @@
     <string name="enable_reactive_homepage">Omogući reaktivnu početnu stranicu</string>
     <string name="pref_screensaver_inapp_timeout">Pokreni čuvar zaslona nakon</string>
     <string name="pref_screensaver">Čuvar zaslona</string>
-    <string name="pref_screensaver_inapp_enabled_description">Prikaži Jellyfin čuvar zaslona kada je aplikacija otvorena</string>
     <string name="lbl_latest_in">Nedavno dodano u %1$s</string>
     <string name="because_you_watched">Zato što si gledao %1$s</string>
     <string name="photo_albums">Foto albumi</string>

@@ -283,6 +283,66 @@ def confianza_en_cada_conexion(inf: Informe) -> None:
 		inf.bien("e) las conexiones propias pasan por RegistryTrust")
 
 
+def la_app_no_se_llama_jellyfin(inf: Informe) -> None:
+	"""Ningún idioma puede decir que esta app es Jellyfin.
+
+	`CLAUDE.md` §8 distingue dos usos del nombre: **nombrar el software que el
+	abonado tiene enfrente** —«este servidor usa Jellyfin %1$s»— está bien y
+	tiene que seguir; **llamarnos Jellyfin** no, y es lo que hace legal el
+	envío a Play.
+
+	El fallo que esto atrapa es de traducción, no de texto. Las cadenas se
+	corrigieron en `values/`, que es el idioma por defecto, y las cuarenta
+	traducciones del upstream seguían diciendo Jellyfin. En una caja mexicana
+	gana `values-es-rMX`, así que la primera pantalla de toda instalación
+	decía «¡Bienvenido a Jellyfin!» — en el único mercado donde se publica.
+	Encontrado el 29-oct poniendo el emulador en es-MX; en inglés no se veía.
+
+	La regla es automática y no lleva lista: si `values/` ya **no** dice
+	Jellyfin para una clave, ningún idioma puede decirlo. Lo que sigue
+	nombrando al servidor del ISP lo dice también `values/`, así que queda
+	fuera sin tener que enumerarlo, y un mensaje nuevo del upstream que hable
+	del servidor no hace saltar esto.
+
+	Importa sobre todo **después de un rebase**: el upstream vuelve a traer
+	sus traducciones, y sin esta comprobación el fallo vuelve callado.
+	"""
+	res = RAIZ / "app/src/main/res"
+
+	def cadenas(ruta: Path) -> dict[str, str]:
+		import xml.etree.ElementTree as ET
+
+		try:
+			raiz = ET.parse(ruta).getroot()
+		except ET.ParseError as fallo:
+			inf.mal(f"f) {ruta.relative_to(RAIZ)} no es XML válido", [str(fallo)])
+			return {}
+		return {
+			n.get("name"): "".join(n.itertext())
+			for n in raiz
+			if n.tag == "string" and n.get("name")
+		}
+
+	base = cadenas(res / "values/strings.xml")
+	culpables = []
+	for ruta in sorted(res.glob("values-*/strings.xml")):
+		for clave, texto in cadenas(ruta).items():
+			# Si `values/` también lo dice, habla del servidor del ISP (§8).
+			if "Jellyfin" in texto and "Jellyfin" not in base.get(clave, "Jellyfin"):
+				culpables.append(f"{ruta.parent.name}: {clave}")
+	if culpables:
+		inf.mal(
+			"f) hay idiomas que llaman Jellyfin a esta app",
+			[
+				*culpables[:12],
+				*([f"... y {len(culpables) - 12} más"] if len(culpables) > 12 else []),
+				"se quita la cadena del idioma y cae en la de values/ (§8)",
+			],
+		)
+	else:
+		inf.bien(f"f) ningún idioma llama Jellyfin a la app ({len(list(res.glob('values-*/strings.xml')))} idiomas)")
+
+
 def pruebas(inf: Informe) -> None:
 	r = subprocess.run(
 		["./gradlew", ":livetv:test", "--console=plain", "-q"],
@@ -322,6 +382,7 @@ def main() -> int:
 	camino_de_vod(inf)
 	interruptores_cableados(inf)
 	confianza_en_cada_conexion(inf)
+	la_app_no_se_llama_jellyfin(inf)
 	if "--rapido" in sys.argv:
 		print(f"{GRIS}    d) pruebas de unidad omitidas (--rapido){FIN}")
 	else:

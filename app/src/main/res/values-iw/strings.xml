@@ -276,7 +276,6 @@
     <string name="login_invalid_credentials">שם משתמש ו/או סיסמה שגויים</string>
     <string name="login_authenticating">מאמת…</string>
     <string name="server_field_empty">הכתובת אינה יכולה להיות ריקה</string>
-    <string name="no_network_permissions">Jellyfin צריכה הרשאות רשת כדי לפעול</string>
     <string name="pref_theme_muted_purple">סגול מעומעם</string>
     <string name="lbl_switch_user">החלף משתמש</string>
     <string name="user_picker_last_user_summary">השתמש במשתמש הפעיל האחרון</string>
@@ -288,7 +287,6 @@
     <string name="lbl_use_series_thumbnails">העדף תמונה ממוזערת של העונה</string>
     <string name="lbl_hide_unwatched_count">כאשר הפריט נצפה</string>
     <string name="pref_watched_indicator">הצג סימן עבור פריטים שנצפו</string>
-    <string name="login_help_description">Jellyfin זקוק לשרת להתחבר אליו. בקר בתיעוד שלנו ב-docs.jellyfin.org או סרוק את קוד ה-QR בכדי להתחיל להשתמש ב-Jellyfin.</string>
     <string name="login_help_title">זקוק לעזרה?</string>
     <string name="connect_manually_by_address">הזן כתובת שרת</string>
     <string name="discovered_servers_empty">לא נמצאו שרתים ברשת המקומית.</string>
@@ -328,7 +326,6 @@
     <string name="who_is_watching">מי צופה\?</string>
     <string name="no_user_warning">לא הצלחנו למצוא אף משתמש!\nהוסף משתמש חדש על ידי לחיצה על כפתור \"הוסף משתמש\".</string>
     <string name="welcome_content">התחבר לשרת שלך בכדי להתחיל.</string>
-    <string name="welcome_title">ברוכים הבאים ל-Jellyfin!</string>
     <string name="saved_servers">שרתים שמורים</string>
     <string name="press_to_close">לחץ כדי לסגור</string>
     <string name="pref_next_up_behavior_title">הצג מידע על הסרטון הבא</string>
@@ -366,7 +363,6 @@
     <string name="pref_subtitles_background_summary">הצג רקע שחור מאחורי הכתוביות</string>
     <string name="pref_subtitles_background_title">הפעל רקע לכתוביות</string>
     <string name="searchable_settings_description">מדיה</string>
-    <string name="searchable_hint">חפש ב-Jellyfin</string>
     <string name="home_section_none">ללא</string>
     <string name="home_section_livetv">טלוויזיה חיה</string>
     <string name="home_section_next_up">הבא בתור</string>
@@ -442,8 +438,6 @@
     <string name="server_setup_incomplete">ההגדרה של שרת זה לא הושלמה. פתח את Jellyfin בדפדפן אינטרנט כדי לסיים את ההגדרה לפני הכניסה.</string>
     <string name="episode_name_special">מיוחד</string>
     <string name="crash_report_toast">אבוי! משהו השתבש, דוח קריסה נשלח לשרת Jellyfin שלך.</string>
-    <string name="app_notification_beta">היישום עודכן לגרסה %1$s
-\nתודה על השתתפותך בתוכנית הבטא של Jellyfin.</string>
     <string name="color_black">שחור</string>
     <string name="color_white">לבן</string>
     <string name="color_red">אדום</string>
@@ -460,7 +454,6 @@
     <string name="item_deleted">%1$s נמחק</string>
     <string name="item_deletion_failed">לא ניתן למחוק את %1$s</string>
     <string name="pref_screensaver">שומר מסך</string>
-    <string name="pref_screensaver_inapp_enabled_description">הצג את שומר המסך המובנה של Jellyfin בזמן שהיישום פתוח</string>
     <string name="lbl_album_artists">אמני אלבומים</string>
     <plurals name="tracks">
         <item quantity="one">רצועה %1$s</item>

@@ -339,6 +339,71 @@ declararla.
 
 ## Entradas
 
+### [B] En español la app se presentaba como Jellyfin — 2026-10-29
+
+**Síntoma.** La primera pantalla de toda instalación decía **«¡Bienvenido a
+Jellyfin!»**. No en inglés: en inglés decía «Te damos la bienvenida a
+Palomera», que es lo que había mirado todo el mundo.
+
+**Cómo apareció.** Buscando sacar las capturas de la ficha se arrancó el
+emulador de TV y se le puso el idioma en **es-MX**, porque la ficha es de
+México. El texto cambió al reiniciar. Hasta ese momento el emulador estaba en
+inglés y la caja de pruebas también, así que el fallo llevaba desde el 27-oct
+sin que lo viera ningún instrumento.
+
+**Causa.** Las cadenas de marca se corrigieron en `values/strings.xml`, que es
+el idioma por defecto, y en `values-es/` y `values-b+es+419/`. El upstream trae
+las suyas traducidas a **cuarenta y tres idiomas**, y Android resuelve
+`es-MX` en `values-es-rMX` **antes** que en `values-es`. O sea: el único
+mercado donde se publica era precisamente el que seguía leyendo el texto viejo.
+
+Es exactamente la trampa que `CLAUDE.md` §4.7 ya describe para los pasos del
+código de acceso —«sobrescribir en `values/` habría dejado el texto viejo en
+los otros treinta y nueve»— aplicada a seis cadenas donde nadie la aplicó.
+
+**Alcance medido.** Criterio automático, sin lista a mano: una clave está mal
+si `values/` **ya no** dice Jellyfin y algún idioma sí. Lo que nombra al
+servidor del ISP —«este servidor usa Jellyfin %1$s»— lo dice también `values/`
+y por eso no sale, que es lo que §8 manda conservar.
+
+| clave | idiomas | qué decía en es-MX |
+|---|---|---|
+| `login_help_description` | 42 | «Jellyfin requiere de un servidor… visita docs.jellyfin.org» |
+| `no_network_permissions` | 42 | «Jellyfin requiere permisos de acceso a red» |
+| `searchable_hint` | 41 | «Buscar en Jellyfin» |
+| `welcome_title` | 41 | «¡Bienvenido a Jellyfin!» |
+| `app_notification_beta` | 39 | «Gracias por participar en el programa beta de Jellyfin» |
+| `pref_screensaver_inapp_enabled_description` | 38 | «el salvapantallas de Jellyfin» |
+| `who_is_watching` | 1 (ko) | «Elige un perfil para usar Jellyfin» |
+
+**244 cadenas en 43 ficheros de idioma.**
+
+**Cambio.** Se **quita** la cadena del idioma, no se traduce. Sin ella, Android
+cae a `values-es` y luego a `values/`, que ya dicen lo correcto. Sólo toca
+`res/values*/strings.xml`, categoría que §4.7 ya admite: **ni una línea de
+código y ningún archivo nuevo fuera del módulo**.
+
+**Y una comprobación nueva, `f)`, en `herramientas/comprobar.py`,** porque esto
+no se arregla una vez: un rebase vuelve a traer las traducciones del upstream y
+el fallo regresa callado. La regla no lleva lista que mantener —«si `values/`
+ya no lo dice, ningún idioma puede decirlo»— así que un mensaje nuevo del
+upstream que hable del servidor del ISP no la hace saltar.
+
+**Prueba.**
+
+1. Contraprueba del instrumento: se devolvió `welcome_title` a
+   `values-es-rMX/` y `f)` falló señalando esa clave y ese idioma; al quitarla,
+   verde. El comprobador **puede ver el caso contrario**.
+2. En pantalla, emulador `tv_1080p` con Android 5.1 en es-MX: antes
+   «¡Bienvenido a Jellyfin!», después «Te damos la bienvenida a Palomera».
+   Una muestra, un idioma y un dispositivo; las otras 243 cadenas están
+   comprobadas por el análisis de recursos, **no vistas en pantalla**.
+
+**Lo que esto no arregla.** Las traducciones de upstream que quedan siguen sin
+revisar para cualquier otra cosa; lo que se garantiza es sólo el nombre.
+
+**Estado:** cerrada.
+
 ### [B] Play habría escondido la app a las cajas sin WiFi — 2026-10-29
 
 **Síntoma.** Ninguno visible, y ése es el problema: se encontró leyendo el AAB

@@ -282,8 +282,6 @@
     <string name="login_quickconnect_step_1">1. 휴대폰이나 웹 브라우저에서 Jellyfin을 연 다음, 당신의 계정으로 로그인 합니다</string>
     <string name="item_deletion_failed">%1$s 을(를) 삭제할 수 없음</string>
     <string name="pref_crash_reports">서버에 충돌 보고서 전송</string>
-    <string name="app_notification_beta">%1$s으로 업데이트됨
-\nJellyfin 베타 프로그램에 참여해 주셔서 감사합니다.</string>
     <string name="person_birthday_and_age">%1$s 출생 (%2$d 세)</string>
     <string name="random">무작위</string>
     <string name="lbl_user_server">%2$s의 %1$s</string>
@@ -297,7 +295,6 @@
     <string name="image_type_thumbnail">썸네일</string>
     <string name="lbl_sign_in">로그인이 필요합니다</string>
     <string name="login_help_title">도움이 필요하십니까?</string>
-    <string name="who_is_watching">Jellyfin을 이용할 프로필을 선택하세요.</string>
     <string name="lbl_next_up_minimal">썸네일 제외</string>
     <string name="home_sections">홈 메뉴 항목</string>
     <string name="pref_theme_muted_purple">어두운 보라색</string>
@@ -317,7 +314,6 @@
     <string name="pref_direct_stream_live_on">트랜스코딩을 하지 않음</string>
     <string name="input_password">비밀번호</string>
     <string name="pref_crash_report_logs_enabled">충돌 보고서에 로그를 포함합니다</string>
-    <string name="pref_screensaver_inapp_enabled_description">앱이 열려 있을 때 Jellyfin 화면 보호기 활성화</string>
     <string name="pref_next_up_timeout_disabled">∞</string>
     <string name="lbl_server">서버</string>
     <string name="help">도움말</string>
@@ -363,7 +359,6 @@
     <string name="discovered_servers_title">발견된 서버</string>
     <string name="searchable_settings_description">미디어</string>
     <string name="connect_manually_by_address">서버 주소 입력</string>
-    <string name="login_help_description">Jellyfin은 연결할 서버가 필요합니다. docs.jellyfin.org에 접속하거나, QR 코드를 스캔하여 처음 사용에 도움이 되는 문서를 보실 수 있습니다.</string>
     <string name="lbl_next_up_extended">썸네일 포함</string>
     <string name="last_use">가장 최근에 사용</string>
     <string name="license_author">원작자</string>
@@ -410,7 +405,6 @@
     <string name="lbl_hidden">숨김</string>
     <string name="pref_watched_indicator">시청 여부 표시</string>
     <string name="lbl_switch_user">계정 전환</string>
-    <string name="no_network_permissions">Jellyfin의 작동을 위해서는 네트워크 권한이 필요합니다</string>
     <string name="add_user">계정 생성</string>
     <string name="lbl_season_number">시즌 %1$d</string>
     <string name="lbl_episode_number">에피소드 %1$d</string>
@@ -500,7 +494,6 @@
     <string name="image_size_xlarge">더 큼</string>
     <string name="lbl_stars">별점</string>
     <string name="lbl_stretch">늘이기</string>
-    <string name="searchable_hint">Jellyfin 검색</string>
     <string name="lbl_fit">기본</string>
     <string name="login_username_field_empty">사용자 이름은 비어 있을 수 없습니다</string>
     <string name="login_invalid_credentials">일치하지 않는 사용자 이름 또는 비밀번호</string>
@@ -508,7 +501,6 @@
     <string name="lbl_use_series_thumbnails_description">에피소드 표시할 때 시리즈 전체 썸네일 사용</string>
     <string name="welcome_content">서버에 연결하여 시작하세요.</string>
     <string name="user_picker_disable_title">비활성화</string>
-    <string name="welcome_title">Jellyfin에 오신 것을 환영합니다!</string>
     <string name="lbl_starting_early_ending_after">일정보다 %1$s 일찍 시작하고 %2$s 늦게 끝남</string>
     <string name="lbl_starting_early_ending_on_schedule">일정보다 %1$s 일찍 시작하고 일정에 맞춰 끝남</string>
     <string name="lbl_starting_on_schedule_ending_after">일정에 맞춰 시작하고 %1$s 늦게 끝남</string>

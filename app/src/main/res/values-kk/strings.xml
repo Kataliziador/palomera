@@ -311,14 +311,12 @@
     <string name="user_picker_disable_title">Öşıru</string>
     <string name="auto_sign_in">Avtomatty kıru</string>
     <string name="lbl_switch_user">Tırkelgı auystyru</string>
-    <string name="no_network_permissions">Jellyfin jūmys ısteu üşın jelılık rūqsattar qajet</string>
     <string name="pref_theme_muted_purple">Bäseñdetılgen küreñ</string>
     <string name="no_user_warning">Bırde-bır tırkelgı tabylmady!
 \n«Tırkelgı üsteu» tüimeşıgın basyp jaña tırkelgını üsteñız.</string>
     <string name="welcome_content">Bastau üşın serverıñızge qosylyñyz.</string>
     <string name="add_user">Tırkelgı üsteu</string>
     <string name="who_is_watching">Kım qarauda\?</string>
-    <string name="welcome_title">Jellyfin jūmysyn bastaimyz!</string>
     <string name="saved_servers">Saqtalğan serverler</string>
     <string name="press_to_close">Jabu üşın basyñyz</string>
     <string name="lbl_next_up_minimal">Nobaisyz</string>
@@ -371,7 +369,6 @@
     <string name="home_section_library">Menıñ tasyğyşderekterım</string>
     <string name="home_section_latest_media">Eñ keiıngı tasyğyşderekter</string>
     <string name="home_prefs">Basqy</string>
-    <string name="searchable_hint">Jellyfin ızdeuı</string>
     <string name="searchable_settings_description">Tasyğyşderekter</string>
     <string name="pref_subtitles_size">Mätın ölşemı</string>
     <string name="pref_subtitles_background_summary">Subtitrlerdıñ artynda qara öñ körsetu</string>

@@ -277,7 +277,6 @@
     <string name="pref_subtitles_background_summary">Προβολή μαύρου φόντου πίσω από τους υπότιτλους</string>
     <string name="pref_subtitles_background_title">Ενεργοποίηση φόντου</string>
     <string name="searchable_settings_description">Πολυμέσα</string>
-    <string name="searchable_hint">Αναζήτηση στο Jellyfin</string>
     <string name="home_section_i">Ενότητα αρχικής σελίδας %1$d</string>
     <string name="home_section_none">Κανένα</string>
     <string name="home_section_livetv">Ζωντανή Τηλεόραση</string>
@@ -324,10 +323,8 @@
     <string name="no_user_warning">Δεν μπορέσαμε να βρούμε κανένα χρήστη!
 \nΠροσθέστε ένα νέο χρήστη πατώντας το κουμπί \"Προσθήκη χρήστη\".</string>
     <string name="welcome_content">Συνδεθείτε στο διακομιστή σας για να ξεκινήσετε.</string>
-    <string name="welcome_title">Καλωσορίσατε στο Jellyfin!</string>
     <string name="saved_servers">Αποθηκευμένοι διακομιστές</string>
     <string name="press_to_close">Πιέστε για να κλείσετε</string>
-    <string name="no_network_permissions">Το Jellyfin απαιτεί δικαιώματα δικτύου για να λειτουργήσει</string>
     <string name="lbl_switch_user">Αλλαγή χρήστη</string>
     <string name="user_picker_last_user_summary">Χρήση του τελευταίου ενεργού χρήστη</string>
     <string name="user_picker_last_user_title">Πιο πρόσφατα χρησιμοποιημένα</string>
@@ -337,7 +334,6 @@
     <string name="lbl_use_series_thumbnails_description">Χρήση μικρογραφιών σειρών κατά την απεικόνιση των επεισοδίων</string>
     <string name="lbl_use_series_thumbnails">Προτίμηση μικρογραφιών σειρών</string>
     <string name="pref_watched_indicator">Εμφάνιση δεικτών \"Έχουν παρακολουθηθεί\"</string>
-    <string name="login_help_description">Το Jellyfin χρειάζεται έναν διακομιστή για να συνδεθεί με αυτόν. Επισκεφτείτε την τεκμηρίωσή μας στο docs.jellyfin.org ή σκανάρετε τον κωδικό QR για να ξεκινήσετε με το Jellyfin.</string>
     <string name="login_help_title">Χρειάζεστε βοήθεια\?</string>
     <string name="connect_manually_by_address">Εισάγετε τη διεύθυνση του διακομιστή</string>
     <string name="discovered_servers_empty">Δε βρέθηκαν διακομιστές στο τοπικό δίκτυο.</string>
@@ -451,15 +447,12 @@
     <string name="pref_home_description">Διαμόρφωση ενοτήτων που εμφανίζονται</string>
     <string name="lbl_user_last_used">Χρησιμοποιήθηκε τελευταία την %1$s στις %2$s</string>
     <string name="lbl_begin_padding">Περιθώριο έναρξης</string>
-    <string name="app_notification_beta">Η εφαρμογή ενημερώθηκε στη(ν) %1$s
-\nΣας ευχαριστούμε για τη συμμετοχή σας στο πρόγραμμα Jellyfin beta.</string>
     <string name="lbl_end_padding">Περιθώριο τέλους</string>
     <plurals name="minutes">
         <item quantity="one">%1$s λεπτό</item>
         <item quantity="other">%1$s λεπτά</item>
     </plurals>
     <string name="lbl_album_artists">Καλλιτέχνες άλμπουμ</string>
-    <string name="pref_screensaver_inapp_enabled_description">Προβολή της προφύλαξης οθόνης του Jellyfin όσο η εφαρμογή είναι ανοιχτή</string>
     <plurals name="hours">
         <item quantity="one">%1$s ώρα</item>
         <item quantity="other">%1$s ώρες</item>

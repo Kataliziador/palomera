@@ -312,8 +312,6 @@
     <string name="lbl_bitstream_ac3">Гук Bitstream Dolby Digital</string>
     <string name="desc_bitstream_ac3">Патрабуецца адпаведнае абсталяванне</string>
     <string name="pref_crash_reports_disabled">Справаздачы аб збоях адпраўляцца не будуць</string>
-    <string name="app_notification_beta">Праграма абноўлена да %1$s 
-\nДзякуй за ўдзел у бэта-тэсце Jellyfin.</string>
     <string name="discovered_servers_title">Выяўленыя серверы</string>
     <string name="no_player_message">Здаецца, у вас не ўсталявана праграма для відэа. Гэтая опцыя патрабуе ўсталявання старонняй праграмы для прайгравання відэакантэнту.</string>
     <string name="user_picker_disable_title">Адключыць</string>
@@ -347,7 +345,6 @@
     <string name="pref_developer_link">Налады распрацоўніка</string>
     <string name="image_size_xlarge">Вельмі вялікі</string>
     <string name="discovered_servers_empty">Серверы ў лакальнай сетцы не знойдзены.</string>
-    <string name="no_network_permissions">Jellyfin патрабуе сеткавых дазволаў для працы</string>
     <string name="searchable_settings_description">Мультымедыя</string>
     <string name="server_unsupported_notification">Гэты сервер выкарыстоўвае версію Jellyfin %1$s, якая не падтрымліваецца. Калі ласка, абнавіце Jellyfin да %2$s або больш позняй версіі, каб працягваць выкарыстоўваць праграму.</string>
     <string name="pref_crash_reports">Адпраўляць справаздачы аб збоях на сервер</string>
@@ -371,12 +368,10 @@
     <string name="image_size_small">Маленькі</string>
     <string name="image_size_smallest">Наймніешы</string>
     <string name="pref_developer_link_description">Пашыраныя і эксперыментальныя функцыі</string>
-    <string name="login_help_description">Для падлучэння да Jellyfin патрабуецца сервер. Наведайце нашу дакументацыю на docs.jellyfin.org або адскануйце QR-код, каб пачаць працу з Jellyfin.</string>
     <string name="pref_watched_indicator">Паказаць індыкатар прагляду</string>
     <string name="lbl_use_series_thumbnails_description">Выкарыстоўваць мініяцюры серый пры адлюстраванні эпізодаў</string>
     <string name="lbl_switch_user">Пераключыць уліковы запіс</string>
     <string name="saved_servers">Захаваныя серверы</string>
-    <string name="welcome_title">Сардэчна запрашаем у Jellyfin!</string>
     <string name="help">Дапамога</string>
     <string name="live_tv_preferences">Налады тэлеканалаў</string>
     <string name="pref_crash_report_logs_enabled">Журналы будуць уключаны ў справаздачы аб збоях</string>
@@ -484,7 +479,6 @@
     <string name="lbl_record_all">Будуць запісваць усе эпізоды</string>
     <string name="lbl_start_end_on_schedule">Пачынаючы па раскладзе і заканчваючы па раскладзе</string>
     <string name="home_section_active_recordings">Актыўныя запісы</string>
-    <string name="searchable_hint">Пошук у Jellyfin</string>
     <string name="pref_subtitles_background_title">Уключыць фон</string>
     <string name="home_section_i">Галоўны раздзел %1$d</string>
     <string name="color_green">Зялёны</string>
@@ -564,7 +558,6 @@
     <string name="pref_screensaver_ageratingmax_entry">Узрост да %1$d</string>
     <string name="pref_screensaver_ageratingmax_unlimited">Адключыць максімум</string>
     <string name="pref_screensaver_ageratingrequired_title">Патрабуецца ўзроставы рэйтынг</string>
-    <string name="pref_screensaver_inapp_enabled_description">Паказаць застаўку Jellyfin, калі праграма адкрыта</string>
     <string name="runtime_hours_minutes">%1$dг %2$dхв</string>
     <string name="lbl_exit">Выхад</string>
     <string name="lbl_subtitle_text_color">Колер тэксту субтытраў</string>

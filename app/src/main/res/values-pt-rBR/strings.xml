@@ -276,7 +276,6 @@
     <string name="pref_default_rating">Tipo de classificação padrão</string>
     <string name="lbl_tomatoes">Tomates</string>
     <string name="lbl_stars">Estrelas</string>
-    <string name="login_help_description">O Jellyfin requer um servidor para se conectar. Visite nossa documentação em docs.jellyfin.org ou escanei o QR code para começar a usar o Jellyfin.</string>
     <string name="login_help_title">Precisa de ajuda\?</string>
     <string name="connect_manually_by_address">Digite o endereço do servidor</string>
     <string name="discovered_servers_empty">Nenhum servidor encontrado na rede local.</string>
@@ -339,10 +338,8 @@
     <string name="no_user_warning">Não foi possível encontrar nenhuma conta!
 \nAdicione uma nova conta pressionando o botão \"Adicionar conta\".</string>
     <string name="welcome_content">Conecte-se ao seu servidor para começar.</string>
-    <string name="welcome_title">Boas-vindas ao Jellyfin!</string>
     <string name="saved_servers">Servidores salvos</string>
     <string name="press_to_close">Pressione para fechar</string>
-    <string name="no_network_permissions">Jellyfin requer permissões de rede para funcionar</string>
     <string name="pref_theme_muted_purple">Roxo suave</string>
     <string name="pref_next_up_behavior_title">Mostrar as informações do próximo vídeo</string>
     <string name="lbl_fit">Normal</string>
@@ -452,7 +449,6 @@
     <string name="pref_crash_report_logs_disabled">Registros não serão incluídos nos relatórios de falhas</string>
     <string name="server_setup_incomplete">A configuração desse servidor não foi concluída. Abra o Jellyfin em um navegador para concluir a configuração antes de fazer login.</string>
     <string name="episode_name_special">especial</string>
-    <string name="app_notification_beta">Aplicativo atualizado para %1$s\nObrigado por participar do programa beta do Jellyfin.</string>
     <string name="item_deleted">%1$s deletado</string>
     <string name="pref_enable_media_management">Ativar o gerenciamento de mídia</string>
     <string name="item_delete_confirm_title">Deletar item</string>
@@ -463,7 +459,6 @@
     <string name="pref_screensaver_inapp_timeout">Começar protetor de tela após</string>
     <string name="pref_screensaver">Protetor de tela</string>
     <string name="pref_screensaver_inapp_enabled">Usar protetor de tela do aplicativo</string>
-    <string name="pref_screensaver_inapp_enabled_description">Mostrar o protetor de tela do Jellyfin enquanto o aplicativo está aberto</string>
     <plurals name="seconds">
         <item quantity="one">%1$s segundo</item>
         <item quantity="many">%1$s segundos</item>

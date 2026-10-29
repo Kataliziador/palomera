@@ -276,7 +276,6 @@
     <string name="server_field_empty">La dirección no puede estar vacía</string>
     <string name="server_connection_failed">No se puede conectar al servidor</string>
     <string name="server_connecting">Conectando a %1$s</string>
-    <string name="login_help_description">Jellyfin requiere un servidor para conectarse. Visite nuestra documentación en docs.jellyfin.org o escanee el código QR para comenzar con Jellyfin.</string>
     <string name="login_help_title">Necesita Ayuda\?</string>
     <string name="connect_manually_by_address">Ingrese dirección del servidor</string>
     <string name="discovered_servers_empty">No se encontraron Servidores en la Red Local.</string>
@@ -311,7 +310,6 @@
     <string name="user_picker_disable_title">Inhabilitado</string>
     <string name="auto_sign_in">Registrarse automáticamente</string>
     <string name="lbl_switch_user">Cambiar cuenta</string>
-    <string name="no_network_permissions">Jellyfin necesita permisos de red para funcionar</string>
     <string name="pref_theme_muted_purple">Violeta silenciado</string>
     <string name="press_to_close">Toque para Cerrar</string>
     <string name="add_user">Añadir cuenta</string>
@@ -319,7 +317,6 @@
     <string name="no_user_warning">¡No hemos podido encontrar ninguna cuenta!
 \nAñade una nueva cuenta pulsando el botón \"Añadir cuenta\".</string>
     <string name="welcome_content">Conéctate a tu servidor para empezar.</string>
-    <string name="welcome_title">¡Bienvenido a Jellyfin!</string>
     <string name="saved_servers">Servidores guardados</string>
     <string name="lbl_next_up_minimal">Sin Miniaturas</string>
     <string name="lbl_next_up_extended">Con Miniaturas</string>
@@ -377,7 +374,6 @@
     <string name="pref_subtitles_background_summary">Muestra un fondo negro detrás de los subtítulos</string>
     <string name="pref_subtitles_background_title">Habilitar fondo</string>
     <string name="searchable_settings_description">Contenido</string>
-    <string name="searchable_hint">Buscar en Jellyfin</string>
     <string name="home_section_i">Sección Principal %1$d</string>
     <string name="home_section_none">Ninguna</string>
     <string name="home_section_livetv">TV en vivo</string>
@@ -444,10 +440,7 @@
     <string name="login_quickconnect_step_1">1. Abrí la aplicación Jellyfin en tu teléfono o navegador web e inicia sesión con tu cuenta</string>
     <string name="app_notification_uimode_invalid">Esta aplicación está optimizada para televisiones. Recomendamos utilizar nuestra aplicación para móviles en otros dispositivos.</string>
     <string name="pref_crash_reports">Enviar informes de fallos al servidor</string>
-    <string name="app_notification_beta">Aplicación actualizada a versión %1$s
-\nGracias por participar en el programa beta de Jellyfin.</string>
     <string name="pref_screensaver_inapp_enabled">Usar el salvapantallas de la aplicación</string>
-    <string name="pref_screensaver_inapp_enabled_description">Mostrar el salvapantallas de Jellyfin mientras la aplicación esté abierta</string>
     <string name="pref_screensaver">Salvapantallas</string>
     <string name="item_delete_confirm_message">¿Estás seguro de borrar este elemento en el servidor\? Esta acción no puede deshacer.</string>
     <string name="enable_reactive_homepage">Activar página de inicio reactiva</string>

@@ -285,7 +285,6 @@
     <string name="lbl_use_series_thumbnails">Preferă miniaturile de serial</string>
     <string name="lbl_hide_unwatched_count">Când articolul este vizionat</string>
     <string name="pref_watched_indicator">Afișați indicatorii urmărit</string>
-    <string name="login_help_description">Jellyfin necesită un server pentru a vă conecta. Vizitați documentația noastră la docs.jellyfin.org sau scanați codul QR pentru a începe să utilizați Jellyfin.</string>
     <string name="login_help_title">Aveți nevoie de ajutor\?</string>
     <string name="connect_manually_by_address">Introduceți adresa serverului</string>
     <string name="discovered_servers_empty">Nu s-au găsit servere în network-ul locală.</string>
@@ -322,10 +321,8 @@
     <string name="no_user_warning">Nu se-a găsit niciun cont!
 \nAdăugați un cont nou apăsând butonul „Adăugați cont”.</string>
     <string name="welcome_content">Conectați-vă la server pentru a începe.</string>
-    <string name="welcome_title">Bun venit la Jellyfin!</string>
     <string name="saved_servers">Servere favorite</string>
     <string name="press_to_close">Apăsați să închizi</string>
-    <string name="no_network_permissions">Jellyfin necesită permisiuni de network pentru a funcționa</string>
     <string name="pref_theme_muted_purple">Violet stins</string>
     <string name="lbl_switch_user">Schimba contul</string>
     <string name="pref_next_up_behavior_title">Afișează informațiile despre următorul video</string>
@@ -362,7 +359,6 @@
     <string name="pref_subtitles_background_summary">Afișați un fundal negru în spatele subtitrărilor</string>
     <string name="pref_subtitles_background_title">Activează fundal</string>
     <string name="searchable_settings_description">Media</string>
-    <string name="searchable_hint">Caută în Jellyfin</string>
     <string name="home_section_i">Secțiunea de acasă %1$d</string>
     <string name="home_section_none">Niciunul</string>
     <string name="home_section_livetv">TV în Direct</string>
@@ -442,8 +438,6 @@
     <string name="item_deletion_failed">Nu se poate șterge %1$s</string>
     <string name="pref_enable_media_management">Activează managementul de conținut</string>
     <string name="crash_report_toast">Oops! Ceva nu a mers cum trebuie, un raport crash a fost trimis către serverul tău Jellyfin.</string>
-    <string name="app_notification_beta">Aplicație actualizată la %1$s
-\nMulțumim pentru participarea în programul Jellyfin beta.</string>
     <string name="server_setup_incomplete">Configurarea serverului nu a fost finalizată. Deschide Jellyfin într-un browser web pentru a finaliza configurarea înainte de a te conecta.</string>
     <string name="item_deleted">%1$s a fost șters</string>
     <string name="episode_name_special">special</string>
@@ -453,7 +447,6 @@
     <string name="item_delete_confirm_title">Șterge elementul</string>
     <string name="item_delete_confirm_message">Sunteți sigur că doriți să ștergeți acest element de pe server\? Această acțiune nu poate fi anulată.</string>
     <string name="pref_screensaver">Screensaver</string>
-    <string name="pref_screensaver_inapp_enabled_description">Arată screensaver-ul Jellyfin când se deschide aplicația</string>
     <plurals name="seconds">
         <item quantity="one">O secundă</item>
         <item quantity="few">%1$s secunde</item>

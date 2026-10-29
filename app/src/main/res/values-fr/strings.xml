@@ -283,7 +283,6 @@
     <string name="lbl_sign_out_content">Demande une connexion à la prochaine utilisation</string>
     <string name="lbl_hide_unwatched_count">Quand l\'élément est visionné</string>
     <string name="pref_watched_indicator">Afficher les indicateurs de visionnage</string>
-    <string name="login_help_description">Jellyfin a besoin d\'un serveur auquel se connecter. Visitez notre documentation docs.jellyfin.org ou scannez le QR code pour commencer à utiliser Jellyfin.</string>
     <string name="login_help_title">Besoin d\'aide \?</string>
     <string name="connect_manually_by_address">Entrez l\'adresse du serveur</string>
     <string name="discovered_servers_empty">Aucun serveur n\'a été trouvé sur le réseau local.</string>
@@ -311,7 +310,6 @@
     <string name="user_picker_last_user_title">Plus récent</string>
     <string name="auto_sign_in">Connexion automatique</string>
     <string name="lbl_switch_user">Changer de compte</string>
-    <string name="no_network_permissions">Jellyfin a besoin des permissions réseau pour fonctionner</string>
     <string name="pref_theme_muted_purple">Violet atténué</string>
     <string name="lbl_next_up_minimal">Sans vignette</string>
     <string name="lbl_next_up_extended">Avec vignette</string>
@@ -325,7 +323,6 @@
     <string name="no_user_warning">Nous n\'avons trouvé aucun compte !
 \nAjoutez un nouveau compte en appuyant sur le bouton \"Ajouter un compte\".</string>
     <string name="welcome_content">Connectez-vous à votre serveur pour commencer.</string>
-    <string name="welcome_title">Bienvenue sur Jellyfin !</string>
     <string name="saved_servers">Serveurs sauvegardés</string>
     <string name="press_to_close">Appuyer pour fermer</string>
     <string name="pref_next_up_behavior_title">Afficher les infos de la prochaine vidéo</string>
@@ -403,7 +400,6 @@
     <string name="pref_accounts">Comptes</string>
     <string name="sort_accounts_by">Trier les comptes par</string>
     <string name="pref_customization">Personnalisation</string>
-    <string name="searchable_hint">Chercher dans Jellyfin</string>
     <string name="pref_show_backdrop_description">Changer l\'image de fond pour les éléments suivants</string>
     <string name="home_section_resume_book">Continuer à lire</string>
     <string name="lbl_shuffle_queue">Mode aléatoire</string>
@@ -452,8 +448,6 @@
     <string name="color_yellow">Jaune</string>
     <string name="color_pink">Rose</string>
     <string name="color_cyan">Cyan</string>
-    <string name="app_notification_beta">Application mise à jour en %1$s
-\nMerci de participer au programme bêta de Jellyfin.</string>
     <string name="item_delete_confirm_title">Supprimer l\'élément</string>
     <string name="item_deleted">%1$s supprimé</string>
     <string name="item_deletion_failed">Impossible à supprimer %1$s</string>
@@ -461,7 +455,6 @@
     <string name="pref_enable_media_management_description">Afficher l\'option pour gérer les médias pendant la navigation</string>
     <string name="item_delete_confirm_message">Êtes-vous sûr de bien vouloir supprimer cet élément du serveur \? Cette action ne peut pas être annulée.</string>
     <string name="lbl_latest_in">Récemment ajouté dans %1$s</string>
-    <string name="pref_screensaver_inapp_enabled_description">Afficher l\'économiseur d\'écran Jellyfin lorsque l\'application est ouverte</string>
     <string name="enable_reactive_homepage">Activer la page d\'accueil réactive</string>
     <string name="pref_screensaver_inapp_enabled">Utiliser l\'économiseur d\'écran intégré à l\'application</string>
     <string name="pref_screensaver_inapp_timeout">Lancer l\'économiseur d\'écran après</string>

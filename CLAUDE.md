@@ -874,6 +874,21 @@ prohíbe usar el nombre **como marca nuestra**, no nombrar el software que el
 abonado tiene enfrente. Cambiarlo haría los mensajes de error inservibles para
 quien instala el site.
 
+**Y esto se comprueba solo, porque la primera vez no bastó con escribirlo.**
+Las cadenas se corrigieron en `values/`, que es el idioma por defecto, y las
+**cuarenta traducciones del upstream seguían diciendo Jellyfin**. En una caja
+mexicana manda `values-es-rMX`, así que la primera pantalla de toda
+instalación decía «¡Bienvenido a Jellyfin!» — en el único mercado donde se
+publica. Se vio el 29-oct poniendo el emulador en es-MX; en inglés la misma
+pantalla decía «Te damos la bienvenida a Palomera», que es lo que había
+tranquilizado a todo el mundo.
+
+La comprobación `f)` de `herramientas/comprobar.py` lo cierra sin lista que
+mantener: **si `values/` ya no dice Jellyfin para una clave, ningún idioma
+puede decirlo**. Lo que nombra al servidor del ISP lo dice también `values/`,
+así que queda fuera por construcción. Importa sobre todo después de un rebase,
+que es cuando el upstream vuelve a traer sus traducciones.
+
 ### La app se presenta al servidor como «Palomera»
 
 Corregido el 27-oct. Decía **«Jellyfin Android TV»**, que es el caso contrario

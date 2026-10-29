@@ -279,7 +279,6 @@
     <string name="lbl_use_series_thumbnails">Foretræk miniaturebilleder fra serie</string>
     <string name="lbl_hide_unwatched_count">Når emnet er afspillet</string>
     <string name="pref_watched_indicator">Vis indikator for afspillet</string>
-    <string name="login_help_description">Jellyfin kræver en server at forbinde til. Besøg vores dokumentation på docs.jellyfin.org for at komme igang med Jellyfin.</string>
     <string name="login_help_title">Brug for hjælp\?</string>
     <string name="connect_manually_by_address">Indtast server adresse</string>
     <string name="discovered_servers_empty">Ingen servere fundet på lokalt netværk.</string>
@@ -324,10 +323,8 @@
     <string name="no_user_warning">Vi kunne ikke finde nogen brugere!
 \nTilføj en ny bruger ved at trykke på \"Tilføj bruger\"-knappen.</string>
     <string name="welcome_content">Opret forbindelse til din server fro at starte.</string>
-    <string name="welcome_title">Velkommen til Jellyfin!</string>
     <string name="saved_servers">Gemte servere</string>
     <string name="press_to_close">Tryk for at lukke</string>
-    <string name="no_network_permissions">Jellyfin skal have netværk rettigheder for at fungere</string>
     <string name="pref_theme_muted_purple">Afdæmpet lilla</string>
     <string name="lbl_switch_user">Skift bruger</string>
     <string name="image_size_xlarge">Ekstra stor</string>
@@ -400,7 +397,6 @@
     <string name="pref_subtitles_background_summary">Vis en sort baggrund under undertekster</string>
     <string name="pref_subtitles_background_title">Aktiver baggrund</string>
     <string name="searchable_settings_description">Medie</string>
-    <string name="searchable_hint">Søg Jellyfin</string>
     <string name="home_section_i">Hjem sektion %1$d</string>
     <string name="home_section_none">Ingen</string>
     <string name="home_section_livetv">Live TV</string>
@@ -447,8 +443,6 @@
     <string name="color_red">Rød</string>
     <string name="color_yellow">Gul</string>
     <string name="color_pink">Lyse Rød</string>
-    <string name="app_notification_beta">Appen er opdateret til %1$s
-\nTak fordi du deltager i Jellyfin beta programmet.</string>
     <string name="item_deleted">%1$s slettet</string>
     <string name="item_deletion_failed">Kunne ikke slette %1$s</string>
     <string name="pref_enable_media_management">Tillad medie håndtering</string>
@@ -484,7 +478,6 @@
         <item quantity="other">%1$s episoder</item>
     </plurals>
     <string name="pref_screensaver_inapp_timeout">Start pauseskærm efter</string>
-    <string name="pref_screensaver_inapp_enabled_description">Vis Jellyfin-pauseskærmen, mens appen er åben</string>
     <string name="not_set">Ikke indstillet</string>
     <string name="pref_screensaver_inapp_enabled">Brug pauseskærm i appen</string>
     <string name="lbl_album_artists">Album kunstnere</string>

@@ -276,7 +276,6 @@
     <string name="lbl_tomatoes">Pomidory</string>
     <string name="lbl_stars">Gwiazdy</string>
     <string name="lbl_playback_control_ends">Koniec o %1$s</string>
-    <string name="login_help_description">Jellyfin wymaga serwera do połączenia. Odwiedź naszą dokumentację na docs.jellyfin.org, lub zeskanuj kod QR, aby rozpocząć pracę z Jellyfin.</string>
     <string name="login_help_title">Potrzebuję pomocy\?</string>
     <string name="connect_manually_by_address">Wprowadź adres serwera</string>
     <string name="discovered_servers_empty">Nie wykryto serwerów w sieci lokalnej.</string>
@@ -311,7 +310,6 @@
     <string name="user_picker_disable_title">Wyłączone</string>
     <string name="auto_sign_in">Automatyczne logowanie</string>
     <string name="lbl_switch_user">Zmień konto</string>
-    <string name="no_network_permissions">Jellyfin wymaga uprawnień sieciowych do działania</string>
     <string name="pref_theme_muted_purple">Wyciszony fiolet</string>
     <string name="lbl_record_all">Nagra wszystkie odcinki</string>
     <string name="lbl_start_end_on_schedule">Początek i koniec zgodnie z planem</string>
@@ -335,7 +333,6 @@
     <string name="no_user_warning">Nie możemy znaleźć żadnych kont!
 \nDodaj nowe konto używając przycisku \"Dodaj konto\".</string>
     <string name="welcome_content">Połącz się z serwerem, aby rozpocząć.</string>
-    <string name="welcome_title">Witaj w Jellyfin!</string>
     <string name="saved_servers">Zapisane serwery</string>
     <string name="press_to_close">Naciśnij, aby zamknąć</string>
     <string name="pref_next_up_behavior_title">Pokaż informacje o następnym wideo</string>
@@ -393,7 +390,6 @@
     <string name="server_issue_invalid_product">Oprogramowanie serwera jest niekompatybilne</string>
     <string name="server_issue_unable_to_connect">Nie można połączyć</string>
     <string name="searchable_settings_description">Media</string>
-    <string name="searchable_hint">Szukaj Jellyfin</string>
     <string name="home_section_i">Sekcja domowa %1$d</string>
     <string name="home_section_none">Żadne</string>
     <string name="home_section_livetv">Telewizja</string>
@@ -452,8 +448,6 @@
     <string name="pref_crash_report_logs_enabled">Logi będą dołączane do raportów o błędach</string>
     <string name="desc_audio_night_mode">Automatycznie wyrównuje poziom głośności</string>
     <string name="state_disabled">Wyłączone</string>
-    <string name="app_notification_beta">Aplikacja zaktualizowana do wersji %1$s
-\nDziękujemy za uczestnictwo w beta testach Jellyfin.</string>
     <string name="item_deleted">Usunięto %1$s</string>
     <string name="item_deletion_failed">Nie można usunąć %1$s</string>
     <string name="pref_enable_media_management_description">Pokaż opcje zarządzania podczas przeglądania biblioteki</string>
@@ -461,7 +455,6 @@
     <string name="pref_enable_media_management">Włącz zarządzanie multimediami</string>
     <string name="item_delete_confirm_title">Usuń przedmiot</string>
     <string name="pref_screensaver">Wygaszacz ekranu</string>
-    <string name="pref_screensaver_inapp_enabled_description">Pokaż wygaszacz ekranu Jellyfin podczas uruchomienia aplikacji</string>
     <string name="pref_screensaver_inapp_enabled">Użyj wbudowanego wygaszacza ekranu</string>
     <string name="pref_screensaver_inapp_timeout">Uruchom wygaszacz ekranu po</string>
     <plurals name="seconds">

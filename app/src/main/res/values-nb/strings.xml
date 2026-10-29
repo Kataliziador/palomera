@@ -280,7 +280,6 @@
     <string name="lbl_use_series_thumbnails">Foretrekker serieminiatyrbilder</string>
     <string name="lbl_hide_unwatched_count">Når elementet er sett</string>
     <string name="pref_watched_indicator">Vis overvåkede indikatorer</string>
-    <string name="login_help_description">Jellyfin krever en tjener å koble seg til. Gå til dokumentasjonen vår på docs.jellyfin.org eller skann QR-koden for å komme i gang med Jellyfin.</string>
     <string name="login_help_title">Trenger du hjelp\?</string>
     <string name="connect_manually_by_address">Skriv inn serveradresse</string>
     <string name="discovered_servers_empty">Ingen servere funnet i det lokale nettverket.</string>
@@ -305,7 +304,6 @@
     <string name="lbl_remove_user_content">Fjern konto</string>
     <string name="lbl_remove_users">Dette vil også fjerne alle tilknyttede kontoer</string>
     <string name="lbl_manage_servers">Administrere servere</string>
-    <string name="no_network_permissions">Jellyfin krever nettverkstillatelser for å fungere</string>
     <string name="pref_theme_muted_purple">Nedtonet lilla</string>
     <string name="lbl_switch_user">Bytt bruker</string>
     <string name="user_picker_last_user_summary">Bruk den siste aktive brukeren</string>
@@ -326,7 +324,6 @@
 \nLegg til ny bruker ved å trykke på \"Legg til bruker\" knappen.</string>
     <string name="add_user">Legg til bruker</string>
     <string name="welcome_content">Koble til serveren din for å starte.</string>
-    <string name="welcome_title">Velkommen til Jellyfin!</string>
     <string name="saved_servers">Lagrede servere</string>
     <string name="press_to_close">Trykk for å lukke</string>
     <string name="pref_next_up_behavior_title">Vis info om neste video</string>
@@ -405,11 +402,8 @@
     <string name="action_connect">Koble til</string>
     <string name="app_notification_uimode_invalid">Denne appen er optimalisert for TV-er. Vi anbefaler å bruke mobilappen vår på andre enheter.</string>
     <string name="server_unsupported_notification">Denne serveren bruker Jellyfin versjon %1$s, som ikke støttes. Oppdater til Jellyfin %2$s eller nyere for å fortsette å bruke appen.</string>
-    <string name="app_notification_beta">App oppdatert til %1$s
-\nTakk for at du deltar i Jellyfin beta-programmet.</string>
     <string name="pref_screensaver_inapp_enabled">Bruk skjermsparer i appen</string>
     <string name="enable_reactive_homepage">Aktiver reaktiv hjemmeside</string>
-    <string name="pref_screensaver_inapp_enabled_description">Vis Jellyfin-skjermspareren mens appen er åpen</string>
     <string name="lbl_additional_parts">Flere deler</string>
     <string name="home_section_library_small">Mediene mine (liten)</string>
     <string name="server_issue_timeout">Tilkoblingen ble tidsavbrutt</string>
@@ -463,7 +457,6 @@
     <string name="pref_playback_description">Video, undertekster, Direkte-TV, neste</string>
     <string name="home_section_resume_book">Fortsett å lese</string>
     <string name="pref_screensaver_inapp_timeout">Start skjermsparer etter</string>
-    <string name="searchable_hint">Søk i Jellyfin</string>
     <string name="searchable_settings_description">Medier</string>
     <string name="pref_show_backdrop_description">Endre bakgrunnsbilde til valgte elementer</string>
     <string name="license_license">Lisens</string>

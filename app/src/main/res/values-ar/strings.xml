@@ -255,7 +255,6 @@
     <string name="lbl_auto_crop">قص تلقائي</string>
     <string name="lbl_special">الخاص</string>
     <string name="lbl_hide_unwatched_count">عندما يكون قد تم مشاهدة العنصر</string>
-    <string name="login_help_description">Jellyfin يستلزم خادم للإتصال به. قم بزيارة وثائقنا على docs.jellyfin.org او قم بمسح رمز QR للبدأ مع Jellyfin.</string>
     <string name="pref_developer_link">إعدادات المطورين</string>
     <string name="lbl_manage_servers">إدارة الخوادم</string>
     <string name="watch_count_overflow">+99</string>
@@ -278,7 +277,6 @@
     <string name="welcome_title">مرحبا الى jellyfin!</string>
     <string name="saved_servers">الخوادم المحفوظة</string>
     <string name="press_to_close">إظغط للغلق</string>
-    <string name="no_network_permissions">Jellyfin يحتاج إلى صلاحيات الشبكة للعمل</string>
     <string name="lbl_switch_user">تغيير المستخدم</string>
     <string name="user_picker_last_user_summary">إظهار آخر مستخدم نشط</string>
     <string name="user_picker_disable_summary">إظهار شاشة تسجيل الدخول دائما</string>
@@ -361,7 +359,6 @@
     <string name="pref_subtitles_background_summary">إظهار خلفية سوداء خلف الترجمة</string>
     <string name="pref_subtitles_background_title">تفعيل الترجمة في الخلفية</string>
     <string name="searchable_settings_description">وسائط</string>
-    <string name="searchable_hint">بحث في Jellyfin</string>
     <string name="home_section_i">قسم الصفحة الرئيسية %1$d</string>
     <string name="home_sections">أقسام الصفحة الرئيسية</string>
     <string name="home_section_none">لاشيء</string>
@@ -447,8 +444,6 @@
     <string name="pref_crash_report_logs_enabled">سترسل المستندات في تقارير الأخطاء</string>
     <string name="crash_report_toast">ويحي! حدث خطأ ما، لقد أرسل تقرير عن الخطأ إلى خادمك.</string>
     <string name="server_setup_incomplete">لم تكتمل إعدادات هذا الخادم؛ افتح Jellyfin في المتصفح لإنهاءها.</string>
-    <string name="app_notification_beta">تم تحديث التطبيق إلى إصدار: %1$s
-\nشكرًا جزيلًا على مشاركتك في الإصدار التجريبي لـJellyfin</string>
     <string name="input_password">كلمة المرور</string>
     <string name="input_username">اسم المستخدم</string>
     <string name="episode_name_special">خاص</string>
@@ -460,7 +455,6 @@
     <string name="item_delete_confirm_message">هل أنت متأكد من رغبتك على حذف هذا العنصر من الخادم؟ لا يمكن التراجع عن هذا القرار.</string>
     <string name="pref_screensaver">شاشة التوقف</string>
     <string name="pref_screensaver_inapp_enabled">استخدم شاشة التوقف التابعة للتطبيق</string>
-    <string name="pref_screensaver_inapp_enabled_description">استخدم شاشة توقف تابعة لـ Jellyfin عندما يكون التطبيق مفتوحا</string>
     <string name="pref_screensaver_inapp_timeout">شغل شاشة التوقف بعد</string>
     <plurals name="seconds">
         <item quantity="zero">%1$s ثواني</item>

@@ -300,8 +300,6 @@
     <string name="lbl_remove_users">Týmto odstránite aj všetkých pridružené účty</string>
     <string name="lbl_manage_servers">Spravovať servery</string>
     <string name="lbl_sign_out_content">Vyžaduje prihlásenie pri ďalšom použití</string>
-    <string name="login_help_description">Jellyfin vyžaduje server, ku ktorému sa môže pripojiť. Aby ste zistili, ako začať s Jellyfinom, prezrite si našu dokumentáciu na docs.jellyfin.org alebo nasnímajte QR kód.</string>
-    <string name="no_network_permissions">Jellyfin vyžaduje sieťové povolenia k svojmu korektnému fungovaniu</string>
     <string name="pref_theme_muted_purple">Tlmená fialová</string>
     <string name="lbl_switch_user">Zmeniť účet</string>
     <string name="user_picker_last_user_summary">Použiť posledný aktívny účet</string>
@@ -336,7 +334,6 @@
     <string name="no_user_warning">Nemohli sme nájsť žiadne účty!
 \nPridajte nový účet stlačením tlačidla \"Pridať účet\".</string>
     <string name="welcome_content">Začnite pripojením sa k vašemu serveru.</string>
-    <string name="welcome_title">Vitajte v Jellyfine!</string>
     <string name="saved_servers">Uložené servery</string>
     <string name="pref_next_up_behavior_title">Zobraziť informácie nasledujúceho videa</string>
     <string name="alphabetical">Abecedne</string>
@@ -372,7 +369,6 @@
     <string name="home_sections">Sekcie obrazovky Domov</string>
     <string name="home_prefs">Domov</string>
     <string name="searchable_settings_description">Médiá</string>
-    <string name="searchable_hint">Hľadať v Jellyfine</string>
     <string name="pref_subtitles_size">Veľkosť textu</string>
     <string name="pref_subtitles_background_summary">Zobrazí čierne pozadie za titulkami</string>
     <string name="pref_subtitles_background_title">Zobraziť pozadie</string>
@@ -444,8 +440,6 @@
     <string name="desc_audio_night_mode">Automaticky vyrovnáva hlasitosť zvuku</string>
     <string name="pref_audio_night_mode">Nočný zvukový mód (experimentálny)</string>
     <string name="color_green">Zelená</string>
-    <string name="app_notification_beta">Aplikácia bola aktualizovaná na verziu %1$s
-\nĎakujeme za účasť v Jellyfin Beta programe.</string>
     <string name="color_white">Biela</string>
     <string name="color_black">Čierna</string>
     <string name="color_darkgrey">Tmavošedá</string>
@@ -461,7 +455,6 @@
     <string name="pref_enable_media_management_description">Zobraziť možnosti na správu medií počas prehliadania</string>
     <string name="item_delete_confirm_message">Naozaj chcete odstrániť túto položku zo servera\? Túto akciu nie je možné vrátiť späť.</string>
     <string name="pref_screensaver">Šetrič obrazovky</string>
-    <string name="pref_screensaver_inapp_enabled_description">Zobrazovať šetrič obrazovky vstavaný v Jellyfine, dokým je aplikácia otvorená</string>
     <string name="pref_screensaver_inapp_timeout">Spustiť šetrič obrazovky po</string>
     <plurals name="tracks">
         <item quantity="one">%1$s stopa</item>

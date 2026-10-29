@@ -92,7 +92,6 @@
     <string name="lbl_valid_server_address">Entajpi la servilan adreson (IP aŭ domajna/maŝina nomo)</string>
     <string name="lbl_enter_server_address">Entajpi servilan adreson</string>
     <string name="lbl_tv_channel_status">%1$d de %2$d kanaloj</string>
-    <string name="welcome_title">Bonvenon al Jellyfin!</string>
     <string name="lbl_sign_in">Ensaluti</string>
     <string name="lbl_colored_backgrounds">Kolorkoditaj Fonoj</string>
     <string name="lbl_more_like_this">Pli Ĉi Tiel</string>
@@ -125,7 +124,6 @@
     <string name="lbl_episode_number">E%1$d</string>
     <string name="lbl_season_number">S%1$d</string>
     <string name="loading">Ŝarĝas…</string>
-    <string name="no_network_permissions">Jellyfin bezonas retajn permesojn por funkcii</string>
     <string name="user_picker_disable_summary">Ĉiam montri la ensalutan ekranon</string>
     <string name="lbl_use_series_thumbnails_description">Uzi seriajn avizojn kiam montri epizodojn</string>
     <string name="discovered_servers_empty">Neniuj serviloj troviĝis en loka reto.</string>
@@ -349,7 +347,6 @@
     <string name="no_user_warning">Ni ne povis trovi ajnajn uzantojn!
 \nAldoni novan konton premante la butonon \"Aldoni konton\".</string>
     <string name="welcome_content">Konekti al via servilo por komenci.</string>
-    <string name="login_help_description">Jellyfin bezonas servilon por konektiĝi. Viziti nian dokumentaron ĉe docs.jellyfin.org aŭ skani la QR-kodon por komenci kun Jellyfin.</string>
     <string name="enable_smart_view_description">Inteligenta ekrano montras koncernajn aĵojn anstataŭ krado</string>
     <string name="lbl_remove_users">Ĉi tio ankaŭ forigos ĉiujn asocigitajn kontojn</string>
     <string name="episode_missing_message_2">Ĉi tiu epizodo mankas el via plurmediteko. Ludado estos haltata.</string>
@@ -371,7 +368,6 @@
     <string name="home_section_library">Miaj Plurmedioj</string>
     <string name="home_section_latest_media">Plej Novaj Plurmedioj</string>
     <string name="home_prefs">Hejmo</string>
-    <string name="searchable_hint">Serĉo de Jellyfin</string>
     <string name="searchable_settings_description">Plurmedio</string>
     <string name="pref_subtitles_size">Teksta grandeco</string>
     <string name="pref_subtitles_background_summary">Montri nigran fonon malantaŭ la subtekstoj</string>

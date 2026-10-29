@@ -239,7 +239,6 @@
     <string name="image_size_smallest">Най-малък</string>
     <string name="discovered_servers_title">Открити сървъри</string>
     <string name="discovered_servers_empty">Няма открити сървъри в локалната мрежа.</string>
-    <string name="login_help_description">Jellyfin се нуждае от сървър със който да се свърже.Посетете нашата документация на docs.jellyfin.org или сканирайте QR кода за да започнете със Jellyfin.</string>
     <string name="lbl_hide_watched_checkmark">Когато има оставащи епизоди</string>
     <string name="user_picker_disable_summary">Винаги показвай екрана за вписване</string>
     <string name="msg_live_tv_prev">Зареди предните %1$d часа?</string>

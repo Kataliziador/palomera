@@ -285,7 +285,6 @@
     <string name="lbl_use_series_thumbnails">Дајте предност сличицама серије</string>
     <string name="lbl_hide_unwatched_count">Када је одгледано</string>
     <string name="pref_watched_indicator">Прикажи индикаторе за одгледано</string>
-    <string name="login_help_description">Jellyfin захтева сервер за повезивање. Посетите нашу документацију на docs.jellyfin.org или скенирајте QR код да бисте започели са Jellyfin-ом.</string>
     <string name="login_help_title">Потребна Вам је помоћ\?</string>
     <string name="connect_manually_by_address">Унесите адресу сервера</string>
     <string name="discovered_servers_empty">Није пронађен ниједан сервер на локалној мрежи.</string>
@@ -321,7 +320,6 @@
     <string name="pref_subtitles_background_summary">Прикажи црну позадину иза титлова</string>
     <string name="pref_subtitles_background_title">Омогућите позадину</string>
     <string name="searchable_settings_description">Медији</string>
-    <string name="searchable_hint">Претражи Jellyfin</string>
     <string name="home_section_i">Почетна секција %1$d</string>
     <string name="home_section_none">Ниједан</string>
     <string name="home_section_livetv">Телевизија уживо</string>
@@ -372,10 +370,8 @@
     <string name="no_user_warning">Не можемо пронаћи корисника! 
 \nДодајте новог корисника притиском на дугме \"Додај корисника\".</string>
     <string name="welcome_content">Повежите се са вашим сервером да бисте започели.</string>
-    <string name="welcome_title">Добродошли у Jellyfin!</string>
     <string name="saved_servers">Сачувани сервери</string>
     <string name="press_to_close">Притисните да затворите</string>
-    <string name="no_network_permissions">Jellyfin захтева дозволе за мрежу да би функционисао</string>
     <string name="pref_theme_muted_purple">Утишана Љубичаста</string>
     <string name="lbl_switch_user">Промени налог</string>
     <string name="server_connection_failed_candidates">Повезивање са сервером није успело, покушано са следећих адреса:%1$s</string>
@@ -507,7 +503,6 @@
     <string name="pref_screensaver_ageratingmax">Највећа оцена узраста</string>
     <string name="login_quickconnect_step_2">2. Отворите кориснички мени и идите на страну Брзо повезивање</string>
     <string name="login_quickconnect_step_3">3. Унесите овај код:</string>
-    <string name="pref_screensaver_inapp_enabled_description">Прикажи Jellyfin-ов чувар екрана док је апликација отворена</string>
     <string name="lbl_exit">Изађи</string>
     <string name="lbl_still_watching_default">Три епизоде или 90 минута</string>
     <string name="lbl_still_watching_short">Две епизоде или 60 минута</string>

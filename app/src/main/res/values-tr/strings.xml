@@ -284,7 +284,6 @@
     <string name="lbl_user_server">%2$s\'da %1$s</string>
     <string name="lbl_tomatoes">Domatesler</string>
     <string name="searchable_settings_description">Medya</string>
-    <string name="searchable_hint">Jellyfin\'de ara</string>
     <string name="home_section_i">Ana Ekran bölümü %1$d</string>
     <string name="home_section_none">Hiçbiri</string>
     <string name="home_section_livetv">Canlı TV</string>
@@ -325,10 +324,8 @@
     <string name="no_user_warning">Hiçbir hesap bulamadık!
 \n\"Hesap ekle\" düğmesine basarak yeni bir hesap ekleyin.</string>
     <string name="welcome_content">Başlamak için sunucunuza bağlanın.</string>
-    <string name="welcome_title">Jellyfin\'e hoşgeldiniz!</string>
     <string name="saved_servers">Kaydedilen sunucular</string>
     <string name="press_to_close">Kapatmak için bas</string>
-    <string name="no_network_permissions">Jellyfin çalışabilmek için ağ yetkilerine ihtiyaç duyar</string>
     <string name="lbl_switch_user">Hesap değiştir</string>
     <string name="user_picker_last_user_summary">Son etkin hesabı kullanın</string>
     <string name="user_picker_last_user_title">En son kullanılan</string>
@@ -339,7 +336,6 @@
     <string name="lbl_use_series_thumbnails">Dizi küçük resimlerini tercih et</string>
     <string name="lbl_hide_unwatched_count">Öge izlendiğinde</string>
     <string name="pref_watched_indicator">İzlendi göstergelerini göster</string>
-    <string name="login_help_description">Jellyfin bağlantı kurmak için bir sunucuya ihtiyaç duyar. Jellyfin kullanmaya başlamak için QR kodu tarayın veya docs.jellyfin.org adresindeki dokümanlarımızı okuyun.</string>
     <string name="login_help_title">Yardım lazım mı\?</string>
     <string name="connect_manually_by_address">Sunucu adresini girin</string>
     <string name="discovered_servers_empty">Yerel ağda sunucu bulunamadı.</string>
@@ -422,8 +418,6 @@
     <string name="pref_crash_reports_disabled">Çökme raporları gönderilmeyecektir</string>
     <string name="pref_crash_report_logs">Günlükleri dahil et</string>
     <string name="pref_crash_report_logs_disabled">Günlükler çökme raporlarına dahil edilmeyecektir</string>
-    <string name="app_notification_beta">Uygulama %1$s sürümüne güncellendi
-\nJellyfin beta programına katıldığınız için teşekkür ederiz.</string>
     <string name="pref_enable_media_management_description">Göz atarken medyayı yönetme seçeneğini göster</string>
     <string name="pref_screensaver">Ekran Koruyucu</string>
     <string name="pref_screensaver_inapp_enabled">Uygulama içi ekran koruyucuyu kullanın</string>
@@ -472,7 +466,6 @@
     <string name="item_deletion_failed">%1$s silinemiyor</string>
     <string name="item_delete_confirm_title">Ögeyi sil</string>
     <string name="item_delete_confirm_message">Bu ögeyi sunucudan silmek istediğinizden emin misiniz\? Bu eylem geri alınamaz.</string>
-    <string name="pref_screensaver_inapp_enabled_description">Uygulama açıkken Jellyfin ekran koruyucusunu gösterir</string>
     <string name="pref_screensaver_inapp_timeout">Ekran koruyucuyu başlat</string>
     <plurals name="seconds">
         <item quantity="one">%1$s saniye</item>

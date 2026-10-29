@@ -276,7 +276,6 @@
     <string name="lbl_subtitle_track">Selecionar faixa de legendas</string>
     <string name="lbl_audio_track">Selecionar faixa de áudio</string>
     <string name="lbl_pause">Pausar</string>
-    <string name="no_network_permissions">O Jellyfin precisa de permissões de rede para funcionar</string>
     <string name="pref_theme_muted_purple">Roxo</string>
     <string name="lbl_switch_user">Alterar conta</string>
     <string name="user_picker_last_user_summary">Utilizar a última conta ativa</string>
@@ -288,7 +287,6 @@
     <string name="lbl_use_series_thumbnails">Preferir miniaturas de séries</string>
     <string name="lbl_hide_unwatched_count">Quando o item é visto</string>
     <string name="pref_watched_indicator">Mostrar indicadores de visto</string>
-    <string name="login_help_description">O Jellyfin precisa de um servidor para se ligar. Visita a nossa documentação em docs.jellyfin.org ou lê o código QR para começares a usar o Jellyfin.</string>
     <string name="login_help_title">Precisa de ajuda\?</string>
     <string name="connect_manually_by_address">Introduzir endereço do servidor</string>
     <string name="discovered_servers_empty">Servidores não encontrados na rede local.</string>
@@ -351,7 +349,6 @@
     <string name="no_user_warning">Não encontrámos nenhuma conta!
 \nAdiciona uma nova conta premindo o botão \"Adicionar conta\".</string>
     <string name="welcome_content">Conecte-se ao seu servidor para começar.</string>
-    <string name="welcome_title">Bem-vindo ao Jellyfin!</string>
     <string name="saved_servers">Servidores guardados</string>
     <string name="press_to_close">Pressione para fechar</string>
     <string name="pref_next_up_behavior_title">Mostrar as informações do próximo vídeo</string>
@@ -391,7 +388,6 @@
     <string name="pref_subtitles_background_summary">Mostrar fundo negro sob as legendas</string>
     <string name="pref_subtitles_background_title">Ativar fundo</string>
     <string name="searchable_settings_description">Multimédia</string>
-    <string name="searchable_hint">Pesquisar Jellyfin</string>
     <string name="home_section_i">Secção de início %1$d</string>
     <string name="home_section_none">Nenhum</string>
     <string name="home_section_livetv">TV em direto</string>
@@ -441,7 +437,6 @@
     <string name="pref_crash_reports_enabled">Relatórios de problemas serão enviados para o último servidor utilizado</string>
     <string name="pref_crash_report_logs_disabled">Os registos não serão incluídos nos relatórios de problemas</string>
     <string name="server_setup_incomplete">A configuração deste servidor não foi concluída. Abra o Jellyfin num navegador web para terminar o processo antes de se autenticar.</string>
-    <string name="app_notification_beta">Aplicação atualizada para %1$s \nObrigado por participares no programa beta do Jellyfin.</string>
     <string name="login_quickconnect_step_2">2. Abrir o menu do utilizador e ir para a página Ligação Rápida</string>
     <string name="login_quickconnect_step_3">3. Introduzir o seguinte código:</string>
     <string name="pref_telemetry_description">Enviar relatório de problemas, incluir registos</string>
@@ -468,7 +463,6 @@
     <string name="enable_reactive_homepage">Ativar pagina inicial reativa</string>
     <string name="pref_screensaver">Papel de parede</string>
     <string name="pref_screensaver_inapp_enabled">Utilizar proteção de ecrã da aplicação</string>
-    <string name="pref_screensaver_inapp_enabled_description">Ver o papel de parede do Jellyfin enquanto a aplicação estiver aberta</string>
     <string name="pref_screensaver_inapp_timeout">Iniciar o papel de parede depois de</string>
     <string name="not_set">Não definido</string>
     <string name="lbl_album_artists">Artistas do album</string>

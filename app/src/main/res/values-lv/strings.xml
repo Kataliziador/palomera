@@ -295,7 +295,6 @@
     <string name="pref_playback_description">Video, subtitri, tiešraides tv, tālāk gaidāms</string>
     <string name="discovered_servers_title">Atrastie serveri</string>
     <string name="connect_manually_by_address">ievadiet servera adresi</string>
-    <string name="login_help_description">Lai izveidotu savienojumu ar Jellyfin, ir nepieciešams serveris. Apmeklējiet mūsu dokumentāciju vietnē docs.jellyfin.org vai skenējiet QR kodu, lai sāktu lietot Jellyfin.</string>
     <string name="user_picker_last_user_title">Pēdējo reizi izmantots</string>
     <string name="licenses_link">Licences</string>
     <string name="home_section_active_recordings">Aktīvie ieraksti</string>
@@ -377,7 +376,6 @@
     <string name="lbl_pause">Pauze</string>
     <string name="image_size_smallest">Vismazākais</string>
     <string name="state_disabled">Atspējots</string>
-    <string name="searchable_hint">Meklēt Jellyfin</string>
     <string name="searchable_settings_description">Multivide</string>
     <string name="who_is_watching">Kas skatās?</string>
     <string name="license_website">Tīmekļa vietne</string>
@@ -389,7 +387,6 @@
     <string name="lbl_manage_servers">Pārvaldīt serverus</string>
     <string name="pref_developer_link">Izstrādātāja iestatījumi</string>
     <string name="welcome_content">Lai sāktu darbu, izveidojiet savienojumu ar serveri.</string>
-    <string name="welcome_title">Laipni lūdzam Jellyfin!</string>
     <string name="lbl_record_only_new">Ierakstīs tikai jaunas epizodes</string>
     <string name="advanced_settings">Paplašināti</string>
     <string name="license_version">Versija</string>
@@ -426,7 +423,6 @@
     <string name="server_issue_invalid_product">Servera programmatūra nav saderīga</string>
     <string name="subtitle_error">Nevar atlasīt subtitrus</string>
     <string name="server_connection_failed">Nevar izveidot savienojumu ar serveri</string>
-    <string name="no_network_permissions">Jellyfin darbības nodrošināšanai ir nepieciešamas tīkla atļaujas</string>
     <string name="home_section_library">Mana multivide</string>
     <string name="server_connecting">Savienojās ar %1$s</string>
     <string name="lbl_remove_users">Tiks noņemti arī visi saistītie konti</string>
@@ -537,7 +533,6 @@
         <item quantity="other">%1$s dziesmas</item>
     </plurals>
     <string name="color_cyan">Ciāns</string>
-    <string name="pref_screensaver_inapp_enabled_description">Rādīt Jellyfin ekrānsaudzētāju, kamēr ir atvērta lietotne</string>
     <string name="lbl_special">Īpašs</string>
     <string name="color_red">Sarkans</string>
     <string name="color_black">Melns</string>
@@ -553,7 +548,6 @@
     <string name="episode_name_special">īpašs</string>
     <string name="pref_troubleshooting">Problēmu novēršana</string>
     <string name="pref_report_device_profile_failure">Neizdevās iesniegt dokumentu. Jūsu Jellyfin serveris, Iespējams, ir liedzis klientu pierakstus.</string>
-    <string name="app_notification_beta">Programma atjaunināta uz %1$s\nPaldies, ka piedalījāties Jellyfin beta programmā.</string>
     <string name="photos">Attēli</string>
     <string name="pref_subtitles_background_opacity">Subtitru fona caurspīdīgums</string>
     <string name="indicator_subtitles">CC</string>

@@ -333,10 +333,8 @@
     <string name="no_user_warning">Ne najdemo nobenega računa!
 \nDodaj nov račun s izbiro na gumb \"Dodaj račun\".</string>
     <string name="welcome_content">Poveži se na strežnik za začetek.</string>
-    <string name="welcome_title">Dobrodošli v Jellyfinu!</string>
     <string name="saved_servers">Shranjeni strežniki</string>
     <string name="press_to_close">Pritisni za zapiranje</string>
-    <string name="no_network_permissions">Jellyfin zahteva omrežno povezavo za delovanje</string>
     <string name="pref_theme_muted_purple">Utišana vijolična</string>
     <string name="lbl_switch_user">Zamenjaj račun</string>
     <string name="user_picker_last_user_summary">Uporabi zadnje aktivni račun</string>
@@ -348,7 +346,6 @@
     <string name="lbl_use_series_thumbnails">Prikazuj sličice serij</string>
     <string name="lbl_hide_unwatched_count">Ko je vsebina ogledana</string>
     <string name="pref_watched_indicator">Prikaži kazalnike za funkcijo že ogledano</string>
-    <string name="login_help_description">Jellyfin zahteva strežnik za povezavo. Obiščite našo dokumentacijo na docs.jellyfin.org ali skenirajte QR kodo za pričetek uporabe Jellyfin.</string>
     <string name="login_help_title">Potrebujete pomoč\?</string>
     <string name="connect_manually_by_address">Vnesi naslov strežnika</string>
     <string name="discovered_servers_empty">Ne najdem strežnikov na lokalni mreži.</string>
@@ -426,7 +423,6 @@
     <string name="pref_subtitles_background_summary">Prikazuj črno ozadje za podnapisi</string>
     <string name="pref_subtitles_background_title">Omogoči ozadje</string>
     <string name="searchable_settings_description">Vsebina</string>
-    <string name="searchable_hint">Išči Jellyfin</string>
     <string name="home_section_livetv">TV v živo</string>
     <string name="home_section_next_up">Naslednje</string>
     <string name="home_section_active_recordings">Aktivna snemanja</string>
@@ -459,7 +455,6 @@
     <string name="pref_enable_media_management_description">Pokaži možnost za upravljanje predstavnosti med brskanjem</string>
     <string name="pref_screensaver">Ohranjevalnik zaslona</string>
     <string name="pref_screensaver_inapp_enabled">Uporabite ohranjevalnik zaslona v aplikaciji</string>
-    <string name="pref_screensaver_inapp_enabled_description">Pokaži Jellyfinov ohranjevalnik zaslona, ko je aplikacija odprta</string>
     <string name="pref_screensaver_inapp_timeout">Zaženi ohranjevalnik zaslona po</string>
     <plurals name="tracks">
         <item quantity="one">%1$s sled</item>
@@ -481,8 +476,6 @@
     <string name="color_green">Zelena</string>
     <string name="item_deletion_failed">Ni mogoče izbrisati %1$s</string>
     <string name="color_blue">Modra</string>
-    <string name="app_notification_beta">Aplikacija je posodobljena na %1$s
-\nHvala za sodelovanje v programu Jellyfin beta.</string>
     <string name="item_delete_confirm_message">Ali ste prepričani, da želite izbrisati ta element iz strežnika\? Tega dejanja ni mogoče razveljaviti.</string>
     <plurals name="minutes">
         <item quantity="one">%1$s minuta</item>

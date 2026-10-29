@@ -367,15 +367,12 @@
     <string name="pref_developer_link_description">Papildomos ir ekspermentinės galimybės</string>
     <string name="discovered_servers_empty">Lokaliame tinkle serverių nerasta.</string>
     <string name="pref_watched_indicator">Rodyti \"peržiūrėtų\" indikatorius</string>
-    <string name="login_help_description">„Jellyfin“ reikia serverio, prie kurio būtų galima prisijungti. Apsilankykite mūsų dokumentuose adresu docs.jellyfin.org arba nuskaitykite QR kodą ir pradėkite naudotis „Jellyfin“.</string>
     <string name="connect_manually_by_address">Įrašykite serverio adresą</string>
     <string name="lbl_use_series_thumbnails_description">Rodydami serijas naudokite serialų miniatiūras</string>
     <string name="user_picker_last_user_summary">Naudoti paskutinę aktyvią paskyrą</string>
     <string name="user_picker_disable_summary">Visada rodyti prisijungimo langą</string>
     <string name="lbl_switch_user">Perjungti naudotoją</string>
-    <string name="welcome_title">Sveiki prisijungę prie Jellyfin!</string>
     <string name="pref_theme_muted_purple">Prislopinta violetinė</string>
-    <string name="no_network_permissions">Kad „Jellyfin“ veiktų, reikia tinklo leidimų</string>
     <string name="press_to_close">Paspauskite, kad uždarytumėte</string>
     <string name="lbl_start_end_on_schedule">Prasideda laiku ir baigiasi laiku</string>
     <string name="no_user_warning">Neradome jokių naudotojų! \nPridėkite naują naudotoją paspausdami mygtuką \"Pridėti naudotoją\".</string>
@@ -431,7 +428,6 @@
     <string name="lbl_server">Serveris</string>
     <string name="login_help_title">Reikia pagalbos\?</string>
     <string name="alphabetical">Abėcėlę</string>
-    <string name="searchable_hint">Ieškoti Jellyfin</string>
     <string name="searchable_settings_description">Medija</string>
     <string name="msg_live_tv_prev">Krauti buvusias %1$d valandas?</string>
     <string name="server_field_empty">Adresas negali būti tuščias</string>
@@ -552,7 +548,6 @@
     <string name="lbl_hide_watched_checkmark">Kai likę epizodų</string>
     <string name="item_delete_confirm_title">Ištrinti elementą</string>
     <string name="pref_enable_media_management_description">Rodyti nustatymą valdyti turinį naršant</string>
-    <string name="pref_screensaver_inapp_enabled_description">Rodyti Jellyfin ekrano užsklandą kai programa atidaryta</string>
     <string name="item_delete_confirm_message">Ar tikrai norite ištrinti šį elementą iš serverio? Šio veiksmo atšaukti negalima.</string>
     <string name="dts_x">DTS:X</string>
     <string name="dts_hd">DTS:HD</string>
@@ -574,8 +569,6 @@
         <item quantity="few">%1$s sekundės</item>
         <item quantity="other">%1$s sekundžių</item>
     </plurals>
-    <string name="app_notification_beta">Programa atnaujinta į %1$s
-\nAčiū, kad dalyvaujate Jellyfin beta programoje.</string>
     <plurals name="hours">
         <item quantity="one">%1$s valanda</item>
         <item quantity="few">%1$s valandos</item>
