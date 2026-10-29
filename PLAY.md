@@ -379,33 +379,50 @@ La variable es obligatoria y **el build la exige**: sin ella el
    `palomera-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
    borra**: el riesgo real de este paso es subir el archivo equivocado
 2. `versionCode` mayor que el del envío anterior
-3. Las dos comprobaciones de aislamiento de `CLAUDE.md` §4.7 salen limpias
-4. Las pruebas pasan: `./gradlew :livetv:testDebugUnitTest`
-5. La entrada correspondiente está escrita en `LIVETV_LOG.md`
+3. `python3 herramientas/comprobar.py` sale en verde. Son **seis**
+   comprobaciones, no las dos de §4.7: el territorio, el camino de VOD, el
+   cable de los interruptores, la confianza TLS de cada conexión, que ningún
+   idioma llame Jellyfin a la app, y las pruebas de unidad
+4. La entrada correspondiente está escrita en `LIVETV_LOG.md`
+5. **El commit se etiqueta en el repositorio público** con la misma versión
+   (`v0.1.0-rc.1`). La oferta de la GPL-2.0 es del código **correspondiente al
+   binario**, y sin etiqueta nadie puede saber cuál lo produjo (§5)
 
-### Lo verificado el 14-oct sobre `0.1.0-rc.1`
+### Lo verificado el 29-oct sobre `0.1.0-rc.1`
 
-**Esta tabla es un registro de lo que se leyó entonces, no el estado de hoy:**
-el 27-oct el paquete pasó a `mx.kataliziador.palomera` y la etiqueta a
-«Palomera» (§8), así que esas dos filas ya no describen lo que saldría de un
-`bundleRelease` ahora. Lo demás sigue valiendo.
+**Reemplaza a la tabla del 14-oct**, que el propio documento avisaba que ya no
+describía la realidad: el 27-oct el paquete pasó a `mx.kataliziador.palomera` y
+la etiqueta a «Palomera».
 
-Construido de verdad —`bundleRelease` y `assembleRelease`— y leído con
-`aapt2 dump badging` y `apksigner verify`, no supuesto:
+Construido de verdad —`assembleRelease` y `bundleRelease`— y leído con
+`aapt2 dump badging`, `aapt2 dump strings` y `apksigner verify`, no supuesto:
 
 | | leído |
 |---|---|
-| paquete | `mx.kataliziador.palco` |
+| paquete | `mx.kataliziador.palomera` |
 | versión | `versionCode='10001' versionName='0.1.0-rc.1'` |
-| etiqueta | `Palco` |
+| etiqueta | `Palomera` |
 | `minSdk` / `targetSdk` | 21 / 36 |
 | lanzadores | `LAUNCHER` y `leanback-launchable-activity`, los dos |
-| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` |
+| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` y **`wifi`** |
 | ABIs | `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
 | `debuggable` | ausente |
-| `BuildConfig` | `DEBUG = false`, `DEVELOPMENT = false` |
-| firma | aplicada (con el keystore desechable de §1) |
-| AAB | 104,4 MB; los repartos de descarga de §2 siguen valiendo |
+| firma | v1 y v2 verificadas; `CN=solo-para-validar-local, O=NO-PUBLICAR` |
+| APK / AAB | 106,1 MB / 104,4 MB |
 
-Lo que **no** está verificado y no se puede verificar aquí: que esta compilación
-corra en una ZTE B866V2, que es justo para lo que se publica (§7).
+**Y tres cadenas comprobadas dentro del artefacto**, porque los tres arreglos
+de hoy sólo valen si llegan al APK que se publica, no al de depuración:
+
+| | en el release |
+|---|---|
+| «¡Bienvenido a Jellyfin!» | **0 apariciones**, en los 65 idiomas |
+| «Te damos la bienvenida a Palomera» | presente |
+| «De quién es el contenido» | presente |
+| «Código fuente: %1$s y videolan.org» | presente |
+
+La fila del WiFi es nueva y es la que importa del catálogo de dispositivos:
+hasta hoy `ACCESS_WIFI_STATE` implicaba `android.hardware.wifi` **obligatorio**
+y excluía en silencio a las cajas sin radio.
+
+Lo que **no** está verificado y no se puede verificar aquí: que esta
+compilación corra en una ZTE B866V2, que es justo para lo que se publica (§7).
