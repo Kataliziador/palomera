@@ -1,89 +1,61 @@
-<h1 align="center">Jellyfin Android TV</h1>
-<h3 align="center">Part of the <a href="https://jellyfin.org">Jellyfin Project</a></h3>
+# Palomera
+
+Aplicación de televisión para Android TV que los proveedores de internet
+instalan en la caja de sus abonados: los canales en vivo y el catálogo de
+películas y series que cada proveedor sirve desde su propia red.
+
+**Este repositorio existe para cumplir la GPL-2.0.** La aplicación se
+distribuye en Google Play, se deriva de software libre y su licencia obliga a
+ofrecer el código fuente completo. Aquí está.
 
 ---
 
-<p align="center">
-<img alt="Logo banner" src="https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/banner-logo-solid.svg?sanitize=true"/>
-<br/><br/>
-<a href="https://github.com/jellyfin/jellyfin-androidtv">
-<img alt="GPL 2.0 License" src="https://img.shields.io/github/license/jellyfin/jellyfin-androidtv.svg"/>
-</a>
-<a href="https://github.com/jellyfin/jellyfin-androidtv/releases">
-<img alt="Current Release" src="https://img.shields.io/github/release/jellyfin/jellyfin-androidtv.svg"/>
-</a>
-<a href="https://translate.jellyfin.org/projects/jellyfin-android/jellyfin-androidtv/">
-<img alt="Translation Status" src="https://translate.jellyfin.org/widgets/jellyfin-android/-/jellyfin-androidtv/svg-badge.svg"/>
-</a>
-<br/>
-<a href="https://opencollective.com/jellyfin">
-<img alt="Donate" src="https://img.shields.io/opencollective/all/jellyfin.svg?label=backers"/>
-</a>
-<a href="https://features.jellyfin.org">
-<img alt="Feature Requests" src="https://img.shields.io/badge/fider-vote%20on%20features-success.svg"/>
-</a>
-<a href="https://matrix.to/#/+jellyfin:matrix.org">
-<img alt="Chat on Matrix" src="https://img.shields.io/matrix/jellyfin:matrix.org.svg?logo=matrix"/>
-</a>
-<a href="https://www.reddit.com/r/jellyfin">
-<img alt="Join our Subreddit" src="https://img.shields.io/badge/reddit-r%2Fjellyfin-%23FF5700.svg"/>
-</a>
-<br/>
-<a href="https://play.google.com/store/apps/details?id=org.jellyfin.androidtv">
-<img width="153" alt="Jellyfin on Google Play" src="https://jellyfin.org/images/store-icons/google-play.png"/>
-</a>
-<a href="https://www.amazon.com/gp/aw/d/B07TX7Z725">
-<img width="153" alt="Jellyfin on Amazon Appstore" src="https://jellyfin.org/images/store-icons/amazon.png"/>
-</a>
-<a href="https://f-droid.org/en/packages/org.jellyfin.androidtv/">
-<img width="153" alt="Jellyfin on F-Droid" src="https://jellyfin.org/images/store-icons/fdroid.png"/>
-</a>
-<br/>
-<a href="https://repo.jellyfin.org/releases/client/androidtv/">Download archive</a>
-</p>
+## No está afiliada al proyecto Jellyfin
 
-Jellyfin Android TV is a Jellyfin client for Android TV, Nvidia Shield, and Amazon Fire TV devices.
-We welcome all contributions and pull requests! If you have a larger feature in mind please open an
-issue so we can discuss the implementation before you start. 
+Palomera es un **fork** de
+[jellyfin-androidtv](https://github.com/jellyfin/jellyfin-androidtv), del
+proyecto Jellyfin, bajo licencia GPL-2.0. El proyecto Jellyfin no la publica,
+no la respalda y no es responsable de ella.
 
-## Translating
+Lo que **sí** viene de Jellyfin es el servidor que cada proveedor opera para su
+catálogo, y por eso la aplicación lo nombra cuando habla de ese servidor.
 
-Translations can be improved very easily from our
-[Weblate](https://translate.jellyfin.org/projects/jellyfin-android/jellyfin-androidtv) instance.
-Look through the following graphic to see if your native language could use some work!
+## Qué le añade este fork
 
-<a href="https://translate.jellyfin.org/engage/jellyfin-android/">
-<img alt="Detailed Translation Status" src="https://translate.jellyfin.org/widgets/jellyfin-android/-/jellyfin-androidtv/multi-auto.svg"/>
-</a>
+Un **módulo de televisión en vivo** (`livetv/`), escrito desde cero y aislado
+del resto: lista de canales, guía de programación, y un motor de reproducción
+que elige por canal y por modelo de caja entre Media3/ExoPlayer y libVLC. El
+camino de películas y series es el del upstream y no se modifica.
 
-## Build Process
+El resto de los cambios son de marca y de texto: la aplicación no usa el
+nombre ni el logotipo de Jellyfin.
 
-### Dependencies
+## Licencias
 
-- Android Studio
+- Este fork y el upstream del que deriva: **GPL-2.0**, en [`LICENSE`](LICENSE).
+- [libVLC](https://www.videolan.org/vlc/libvlc.html), de VideoLAN, que viaja
+  dentro del APK: **LGPL-2.1**.
 
-### Build
+## Compilar
 
-1. Clone or download this repository
+Hace falta el SDK de Android y una JDK 21. El envoltorio de Gradle se encarga
+del resto:
 
-   ```sh
-   git clone https://github.com/jellyfin/jellyfin-androidtv.git
-   cd jellyfin-androidtv
-   ```
+```bash
+./gradlew :app:assembleDebug
+```
 
-2. Open the project in Android Studio and run it from there or build an APK directly through Gradle:
+Para una compilación de publicación hay que dar una versión semántica y las
+credenciales de firma, que no viven en el repositorio:
 
-   ```sh
-   ./gradlew assembleDebug
-   ```
-   
-   Add the Android SDK to your PATH environment variable or create the ANDROID_SDK_ROOT variable for
-   this to work.
+```bash
+JELLYFIN_VERSION=0.1.0 ./gradlew :app:bundleRelease
+```
 
-### Deploy to device/emulator
+## Sobre la documentación
 
-   ```sh
-   ./gradlew installDebug
-   ```
-
-*You can also replace the "Debug" with "Release" to get an optimized release binary.*
+Los documentos de este repositorio están **en español** y son los de trabajo
+del proyecto: `CLAUDE.md` recoge las reglas, `LIVETV_ENGINE.md` la
+especificación del motor y `LIVETV_LOG.md` la bitácora con las mediciones.
+Están publicados tal cual, sin limpiar, porque forman parte del código fuente
+que la licencia obliga a ofrecer.
