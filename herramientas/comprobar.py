@@ -82,6 +82,9 @@ PERMITIDO = [
 	# ningún abonado sabe. Añade dos rutas —por IP y por código— y no quita la
 	# de escribirla (docs/selector-de-proveedor.md, 30-oct)
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ServerAddFragment\.kt$",
+	# y el botón que lleva a esa pantalla, que seguía diciendo «Introducir
+	# dirección del servidor» cuando detrás ya hay un selector (30-oct)
+	r"^app/src/main/res/layout/fragment_select_server\.xml$",
 	# el nombre con el que la app se presenta al Jellyfin del ISP: el
 	# `ClientInfo` del SDK, la cabecera de autorización del informe de fallos y
 	# el encabezado de los dos informes que se suben al servidor. Decía

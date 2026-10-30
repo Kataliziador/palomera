@@ -40,6 +40,14 @@
       otras treinta y nueve, y en una caja mexicana manda `values-es-rMX`.
     -->
     <string name="livetv_servidor_titulo" translatable="false">Conecta con tu proveedor</string>
+    <!--
+      El botón que lleva a esa pantalla. Decía «Introducir dirección del
+      servidor» —de upstream, y además en usted mientras el resto tutea—, y
+      desde que detrás hay un selector de proveedor ya ni siquiera describe lo
+      que va a pasar: el abonado que no sabe ninguna dirección no pulsa un
+      botón que le pide una.
+    -->
+    <string name="livetv_servidor_boton" translatable="false">Conectar con mi proveedor</string>
     <string name="livetv_proveedor_buscando" translatable="false">Buscando tu proveedor…</string>
     <string name="livetv_proveedor_encontrado" translatable="false">¿Eres cliente de %1$s?</string>
     <string name="livetv_proveedor_confirmar" translatable="false">Sí, conectar</string>

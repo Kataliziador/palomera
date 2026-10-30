@@ -1,10 +1,12 @@
 package org.jellyfin.androidtv.ui.startup.fragment
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.add
@@ -213,6 +215,11 @@ class ServerAddFragment : Fragment() {
 
 	/** Hay proveedor: se enseña su nombre y el botón que lo confirma. */
 	private fun ofrecer(nombre: String, serverUrl: String) {
+		// **El teclado de Leanback no se va solo.** Visto en el emulador: tras
+		// aceptar el código se quedaba puesto tapando media pantalla, y
+		// seguía ahí en la pantalla siguiente. En una tele eso no es un
+		// detalle — es el botón de confirmar escondido detrás de una `Ñ`.
+		esconderTeclado()
 		binding.proveedorEstado.text = getString(R.string.livetv_proveedor_encontrado, nombre)
 		binding.codigo.visibility = View.GONE
 		binding.codigoConfirmar.visibility = View.GONE
@@ -234,6 +241,19 @@ class ServerAddFragment : Fragment() {
 		binding.proveedorConfirmar.visibility = View.GONE
 		binding.codigo.visibility = View.VISIBLE
 		binding.codigoConfirmar.visibility = View.VISIBLE
+		// El código pasa a ser la acción principal, así que el foco va ahí
+		// —medido en el emulador: se quedaba abajo, en la dirección, y con un
+		// mando eso son cuatro pulsaciones para llegar a lo que la pantalla
+		// acaba de pedir—. **Sólo si el abonado no ha empezado a escribir
+		// otra cosa**: quitarle el cursor a mitad de una dirección sería peor
+		// que dejarlo donde está.
+		if (binding.address.text.isEmpty()) binding.codigo.requestFocus()
+	}
+
+	private fun esconderTeclado() {
+		val gestor = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE)
+			as? InputMethodManager
+		gestor?.hideSoftInputFromWindow(binding.root.windowToken, 0)
 	}
 
 	private fun ocultarSelector() {

@@ -296,6 +296,11 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      pantalla compartida con el VOD**, como la puerta de la sesión: añade
      caminos y no quita ninguno, pero exige que Edgar valide la entrada en
      pantalla)**,
+     y `layout/fragment_select_server.xml` **(añadido el 30-oct: el botón que
+     lleva a esa pantalla decía «Introducir dirección del servidor» —de
+     upstream, en usted mientras el resto tutea— y desde que detrás hay un
+     selector ya ni describe lo que pasa: el abonado que no sabe ninguna
+     dirección no pulsa un botón que le pide una)**,
      **los tres sitios donde la app dice su propio nombre al servidor del ISP
      —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
      `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,

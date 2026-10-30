@@ -404,11 +404,47 @@ sitios donde olvidarla, y la comprobación `e)` existe justo por eso.
 comprobaciones de `comprobar.py` incluidas las de unidad del módulo, y
 `:app:compileDebugKotlin` limpio.
 
-**Estado: no validado en pantalla, y lo necesita.** Toca la pantalla de alta,
-que es la puerta compartida con el VOD. Añade caminos y no quita ninguno, pero
-§4.7 ya dejó dicho que un cambio de comportamiento ahí lo ve Edgar en la tele.
-Y **nada de esto está probado contra el registro de producción**: lo que hay
-medido es la lógica y las pruebas de punta a punta contra una base de prueba.
+**Verificado en el emulador `tv34`, en es-MX, con el autorizador corriendo de
+verdad** —uvicorn local, base propia, un site `demo` con código, rangos y
+`servidor_url` apuntando al OVH—. Las cuatro ramas, mirando la pantalla:
+
+| | lo que hizo |
+|---|---|
+| por IP (rango que cubre la del emulador) | «¿Eres cliente de Palomera Demo?» **sin teclear nada**; `porCodigo=false encontrado=true` |
+| por código, `DEMO-4821` | lo mismo, y `porCodigo=true encontrado=true` |
+| confirmar | añadió `http://xtsrt01.ddns.net:8096` y entró a su pantalla de cuentas |
+| escribiendo la dirección a mano | igual que antes, el camino viejo intacto |
+| **con el registro apagado** | «No pudimos consultar quién es tu proveedor», **no** «no existe» |
+
+**Y mirar la pantalla encontró tres defectos que el compilador y las pruebas no
+podían ver**, que es la misma lección que la entrada de más abajo:
+
+1. **el foco se quedaba en el campo de la dirección** cuando la pantalla
+   acababa de pedir el código. Con un mando eso son cuatro pulsaciones hasta
+   lo que se pide. Ahora el foco va al código, **pero sólo si el abonado no ha
+   empezado a escribir una dirección**: quitarle el cursor a media línea sería
+   peor;
+2. **el teclado de Leanback no se iba.** Tras aceptar el código se quedaba
+   tapando media pantalla, y **seguía puesto en la pantalla siguiente**. En
+   una tele eso es el botón de confirmar escondido detrás de una «Ñ»;
+3. **el botón que lleva a esta pantalla seguía diciendo «Introducir dirección
+   del servidor»** —de upstream, y en usted mientras el resto tutea—. Desde
+   que detrás hay un selector ya ni describe lo que pasa: el abonado que no
+   sabe ninguna dirección no pulsa un botón que le pide una. Dice «Conectar
+   con mi proveedor».
+
+Y una prueba nueva en el autorizador por el camino que de verdad va a ocurrir:
+**una base parada en la migración 4 y con datos dentro**, que es lo que hay en
+el VPS. El site y sus alias sobreviven al `ALTER TABLE` y las columnas nuevas
+llegan en nulo.
+
+**Estado: falta la validación en pantalla de Edgar, y es la del VOD.** Lo de
+arriba comprueba que el selector funciona; lo que no comprueba —porque no lo
+puedo comprobar yo— es que **entrar a una película siga igual** desde una
+pantalla que ahora tiene lógica nueva. §4.7 lo pide y sigue pendiente.
+
+Y **nada de esto está probado contra el registro de producción**: todo lo
+medido es contra una instancia local con una base de prueba.
 
 ### [B] El comprobador no veía dos de los tres defectos de hoy — 2026-10-30
 
