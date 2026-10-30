@@ -96,6 +96,49 @@ tener el motor afinado para subir la primera versión a la prueba cerrada es
 regalar días. Lo que sí conviene afinar antes es el **envío a producción**
 (§7), que es otra cosa.
 
+**La cuenta es personal** (comprobado por Edgar el 30-oct), así que la regla
+aplica salvo que la cuenta sea anterior al 13-nov-2023 — la condición de la
+ayuda son las dos cosas, personal **y** creada después de esa fecha, y la
+segunda no está comprobada. Es lo más barato que queda por mirar.
+
+### Pasar la cuenta a organización: sí, pero no para ahorrar los 14 días
+
+Preguntado el 30-oct, y la respuesta corta es que **convertir es más lento que
+cumplir**. Los números, leídos ese día en las fuentes oficiales:
+
+| | plazo |
+|---|---|
+| prueba cerrada de 12 probadores | **14 días de calendario**, en paralelo con todo lo demás |
+| D-U-N-S por la vía gratuita | hasta **30 días hábiles** (~6 semanas), según Dun & Bradstreet |
+| D-U-N-S acelerado | **8 días hábiles** garantizados, de pago (~229 USD, sin confirmar en la web de D&B) |
+| verificación de Google tras enlazar el perfil | **sin plazo publicado** |
+
+Y hay un hueco que ninguna fuente cierra: **nadie documenta si una cuenta
+convertida queda exenta.** El requisito está redactado como «desarrolladores
+con cuentas personales creadas después del 13-nov-2023», así que al dejar de
+ser personal debería dejar de aplicar — pero eso es **mi lectura de una frase,
+no una respuesta de Google**, y apostar el calendario a una lectura es
+exactamente lo que este proyecto no hace.
+
+**Lo que sí justifica la conversión por su cuenta**, independientemente del
+reloj: la razón social existe, la ficha publica el **nombre legal y el correo**
+del desarrollador —el domicilio es obligatorio y las páginas de Google no
+dicen con claridad si se publica, aunque hay desarrolladores que lo han visto
+en «Acerca del desarrollador»—, y una organización **sobrevive a que una
+persona se vaya**, que es el mismo argumento que §8 ya usa para que la oferta
+de código de la GPL-2.0 viva bajo una organización en GitHub y no bajo una
+cuenta personal.
+
+**Dos cuidados.** El cambio es **de un solo sentido**: no se puede volver a
+individual sin crear otra cuenta y transferir las apps. Y toca el perfil de
+pagos, así que conviene **no hacerlo durante la revisión del primer envío**,
+donde una verificación pendiente puede bloquear.
+
+**Decisión:** correr los 14 días ya —lo que adelanta la clave de firma a hoy—
+y pedir el D-U-N-S por la vía gratuita en paralelo. Cuando llegue, convertir;
+a esas alturas la conversión ya no compra calendario, compra identidad. Una
+prueba cerrada ya cumplida no se invalida por convertir después.
+
 ---
 
 ## 2. Lo que ya está hecho en el código
