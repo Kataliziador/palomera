@@ -195,10 +195,42 @@ la prueba cerrada esté corriendo.
 **Lo que hay que acertar no es la velocidad, es el nombre.** Los datos del
 perfil de pagos tienen que **coincidir con el registro de Dun & Bradstreet**; si
 divergen, Console enseña un aviso con fecha límite y la cuenta puede quedar
-restringida. Antes de pedir nada hay que decidir **qué entidad legal es la
-titular de la ficha** —«Kataliziador LLC» con `C=MX` mezcla dos cosas— y pedir
-el D-U-N-S con ese nombre y esa dirección exactos. Es la decisión de Edgar, y
-pesa más que las semanas.
+restringida.
+
+### Y la entidad está decidida: la cuenta se queda personal
+
+**Decidido el 30-oct.** Edgar tributa en México **con su propio nombre**, como
+persona física; no hay sociedad mexicana detrás de «Kataliziador».
+
+Eso deshace el motivo por el que valía la pena convertir. La cuenta de
+organización exige el **nombre legal de la organización**, y si el nombre legal
+es el suyo, **la ficha publica su nombre igual**. Se pagaría de 4 a 8 semanas y
+la decisión de un solo sentido por un cambio de etiqueta, sin ganar lo único
+que de verdad compraba: sacar el nombre personal de una página pública.
+
+Lo que queda, entonces:
+
+- **la cuenta se queda personal**, y los 14 días se cumplen. No hay apuesta que
+  hacer sobre las dos lecturas de arriba;
+- **«Kataliziador» es un nombre comercial, no una sociedad.** Vale como nombre
+  visible de desarrollador en la ficha y como `O=` del certificado de subida
+  —ese campo es una etiqueta de un certificado autofirmado, no una afirmación
+  registral— pero **no vale donde hace falta una persona identificable**;
+- **y ahí hay un defecto que no es de Play:** `AVISO_PRIVACIDAD.md` nombra
+  responsable a «**Kataliziador LLC**» con domicilio en Tabasco. El propio
+  documento ya avisaba de que había que revisar si «LLC» era la figura correcta
+  para una responsable domiciliada en México; con esta decisión, **no lo es**.
+  El responsable de un aviso de la LFPDPPP tiene que ser quien de verdad
+  responde, y el aviso es obligatorio para el envío a Play. Se corrige antes
+  de enviar, no después;
+- **si algún día existe una sociedad**, convertir sigue estando disponible y
+  entonces sí compra algo. No hay que decidirlo hoy.
+
+El `-dname` de la clave de firma lleva por tanto **el nombre legal de Edgar** en
+`CN=`, no una sociedad que no existe. Y da menos miedo de lo que parece: con
+Play App Signing ese certificado es el de **subida**, no el que ven los
+usuarios, y es sustituible si se pierde. Lo que no se puede perder es el acceso
+a la cuenta.
 
 Nota: la ayuda de Play advierte de **terceros que cobran por conseguir el
 número**, que es gratis. La vía acelerada de D&B no es uno de esos
