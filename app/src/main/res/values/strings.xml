@@ -32,6 +32,9 @@
       —iniciar sesión— que el abonado no está haciendo: él está estrenando una
       caja.
     -->
+    <string name="livetv_servidor_titulo" translatable="false">Escribe la dirección del servidor</string>
+    <string name="livetv_servidor_ayuda" translatable="false">Te la da tu proveedor. Puede ser una dirección IP o un nombre, como 192.168.1.10:8096 o tv.miproveedor.mx</string>
+    <string name="livetv_acceso_servidor_sin_nombre" translatable="false">tu servidor</string>
     <string name="livetv_acceso_titulo" translatable="false">Activa tu televisión</string>
     <string name="livetv_acceso_codigo_paso_1" translatable="false">1. Llama a tu proveedor de televisión.</string>
     <string name="livetv_acceso_codigo_paso_2" translatable="false">2. Dile que quieres activar este aparato.</string>

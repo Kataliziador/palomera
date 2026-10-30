@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El velo de la columna de texto de la pantalla de acceso.
+
+  **Era un color plano sobre la mitad izquierda, y se veía la costura.** El
+  `ImageView` iba de `parent` a la guía del 50 %, así que a 1920 px había un
+  borde duro exactamente en x=960: a la izquierda #090909 —el fondo del tema
+  con el negro al 45 % encima— y a la derecha #101010. Medido el 30-oct sobre
+  la captura de la ficha, barriendo la fila y=300: un único salto, en x=960.
+
+  Es un resto de un diseño que da por hecho una imagen de fondo del servidor
+  detrás. Con imagen, el velo hace falta para que el texto se lea; sin ella
+  —que es el caso de un site recién instalado— lo único que aporta es la
+  costura. Un degradado sirve a los dos: mantiene el velo entero donde está el
+  texto y se desvanece antes de llegar al borde, así que no hay salto.
+
+  El 0x74 no se toca: es el valor que ya funcionaba sobre una imagen, y no
+  tengo ninguna medida sobre fondo real que justifique cambiarlo.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="0"
+        android:centerColor="@color/black_transparent_light"
+        android:centerX="0.5"
+        android:endColor="#00000000"
+        android:startColor="@color/black_transparent_light"
+        android:type="linear" />
+</shape>

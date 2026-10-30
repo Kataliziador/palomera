@@ -75,7 +75,16 @@ class UserLoginFragment : Fragment() {
 			viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 				// Update "connecting to ..." text and background
 				userLoginViewModel.server.onEach { server ->
-					val name = server?.name ?: "Jellyfin"
+					// **El respaldo decía «Jellyfin»** —§8: la app llamándose
+					// Jellyfin, y en la primera pantalla de toda instalación—.
+					// `name` no es nulo pero sí puede venir vacío, y `server`
+					// es nulo mientras se resuelve, así que los dos casos
+					// pintaban ese texto aunque fuera un fotograma.
+					// Cae a la dirección que el abonado acaba de escribir, que
+					// además le dice más que cualquier nombre genérico.
+					val name = server?.name?.takeIf(String::isNotBlank)
+						?: server?.address
+						?: getString(R.string.livetv_acceso_servidor_sin_nombre)
 					binding.subtitle.text = getString(R.string.login_connect_to, name)
 
 					if (server != null) backgroundService.setBackground(server)

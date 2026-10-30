@@ -17,12 +17,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!--
+      Ocupa el ancho entero y se desvanece por la derecha: acabado en la guía
+      del centro dejaba un borde duro justo a la mitad de la pantalla. Ver
+      `drawable/velo_acceso.xml`.
+    -->
     <ImageView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:src="@color/black_transparent_light"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/velo_acceso"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/center"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

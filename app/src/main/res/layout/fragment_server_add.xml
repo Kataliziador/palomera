@@ -24,7 +24,7 @@
         style="@style/TextAppearance.Leanback.Title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/lbl_enter_server_address"
+        android:text="@string/livetv_servidor_titulo"
         app:layout_constraintEnd_toStartOf="@id/center"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -34,7 +34,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/lbl_valid_server_address"
+        android:text="@string/livetv_servidor_ayuda"
         app:layout_constraintEnd_toStartOf="@id/center"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title" />

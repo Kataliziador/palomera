@@ -103,36 +103,21 @@ demo va por HTTP y en sus puertos):
   diagnóstico (`autorizador/app.py:149`). Respuesta: `authorized: true`, site
   `demo`, `channelsUrl` correcta.
 
-**Y un fallo que saldría en las capturas:** el registro devuelve
+**Resuelto el 30-oct: el registro devolvía el host como nombre de marca.**
+Decía `"brand": {"displayName": "xtsrt01.ddns.net"}`, y como el `config.json`
+de la demo no trae bloque `brand` ese texto ganaba (§8: registro → site →
+neutra) y la cabecera de la sección se dibujaba con una dirección DDNS cruda.
+Edgar vació el campo en el panel; comprobado desde fuera, el `brand` ya no
+viene y la app usa la **marca neutra**, que dice «TV en vivo» y está diseñada
+exactamente para un site sin marca configurada.
 
-```json
-"brand": { "displayName": "xtsrt01.ddns.net" }
-```
+Se eligió esa salida y no un nombre de demostración a propósito: la ficha es
+una sola para todos los proveedores y no puede dar a entender que hay uno
+concreto detrás.
 
-El `config.json` de la demo **no trae bloque `brand`**, así que gana el del
-registro (`CLAUDE.md` §8: registro → site → neutra) y la cabecera de la sección
-de TV en vivo se dibuja con ese texto (`LogoDeCanal.kt:157`, el nombre sólo
-aparece porque tampoco hay logo). Un revisor —y la ficha para siempre— vería
-una dirección DDNS cruda donde va el nombre del proveedor.
-
-Se arregla en **«Sites» del autorizador**, campo *marca_nombre* del site `demo`,
-y son dos salidas:
-
-- **dejarlo en blanco** → el registro omite `brand` y la app usa la **marca
-  neutra**, que dice «TV en vivo» y está diseñada exactamente para un site sin
-  marca configurada. Es la opción sin riesgo;
-- **poner un nombre de demostración**, p. ej. «TV Demostración». Enseña la
-  ranura de marca funcionando, que es más vistoso en una captura. **No un
-  nombre de ISP real ni inventado con pinta de serlo:** la ficha es una sola
-  para todos los proveedores y no puede dar a entender que uno concreto está
-  detrás.
-
-**Un segundo dato del mismo sondeo:** `until` vino a exactamente 21 días
-(2026-11-19T12:48:52Z), que es la ventana de caché del registro. Eso sólo
-prueba que `fin_contrato` del site `demo` es **igual o posterior** a esa fecha
-—la respuesta se recorta al contrato si éste cae antes—, así que **no descarta**
-que el contrato de la demo venza el 19-nov, en plena revisión de Google.
-Conviene mirarlo en el panel y ponerlo lejos.
+**Lo que no se puede comprobar desde fuera** es el `fin_contrato`: la
+respuesta trae `until` recortado a la ventana de caché de 21 días, así que
+sólo prueba que el contrato es igual o posterior a esa fecha.
 
 ## 5. Capturas de TV — mínimo 1, 1920×1080
 
@@ -147,27 +132,33 @@ Con tunneled puesto, `screencap` sale **negro** sobre un canal (§6); la 2 se
 saca en el emulador de TV o con el interruptor de diagnóstico apagado en una
 compilación de depuración.
 
-**Lo aprendido el 29-oct intentando sacarlas**, que cambia cómo hay que
-hacerlas:
+**Lo aprendido sacándolas**, que cambia cómo hay que hacerlas:
 
 - **tienen que salir de una compilación de `release`**, no de depuración. En
   depuración la cabecera de la sección lleva el botón **«Diagnóstico»**
   (`LiveTvFragment.kt:396`, detrás de `BuildConfig.DEBUG`) y, si se usa un
-  override del menú, la píldora ámbar **`registro=manual`**. Ninguna de las dos
-  existe en el APK que se publica, pero las dos saldrían en la foto;
-- **y por tanto contra la demo de OVH**, no contra una copia local: el menú de
+  override del menú, la píldora ámbar **`registro=manual`**. Ninguna de las
+  dos existe en el APK que se publica, pero las dos saldrían en la foto;
+- **y por tanto contra un host dado de alta de verdad**: el menú de
   desarrollador no existe en `release`, así que no hay forma de desviar el
-  registro y el host tiene que estar dado de alta de verdad. Lo está;
+  registro. Sirven la demo de OVH y la copia local, porque **las dos son
+  alias del site `demo`**;
 - **el emulador `api22tv` no sirve para la captura del canal.** Decodifica por
   software en x86 y da `ERROR_CODE_DECODING_FAILED`: la pantalla muestra «Sin
-  señal / Reconectando…». Sirve para todo lo demás —y fue donde apareció lo de
-  «¡Bienvenido a Jellyfin!»—, pero la 2 necesita un emulador moderno o la caja;
-- **la demo tiene tres canales y la rejilla se ve vacía.** Dos tarjetas en
-  «Demostración» y una en «Música» dejan media pantalla en negro. Un lineup de
-  verdad la llena; si la captura 1 va a ser la primera de la ficha, conviene
-  **generar más canales de carta de ajuste en la demo** antes de dispararla;
-- **los canales de la demo no tienen logo**, así que las tarjetas salen con el
-  número y nada más. Es el respaldo correcto, pero no enseña el producto.
+  señal / Reconectando…». **`tv34` —Android TV 14, 1920×1080— sí**, y además
+  no tiene tunneled activo, así que `screencap` captura el vídeo en vez de
+  salir negro (§6). Es el que se usa;
+- **el idioma se pone por app, no por sistema**: la imagen de API 34 es un
+  build de usuario y `setprop persist.sys.locale` falla.
+  `adb shell cmd locale set-app-locales <pkg> --locales es-MX` sí;
+- **la demo tenía tres canales y la rejilla salía con dos tercios en negro.**
+  Resuelto en `palco-demo` el 30-oct: ocho canales en tres grupos, y **con
+  logo**, porque sin `logoUrl` las tarjetas caen a las iniciales y ocho
+  canales que empiezan por «Palomera» salen idénticos. Falta correr el
+  instalador en la caja de OVH, que es la que ve un revisor;
+- **el velo de la barra de canal subía encima del texto** y sobre la carta de
+  ajuste el nombre del canal quedaba en 2,03:1. Arreglado el 30-oct
+  (`LIVETV_LOG.md`); la captura 2 se saca con esa corrección dentro.
 
 ## 6. Otros campos
 

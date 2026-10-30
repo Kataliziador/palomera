@@ -65,6 +65,15 @@ PERMITIDO = [
 	# sobrescribirlas en `values/` habría dejado el texto viejo en treinta y
 	# nueve: hay que apuntar los layouts a cadenas propias (27-oct)
 	r"^app/src/main/res/layout/fragment_user_login(_quick_connect)?\.xml$",
+	# el subtítulo de esa misma pantalla caía a la cadena literal "Jellyfin"
+	# cuando el servidor no traía nombre o aún no se había resuelto, y el velo
+	# de su columna de texto dejaba un borde duro justo a la mitad de la
+	# pantalla: color plano acabado en la guía del 50 % (30-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/UserLoginFragment\.kt$",
+	r"^app/src/main/res/drawable/velo_acceso\.xml$",
+	# «Introduzca la dirección del servidor» sobre «Por favor, introduce…»:
+	# usted y tú en la misma pantalla, la primera de toda instalación (30-oct)
+	r"^app/src/main/res/layout/fragment_server_add\.xml$",
 	# el nombre con el que la app se presenta al Jellyfin del ISP: el
 	# `ClientInfo` del SDK, la cabecera de autorización del informe de fallos y
 	# el encabezado de los dos informes que se suben al servidor. Decía

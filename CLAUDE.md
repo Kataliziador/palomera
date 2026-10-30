@@ -262,6 +262,19 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      los `res/values*/strings.xml`, **los dos layouts de la pantalla de acceso
      —`layout/fragment_user_login.xml` y
      `layout/fragment_user_login_quick_connect.xml`— (añadidos el 27-oct)**,
+     más `drawable/velo_acceso.xml` y
+     `ui/startup/fragment/UserLoginFragment.kt` **(añadidos el 30-oct: el
+     subtítulo de esa pantalla caía a la cadena literal «Jellyfin» cuando el
+     servidor no traía nombre o todavía no se había resuelto —la app
+     llamándose Jellyfin donde §8 menos lo permite—, y el velo de su columna
+     de texto dejaba un borde duro a la mitad exacta de la pantalla)**,
+     y `layout/fragment_server_add.xml` **(añadido el 30-oct: su título
+     decía «Introduzca la dirección del servidor» y su ayuda, dos líneas más
+     abajo en la misma pantalla, «Por favor, introduce…». Usted y tú a la
+     vez, en la primera pantalla de toda instalación y en el único mercado
+     donde se publica. Van a cadenas `livetv_` por lo mismo que los layouts
+     de acceso: corregirlas en `values-es-rMX` las perdería en el próximo
+     rebase y nada avisaría)**,
      **los tres sitios donde la app dice su propio nombre al servidor del ISP
      —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
      `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,
