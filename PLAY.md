@@ -59,7 +59,7 @@ que la contraseña no pase por aquí:
 ```bash
 keytool -genkeypair -v -keystore palomera-subida.jks -storetype PKCS12 \
   -alias palomera -keyalg RSA -keysize 4096 -validity 10950 \
-  -dname "CN=<razón social>, O=<razón social>, C=MX"
+  -dname "CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX"
 ```
 
 **Lo que hay hoy no sirve para publicar, y lo dice en su propio certificado.**
@@ -216,18 +216,24 @@ Lo que queda, entonces:
   visible de desarrollador en la ficha y como `O=` del certificado de subida
   —ese campo es una etiqueta de un certificado autofirmado, no una afirmación
   registral— pero **no vale donde hace falta una persona identificable**;
-- **y ahí hay un defecto que no es de Play:** `AVISO_PRIVACIDAD.md` nombra
-  responsable a «**Kataliziador LLC**» con domicilio en Tabasco. El propio
-  documento ya avisaba de que había que revisar si «LLC» era la figura correcta
-  para una responsable domiciliada en México; con esta decisión, **no lo es**.
-  El responsable de un aviso de la LFPDPPP tiene que ser quien de verdad
-  responde, y el aviso es obligatorio para el envío a Play. Se corrige antes
-  de enviar, no después;
+- **y de ahí salió un defecto que no era de Play, ya corregido:** el aviso de
+  privacidad nombraba responsable a «**Kataliziador LLC**», que no existe. El
+  propio documento ya avisaba de que había que revisar si «LLC» era la figura
+  correcta para una responsable domiciliada en México; no lo era. Ahora dice
+  **Edgar Abel Martínez Cámara, quien opera bajo el nombre comercial
+  Kataliziador**, con su domicilio, que es lo que la LFPDPPP pide de una
+  persona física. **Se cambió en los dos sitios**: `AVISO_PRIVACIDAD.md` y
+  `docs/privacidad.md`, que es de donde sale la página publicada que la ficha
+  exige — corregir sólo el primero habría dejado la mentira en la URL que lee
+  el revisor;
 - **si algún día existe una sociedad**, convertir sigue estando disponible y
   entonces sí compra algo. No hay que decidirlo hoy.
 
-El `-dname` de la clave de firma lleva por tanto **el nombre legal de Edgar** en
-`CN=`, no una sociedad que no existe. Y da menos miedo de lo que parece: con
+El `-dname` de la clave de firma lleva por tanto
+`CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX` —**sin acentos a
+propósito**: ese campo viaja en un certificado X.509 y un acento mal codificado
+ahí es un problema que no se puede arreglar después—, no una sociedad que no
+existe. Y da menos miedo de lo que parece: con
 Play App Signing ese certificado es el de **subida**, no el que ven los
 usuarios, y es sustituible si se pierde. Lo que no se puede perder es el acceso
 a la cuenta.

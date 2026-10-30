@@ -11,9 +11,10 @@ title: Aviso de privacidad — Palomera
 
 ## 1. Quién es responsable de tus datos
 
-**Kataliziador LLC**, con domicilio en Calle Ignacio Allende SN, C.P. 86927,
-Tenosique, Tabasco, México, es responsable del tratamiento de los datos que se
-describen aquí.
+**Edgar Abel Martínez Cámara**, quien opera bajo el nombre comercial
+**Kataliziador**, con domicilio en Calle Ignacio Allende SN, C.P. 86927,
+Tenosique, Tabasco, México, es responsable del tratamiento de los
+datos que se describen aquí.
 
 Palomera es una aplicación de televisión que instala tu proveedor de internet en
 tu caja. **Tu proveedor no es el responsable de este aviso**: lo somos

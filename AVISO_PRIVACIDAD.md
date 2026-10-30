@@ -9,26 +9,24 @@
 > Esto no es asesoría legal. Está redactado siguiendo lo que pide la LFPDPPP
 > para un aviso simplificado. Queda por revisar **el plazo de conservación**.
 >
-> **BLOQUEANTE, 30-oct: el responsable está sin rellenar y así no se publica.**
-> Hasta hoy esta sección nombraba a «Kataliziador LLC» con domicilio en
-> Tabasco, y esa sociedad **no existe**: no está registrada ante ninguna
-> entidad, y «Kataliziador» es un nombre comercial sin registrar. El aviso
-> nombraba responsable a algo inexistente, que es el único campo del documento
-> que no puede ser falso — es a quien el abonado reclama. La LFPDPPP pide, para
-> una persona física, **nombre completo y domicilio**; el nombre comercial es
-> opcional y se puede añadir, que es como queda redactado abajo.
+> **Corregido el 30-oct: el responsable es una persona física.** Hasta ese día
+> esta sección nombraba a «Kataliziador LLC», y esa sociedad **no existe** —no
+> está registrada ante ninguna entidad, y «Kataliziador» es un nombre comercial
+> sin registrar—. Era el único campo del documento que no puede ser falso: es a
+> quien el abonado reclama. La LFPDPPP pide, para una persona física, **nombre
+> completo y domicilio**, y el nombre comercial es opcional, así que se
+> conserva. **El mismo texto vive en `docs/privacidad.md`**, que es de donde
+> sale la página publicada; los dos se cambian juntos o la ficha apunta a la
+> versión vieja.
 
 ---
 
 ## 1. Quién es responsable de tus datos
 
-**‹NOMBRE LEGAL COMPLETO — PENDIENTE›**, quien opera bajo el nombre comercial
-**Kataliziador**, con domicilio en ‹DOMICILIO COMPLETO — PENDIENTE›, México, es
-responsable del tratamiento de los datos que se describen aquí.
-
-<!-- No publicar con los dos campos entre ‹› sin rellenar. Ver el aviso de
-     arriba: la LFPDPPP pide nombre completo y domicilio de la persona física
-     responsable, y la sociedad que figuraba aquí antes no existe. -->
+**Edgar Abel Martínez Cámara**, quien opera bajo el nombre comercial
+**Kataliziador**, con domicilio en Calle Ignacio Allende SN, C.P. 86927,
+Tenosique, Tabasco, México, es responsable del tratamiento de los
+datos que se describen aquí.
 
 Palomera es una aplicación de televisión que instala tu proveedor de internet en
 tu caja. **Tu proveedor no es el responsable de este aviso**: lo somos
