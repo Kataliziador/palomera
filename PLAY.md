@@ -69,6 +69,33 @@ directorio temporal de la sesión y desaparece con ella. Está así a propósito
 sirve para comprobar el empaquetado y es imposible confundirlo con la de
 producción.
 
+### Y un dato de la consola decide cuándo hace falta la clave
+
+**Escrito el 30-oct porque hasta hoy no estaba en ningún sitio**, y es lo que
+más manda sobre el calendario de todo el proyecto.
+
+Google exige a los desarrolladores **con cuenta personal creada después del 13
+de noviembre de 2023** completar una **prueba cerrada con 12 probadores
+inscritos durante 14 días seguidos** antes de poder pedir acceso a producción
+(verificado el 30-oct en la ayuda de Play Console, `answer/14151465`; la página
+acota el requisito a las cuentas personales y **no menciona las de
+organización**, así que la exención es por omisión y no por una frase que lo
+diga).
+
+El dato que lo decide es **el tipo de cuenta**, y se lee en un minuto:
+Play Console → *Configuración* → *Detalles de la cuenta de desarrollador*.
+
+| si la cuenta es | lo que implica |
+|---|---|
+| **de organización** | nada está en reloj. La clave puede ser lo último, y el orden es: validar en pantalla → clave → envío |
+| **personal** | hay **14 días de calendario que no se pueden comprar**, y 12 personas con cuenta de Google que tienen que inscribirse y dejar la app puesta. La clave pasa a ser lo **primero**, porque sin ella no hay AAB que subir y el reloj no arranca |
+
+**El reloj corre sobre la vía, no sobre el producto acabado.** Una prueba
+cerrada se puede ir actualizando mientras los 14 días pasan, así que esperar a
+tener el motor afinado para subir la primera versión a la prueba cerrada es
+regalar días. Lo que sí conviene afinar antes es el **envío a producción**
+(§7), que es otra cosa.
+
 ---
 
 ## 2. Lo que ya está hecho en el código
