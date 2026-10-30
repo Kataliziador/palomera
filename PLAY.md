@@ -96,10 +96,27 @@ tener el motor afinado para subir la primera versión a la prueba cerrada es
 regalar días. Lo que sí conviene afinar antes es el **envío a producción**
 (§7), que es otra cosa.
 
-**La cuenta es personal** (comprobado por Edgar el 30-oct), así que la regla
-aplica salvo que la cuenta sea anterior al 13-nov-2023 — la condición de la
-ayuda son las dos cosas, personal **y** creada después de esa fecha, y la
-segunda no está comprobada. Es lo más barato que queda por mirar.
+**La regla aplica, y las dos mitades de la condición están comprobadas.** La
+cuenta es **personal** y se creó el **2 de junio de 2026** —fecha del cargo de
+la cuota de registro, que se paga una sola vez el día del alta—, o sea
+posterior al 13-nov-2023. Así que hay 12 probadores y 14 días por delante.
+
+### Y los 14 días son el instrumento que llevamos un mes echando de menos
+
+**Esto es lo que invierte el signo del requisito.** §7 de este documento dice
+que publicar es el instrumento de medida de la ZTE B866V2, y §9 de `CLAUDE.md`
+dice que **todo lo medido en el proyecto viene de un solo modelo**. La prueba
+cerrada **se reparte por Play**, así que una ZTE puede instalarla: los 14 días
+no son espera, son la primera medida en el hardware mayoritario del cliente, y
+llegan **antes** del envío a producción en vez de después.
+
+La condición es que la cuenta de Google **que esté iniciada en la caja** sea
+una de las inscritas. No vale inscribir un correo y probar con otro.
+
+**Conviene inscribir 14 o 15, no 12 justos.** Las fuentes no se ponen de
+acuerdo en si una bajada momentánea por debajo de 12 reinicia la ventana —unas
+dicen que sí y otras que no—, y el precio de no averiguarlo por las malas son
+dos correos más.
 
 ### Pasar la cuenta a organización: sí, pero no para ahorrar los 14 días
 
