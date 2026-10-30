@@ -212,10 +212,16 @@ Lo que queda, entonces:
 
 - **la cuenta se queda personal**, y los 14 días se cumplen. No hay apuesta que
   hacer sobre las dos lecturas de arriba;
-- **«Kataliziador» es un nombre comercial, no una sociedad.** Vale como nombre
-  visible de desarrollador en la ficha y como `O=` del certificado de subida
-  —ese campo es una etiqueta de un certificado autofirmado, no una afirmación
-  registral— pero **no vale donde hace falta una persona identificable**;
+- **«Kataliziador» es un nombre comercial, no una sociedad.** Sirve como
+  nombre visible de desarrollador y como `O=` del certificado de subida —ese
+  campo es una etiqueta de un certificado autofirmado, no una afirmación
+  registral— pero **no sirve donde hace falta una persona identificable**.
+  **Comprobado el 30-oct: Console lo aceptó.** El «Nombre del desarrollador»
+  de una cuenta **personal** puede ser un nombre comercial distinto del nombre
+  legal; eso no lo decía ninguna de las páginas que leí, lo contestó la propia
+  consola al ponerlo. Lo que **sigue sin saberse** es si el nombre legal asoma
+  además en «Acerca del desarrollador» de la ficha, y eso sólo se ve con una
+  ficha publicada — se mira en el primer envío;
 - **y de ahí salió un defecto que no era de Play, ya corregido:** el aviso de
   privacidad nombraba responsable a «**Kataliziador LLC**», que no existe. El
   propio documento ya avisaba de que había que revisar si «LLC» era la figura

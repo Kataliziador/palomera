@@ -178,6 +178,7 @@ material que no es nuestro.
 | campo | valor |
 |---|---|
 | categoría | Entretenimiento |
+| nombre del desarrollador | **Kataliziador** — puesto el 30-oct. Es un nombre comercial sin registrar, y Console lo acepta en una cuenta personal aunque el nombre legal del titular sea otro (`PLAY.md` §1) |
 | correo de contacto | `avhelmc@icloud.com` — **se publica en la ficha**, así que lo encuentran los recolectores de direcciones |
 | política de privacidad | `https://kataliziador.github.io/palomera/privacidad` |
 | países | México |
