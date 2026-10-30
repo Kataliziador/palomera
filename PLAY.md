@@ -131,11 +131,35 @@ cumplir**. Los números, leídos ese día en las fuentes oficiales:
 | verificación de Google tras enlazar el perfil | **sin plazo publicado** |
 
 Y hay un hueco que ninguna fuente cierra: **nadie documenta si una cuenta
-convertida queda exenta.** El requisito está redactado como «desarrolladores
-con cuentas personales creadas después del 13-nov-2023», así que al dejar de
-ser personal debería dejar de aplicar — pero eso es **mi lectura de una frase,
-no una respuesta de Google**, y apostar el calendario a una lectura es
-exactamente lo que este proyecto no hace.
+convertida queda exenta.** Leídas el 30-oct las tres páginas que podrían
+decirlo —el requisito (`answer/14151465`), la de elegir tipo de cuenta
+(`13634885`) y la de mantener los datos al día (`13634888`)—, el requisito
+**sólo nombra a las cuentas personales creadas después del 13-nov-2023**, no
+menciona las de organización, **no enuncia ninguna exención** y no dice una
+palabra sobre cambiar de tipo. La de elegir tipo de cuenta ni menciona las
+pruebas, y además afirma que «las cuentas personales y de organización tienen
+acceso a la misma funcionalidad básica».
+
+**Con ese texto caben dos lecturas, y las dos son defendibles:**
+
+- que la regla describe **el estado** de la cuenta, y al dejar de ser personal
+  deja de aplicar;
+- que describe **su origen** —«cuentas personales *creadas* después de…»—, y la
+  fecha de creación no se puede cambiar: esta cuenta se creó personal el
+  2-jun-2026 y eso ya no se deshace.
+
+**Y la pregunta no la cierra ningún documento, la cierra Console**, que es
+quien pone la puerta al pedir acceso a producción y lleva la cuenta de los
+probadores. O sea que la respuesta se ve **después** de convertir, y convertir
+son 4 a 8 semanas: **no se puede usar para planificar.** Por eso la decisión no
+es «¿queda exenta?» sino «¿apuesto 4 a 8 semanas a una lectura de una frase,
+cuando la alternativa son 14 días que puedo arrancar hoy y que además traen la
+medida de la ZTE que no tengo?».
+
+**Las dos estrategias no se estorban:** los días ya acumulados no se pierden al
+convertir, y si al convertir la puerta desaparece, se pide producción antes y
+el test hecho no se tira —Google pregunta por la interacción de los probadores
+en ese mismo formulario—. Arrancar la prueba hoy domina en los dos escenarios.
 
 **Lo que sí justifica la conversión por su cuenta**, independientemente del
 reloj: la razón social existe, la ficha publica el **nombre legal y el correo**
