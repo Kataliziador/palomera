@@ -151,10 +151,41 @@ individual sin crear otra cuenta y transferir las apps. Y toca el perfil de
 pagos, así que conviene **no hacerlo durante la revisión del primer envío**,
 donde una verificación pendiente puede bloquear.
 
+**Cuánto tarda la conversión, por tramos** (preguntado el 30-oct). El total es
+**inferido**: dos tramos tienen plazo oficial y los otros dos no lo publica
+nadie, así que la suma es una estimación y no una medida.
+
+| tramo | plazo | de dónde sale |
+|---|---|---|
+| que la cuenta individual esté verificada y sin avisos pendientes | previo, hoy desconocido | guía de terceros |
+| **D-U-N-S, vía gratuita** | «**hasta 30 días**, planifica con antelación» | la ayuda de Play, oficial |
+| D-U-N-S, vía acelerada | **8 días hábiles** garantizados, de pago | Dun & Bradstreet, oficial |
+| perfil de pagos de organización, verificado | «unos días, hasta ~5» | blogs, **no oficial** |
+| que Google lo enlace y reverifique | **sin plazo publicado** | — |
+| que el dato de D&B llegue a Google | «de días a semanas» | fuente de terceros |
+
+Sumando: **4 a 8 semanas por la vía gratuita, 2 a 3 pagando.** Las dos son más
+que los 14 días, así que la conversión **no está en el camino crítico** una vez
+la prueba cerrada esté corriendo.
+
+**Lo que hay que acertar no es la velocidad, es el nombre.** Los datos del
+perfil de pagos tienen que **coincidir con el registro de Dun & Bradstreet**; si
+divergen, Console enseña un aviso con fecha límite y la cuenta puede quedar
+restringida. Antes de pedir nada hay que decidir **qué entidad legal es la
+titular de la ficha** —«Kataliziador LLC» con `C=MX` mezcla dos cosas— y pedir
+el D-U-N-S con ese nombre y esa dirección exactos. Es la decisión de Edgar, y
+pesa más que las semanas.
+
+Nota: la ayuda de Play advierte de **terceros que cobran por conseguir el
+número**, que es gratis. La vía acelerada de D&B no es uno de esos
+intermediarios —es D&B— pero tampoco hace falta pagarla si la conversión ya no
+compra calendario.
+
 **Decisión:** correr los 14 días ya —lo que adelanta la clave de firma a hoy—
 y pedir el D-U-N-S por la vía gratuita en paralelo. Cuando llegue, convertir;
 a esas alturas la conversión ya no compra calendario, compra identidad. Una
-prueba cerrada ya cumplida no se invalida por convertir después.
+prueba cerrada ya cumplida no se invalida por convertir después, y conviene
+**no** convertir durante la revisión del primer envío.
 
 ---
 
