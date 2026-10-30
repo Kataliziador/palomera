@@ -40,7 +40,10 @@ fun LiveTvCompactOverlay(
 	Column(
 		modifier = modifier
 			.clip(RoundedCornerShape(6.dp))
-			.background(Color.Black.copy(alpha = 0.55f))
+			// 0,55 dejaba el fondo en 115 sobre vídeo blanco, y ahí ninguna de
+			// las dos tintas llega a 4,5:1. Mismo defecto que la barra de canal
+			// (30-oct); esto se lee en una tele durante una medición.
+			.background(Color.Black.copy(alpha = 0.80f))
 			.padding(horizontal = 10.dp, vertical = 6.dp)
 	) {
 		Linea(
@@ -58,7 +61,7 @@ fun LiveTvCompactOverlay(
 				}
 				if (stats.measuredFps > 0f) append("  %.1ffps".format(stats.measuredFps))
 			},
-			LiveTvPaleta.tintaApagada,
+			LiveTvPaleta.tintaApagadaSobreVideo,
 		)
 
 		Linea(
@@ -79,7 +82,7 @@ fun LiveTvCompactOverlay(
 				append("  reb ").append(stats.rebufferCount)
 				if (stats.loadRetries > 0) append("  ret ").append(stats.loadRetries)
 			},
-			if (alarma) LiveTvPaleta.aviso else LiveTvPaleta.tintaSutil,
+			if (alarma) LiveTvPaleta.aviso else LiveTvPaleta.tintaSutilSobreVideo,
 		)
 	}
 }

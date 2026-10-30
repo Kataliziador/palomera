@@ -83,6 +83,33 @@ object LiveTvPaleta {
 	val tintaSutil = Color(0xFF9DA1A6)
 
 	/**
+	 * Las mismas dos tintas secundarias **cuando lo que hay detrás es vídeo**.
+	 *
+	 * **[tintaApagada] y [tintaSutil] no sirven ahí, y está medido.** Se
+	 * eligieron contra los tres fondos de la sección —el más claro, `#2E2E31`—
+	 * y la tabla de arriba se cumple. Pero la barra de canal no vive sobre un
+	 * fondo nuestro: vive sobre lo que emita el ISP, y eso puede ser blanco a
+	 * pantalla completa. Medido el 30-oct sobre la captura de la carta de
+	 * ajuste, con el velo que había: `#BDBDBD` daba **1,66:1** y `#9DA1A6`
+	 * **1,58:1** donde van las horas. Un gris fijo no se arregla con más velo
+	 * sin convertir la barra en una caja negra.
+	 *
+	 * La salida es que sobre vídeo la tinta sea **blanco con alfa**: se compone
+	 * con lo que haya detrás, así que sube cuando el fondo sube y baja cuando
+	 * baja. Con el velo nuevo (0,72 arriba, 0,90 abajo) y vídeo blanco debajo
+	 * dan **6,28:1** y **4,68:1**, los dos por encima del 4,5 que pide la lista
+	 * de comprobación para texto normal.
+	 *
+	 * **No sustituyen a las de arriba**, que siguen siendo las correctas en la
+	 * rejilla, la guía y los paneles: ahí el fondo sí lo ponemos nosotros y un
+	 * gris fijo es más estable que un alfa.
+	 */
+	val tintaApagadaSobreVideo = Color.White.copy(alpha = 0.78f)
+
+	/** Ver [tintaApagadaSobreVideo]. */
+	val tintaSutilSobreVideo = Color.White.copy(alpha = 0.62f)
+
+	/**
 	 * Algo no está como debería y el abonado puede entenderlo: lista guardada,
 	 * degradación activa, aviso del operador.
 	 *

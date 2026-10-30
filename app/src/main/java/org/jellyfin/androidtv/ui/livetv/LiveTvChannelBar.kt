@@ -48,6 +48,19 @@ import java.util.Date
  *   todo se ordena respecto a «ahora».
  * - **Velo degradado, nunca un bloque opaco.** Pesado bajo el texto y
  *   desaparecido arriba, para no recortar la imagen con un borde duro.
+ *
+ *   **Corregido el 30-oct: el desvanecido caía encima del texto.** La idea era
+ *   ésta, pero el degradado repartía la subida por el 45 % de la barra, que es
+ *   justo donde van el número, el nombre y las horas. Medido sobre la captura
+ *   de la ficha —banda limpia sin letras, a 1910 px— y proyectado a vídeo
+ *   blanco a pantalla completa, que es el peor caso real: el nombre del canal
+ *   salía a **2,03:1** y las horas a **1,66** y **1,58**. Ahora el
+ *   desvanecido se agota dentro del relleno superior y por debajo el velo se
+ *   queda plano; las mismas filas dan 9,2, 6,3 y 4,7.
+ *
+ *   Lo segundo que hizo falta es que **las tintas secundarias dejen de ser
+ *   grises fijos sobre vídeo** ([LiveTvPaleta.tintaSutilSobreVideo]): ningún
+ *   velo razonable sube un `#9DA1A6` a 4,5:1 contra blanco.
  * - **Monoespaciada solo en el número**, porque al zapear los dígitos tienen
  *   que caer siempre en el mismo sitio.
  *
@@ -74,10 +87,13 @@ fun LiveTvChannelBar(
 		modifier = modifier
 			.fillMaxWidth()
 			.background(
+				// El desvanecido se agota dentro del relleno de arriba —56 dp
+				// de 650 px de barra, de ahí el 0,18— y por debajo el velo ya
+				// no sube: así el degradado no cae encima de ninguna letra.
 				Brush.verticalGradient(
 					0f to Color.Transparent,
-					0.45f to Color.Black.copy(alpha = 0.55f),
-					1f to Color.Black.copy(alpha = 0.88f),
+					0.18f to Color.Black.copy(alpha = 0.72f),
+					1f to Color.Black.copy(alpha = 0.90f),
 				)
 			)
 			.padding(start = 56.dp, end = 56.dp, top = 56.dp, bottom = 32.dp)
@@ -102,13 +118,13 @@ fun LiveTvChannelBar(
 					Spacer(modifier = Modifier.height(14.dp))
 					Text(
 						text = "${hora(contexto, p.inicioMs)} – ${hora(contexto, p.finMs)}",
-						color = LiveTvPaleta.tintaApagada,
+						color = LiveTvPaleta.tintaApagadaSobreVideo,
 						fontSize = 17.sp,
 					)
 					Spacer(modifier = Modifier.height(3.dp))
 					Text(
 						text = "quedan ${p.restanteMin(ahoraMs)} min",
-						color = LiveTvPaleta.tintaSutil,
+						color = LiveTvPaleta.tintaSutilSobreVideo,
 						fontSize = 16.sp,
 					)
 				}
@@ -218,9 +234,9 @@ private fun QueEstanDando(
 	if (siguiente != null) {
 		Spacer(modifier = Modifier.height(12.dp))
 		Row {
-			Text(text = "Luego", color = LiveTvPaleta.tintaSutil, fontSize = 17.sp)
+			Text(text = "Luego", color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 17.sp)
 			Spacer(modifier = Modifier.width(14.dp))
-			Text(text = siguiente.titulo, color = LiveTvPaleta.tintaApagada, fontSize = 17.sp)
+			Text(text = siguiente.titulo, color = LiveTvPaleta.tintaApagadaSobreVideo, fontSize = 17.sp)
 		}
 	}
 
@@ -229,13 +245,17 @@ private fun QueEstanDando(
 	// dando y de qué viene luego.
 	if (channel.extras.isNotEmpty()) {
 		Spacer(modifier = Modifier.height(12.dp))
-		DatosExtra(channel.extras)
+		DatosExtra(
+			channel.extras,
+			colorEtiqueta = LiveTvPaleta.tintaSutilSobreVideo,
+			colorValor = LiveTvPaleta.tintaApagadaSobreVideo,
+		)
 	}
 
 	// El detalle técnico solo aparece cuando algo va mal: en marcha estorba.
 	if (!enVivo && detail != null) {
 		Spacer(modifier = Modifier.height(8.dp))
-		Text(text = detail, color = LiveTvPaleta.tintaSutil, fontSize = 15.sp)
+		Text(text = detail, color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 15.sp)
 	}
 }
 
@@ -307,7 +327,7 @@ private fun Pista(tecla: String, que: String) {
 				.padding(horizontal = 8.dp, vertical = 3.dp),
 		)
 		Spacer(modifier = Modifier.width(8.dp))
-		Text(text = que, color = LiveTvPaleta.tintaSutil, fontSize = 14.sp)
+		Text(text = que, color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 14.sp)
 	}
 }
 

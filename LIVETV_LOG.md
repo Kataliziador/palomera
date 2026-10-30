@@ -332,13 +332,77 @@ declararla.
 | ~~82~~ | ~~**Zapear a un canal no disponible deja el zapeo muerto: las flechas dejan de responder y solo se sale con ATRÁS**~~ | — | medido el 20-oct: `canal.noDisponible canal=universal` → `engine.release habiaPlayer=true`, y la app vuelve a la lista. `CONTRATO.md` dice que un canal `unavailable` sale «con su número y su sitio, y la app explica por qué no se puede ver»; no que te eche de lo que estabas viendo. El lineup de pruebas tiene dos (`universal`, `foxny`); en uno real de 120 se topa constantemente, y recuperarse exige volver a entrar a mano. **El enunciado hay que volver a comprobarlo antes de tocarlo.** El 22-oct, zapeando con la flecha **dentro del reproductor** del 103 al 102 —`estrellassd`, marcado sin señal—, salió `canal.noDisponible` pero **no** hubo `engine.release` y la app **no** volvió a la lista: se quedó en una pantalla del reproductor con «Estrellas SD / Sin señal en este momento», que es lo que `CONTRATO.md` pide. Una muestra, un canal y un camino —el original se midió sobre `universal` el 20-oct—, así que no lo da por cerrado: puede ser que el comportamiento dependa del camino, o que algo de B-4 lo cambiara. Medirlo otra vez cuesta cinco minutos y decide si este pendiente existe. **Medido otra vez el 23-oct sobre la release `0.1.0-rc.2`, y el enunciado era falso: no expulsa de nada — lo que hace es dejarte encerrado.** Mismo canal que la medida del 20-oct (`universal`) y el mismo camino que lo destapó: zapeo con la flecha **dentro del reproductor**, de `discoveryhd` (301) a `universal` (210). El log da la firma idéntica a la del 20-oct —`canal.noDisponible canal=universal motivo=Canal no disponible` seguido de `engine.release canal=discoveryhd habiaPlayer=true`—, y soltar el motor de un canal que no se puede enseñar es lo correcto, no una fuga. **Pero la app no vuelve a la lista:** se queda en el reproductor con «Universal / Canal no disponible», que es exactamente lo que pide `CONTRATO.md`. **Lo que sí está roto es la salida:** desde esa pantalla las flechas no hacen nada —ARRIBA, ABAJO y ABAJO otra vez, y ni una línea nueva en una captura de `logcat` que seguía viva (última línea a las 12:05:55, tres pulsaciones después)—, así que el zapeo se para en el primer canal caído y solo se sale con ATRÁS, que devuelve a la lista con el foco en el canal que se estaba viendo. En un lineup de 120 con varios caídos, eso es la flecha muerta hasta volver a entrar a mano. **El título de esta fila queda corregido** y el pendiente sigue abierto y sigue siendo Modo A, porque el arreglo cambia el comportamiento del zapeo. **Aviso de instrumento:** con tunneled puesto `screencap` no ve el vídeo (§6), así que que `discoveryhd` estuviera reproduciendo se juzgó por `frames.first msDesdePrepare=2052` y el latido, no por la captura — una captura negra ahí no significa nada **Cerrado el 25-oct con el visto bueno de Edgar en pantalla, sobre la release `0.1.0-rc.3`.** La causa no estaba en el zapeo: `LiveTvPlayerFragment` dibujaba la pantalla de aviso con un `return` anticipado (`:156`), **460 líneas antes del manejador de teclas** (`:617`), que cuelga del contenedor del reproductor. Las flechas no fallaban — no existían ahí. ATRÁS funcionaba porque lo atiende el fragmento. Y el mismo `return` estaba en otras dos pantallas de la misma forma —«canal no encontrado» y «canal sin camino de decodificación»—, así que el defecto era uno en tres sitios y arreglar solo el medido habría dejado dos iguales esperando número. Las tres comparten ahora una sola `PantallaDeAviso` que escucha el mando: ▲▼ cambian de canal igual que sobre la imagen y todo lo demás se deja pasar, ATRÁS incluido. Lleva además la línea «▲▼ cambia de canal · ATRÁS vuelve a la lista», que es §2 —un canal que explica no genera llamada a soporte—. Interruptor `zapeoEnAvisoEnabled` (`LiveTuning.ZAPEO_EN_AVISO_DEFAULT`), activo de fábrica como el rescate del tunneled, porque el comportamiento anterior es un callejón y no una alternativa. **Medido en la validación** (Edgar con el mando, Discovery HD 301 → ▲ → Universal 210 → ▲ → HBO HD 201 → ▼ → Universal): `engine.release canal=discoveryhd habiaPlayer=true` a las 15:14:58.830, `canal.noDisponible canal=universal` a las 15:14:58.893, y la segunda ▲ **sí produce línea** —`plan.construido canal=hbohd` a las 15:15:12.324— que es exactamente lo que el 23-oct no ocurría; `frames.first msDesdePrepare=900`, o sea **952 ms** de salir del aviso a imagen. Los 13,4 s entre una cosa y otra son Edgar leyendo la pantalla, no latencia. **Una pasada en cada sentido, un solo canal caído (`universal`) y una sola caja** (§9). **Corregido de paso un ruido que este mismo arreglo habría metido:** `canal.noDisponible` se escribía suelto en el cuerpo del composable, o sea una línea por recomposición; atado ahora a `LaunchedEffect(channel.id)`, sale una por visita, y así se lee en el log de la validación. **Lo que NO se pudo probar:** el interruptor apagado, para ver el comportamiento anterior al lado del nuevo. El menú de diagnóstico está detrás de `BuildConfig.DEBUG` (decisión del 11-oct) y rc.3 es release, así que desde el mando no se llega; el «antes» queda respaldado por las medidas del 23 y el 25-oct, no por una comparación en la misma sesión |
 | 83 | ~~**El motor libVLC dice no saber cosas que sí publica**~~ | — | el comentario de `VlcLiveEngine.stats()` afirma que libVLC «no expone el nombre del decodificador activo, ni fotogramas perdidos, ni la ventana DVR, ni el offset al directo», y por eso esos campos van en cero a propósito —decisión correcta: rellenarlos con estimaciones los haría indistinguibles de los de Media3, que sí están medidos—. **Pero de fotogramas perdidos sí sabe.** Leído el 22-oct en el binding 3.6.5 (`org.videolan.libvlc.interfaces.IMedia$Stats`): publica `lostPictures`, `displayedPictures`, `decodedVideo`, `lostAbuffers`, `demuxCorrupted` y `demuxDiscontinuity`. El `displayedPictures` ya se usa desde el 81; los otros cinco siguen sin leerse, y `lostPictures` con `demuxCorrupted` son justo lo que hace falta para juzgar una sesión con lluvia por este camino, que hoy es ciega. El arreglo es llenar esos campos del latido **y corregir el comentario**, que es lo que hizo que nadie volviera a mirar. **Cerrado el 27-oct, y el binding tiene quince campos, no seis** —verificado con `javap`, no leído de aquí—: se publican `droppedFrames`, `measuredFps` y tres campos nuevos y nullables (`demuxCorrupted`, `demuxDiscontinuity`, `lostAudioBuffers`). Medido en la caja en tres corridas, y **la tercera refuta la lectura de las dos primeras**: los contadores se mueven pero todavía no distinguen sano de degradado. `demuxCorrupted` **no se ha visto moverse nunca** y eso queda escrito en el campo; ejercitarlo pide el golden sample con `--tei` en bucle. El bitrate desde `readBytes` se intentó y se retiró: no avanza sobre HLS. Ver la entrada || ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | 84 | **La TV en vivo no se entera de una suspensión mientras está abierta** | **A** | el punto 2 de A2 del panel de abonados, y lo único de esa petición que queda abierto tras el 28-oct. La sección sólo usa la sesión de Jellyfin para sacar el host (`LiveTvCatalog.kt`), así que una caja **encendida** sigue dando canales después de suspender al abonado; el corte sólo ocurre al siguiente arranque. El panel sugiere revalidar al entrar a la sección y cada ~15 min. Es **Modo A**: lo que se discute no es la llamada —eso es trivial— sino qué le pasa a la imagen cuando contesta 403, y una caja de TV se apaga por la noche, así que un corte que espera al siguiente encendido puede ser suficiente y uno que apaga la tele a media película no lo es. Decisión de Edgar antes de escribir nada. Lo que **no** queda abierto es distinguir el 403 del 401 ni el «no contesta»: hecho y medido en la caja el 28-oct |
-| 85 | **La barra de canal no lleva velo y sobre imagen clara pierde contraste** | B | visto el 29-oct sacando la captura de la ficha, sobre la carta de ajuste de la demo: «Luego Tono de referencia» y «cambiar de canal» van en gris sobre verde y amarillo saturados y a tres metros no se leen. La carta de ajuste es el peor caso posible —bandas de color puro a pantalla completa— y no es contenido real, así que **esto no está medido sobre emisión de verdad**: en un estudio de noticias o un partido el fondo es más apagado y puede bastar lo que hay. Pero un velo degradado bajo la barra es barato y lo cierra para cualquier fondo. Lo que sí está decidido es que el contraste de la marca se valida al cargar (§8); el de la barra sobre vídeo no lo valida nadie, porque el vídeo no se puede conocer de antemano |
+| ~~85~~ | ~~**El velo de la barra de canal subía encima del texto**~~ | — | **el enunciado original era falso y se corrige aquí: decía «no lleva velo», y sí lo llevaba.** Lo que pasaba es que el degradado repartía la subida por el 45 % de la altura de la barra, que es exactamente donde van el número, el nombre y las horas. Medido el 30-oct sobre la captura de la ficha, en una banda sin letras y tomando el máximo de la franja para que el patrón móvil no la falseara: el velo valía 0,71 donde va el nombre del canal. Proyectado a vídeo blanco a pantalla completa —alcanzable: nieve, un plató, unos créditos— el nombre salía a **2,03:1** y las horas a **1,66** y **1,58**. Cerrado el 30-oct con dos cambios: el desvanecido se agota dentro del relleno superior (0 → 0,72 en el 18 % de arriba, y de ahí plano hasta 0,90), y **las dos tintas secundarias dejan de ser grises fijos sobre vídeo**, porque ningún velo razonable sube un `#9DA1A6` a 4,5:1 contra blanco sin convertir la barra en una caja negra. Las siete filas de texto pasan ahora su suelo WCAG, la peor con 5,49 contra 4,5 |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
 
 ---
 
 ## Entradas
+
+### [B] El velo de la barra estaba, pero caía encima del texto — 2026-10-30
+
+**Cómo apareció.** Sacando las capturas de la ficha con un release de verdad.
+El pendiente 85 lo había anotado el 29-oct como «la barra no lleva velo», de
+vista y sin medir. **Lo llevaba.** Al abrir el archivo para añadírselo, ahí
+estaba el `Brush.verticalGradient`, con su comentario explicando por qué un
+velo degradado y no un bloque opaco.
+
+**Lo que sí pasaba, medido.** El degradado iba de transparente a 0,55 en el
+**45 %** de la altura de la barra y de ahí a 0,88 abajo. La barra mide ~650 px
+en 1080p, así que la subida ocupaba ~290 px — y el número, el nombre, el
+título y las horas viven en los primeros 270. El desvanecido pensado para que
+el borde de arriba no recortara la imagen estaba, en la práctica, puesto
+debajo del texto más grande.
+
+Medido sobre la captura, en la banda cian de la derecha —sin letras— y
+tomando el **máximo** de la franja a cada altura, porque el patrón de la carta
+de ajuste se mueve y una columna sola da lecturas bajas que no son velo:
+
+| altura | velo antes | velo después |
+|---|---|---|
+| y=420 (borde de la barra) | 1,00 | 1,00 |
+| y=575 (nombre del canal) | 0,71 | 0,27 |
+| y=807 («Luego») | 0,37 | 0,19 |
+| y=991 (pistas de tecla) | 0,20 | 0,13 |
+
+Y el contraste WCAG proyectado a **vídeo blanco a pantalla completa**, que es
+el peor caso y es alcanzable —nieve, un plató de noticias, unos créditos—:
+
+| | antes | después | suelo |
+|---|---|---|---|
+| número y nombre del canal | 2,03 | 9,74 | 3,0 |
+| hora de inicio y fin | 1,66 | 7,33 | 4,5 |
+| título del programa | 4,00 | 11,37 | 3,0 |
+| «quedan N min» | 1,58 | 5,49 | 4,5 |
+| «Luego» | 2,50 | 6,09 | 4,5 |
+| título de lo que viene | 3,45 | 8,64 | 4,5 |
+| «cambiar de canal» | 4,86 | 7,01 | 4,5 |
+
+**Lo que no se arreglaba con más velo.** `tintaApagada` (`#BDBDBD`) y
+`tintaSutil` (`#9DA1A6`) se eligieron contra los tres fondos de la sección, el
+más claro `#2E2E31`, y ahí la tabla de `LiveTvPaleta` se cumple. Sobre vídeo
+no: para subir `#9DA1A6` a 4,5:1 contra blanco hace falta dejar el fondo por
+debajo de 51, o sea un velo de 0,80 sobre el 60 % de la pantalla. Eso ya no es
+un velo, es una caja negra encima de la emisión.
+
+La salida es que **sobre vídeo la tinta sea blanco con alfa**: se compone con
+lo que haya detrás, así que sube cuando el fondo sube. Dos nombres nuevos en
+la paleta, `tintaApagadaSobreVideo` (0,78) y `tintaSutilSobreVideo` (0,62),
+que **no sustituyen a los grises** —en la rejilla, la guía y los paneles el
+fondo lo ponemos nosotros y un gris fijo es más estable que un alfa—.
+
+**El mismo defecto estaba en el overlay de diagnóstico**, con su pastilla a
+`black@0.55`: fondo 115 sobre blanco, ninguna de las dos tintas llegaba. Sube
+a 0,80 y usa las tintas nuevas. No lo ve un abonado, pero se lee en una tele
+durante una medición, que es cuando más caro sale no leerlo.
+
+**Lo que esta medida no cubre.** Un fotograma, un emulador, un canal. La
+proyección a blanco es aritmética sobre el velo medido, no una captura sobre
+vídeo blanco real: lo que está medido es **el velo**; el contraste es
+calculado a partir de él. Y la carta de ajuste no es emisión de verdad — pero
+esta vez eso ya no importa, porque lo que se midió fue la atenuación del velo,
+que no depende de lo que haya debajo.
 
 ### [B] La oferta de código de la GPL-2.0, cumplida — 2026-10-29
 
