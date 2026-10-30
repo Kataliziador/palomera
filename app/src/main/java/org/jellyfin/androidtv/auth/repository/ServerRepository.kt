@@ -145,8 +145,19 @@ class ServerRepositoryImpl(
 
 			val id = systemInfo.id!!.toUUID()
 
+			// **El respaldo decía «Jellyfin Server»** —§8: la app guardando un
+			// servidor con nuestro nombre puesto a mano—. Ese `name` es el que
+			// se pinta en la lista de servidores y en el subtítulo de la
+			// pantalla de acceso («Conectar a …»), así que era el mismo defecto
+			// del 30-oct entrando por otra puerta: el arreglo de
+			// `UserLoginFragment` no lo tapaba, porque con este respaldo el
+			// nombre ya no llega vacío sino relleno con la marca equivocada.
+			// Cae a la dirección, que además dice más. Jellyfin rellena
+			// `ServerName` con el nombre de la máquina, así que esto es una
+			// defensa y **no se ha visto ocurrir**: no hay medida detrás.
 			val server = authenticationStore.getServer(id)?.copy(
-				name = systemInfo.serverName ?: "Jellyfin Server",
+				name = systemInfo.serverName?.takeIf(String::isNotBlank)
+					?: chosenRecommendation.address,
 				address = chosenRecommendation.address,
 				version = systemInfo.version,
 				loginDisclaimer = branding.loginDisclaimer,
@@ -154,7 +165,8 @@ class ServerRepositoryImpl(
 				setupCompleted = systemInfo.startupWizardCompleted ?: true,
 				lastUsed = Instant.now().toEpochMilli()
 			) ?: AuthenticationStoreServer(
-				name = systemInfo.serverName ?: "Jellyfin Server",
+				name = systemInfo.serverName?.takeIf(String::isNotBlank)
+					?: chosenRecommendation.address,
 				address = chosenRecommendation.address,
 				version = systemInfo.version,
 				loginDisclaimer = branding.loginDisclaimer,
@@ -223,7 +235,7 @@ class ServerRepositoryImpl(
 			val systemInfo by api.systemApi.getPublicSystemInfo()
 
 			server.copy(
-				name = systemInfo.serverName ?: server.name,
+				name = systemInfo.serverName?.takeIf(String::isNotBlank) ?: server.name,
 				version = systemInfo.version ?: server.version,
 				loginDisclaimer = branding.loginDisclaimer ?: server.loginDisclaimer,
 				splashscreenEnabled = branding.splashscreenEnabled,

@@ -74,6 +74,10 @@ PERMITIDO = [
 	# «Introduzca la dirección del servidor» sobre «Por favor, introduce…»:
 	# usted y tú en la misma pantalla, la primera de toda instalación (30-oct)
 	r"^app/src/main/res/layout/fragment_server_add\.xml$",
+	# el nombre con el que se guarda un servidor sin nombre propio: decía
+	# «Jellyfin Server» y se pinta en la lista de servidores y en el
+	# subtítulo de la pantalla de acceso. Cae a la dirección (30-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/repository/ServerRepository\.kt$",
 	# el nombre con el que la app se presenta al Jellyfin del ISP: el
 	# `ClientInfo` del SDK, la cabecera de autorización del informe de fallos y
 	# el encabezado de los dos informes que se suben al servidor. Decía
@@ -101,6 +105,32 @@ PERMITIDO = [
 	# la excepción registrada del camino de VOD
 	r"^playback/media3/exoplayer/build\.gradle\.kts$",
 ]
+
+# Lo que **sí** puede decir «Jellyfin», con el motivo de cada uno. Es la lista
+# que la comprobación g) obliga a mirar, y la frontera que traza es la de §8:
+# nombrar el **software que el abonado tiene enfrente** es obligatorio
+# —cambiarlo dejaría inservibles los mensajes de quien instala el site—, y
+# **llamarnos Jellyfin** no, que es lo que hace legal el envío a Play.
+#
+# Van con motivo escrito y no como una lista de nombres a secas porque el
+# trabajo que hace esta comprobación no es acordarse de la lista: es obligar a
+# contestar «¿de quién habla esta frase?» cada vez que aparece una nueva.
+DICEN_JELLYFIN = {
+	"crash_report_toast": "el informe de fallo se sube al servidor del ISP",
+	"livetv_legal_affiliation": "el «no afiliado» que §8 exige que esté",
+	"pref_report_device_profile_summary": "describe lo que va a recibir ese servidor",
+	"pref_report_device_profile_failure": "el que puede prohibir los informes es él",
+	"server_setup_incomplete": "hay que abrir Jellyfin en un navegador, es cierto",
+	"server_unsupported_notification": "la versión del servidor del ISP",
+}
+
+# Lo mismo para los literales del código. Los dos que hay son valores de
+# diagnóstico —un `motivo` y una `procedencia` del latido—, no texto de
+# pantalla, y nombran el servidor del que sale el host.
+LITERALES_JELLYFIN = {
+	"sin host de Jellyfin que consultar": "motivo de diagnóstico, no se pinta",
+	"derivada de Jellyfin": "procedencia de la URL en el latido",
+}
 
 # `K_OVERLAY_MODE` está fuera de `CLAVES_DEL_MENU` a propósito: el overlay es
 # instrumento de medida, no una degradación. Lo dice el comentario de la lista.
@@ -352,6 +382,98 @@ def la_app_no_se_llama_jellyfin(inf: Informe) -> None:
 		inf.bien(f"f) ningún idioma llama Jellyfin a la app ({len(list(res.glob('values-*/strings.xml')))} idiomas)")
 
 
+def nadie_mas_se_llama_jellyfin(inf: Informe) -> None:
+	"""Ni una cadena viva ni un literal del código llaman Jellyfin a esta app.
+
+	**La f) tiene un punto ciego, y lo encontró un ojo y no ella.** Compara
+	cada idioma contra `values/`, así que su regla —«si `values/` ya no lo
+	dice, ningún idioma puede decirlo»— deja fuera por construcción dos
+	cosas: lo que dice `values/` mismo, y lo que no es una cadena. El 30-oct
+	el subtítulo de la pantalla de acceso caía a un `?: "Jellyfin"` escrito a
+	mano en Kotlin —la app llamándose Jellyfin en la primera pantalla de toda
+	instalación— y las seis comprobaciones salieron en verde. Se vio mirando
+	una captura de pantalla.
+
+	Esto cierra las dos rendijas. Son dos barridos contra una lista que lleva
+	el motivo de cada excepción:
+
+	- **los literales** de `app/`, `livetv/` y `app/build.gradle.kts` que
+	  contienen `Jellyfin` con mayúscula. En minúscula es el paquete, el
+	  `namespace` y las URLs del upstream, que §8 no toca;
+	- **las cadenas de `values/` que alguien usa.** Las huérfanas pasan a
+	  propósito: hay dos —`login_quickconnect_step_1`, que se quedó sin
+	  referencia al apuntar los layouts de acceso a cadenas propias (27-oct),
+	  y `licenses_link_description`— y borrarlas agrandaría el diff contra
+	  upstream sin que nadie las llegue a ver. Si un rebase las vuelve a
+	  enganchar, esto salta, que es exactamente cuando hace falta.
+
+	La lista va con motivo escrito y no como nombres a secas porque el
+	trabajo de esta comprobación no es acordarse de ella: es obligar a
+	contestar «¿de quién habla esta frase?» cada vez que aparece una nueva.
+
+	Lo que **no** cubre, y conviene saberlo antes de confiarse: una frase
+	cosida a trozos en tiempo de ejecución, y un nombre que llegue del
+	servidor. Lo segundo es el caso del `serverName` del site, y por eso el
+	respaldo de ese nombre es la dirección y no una marca.
+	"""
+	import xml.etree.ElementTree as ET
+
+	fuentes = sorted(
+		{
+			*(RAIZ / "app/src/main").rglob("*.kt"),
+			*(RAIZ / "app/src/main").rglob("*.java"),
+			*(RAIZ / "livetv/src/main").rglob("*.kt"),
+			RAIZ / "app/build.gradle.kts",
+		}
+	)
+	culpables = []
+	literales = 0
+	for ruta in fuentes:
+		for literal in re.findall(r'"([^"\n]*Jellyfin[^"\n]*)"', ruta.read_text(errors="ignore")):
+			literales += 1
+			if literal not in LITERALES_JELLYFIN:
+				culpables.append(f'{ruta.relative_to(RAIZ)}: "{literal}"')
+
+	usos = "\n".join(
+		p.read_text(errors="ignore")
+		for raiz in (RAIZ / "app/src/main", RAIZ / "livetv/src/main")
+		for p in raiz.rglob("*")
+		if p.suffix in (".kt", ".java", ".xml")
+	)
+	vivas = 0
+	try:
+		base = ET.parse(RAIZ / "app/src/main/res/values/strings.xml").getroot()
+	except ET.ParseError as fallo:
+		inf.mal("g) values/strings.xml no es XML válido", [str(fallo)])
+		return
+	for nodo in base:
+		if nodo.tag != "string" or not nodo.get("name"):
+			continue
+		clave = nodo.get("name")
+		if "Jellyfin" not in "".join(nodo.itertext()):
+			continue
+		if f"R.string.{clave}" not in usos and f"@string/{clave}" not in usos:
+			continue  # huérfana: nadie la pinta
+		vivas += 1
+		if clave not in DICEN_JELLYFIN:
+			culpables.append(f"values/strings.xml: {clave}")
+
+	if culpables:
+		inf.mal(
+			"g) algo llama Jellyfin a la app, o dice Jellyfin sin motivo escrito",
+			[
+				*culpables,
+				"si habla del servidor del ISP, va a DICEN_JELLYFIN /",
+				"LITERALES_JELLYFIN con el motivo; si habla de la app, §8 no lo permite",
+			],
+		)
+	else:
+		inf.bien(
+			f"g) los {literales} literales y las {vivas} cadenas vivas que dicen "
+			f"Jellyfin hablan del servidor del ISP"
+		)
+
+
 def pruebas(inf: Informe) -> None:
 	r = subprocess.run(
 		["./gradlew", ":livetv:test", "--console=plain", "-q"],
@@ -392,6 +514,7 @@ def main() -> int:
 	interruptores_cableados(inf)
 	confianza_en_cada_conexion(inf)
 	la_app_no_se_llama_jellyfin(inf)
+	nadie_mas_se_llama_jellyfin(inf)
 	if "--rapido" in sys.argv:
 		print(f"{GRIS}    d) pruebas de unidad omitidas (--rapido){FIN}")
 	else:

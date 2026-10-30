@@ -275,6 +275,16 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      donde se publica. Van a cadenas `livetv_` por lo mismo que los layouts
      de acceso: corregirlas en `values-es-rMX` las perdería en el próximo
      rebase y nada avisaría)**,
+     y `auth/repository/ServerRepository.kt` **(añadido el 30-oct: el
+     nombre con el que se guarda un site cuyo Jellyfin no declara
+     `ServerName` era la cadena literal «Jellyfin Server», y ese nombre es el
+     que se pinta en la lista de servidores y en el «Conectar a …» de la
+     pantalla de acceso. Es el defecto del subtítulo entrando por otra
+     puerta: el arreglo de `UserLoginFragment` no lo tapaba, porque con ese
+     respaldo el nombre no llega vacío sino relleno con la marca equivocada.
+     Cae a la dirección. Es texto, no lógica, y **no se ha visto ocurrir**:
+     Jellyfin rellena ese campo con el nombre de la máquina, así que es una
+     defensa sin medida detrás)**,
      **los tres sitios donde la app dice su propio nombre al servidor del ISP
      —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
      `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,
@@ -921,6 +931,23 @@ mantener: **si `values/` ya no dice Jellyfin para una clave, ningún idioma
 puede decirlo**. Lo que nombra al servidor del ISP lo dice también `values/`,
 así que queda fuera por construcción. Importa sobre todo después de un rebase,
 que es cuando el upstream vuelve a traer sus traducciones.
+
+**Y la `f)` tenía dos rendijas, que la `g)` cierra desde el 30-oct.** Su regla
+—«si `values/` ya no lo dice, ningún idioma puede decirlo»— deja fuera por
+construcción lo que dice `values/` mismo y lo que no es una cadena. Las dos se
+usaron: el subtítulo de la pantalla de acceso caía a un `?: "Jellyfin"`
+escrito a mano en Kotlin y el nombre de un servidor sin nombre se guardaba
+como «Jellyfin Server», y las seis comprobaciones salían en verde las dos
+veces. **Los dos defectos los encontró una captura de pantalla, no el
+comprobador**, que es el argumento de `PLAY.md` §7 otra vez: publicar —o
+mirar— es un instrumento de medida.
+
+La `g)` barre los literales con `Jellyfin` de `app/`, `livetv/` y
+`app/build.gradle.kts`, y las cadenas de `values/` **que alguien usa**, contra
+una lista en la que cada excepción lleva escrito **de quién habla**. Las
+cadenas huérfanas pasan a propósito —hay dos, y borrarlas agrandaría el diff
+contra upstream sin que nadie las vea—, pero si un rebase las vuelve a
+enganchar, salta.
 
 ### La app se presenta al servidor como «Palomera»
 

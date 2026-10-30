@@ -341,6 +341,71 @@ declararla.
 
 ## Entradas
 
+### [B] El comprobador no veía dos de los tres defectos de hoy — 2026-10-30
+
+Los tres arreglos de la entrada siguiente los encontró **una captura de
+pantalla**, y `comprobar.py` salió en verde las dos veces que se ejecutó entre
+medias. Eso no es mala suerte: la comprobación `f)` **no podía verlos**, y por
+construcción.
+
+Su regla es «si `values/` ya no dice Jellyfin para una clave, ningún idioma
+puede decirlo», y es buena porque no lleva lista que mantener. El precio es que
+deja fuera dos cosas:
+
+- **lo que dice `values/` mismo**, que es el idioma por defecto y la
+  exención de la propia regla —ahí viven las frases que nombran al servidor
+  del ISP, que §8 manda conservar—;
+- **lo que no es una cadena.** El respaldo del subtítulo era un `?: "Jellyfin"`
+  escrito a mano en Kotlin. Para un comparador de XML eso no existe.
+
+La `g)` barre las dos rendijas: los literales con `Jellyfin` de `app/`,
+`livetv/` y `app/build.gradle.kts`, y las cadenas de `values/` **que alguien
+usa**, contra una lista donde cada excepción lleva escrito de quién habla. La
+lista va con motivo y no con nombres a secas porque el trabajo no es acordarse
+de ella: es contestar «¿de quién habla esta frase?» cada vez que aparece una
+nueva.
+
+**Y en su primera ejecución encontró un cuarto defecto, éste sin mirar nada:**
+`ServerRepository` guardaba el nombre de un site cuyo Jellyfin no declara
+`ServerName` como la cadena literal **«Jellyfin Server»** (dos sitios, el alta
+y la recarga). Ese nombre se pinta en la lista de servidores y en el «Conectar
+a …» de la pantalla de acceso, así que era el defecto del subtítulo entrando
+por otra puerta — y el arreglo de `UserLoginFragment` **no lo tapaba**, porque
+con ese respaldo el nombre no llega vacío sino relleno con la marca
+equivocada. Cae ahora a la dirección, que además dice más. La tercera ruta
+(`refreshServer`) caía a `server.name`, que no era un literal, pero aceptaba un
+nombre en blanco: ahora también exige que no lo esté.
+
+**Lo medido, y con qué:** el barrido completo sobre el árbol de hoy da **4
+literales** con `Jellyfin` en los fuentes —dos de `ServerRepository`, ya
+corregidos, y dos valores de diagnóstico de `LiveTvCatalog`— y **8 cadenas de
+`values/` que lo dicen, de las cuales 6 están vivas y las 6 hablan del servidor
+del ISP** (`crash_report_toast`, `server_unsupported_notification`,
+`server_setup_incomplete`, los dos `pref_report_device_profile_*` y el
+`livetv_legal_affiliation` que §8 exige que esté). Las otras dos son
+**huérfanas**: `login_quickconnect_step_1`, que se quedó sin referencia el
+27-oct al apuntar los layouts de acceso a cadenas propias, y
+`licenses_link_description`. Se dejan pasar a propósito —borrarlas agrandaría
+el diff contra upstream y nadie las ve—, pero si un rebase las vuelve a
+enganchar, la `g)` salta.
+
+**Lo que la `g)` no ve, escrito para que nadie se confíe:** una frase cosida a
+trozos en tiempo de ejecución; un nombre que llegue **del servidor**, que es
+justo el caso del `serverName` y la razón de que su respaldo sea la dirección;
+y el literal en minúscula, que es el paquete, el `namespace` y las URLs del
+upstream, y que §8 no toca.
+
+**Las dos ramas se ejercitaron en los dos sentidos**, que es lo que hace valer
+un instrumento: la de literales falló de verdad con el «Jellyfin Server» antes
+de corregirlo, y la de cadenas se probó quitando a mano una clave de la lista
+—`crash_report_toast`— y comprobando que salta, y volviéndola a poner.
+
+**Estado:** `comprobar.py` en verde con la séptima comprobación,
+`:app:compileDebugKotlin` limpio. El arreglo de `ServerRepository` **no está
+validado en pantalla y no se puede**: Jellyfin rellena `ServerName` con el
+nombre de la máquina, así que la rama del respaldo no se ha visto ocurrir
+nunca. Es una defensa, no una corrección medida, y así queda escrito.
+
 ### [B] La primera pantalla, mirada con lupa — 2026-10-30
 
 Tres defectos de la pantalla de acceso, encontrados **mirando las capturas de

@@ -379,10 +379,12 @@ La variable es obligatoria y **el build la exige**: sin ella el
    `palomera-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
    borra**: el riesgo real de este paso es subir el archivo equivocado
 2. `versionCode` mayor que el del envío anterior
-3. `python3 herramientas/comprobar.py` sale en verde. Son **seis**
+3. `python3 herramientas/comprobar.py` sale en verde. Son **siete**
    comprobaciones, no las dos de §4.7: el territorio, el camino de VOD, el
    cable de los interruptores, la confianza TLS de cada conexión, que ningún
-   idioma llame Jellyfin a la app, y las pruebas de unidad
+   idioma llame Jellyfin a la app, que no lo haga tampoco un literal del
+   código ni una cadena viva de `values/` **(la `g)`, nueva el 30-oct)**, y
+   las pruebas de unidad
 4. La entrada correspondiente está escrita en `LIVETV_LOG.md`
 5. **El commit se etiqueta en el repositorio público** con la misma versión
    (`v0.1.0-rc.1`). La oferta de la GPL-2.0 es del código **correspondiente al
