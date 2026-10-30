@@ -285,6 +285,17 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      Cae a la dirección. Es texto, no lógica, y **no se ha visto ocurrir**:
      Jellyfin rellena ese campo con el nombre de la máquina, así que es una
      defensa sin medida detrás)**,
+     y `ui/startup/fragment/ServerAddFragment.kt` **(añadido el 30-oct: el
+     selector de proveedor. Esa pantalla pedía «escribe la dirección del
+     servidor» y lo que hay que escribir es `http://192.168.20.249:8096`, que
+     ningún abonado sabe. Ahora pregunta al registro por la red desde la que
+     se llama y, si no la reconoce, pide el código que el ISP le dio al
+     abonado; **la dirección a mano no se esconde**, porque es la única que
+     funciona sin internet y es por donde entra el revisor de Google. El
+     diseño está en `docs/selector-de-proveedor.md`. **Esto es lógica en una
+     pantalla compartida con el VOD**, como la puerta de la sesión: añade
+     caminos y no quita ninguno, pero exige que Edgar valide la entrada en
+     pantalla)**,
      **los tres sitios donde la app dice su propio nombre al servidor del ISP
      —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
      `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,

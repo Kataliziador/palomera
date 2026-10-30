@@ -341,6 +341,75 @@ declararla.
 
 ## Entradas
 
+### [B] El selector de proveedor: la caja ya no pide una dirección que nadie sabe — 2026-10-30
+
+La primera pantalla de toda instalación pedía «escribe la dirección del
+servidor», y lo que hay que escribir es `http://192.168.20.249:8096`. Ningún
+abonado sabe eso; el técnico que lo teclea por él se equivoca.
+
+**Lo que se pidió era un desplegable con todos los proveedores, y eso no se
+hizo**, por dos razones. La primera es comercial: un endpoint que enumere los
+sites deja que cualquiera que instale la app —la competencia incluida— vea qué
+ISPs son clientes, cuántos son y cuándo uno desaparece, y de paso entrega un
+inventario de servidores Jellyfin. El repositorio es público: la dirección del
+endpoint se sabe. La segunda es de arquitectura y la encontró la base de datos:
+**`alias.host` es clave primaria**, así que un host pertenece a un site y sólo
+a uno en todo el registro, y el día que dos ISPs tengan su Jellyfin en
+`192.168.1.10` el segundo no se puede dar de alta. Un selector exige una
+dirección pública y única por site; es una condición de despliegue que esta
+función impone.
+
+**Lo que se hizo es una cascada de tres**, con la misma forma que la de §6 y
+por el mismo motivo —ninguna cubre todos los casos y la última no puede
+fallar—:
+
+| | cuándo entra | a quién sirve |
+|---|---|---|
+| por IP pública | el registro reconoce la red | el abonado en su casa. Cero teclado |
+| por código | no la reconoce | los 12 probadores de la prueba cerrada, el técnico desde la oficina, datos móviles, CGNAT |
+| escribir la dirección | **siempre** | la caja sin internet (§6), y el revisor de Google |
+
+**El selector no inventa un camino de alta.** Lo único que hace es producir una
+dirección y dársela a `ServerAddViewModel.addServer`, que es exactamente lo que
+hace el campo de texto. Por eso el camino viejo queda intacto y el mensaje de
+error de un fallo es el que ya conocíamos.
+
+**Lo que protege el diseño, escrito para que nadie lo deshaga:** nunca se
+devuelve más de un proveedor y no existe endpoint que liste —hay una prueba que
+se pone roja si algún día aparece uno—; el código **no es un secreto** sino un
+tope de velocidad, con cuatro dígitos aleatorios y 10 intentos por IP cada 15
+minutos; y `X-Forwarded-For` **sólo se cree si quien habla está en
+`AUTORIZADOR_PROXIES`**, porque esa IP decide qué proveedor se ofrece y
+creérsela sería dejar que cualquiera elija. Sin proxys declarados no se cree
+ninguna cabecera y todo cae al código: falla hacia el lado seguro.
+
+**Tres defectos que encontró la suite del autorizador, no una relectura:**
+
+1. el campo del formulario no podía llamarse `codigo` —ese nombre ya era el del
+   TOTP con el que el panel confirma—, así que el alta de un site guardaba los
+   seis dígitos del segundo factor como código del proveedor;
+2. `generar_codigo` producía `B-0149` para un site llamado «B» y el validador
+   lo rechazaba: el generador y el validador **no estaban de acuerdo**;
+3. editar un site por un formulario sin ese campo **borraba el código**, que es
+   el dato que los abonados de ese ISP tienen escrito.
+
+**Un cambio sobre el plan aprobado:** decía un `ProveedorRepository` hermano, y
+al escribirlo quedó claro que habría duplicado la conexión, los tiempos de
+espera, el `installId` y la llamada a `RegistryTrust`. Es el mismo registro
+contestando otra pregunta, así que vive en el mismo cliente con una
+`abrirConexion()` compartida. Dos sitios donde poner la confianza son dos
+sitios donde olvidarla, y la comprobación `e)` existe justo por eso.
+
+**Medido:** 339 pruebas del autorizador en verde (20 nuevas), las 7
+comprobaciones de `comprobar.py` incluidas las de unidad del módulo, y
+`:app:compileDebugKotlin` limpio.
+
+**Estado: no validado en pantalla, y lo necesita.** Toca la pantalla de alta,
+que es la puerta compartida con el VOD. Añade caminos y no quita ninguno, pero
+§4.7 ya dejó dicho que un cambio de comportamiento ahí lo ve Edgar en la tele.
+Y **nada de esto está probado contra el registro de producción**: lo que hay
+medido es la lógica y las pruebas de punta a punta contra una base de prueba.
+
 ### [B] El comprobador no veía dos de los tres defectos de hoy — 2026-10-30
 
 Los tres arreglos de la entrada siguiente los encontró **una captura de

@@ -78,6 +78,10 @@ PERMITIDO = [
 	# «Jellyfin Server» y se pinta en la lista de servidores y en el
 	# subtítulo de la pantalla de acceso. Cae a la dirección (30-oct)
 	r"^app/src/main/java/org/jellyfin/androidtv/auth/repository/ServerRepository\.kt$",
+	# el selector de proveedor: la pantalla de alta pedía una dirección que
+	# ningún abonado sabe. Añade dos rutas —por IP y por código— y no quita la
+	# de escribirla (docs/selector-de-proveedor.md, 30-oct)
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ServerAddFragment\.kt$",
 	# el nombre con el que la app se presenta al Jellyfin del ISP: el
 	# `ClientInfo` del SDK, la cabecera de autorización del informe de fallos y
 	# el encabezado de los dos informes que se suben al servidor. Decía

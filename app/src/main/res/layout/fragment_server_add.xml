@@ -29,15 +29,84 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!--
+      El selector de proveedor (docs/selector-de-proveedor.md). Las tres rutas
+      comparten pantalla y se encienden por turnos: primero se pregunta al
+      registro por la IP, y según lo que conteste se enseña el proveedor
+      reconocido o el campo del código. La dirección a mano **no se esconde
+      nunca**: es la única que funciona sin internet, y es por donde entra el
+      revisor de Google (PLAY.md §6).
+    -->
+    <TextView
+        android:id="@+id/proveedor_estado"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/livetv_proveedor_buscando"
+        app:layout_constraintEnd_toStartOf="@id/center"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title" />
+
+    <Button
+        android:id="@+id/proveedor_confirmar"
+        style="@style/Button.Default"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/livetv_proveedor_confirmar"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/proveedor_estado"
+        tools:visibility="visible" />
+
+    <EditText
+        android:id="@+id/codigo"
+        style="@style/Input.Default"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/livetv_proveedor_codigo_ejemplo"
+        android:imeOptions="actionDone"
+        android:inputType="textCapCharacters"
+        android:nextFocusDown="@id/codigo_confirmar"
+        android:nextFocusForward="@id/codigo_confirmar"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/center"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/proveedor_confirmar"
+        tools:visibility="visible" />
+
+    <Button
+        android:id="@+id/codigo_confirmar"
+        style="@style/Button.Default"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/livetv_proveedor_codigo_accion"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/codigo"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/manual_titulo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/livetv_servidor_manual"
+        app:layout_constraintEnd_toStartOf="@id/center"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/codigo_confirmar" />
+
     <TextView
         android:id="@+id/address_label"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="4dp"
         android:text="@string/livetv_servidor_ayuda"
         app:layout_constraintEnd_toStartOf="@id/center"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title" />
+        app:layout_constraintTop_toBottomOf="@id/manual_titulo" />
 
     <EditText
         android:id="@+id/address"

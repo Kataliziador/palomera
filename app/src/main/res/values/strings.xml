@@ -32,7 +32,24 @@
       —iniciar sesión— que el abonado no está haciendo: él está estrenando una
       caja.
     -->
-    <string name="livetv_servidor_titulo" translatable="false">Escribe la dirección del servidor</string>
+    <!--
+      El selector de proveedor (docs/selector-de-proveedor.md). Van con el
+      prefijo `livetv_` y `translatable="false"` por lo mismo que las demás:
+      las cadenas de upstream vienen traducidas a cuarenta idiomas, así que
+      una clave suya corregida en `values/` seguiría diciendo lo viejo en las
+      otras treinta y nueve, y en una caja mexicana manda `values-es-rMX`.
+    -->
+    <string name="livetv_servidor_titulo" translatable="false">Conecta con tu proveedor</string>
+    <string name="livetv_proveedor_buscando" translatable="false">Buscando tu proveedor…</string>
+    <string name="livetv_proveedor_encontrado" translatable="false">¿Eres cliente de %1$s?</string>
+    <string name="livetv_proveedor_confirmar" translatable="false">Sí, conectar</string>
+    <string name="livetv_proveedor_codigo_pide" translatable="false">No reconocimos tu red. Escribe el código que te dio tu proveedor.</string>
+    <string name="livetv_proveedor_codigo_ejemplo" translatable="false">Por ejemplo, REDTV-4821</string>
+    <string name="livetv_proveedor_codigo_accion" translatable="false">Continuar</string>
+    <string name="livetv_proveedor_codigo_malo" translatable="false">Ese código no es de ningún proveedor. Revísalo con quien te instaló el servicio.</string>
+    <string name="livetv_proveedor_demasiados" translatable="false">Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.</string>
+    <string name="livetv_proveedor_sin_red" translatable="false">No pudimos consultar quién es tu proveedor. Escribe el código, o la dirección del servidor si la tienes.</string>
+    <string name="livetv_servidor_manual" translatable="false">O escribe la dirección del servidor</string>
     <string name="livetv_servidor_ayuda" translatable="false">Te la da tu proveedor. Puede ser una dirección IP o un nombre, como 192.168.1.10:8096 o tv.miproveedor.mx</string>
     <string name="livetv_acceso_servidor_sin_nombre" translatable="false">tu servidor</string>
     <string name="livetv_acceso_titulo" translatable="false">Activa tu televisión</string>

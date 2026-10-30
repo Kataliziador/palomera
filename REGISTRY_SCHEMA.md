@@ -282,6 +282,92 @@ sección vacía. La marca sigue el mismo orden: registro, site, neutra.
 
 ---
 
+## 5.bis El selector de proveedor: `POST /v1/proveedor`
+
+**Añadido el 30-oct.** Es la pregunta **anterior** a la de §2: ahí se pregunta
+«¿este host está autorizado?», y para eso hay que saber ya la dirección. Ésta
+la hace una caja recién estrenada, que no sabe ninguna, y por eso va en un
+endpoint aparte en vez de ser un campo opcional del otro —mezclarlas haría que
+el campo obligatorio de una fuera opcional en la otra—.
+
+El diseño completo, con lo que se descartó y por qué, está en
+`docs/selector-de-proveedor.md`.
+
+### La pregunta
+
+```
+POST https://<registro>/v1/proveedor
+{
+  "appVersion": "0.1.0-rc.1",
+  "installId": "…",
+  "codigo": "REDTV-4821"
+}
+```
+
+| Campo | Obligatorio | Para qué |
+|---|---|---|
+| `appVersion` | no | saber qué versiones hay en campo |
+| `installId` | no | el mismo identificador opaco de §2 |
+| `codigo` | **no** | sin él se resuelve por la **IP de origen**; con él, la IP ni se mira |
+
+**No lleva `device` ni `diagnostico`**, a diferencia de §2: en este punto no hay
+site al que apuntarlos, y mandarlos sería entregar el inventario de la caja
+antes de saber si el registro siquiera la conoce.
+
+### La respuesta
+
+```json
+{
+  "proveedor": {
+    "id": "redtv",
+    "nombre": "RedTV",
+    "serverUrl": "https://tv.redtv.mx:8096"
+  },
+  "brand": { "displayName": "RedTV", "accent": "#E8A33D", "logoUrl": "…" }
+}
+```
+
+| Campo | Obligatorio | Si falta |
+|---|---|---|
+| `proveedor` | **sí**, o `null` | un cuerpo sin él se trata como «no se supo» |
+| `proveedor.id`, `nombre`, `serverUrl` | **los tres** | falta uno y se descarta entero: un proveedor sin dirección no es medio proveedor, es un nombre que no lleva a ninguna parte |
+| `brand` | no | la marca la pone el site, o la neutra |
+
+Sin coincidencia:
+
+```json
+{ "proveedor": null }
+```
+
+`serverUrl` **lleva esquema y puerto**, y se valida como `channelsUrl`: lo que
+no empieza por `http://` o `https://` se descarta y se registra.
+
+### Tres reglas que no se negocian
+
+1. **Nunca más de un proveedor, y no existe ningún endpoint que liste.** Una
+   lista de sites es la cartera de clientes y un inventario de servidores
+   Jellyfin, y la app es pública. Lo que no se puede enumerar no se puede
+   filtrar.
+2. **El código no es un secreto**, y está escrito aquí para que nadie lo trate
+   como si lo fuera. Es un tope de velocidad: los cuatro dígitos y el límite de
+   peticiones por IP están para que recorrer la lista probando nombres de ISP
+   deje de ser una tarde. Es la misma honestidad de §1 sobre que el registro no
+   es un candado técnico.
+3. **`429` cuando el límite corta**, y no «sin proveedor». Un código bueno
+   rechazado por el límite tiene que distinguirse de uno malo, o el abonado lo
+   reescribe diez veces y llama a soporte.
+
+### La IP, y por qué la cabecera no se cree sola
+
+Quien sirve esto detrás de un proxy **sólo puede creerse `X-Forwarded-For` si
+el que habla es un proxy propio**. Esa IP decide qué proveedor se ofrece, así
+que creerse la cabecera es dejar que cualquiera elija —y convierte la ruta por
+IP en el endpoint de enumeración que la regla 1 evita—. Sin proxys declarados,
+no se cree ninguna cabecera y el selector cae al código: falla hacia el lado
+seguro.
+
+---
+
 ## 6. Lo que queda fuera, y por qué está escrito
 
 **Cajas que nunca alcanzan internet.** Si ese escenario existe, la autorización

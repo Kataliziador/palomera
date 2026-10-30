@@ -137,6 +137,46 @@ sección sin canales. Comprueba al guardar que responde y que parece un
 
 ---
 
+## 5.bis El selector de proveedor, y cómo se comporta la app
+
+**Añadido el 30-oct**, con `POST /v1/proveedor` (`REGISTRY_SCHEMA.md` §5.bis).
+
+La pantalla de alta de la app ya no pide sólo una dirección. Pregunta por tres
+vías, en este orden, y **la tercera no se esconde nunca**:
+
+| | cuándo | lo que haces tú |
+|---|---|---|
+| 1. por IP | al abrirse la pantalla, sin código | mirar la IP de origen y devolver ese proveedor o `null` |
+| 2. por código | si no hubo coincidencia | resolver el código, y **429** si cortas por límite |
+| 3. a mano | siempre disponible | nada: no pasa por ti |
+
+**Lo que la app hace con cada respuesta**, y conviene que lo sepas porque
+determina qué ve el abonado:
+
+| respuesta | pantalla |
+|---|---|
+| `proveedor` con los tres campos | «¿Eres cliente de RedTV?» y un botón que conecta |
+| `proveedor: null` | «No reconocimos tu red», y pide el código |
+| **cuerpo ilegible, error HTTP o nada** | «No pudimos consultar», y pide el código **sin decir que el proveedor no existe** |
+| `429` | «Demasiados intentos seguidos», que no es lo mismo que un código malo |
+
+**Las dos últimas filas son la parte que más fácil se rompe desde tu lado.** Si
+devuelves `{"proveedor": null}` cuando lo que pasa es que tu base no está
+disponible, le estás diciendo a un abonado que su ISP no existe, y lo mandas a
+buscar un código a alguien que no sabe de qué le habla. Un fallo tuyo se
+contesta con **503**, igual que en `/v1/resolve`.
+
+**`serverUrl` es el campo que se le mete a la caja.** La app lo pone tal cual
+en el campo de la dirección y lo envía por el mismo camino que si el abonado lo
+hubiera escrito: el selector produce una dirección, no un camino de alta nuevo.
+Una errata en ese campo no la ve nadie hasta que una caja no encuentra su
+servidor, que son semanas y una llamada.
+
+**Lo que la app no manda aquí:** ni `device` ni `diagnostico`. En este punto no
+hay site al que apuntarlos.
+
+---
+
 ## 6. Lo que la APK no va a hacer
 
 - **No reintenta.** Un fallo es un fallo hasta la próxima vez que alguien entre
@@ -147,6 +187,10 @@ sección sin canales. Comprueba al guardar que responde y que parece un
 - **No manda datos de abonado.** `installId` es opaco y por instalación.
 - **No verifica firmas** (todavía). Hoy basta HTTPS. Haría falta el día que la
   autorización viaje dentro del `config.json` del site, para cajas sin internet.
+- **No pide la lista de proveedores, porque no existe.** Si alguna vez te
+  parece buena idea añadir un `GET /v1/proveedores` para que la app enseñe un
+  desplegable: no. Esa lista es la cartera de clientes y un inventario de
+  servidores Jellyfin, y la app es pública (`REGISTRY_SCHEMA.md` §5.bis).
 
 ---
 

@@ -140,6 +140,83 @@ class RegistryRepository(context: Context) {
 		}
 
 	/**
+	 * «¿De quién soy cliente?», para no tener que escribir la dirección.
+	 *
+	 * Sin [codigo] la contesta la **IP de origen**: el registro mira desde qué
+	 * red llega la petición. Con él, la IP ni se mira — quien teclea un código
+	 * está diciendo explícitamente de quién es cliente, y puede estar en
+	 * cualquier red.
+	 *
+	 * **No manda `device` ni `diagnostico`**, a diferencia de [resolver]: en
+	 * este punto no hay site al que apuntarlos, y mandarlos sería entregar el
+	 * inventario de la caja antes de saber siquiera si el registro nos conoce.
+	 *
+	 * El diseño entero está en `docs/selector-de-proveedor.md`.
+	 */
+	suspend fun proveedor(baseUrl: String?, codigo: String? = null): RespuestaProveedor =
+		withContext(Dispatchers.IO) {
+			if (baseUrl.isNullOrBlank()) {
+				LiveLog.info("proveedor.sinDireccion", "detalle" to "no hay REGISTRY_URL compilada")
+				return@withContext RespuestaProveedor.NoSeSupo
+			}
+
+			val cuerpo = buildJsonObject {
+				put("appVersion", appVersion)
+				put("installId", installId)
+				codigo?.trim()?.takeIf { it.isNotEmpty() }?.let { put("codigo", it) }
+			}.toString()
+
+			runCatching { postearProveedor(baseUrl.trimEnd('/') + RUTA_PROVEEDOR, cuerpo) }
+				.map { (estado, texto) ->
+					when {
+						estado == 429 -> RespuestaProveedor.DemasiadosIntentos
+						estado !in 200..299 -> {
+							LiveLog.warn("proveedor.sinRespuesta", "estado" to estado)
+							RespuestaProveedor.NoSeSupo
+						}
+
+						else -> ProveedorParser.parse(texto).also {
+							LiveLog.info(
+								"proveedor.respuesta",
+								"porCodigo" to (codigo != null),
+								"encontrado" to (it is RespuestaProveedor.Encontrado),
+								"proveedor" to (it as? RespuestaProveedor.Encontrado)?.proveedor?.id,
+							)
+						}
+					}
+				}
+				.getOrElse {
+					// Que no conteste es lo esperado en una caja que llega a la
+					// red del ISP pero no a internet. **No es «no existe tu
+					// proveedor»**: eso mandaría al abonado a buscar un dato
+					// que sí tiene.
+					LiveLog.warn("proveedor.sinRespuesta", "motivo" to it.message)
+					RespuestaProveedor.NoSeSupo
+				}
+		}
+
+	/**
+	 * Como [postear], pero **devuelve el estado en vez de fallar con él**.
+	 *
+	 * El selector necesita distinguir el 429 del resto: un código bueno
+	 * rechazado por el límite de intentos no es un código malo, y tratarlos
+	 * igual hace que el abonado lo reescriba diez veces.
+	 */
+	private fun postearProveedor(url: String, cuerpo: String): Pair<Int, String> {
+		val conexion = abrirConexion(url)
+		try {
+			conexion.outputStream.bufferedWriter().use { it.write(cuerpo) }
+			val codigo = conexion.responseCode
+			val flujo = if (codigo in 200..299) conexion.inputStream else conexion.errorStream
+			val texto = flujo?.bufferedReader()?.use { it.readText() }.orEmpty()
+			if (texto.length > MAX_RESPUESTA) error("respuesta de ${texto.length} caracteres")
+			return codigo to texto
+		} finally {
+			conexion.disconnect()
+		}
+	}
+
+	/**
 	 * El cuerpo de la pregunta (`REGISTRY_SCHEMA.md` §2).
 	 *
 	 * `device` existe para soporte: saber qué cajas hay en cada ISP sin tener
@@ -194,8 +271,17 @@ class RegistryRepository(context: Context) {
 	/** La pone quien construye el repositorio; el módulo no conoce `BuildConfig`. */
 	var appVersion: String = "desconocida"
 
-	private fun postear(url: String, cuerpo: String): String {
-		val conexion = (URL(url).openConnection() as HttpURLConnection).apply {
+	/**
+	 * La conexión, con la confianza puesta.
+	 *
+	 * La comparten las dos preguntas que se le hacen al registro —la
+	 * autorización y el selector de proveedor— **a propósito**: la
+	 * comprobación `e)` de `herramientas/comprobar.py` exige que toda conexión
+	 * propia pase por [RegistryTrust], y dos sitios donde ponerla son dos
+	 * sitios donde olvidarla.
+	 */
+	private fun abrirConexion(url: String): HttpURLConnection =
+		(URL(url).openConnection() as HttpURLConnection).apply {
 			// Sin esto, una caja con Android anterior a 7.1.1 no valida el
 			// certificado del registro y nunca entra a TV en vivo, sin dar
 			// error visible. En claro no hace nada (`RegistryTrust.aplicarA`).
@@ -208,6 +294,9 @@ class RegistryRepository(context: Context) {
 			setRequestProperty("Accept", "application/json")
 			instanceFollowRedirects = true
 		}
+
+	private fun postear(url: String, cuerpo: String): String {
+		val conexion = abrirConexion(url)
 
 		try {
 			conexion.outputStream.bufferedWriter().use { it.write(cuerpo) }
@@ -245,6 +334,7 @@ class RegistryRepository(context: Context) {
 		const val PREFS = "livetv.registro"
 		const val K_INSTALL_ID = "installId"
 		const val RUTA = "/v1/resolve"
+		const val RUTA_PROVEEDOR = "/v1/proveedor"
 
 		/** Holgado para cuatro campos y un mensaje largo; lejos de una página de error. */
 		const val MAX_RESPUESTA = 64 * 1024
