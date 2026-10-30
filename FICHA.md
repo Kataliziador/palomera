@@ -152,13 +152,26 @@ compilación de depuración.
   build de usuario y `setprop persist.sys.locale` falla.
   `adb shell cmd locale set-app-locales <pkg> --locales es-MX` sí;
 - **la demo tenía tres canales y la rejilla salía con dos tercios en negro.**
-  Resuelto en `palco-demo` el 30-oct: ocho canales en tres grupos, y **con
-  logo**, porque sin `logoUrl` las tarjetas caen a las iniciales y ocho
-  canales que empiezan por «Palomera» salen idénticos. Falta correr el
-  instalador en la caja de OVH, que es la que ve un revisor;
+  Resuelto el 30-oct, ya corriendo en la caja de OVH: ocho canales en tres
+  grupos, y **con logo**, porque sin `logoUrl` las tarjetas caen a las
+  iniciales y ocho canales que empiezan por «Palomera» salen idénticos;
 - **el velo de la barra de canal subía encima del texto** y sobre la carta de
   ajuste el nombre del canal quedaba en 2,03:1. Arreglado el 30-oct
-  (`LIVETV_LOG.md`); la captura 2 se saca con esa corrección dentro.
+  (`LIVETV_LOG.md`); la captura 2 lleva esa corrección dentro.
+
+**Las cuatro están sacadas** el 30-oct, 1920×1080, de un release 0.1.0-rc.1 en
+es-MX sobre `tv34`, contra la demo. En este orden:
+
+| | qué enseña |
+|---|---|
+| 1 | la sección de canales: tres grupos, ocho tarjetas con logo, y la cabecera con lo que está al aire y lo que sigue |
+| 2 | un canal en marcha con la barra encima: número, nombre, HD, idioma, progreso y los controles |
+| 3 | «Activa tu televisión» con el código, que es lo que cuenta de qué va el producto |
+| 4 | el inicio con la biblioteca y la fila de películas |
+
+La 4 es la más floja porque la carátula de la demo es otra carta de ajuste.
+Es honesto —no hay ni un fotograma de un tercero— y no se arregla sin meter
+material que no es nuestro.
 
 ## 6. Otros campos
 
