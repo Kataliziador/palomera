@@ -71,6 +71,9 @@ PERMITIDO = [
 	# pantalla: color plano acabado en la guía del 50 % (30-oct)
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/UserLoginFragment\.kt$",
 	r"^app/src/main/res/drawable/velo_acceso\.xml$",
+	# el aviso de «ninguna cuenta» perdía en es-MX la frase que dice qué
+	# pulsar: el abonado leía un error en vez de una instrucción (31-oct)
+	r"^app/src/main/res/layout/fragment_server\.xml$",
 	# «Introduzca la dirección del servidor» sobre «Por favor, introduce…»:
 	# usted y tú en la misma pantalla, la primera de toda instalación (30-oct)
 	r"^app/src/main/res/layout/fragment_server_add\.xml$",

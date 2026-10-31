@@ -301,6 +301,18 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      upstream, en usted mientras el resto tutea— y desde que detrás hay un
      selector ya ni describe lo que pasa: el abonado que no sabe ninguna
      dirección no pulsa un botón que le pide una)**,
+     y `layout/fragment_server.xml` **(añadido el 31-oct: su aviso de «no se
+     han encontrado cuentas» usaba la cadena de upstream, cuya traducción
+     mexicana se queda en la exclamación y **pierde la segunda frase, la que
+     dice qué pulsar** —el inglés sí la trae—. El abonado lee un error donde
+     el original le daba una instrucción, y eso ocurre en la pantalla de la
+     que no se puede salir sin entender. Medido el 31-oct contra el site de
+     demostración: `/Users/Public` devuelve `[]`, así que ese aviso es
+     exactamente lo que van a leer los probadores de la prueba cerrada si
+     nadie hace visible una cuenta. Va a una cadena `livetv_` por lo mismo
+     que los otros layouts, y deliberadamente **no nombra el botón**: su
+     texto es «Agregar cuenta» en es-MX y «Agregar usuario» en es-ES, así que
+     citarlo habría creado una instrucción falsa en uno de los dos)**,
      **los tres sitios donde la app dice su propio nombre al servidor del ISP
      —`di/AppModule.kt`, `telemetry/TelemetryService.kt` y
      `util/profile/deviceProfileReport.kt`— (añadidos el 27-oct)**,

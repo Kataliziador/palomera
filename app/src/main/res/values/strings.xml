@@ -58,6 +58,15 @@
     <string name="livetv_proveedor_demasiados" translatable="false">Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.</string>
     <string name="livetv_proveedor_sin_red" translatable="false">No pudimos consultar quién es tu proveedor. Escribe el código, o la dirección del servidor si la tienes.</string>
     <string name="livetv_servidor_manual" translatable="false">O escribe la dirección del servidor</string>
+    <!--
+      El aviso de la pantalla de usuarios cuando el servidor no publica
+      ninguna cuenta. El de upstream dice en inglés «Add a new account by
+      pressing the "Add account" button», pero su traducción mexicana se
+      queda en «¡No se han encontrado cuentas!» y pierde justo la frase
+      que dice qué hacer: el abonado lee un error y no una instrucción.
+      No se nombra el botón, porque su texto cambia entre es-MX y es-ES.
+    -->
+    <string name="livetv_sin_cuentas" translatable="false">Este servidor no muestra ninguna cuenta. Usa el botón de abajo para añadir la tuya con el usuario y la contraseña que te dio tu proveedor.</string>
     <string name="livetv_servidor_ayuda" translatable="false">Te la da tu proveedor. Puede ser una dirección IP o un nombre, como 192.168.1.10:8096 o tv.miproveedor.mx</string>
     <string name="livetv_acceso_servidor_sin_nombre" translatable="false">tu servidor</string>
     <string name="livetv_acceso_titulo" translatable="false">Activa tu televisión</string>

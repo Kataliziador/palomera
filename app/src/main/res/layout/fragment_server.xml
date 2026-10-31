@@ -56,7 +56,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:gravity="center"
-        android:text="@string/no_user_warning"
+        android:text="@string/livetv_sin_cuentas"
         app:layout_constraintBottom_toBottomOf="@id/users"
         app:layout_constraintEnd_toEndOf="@id/actions_container"
         app:layout_constraintStart_toStartOf="@id/actions_container"
