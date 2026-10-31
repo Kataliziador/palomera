@@ -180,16 +180,28 @@ el comportamiento de la app, **en el mismo commit** — la regla de sincronía d
 Los 12 probadores estarán en redes cualesquiera, así que ninguno entra por la
 ruta 1: **todos usan la 2, con el mismo código**, apuntando al site `demo`.
 
-Comprobado desde fuera el 30-oct, no supuesto:
+Comprobado desde fuera el 30 y el 31-oct, no supuesto:
 
 | | |
 |---|---|
-| `xtsrt01.ddns.net:8096` | HTTP 302, `ServerName: Palomera Demo`, Jellyfin 10.11.11 |
-| `:8097/config.json` | HTTP 200, 3 grupos y 8 canales |
-| `:8181/demo1/index.m3u8` | HTTP 200 |
+| `xtsrt01.ddns.net:8096` | `ServerName: Palomera Demo`, Jellyfin 10.11.11 |
+| `:8097/config.json` | HTTP 200, 3 grupos y 8 canales, `brand: null` |
+| `:8097/epg.xml` | HTTP 200, 1,2 MB, 8 canales y 5 576 programas |
+| los **ocho** `:8181/demoN/index.m3u8` | HTTP 200, una variante, `avc1.64001f,mp4a.40.2` |
+| `/v1/resolve host=xtsrt01.ddns.net` | `authorized: true`, `until` a 21 días, `channelsUrl` público |
+| `/v1/proveedor` | **404** — la rama no está desplegada |
 
-Falta sólo añadirle `xtsrt01.ddns.net` como alias —hoy tiene el de la LAN— y
-darle código.
+**El alias público ya estaba.** Este documento decía que el site «hoy tiene el
+de la LAN» y era falso; lo que falta son `servidor_url` y `codigo`, y faltan
+porque la migración no está desplegada.
+
+**Y los ocho canales del demo son cartas de ajuste H.264/AAC con una sola
+pista de audio.** Cero `EXT-X-MEDIA` en los ocho masters. Así que por esta
+ruta la prueba cerrada ejercita el alta, la sesión, la guía y el zapeo, y **no
+ejercita nada del Modo A**: ni MPEG-2, ni libVLC, ni cambio de pista, ni SAR
+anamórfico, ni entrelazado, ni CEA-608. Lo que sí se cosecha es el inventario
+de decoders de cada caja, porque viaja con `/v1/resolve` y no depende de lo
+que se reproduzca — el pendiente 4 sigue en pie.
 
 ---
 
