@@ -236,10 +236,23 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
 
    ```bash
    # a) nada tocado fuera del territorio permitido
-   git diff --stat upstream-base..HEAD -- \
+   git diff --stat upstream-base -- \
+     ':!livetv/' ':!app/src/main/java/org/jellyfin/androidtv/ui/livetv/' \
+     ':!*/flavors/*' ':!*.md'
+   git ls-files --others --exclude-standard -- \
      ':!livetv/' ':!app/src/main/java/org/jellyfin/androidtv/ui/livetv/' \
      ':!*/flavors/*' ':!*.md'
    ```
+
+   **Sin `..HEAD`, y es el arreglo del 31-oct.** Las dos órdenes decían
+   `upstream-base..HEAD`, que compara contra el **último commit**: leído antes
+   de comprometer —que es cuando este apartado manda leerlo— lo que enseñaban
+   era el commit anterior, el que ya había pasado la revisión, y lo que estaba
+   a punto de entrar era invisible. Medido: con una línea añadida a
+   `PlaybackController.java` sin comprometer, la comprobación b) salía en
+   verde. Sin `..HEAD` el `diff` compara contra el árbol de trabajo; los
+   archivos **nuevos** no los ve ningún `diff`, así que se piden con
+   `ls-files`.
 
    Lo que aparezca aquí son **ocho cosas y ninguna más**, y se justifican una
    a una en el commit:
@@ -408,7 +421,7 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
 
    ```bash
    # b) el camino de VOD, intacto
-   git diff --stat upstream-base..HEAD -- \
+   git diff --stat upstream-base -- \
      'app/src/main/java/org/jellyfin/androidtv/ui/playback/' 'playback/'
    ```
 

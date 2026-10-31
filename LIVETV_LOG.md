@@ -495,6 +495,42 @@ pantalla que ahora tiene lógica nueva. §4.7 lo pide y sigue pendiente.
 Y **nada de esto está probado contra el registro de producción**: todo lo
 medido es contra una instancia local con una base de prueba.
 
+### [B] Y el comprobador tampoco veía el commit que estaba a punto de entrar — 2026-10-31
+
+Hoy, escribiendo otra cosa, apareció que el conteo de la comprobación `a)` no
+subía al tocar un archivo nuevo. La causa es de una línea y es la misma familia
+que la entrada de abajo: **las comprobaciones `a)` y `b)` leían
+`upstream-base..HEAD`.**
+
+§4.7 las llama «verificación obligatoria **antes** de cada commit». Leyendo
+`HEAD`, lo que miraban era el commit *anterior* —el que ya había pasado la
+revisión— y lo que estaba a punto de entrar era invisible. Las otras cinco
+comprobaciones leen los archivos del disco, así que el defecto era sólo de
+estas dos; y son justo las dos que guardan el territorio de §4.7 y el
+invariante del VOD.
+
+**Medido, no deducido, con prueba y contraprueba.** Se añadió una línea a
+`ui/playback/PlaybackController.java` —el archivo que §4 protege como
+invariante, el más prohibido del proyecto— sin comprometerla:
+
+| | antes | después del arreglo |
+|---|---|---|
+| con la línea en el árbol de trabajo | `✓ b) el camino de VOD, intacto` | `✗ b) el camino de VOD está tocado` |
+| revertida | `✓` | `✓` |
+
+El arreglo es quitar `..HEAD`, con lo que `git diff` compara contra el árbol de
+trabajo y recoge lo preparado y lo no preparado, más un `git ls-files --others
+--exclude-standard` para los archivos **nuevos**, que no los ve ningún `diff`.
+El `.gitignore` es lo que mantiene fuera los productos de compilación.
+
+Los comandos escritos en §4.7 llevaban el mismo defecto —de ahí salió el de la
+herramienta— y se corrigieron en el mismo commit.
+
+**La lección es la de la entrada de abajo, repetida:** un comprobador que no
+puede salir en rojo ante el caso que existe para vigilar no respalda nada, y
+que salga en verde no es noticia. La diferencia es que esta vez el defecto
+estaba en *cuándo* mira, no en *qué* mira.
+
 ### [B] El comprobador no veía dos de los tres defectos de hoy — 2026-10-30
 
 Los tres arreglos de la entrada siguiente los encontró **una captura de

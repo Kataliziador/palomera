@@ -166,10 +166,33 @@ def git(*args: str) -> list[str]:
 	return [l for l in r.stdout.splitlines() if l.strip()]
 
 
+def _tocados(*rutas: str) -> list[str]:
+	"""Lo que cambió respecto a `upstream-base`, **incluido el árbol de trabajo**.
+
+	**Esto decía `upstream-base..HEAD`, y así no podía hacer su trabajo.** §4.7
+	llama a estas comprobaciones «verificación obligatoria **antes** de cada
+	commit», y leyendo `HEAD` lo que veían era el commit *anterior*: justo lo
+	que ya pasó la revisión. Lo que estaba a punto de entrar era invisible.
+
+	Medido el 31-oct, no deducido: con una línea añadida a
+	`ui/playback/PlaybackController.java` sin comprometer —el archivo que §4
+	protege como invariante— la comprobación b) salía **en verde**. Es la
+	familia del hueco que la `g)` cerró ayer: el instrumento no podía ver el
+	caso que existe para ver.
+
+	Sin `..HEAD`, `git diff` compara contra el árbol de trabajo y recoge lo
+	preparado y lo no preparado. Los archivos nuevos no los ve ningún `diff`,
+	así que se piden aparte; `--exclude-standard` respeta el `.gitignore`, que
+	es lo que deja fuera los productos de compilación.
+	"""
+	cambiados = git("diff", "--name-only", "upstream-base", "--", *rutas)
+	nuevos = git("ls-files", "--others", "--exclude-standard", "--", *rutas)
+	return sorted(set(cambiados) | set(nuevos))
+
+
 def fuera_del_territorio(inf: Informe) -> None:
 	"""§4.7 a) — nada tocado fuera de las seis categorías."""
-	tocados = git(
-		"diff", "--name-only", "upstream-base..HEAD", "--",
+	tocados = _tocados(
 		":!livetv/", ":!app/src/main/java/org/jellyfin/androidtv/ui/livetv/",
 		":!*/flavors/*", ":!*.md",
 	)
@@ -185,8 +208,7 @@ def fuera_del_territorio(inf: Informe) -> None:
 
 def camino_de_vod(inf: Informe) -> None:
 	"""§4.7 b) — el invariante: películas y series como en el upstream."""
-	tocados = git(
-		"diff", "--name-only", "upstream-base..HEAD", "--",
+	tocados = _tocados(
 		"app/src/main/java/org/jellyfin/androidtv/ui/playback/", "playback/",
 	)
 	sobran = [f for f in tocados if f != "playback/media3/exoplayer/build.gradle.kts"]
