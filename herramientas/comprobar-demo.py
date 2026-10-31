@@ -98,10 +98,15 @@ def omitida(texto: str) -> None:
 
 def pedir(url: str, cuerpo: bytes | None = None, espera: int = ESPERA):
     """Devuelve (estado, texto). Un fallo de red es estado 0, nunca excepción."""
-    pet = urllib.request.Request(url, data=cuerpo)
-    if cuerpo is not None:
-        pet.add_header("Content-Type", "application/json")
+    # **La petición se construye dentro del `try`.** Estaba fuera, y un canal
+    # publicado con `url` vacía —que existe: lo tiene el site «pruebas»—
+    # tumbaba el comprobador entero con un `ValueError` antes de llegar a
+    # ninguna red. Lo que viene de un `config.json` es dato de fuera, y aquí
+    # todo lo de fuera tiene que poder ser basura sin consecuencias.
     try:
+        pet = urllib.request.Request(url, data=cuerpo)
+        if cuerpo is not None:
+            pet.add_header("Content-Type", "application/json")
         with urllib.request.urlopen(pet, timeout=espera) as r:
             return r.status, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
@@ -398,9 +403,23 @@ def comprobar_config(canales_base: str) -> dict | None:
 
 def comprobar_canales(cfg: dict) -> None:
     canales = cfg.get("channels") or []
-    malos, variantes = [], []
+    malos, variantes, sin_url, apagados = [], [], [], []
     for ch in canales:
         url = ch.get("url") or ""
+        # **`url` es obligatoria salvo con `unavailable: true`**, y la app lo
+        # trata así: `LiveConfig.kt:330` sólo descarta el canal si se declara
+        # disponible. Un canal apagado a propósito —el headend en
+        # mantenimiento, el audio sin normalizar— se publica sin dirección y
+        # con su mensaje, y eso es correcto: deja el hueco en la numeración
+        # cerrado y le dice al abonado por qué.
+        #
+        # Esto marcaba los dos del site «pruebas» en rojo, y era mi error.
+        if ch.get("unavailable") is True:
+            apagados.append(str(ch.get("id")))
+            continue
+        if not url.startswith(("http://", "https://")):
+            sin_url.append(str(ch.get("id")))
+            continue
         estado, texto = pedir(url, espera=15)
         if estado != 200:
             malos.append(f"{ch.get('id')} → {estado or 'sin respuesta'}")
@@ -408,10 +427,22 @@ def comprobar_canales(cfg: dict) -> None:
         n = texto.count("EXT-X-STREAM-INF")
         if n > 1:
             variantes.append(f"{ch.get('id')} ({n})")
+    if sin_url:
+        # Sin `unavailable`, esto sí es una errata: la app lo descarta y
+        # registra `config.canalDescartado`, y el abonado ve un canal menos
+        # sin que nadie se entere.
+        mal("canales", f"{len(sin_url)} canal(es) sin dirección y sin declararse "
+                       f"«unavailable»: " + ", ".join(sin_url))
     if malos:
-        mal("canales", f"{len(malos)} de {len(canales)} canales no sirven: " + ", ".join(malos))
-    else:
-        bien(f"los {len(canales)} canales contestan 200")
+        mal("canales", f"{len(malos)} canal(es) no sirven: " + ", ".join(malos))
+    vivos = len(canales) - len(sin_url) - len(apagados)
+    if not malos and not sin_url:
+        bien(f"los {vivos} canales servibles contestan 200")
+    if apagados:
+        # No es un fallo, pero conviene verlo: el aviso que nadie quitó es un
+        # fallo previsible, y un canal apagado desde hace semanas también.
+        nota(f"{len(apagados)} apagado(s) a propósito con «unavailable»: "
+             + ", ".join(apagados))
     # La app no puede impedir el ABR, sólo verlo (`CLAUDE.md` §6). Aquí sí se
     # puede impedir, que es más barato que un aviso en un registro.
     if variantes:

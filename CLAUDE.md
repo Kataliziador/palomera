@@ -763,8 +763,20 @@ durante meses**, así que:
 - Un campo que no está se resuelve con el valor de fábrica, nunca con un fallo.
 - Un `version` mayor del que la app conoce se usa igual, ignorando lo que no
   entienda, y se registra.
-- El cache se indexa **por servidor**. Hoy es un solo `files/livetv/config.json`
-  y una caja que cambie de servidor hereda la lista del anterior.
+- El cache se indexa **por servidor**, y **ya está hecho** —esta línea decía
+  «hoy es un solo `files/livetv/config.json` y una caja que cambie de servidor
+  hereda la lista del anterior», y llevaba tiempo siendo falsa—. Son
+  `config-<clave>.json` y la guía con la misma clave, donde la clave es el
+  **identificador del servidor de Jellyfin**, no su dirección: cambiar de
+  dirección no tira la caché, y cambiar de site no hereda su lineup. La marca
+  viaja dentro de ese archivo, así que queda indexada con él; la autorización
+  del registro se guarda **por host**.
+
+  **Consecuencia para quien pruebe con dos sites: el segundo Jellyfin tiene que
+  ser una instalación nueva, no una copia.** Un contenedor clonado conserva el
+  `Id` del original, y con la misma clave las dos listas de canales comparten
+  archivo — el fallo que esta línea decía que existía, reaparecido por la
+  puerta de atrás y esta vez de verdad.
 
 ---
 

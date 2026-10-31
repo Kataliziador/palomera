@@ -201,3 +201,81 @@ cabecera cayendo al nombre en cada carga y registrando un error cada vez. Con
 el campo ausente se ve el nombre y no se registra nada, que es el mismo
 resultado sin el ruido. Si quieres logo, en `herramientas/marca/png/` está
 `palomera-logo.png`; hace falta subirlo al site y poner su URL.
+
+---
+
+## 8. Dos sites, dos públicos — decidido el 31-oct
+
+**Decisión de Edgar.** La prueba cerrada usa **dos sites**, no uno, porque los
+dos públicos quieren cosas opuestas y porque de paso se prueba lo que una sola
+APK para varios ISPs tiene que saber hacer y nunca se ha probado.
+
+| | el revisor de Google | nuestros 12 probadores |
+|---|---|---|
+| site | **el demo**, sin tocar | **un segundo site**, con contenido real |
+| contenido | cartas de ajuste y dos vídeos generados | el que cargue ese servidor |
+| cómo entra | **tecleando la dirección**, como dice `FICHA.md` §4 | **con un código**, el de ese site |
+| cuenta | `revisor` | una `probador`, distinta |
+| derechos | **ningún material de terceros**, y eso se le dice por escrito | **de Edgar**, que responde por lo que ese servidor emita |
+
+**Por qué el revisor sigue viendo cartas de ajuste.** No es lo que hay a falta
+de algo mejor: es la respuesta correcta para ese público. Un revisor de una app
+de televisión busca una cosa, si retransmites señal ajena, y las notas de
+acceso pueden decir *«no third-party material»* **porque es verdad**. Un
+servidor nuestro con canales reales convierte esa frase en una mentira
+comprobable. Por el mismo motivo `PLAY.md` §6 prohíbe que las capturas de la
+ficha muestren un canal reproduciendo.
+
+**Y el revisor nunca verá el segundo site**, porque entra tecleando la
+dirección del demo y no necesita ningún código. El segundo site existe sólo
+para quien tiene su código.
+
+**La cuenta del probador no es la del revisor.** Si los doce comparten
+`revisor` y uno la bloquea o le cambia algo, el camino por el que entra Google
+se rompe y nadie se entera hasta el rechazo.
+
+### Lo que hace falta para el segundo site
+
+| | qué | de quién |
+|---|---|---|
+| 1 | **un nombre DNS público y único** | de Edgar |
+| 2 | un **Jellyfin nuevo** ahí, con una cuenta `probador` no administradora y con acceso a la biblioteca | de Edgar |
+| 3 | un **servicio de canales** en el **puerto 8097** de esa máquina | se instala igual que el del demo |
+| 4 | su `config.json` con sus canales y **su propio bloque `brand`** | panel de ese servicio |
+| 5 | una **fila en el registro**: alias = ese nombre DNS, `servidor_url`, y el código que genere el panel | autorizador, después del despliegue |
+
+**Dos avisos que pueden arruinar la prueba en silencio:**
+
+- **El segundo Jellyfin tiene que ser una instalación nueva, no una copia.** La
+  caché del lineup se indexa por el **identificador del servidor**, y un
+  contenedor clonado conserva el del original: con el mismo `Id`, los dos sites
+  comparten archivo de caché y cada uno sobrescribe la lista del otro. El
+  síntoma sería «me salen los canales del otro proveedor», que es exactamente
+  el fallo que se quiere descartar.
+- **`alias.host` es clave primaria del registro.** Ese nombre DNS no puede estar
+  dado de alta en ningún otro site, y por eso no sirve una dirección de LAN.
+
+**Y la marca de cada site, distinta a propósito.** Es lo que convierte «parece
+que funciona» en una prueba: si al cambiar de site cambia el nombre y el color
+de la cabecera, las ranuras de §8 funcionan; si no cambia, hay una caché
+compartida donde no debería.
+
+### Lo que esta prueba demuestra, y que no se ha probado nunca
+
+La arquitectura entera —una APK, N ISPs— descansa en que nada de un site se
+cuele en otro. Hoy eso está **leído en el código** y no visto:
+
+| qué | cómo está hoy |
+|---|---|
+| caché del `config.json` | `config-<id de servidor>.json` |
+| caché de la guía | la misma clave |
+| marca | dentro de ese archivo, así que indexada con él |
+| autorización del registro | guardada **por host** |
+
+Con dos sites de verdad y una caja que salta de uno a otro, eso pasa de leído a
+medido. Y se mide el caso que ningún ISP va a provocar pero un técnico sí: la
+caja que estaba autorizada en un site y aparece en otro.
+
+**Lo que el probador tiene que hacer**, además de lo de §3: dar de alta **los
+dos** servidores y cambiar de uno a otro desde la lista, mirando si la cabecera
+cambia de marca y si los canales son los que tocan.
