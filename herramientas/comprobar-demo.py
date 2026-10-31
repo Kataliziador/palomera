@@ -115,6 +115,22 @@ def pedir(url: str, cuerpo: bytes | None = None, espera: int = ESPERA):
         return 0, f"{type(e).__name__}: {e}"
 
 
+def sin_caso(d: dict) -> dict:
+    """Las claves en minúsculas, porque Jellyfin no usa siempre las mismas.
+
+    **Medido el 31-oct sobre un 10.11.11 recién instalado:** antes de completar
+    el asistente inicial, `/System/Info/Public` contesta `camelCase`
+    —`startupWizardCompleted`— y después del asistente, `PascalCase`
+    —`StartupWizardCompleted`—. Misma versión y misma imagen.
+
+    Leer una casilla concreta funcionaba por suerte: contra un servidor sin
+    configurar, este comprobador habría dicho «contesta: «None», Jellyfin
+    None» y habría acertado en el aviso del asistente por el motivo
+    equivocado, que es el peor sitio donde acertar.
+    """
+    return {k.lower(): v for k, v in d.items()}
+
+
 def luminancia(hexa: str) -> float:
     r, g, b = (int(hexa[i:i + 2], 16) / 255 for i in (1, 3, 5))
 
@@ -139,14 +155,14 @@ def comprobar_jellyfin(base: str) -> str | None:
         mal("jellyfin", f"{base}/System/Info/Public → {estado or texto}")
         return None
     try:
-        inf = json.loads(texto)
+        inf = sin_caso(json.loads(texto))
     except json.JSONDecodeError:
         mal("jellyfin", "contestó 200 pero no era JSON")
         return None
-    bien(f"contesta: «{inf.get('ServerName')}», Jellyfin {inf.get('Version')}")
-    if not inf.get("StartupWizardCompleted"):
+    bien(f"contesta: «{inf.get('servername')}», Jellyfin {inf.get('version')}")
+    if not inf.get("startupwizardcompleted"):
         mal("jellyfin", "el asistente inicial no está terminado: nadie puede entrar")
-    return inf.get("ServerName")
+    return inf.get("servername")
 
 
 def comprobar_cuentas(base: str) -> None:
@@ -169,10 +185,12 @@ def comprobar_cuentas(base: str) -> None:
     if not usuarios:
         roce("cuentas", "ninguna cuenta que elegir: habrá que pulsar «Agregar cuenta» "
                         "y teclear el usuario con el mando")
-        nota("el Jellyfin de la oficina devuelve «[]» igual: es el valor por defecto")
-        nota("si quieres que la elija con el mando, hay que hacerla visible desde el panel")
+        # Ya no es una conjetura: medido el 31-oct sobre un 10.11.11 limpio.
+        nota("la cuenta que crea el asistente de Jellyfin nace con «IsHidden» puesto,")
+        nota("y por eso este endpoint devuelve «[]» también en el de la oficina")
+        nota("«IsHidden: false» en la política la publica — comprobado, se listan")
         return
-    nombres = ", ".join(str(u.get("Name")) for u in usuarios)
+    nombres = ", ".join(str(sin_caso(u).get("name")) for u in usuarios)
     bien(f"{len(usuarios)} cuenta(s) visible(s) para elegir con el mando: {nombres}")
 
 
@@ -227,13 +245,15 @@ def comprobar_biblioteca(base: str) -> None:
         mal("biblioteca", f"no se pudo entrar: {type(e).__name__}")
         return
 
-    token, uid = sesion.get("AccessToken"), (sesion.get("User") or {}).get("Id")
+    sesion = sin_caso(sesion)
+    token = sesion.get("accesstoken")
+    uid = sin_caso(sesion.get("user") or {}).get("id")
     bien(f"la cuenta «{usuario}» entra")
     estado, texto = pedir(f"{base}/Users/{uid}/Items?Recursive=true&Limit=1&api_key={token}")
     if estado != 200:
         ojo(f"no se pudo contar la biblioteca: HTTP {estado}")
         return
-    total = (json.loads(texto) or {}).get("TotalRecordCount", 0)
+    total = sin_caso(json.loads(texto) or {}).get("totalrecordcount", 0)
     if total:
         bien(f"la biblioteca tiene {total} elementos")
     else:
