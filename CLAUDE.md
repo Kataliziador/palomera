@@ -319,10 +319,11 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      mexicana se queda en la exclamación y **pierde la segunda frase, la que
      dice qué pulsar** —el inglés sí la trae—. El abonado lee un error donde
      el original le daba una instrucción, y eso ocurre en la pantalla de la
-     que no se puede salir sin entender. Medido el 31-oct contra el site de
-     demostración: `/Users/Public` devuelve `[]`, así que ese aviso es
-     exactamente lo que van a leer los probadores de la prueba cerrada si
-     nadie hace visible una cuenta. Va a una cadena `livetv_` por lo mismo
+     que no se puede salir sin entender. Medido el 31-oct: `/Users/Public`
+     devuelve `[]` **tanto en el site de demostración como en el Jellyfin de
+     la oficina**, el que se usa a diario y donde `test` entra sin problema,
+     así que es el valor por defecto y no el descuido de un servidor. Esa
+     pantalla no es un caso raro: es la que vemos cada vez. Va a una cadena `livetv_` por lo mismo
      que los otros layouts, y deliberadamente **no nombra el botón**: su
      texto es «Agregar cuenta» en es-MX y «Agregar usuario» en es-ES, así que
      citarlo habría creado una instrucción falsa en uno de los dos)**,

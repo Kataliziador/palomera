@@ -51,7 +51,9 @@ FONDO_SECCION = "#101010"
 CONTRASTE_MINIMO = 3.0
 
 fallos: list[str] = []
+roces: list[str] = []
 avisos: list[str] = []
+ESTRICTO = False
 
 
 def bien(texto: str) -> None:
@@ -61,6 +63,24 @@ def bien(texto: str) -> None:
 def mal(clave: str, texto: str) -> None:
     print(f"{ROJO}  ✗ {texto}{FIN_COLOR}")
     fallos.append(clave)
+
+
+def roce(clave: str, texto: str) -> None:
+    """Hace tropezar a un probador, pero **no le impide llegar**.
+
+    La diferencia importa y la aprendí equivocándome: a `/Users/Public`
+    vacío lo marqué como bloqueo, y resulta que el Jellyfin de la oficina
+    —el que usamos todos los días y donde `test` entra sin problema—
+    devuelve `[]` igual. Es el estado por defecto, no un descuido del demo.
+
+    Ninguno de los roces deja al probador sin salida: la dirección a mano
+    nunca se esconde, «Usar contraseña» nunca se quita y la marca neutra es
+    una marca. Lo que hacen es gastar la paciencia de alguien que no cobra
+    por esto. Con `--estricto` cuentan como fallo, que es lo que conviene
+    antes de mandar las invitaciones.
+    """
+    print(f"{AMARILLO}  ~ {texto}{FIN_COLOR}")
+    roces.append(clave)
 
 
 def ojo(texto: str) -> None:
@@ -142,8 +162,10 @@ def comprobar_cuentas(base: str) -> None:
         mal("cuentas", "/Users/Public no era JSON")
         return
     if not usuarios:
-        mal("cuentas", "ninguna cuenta visible: el probador tendrá que teclear el usuario")
-        nota("Panel → Usuarios → la cuenta → desmarcar «ocultarla de las pantallas de acceso»")
+        roce("cuentas", "ninguna cuenta que elegir: habrá que pulsar «Agregar cuenta» "
+                        "y teclear el usuario con el mando")
+        nota("el Jellyfin de la oficina devuelve «[]» igual: es el valor por defecto")
+        nota("si quieres que la elija con el mando, hay que hacerla visible desde el panel")
         return
     nombres = ", ".join(str(u.get("Name")) for u in usuarios)
     bien(f"{len(usuarios)} cuenta(s) visible(s) para elegir con el mando: {nombres}")
@@ -165,8 +187,9 @@ def comprobar_quickconnect(base: str) -> None:
     if texto.strip().lower() == "false":
         bien("QuickConnect apagado: la app irá directa a usuario y contraseña")
     else:
-        mal("quickconnect", "QuickConnect encendido y sin panel que autorice el código")
-        nota("la app ofrecerá un código de activación que nadie puede aprobar")
+        roce("quickconnect", "QuickConnect encendido y sin panel que autorice el código")
+        nota("la app ofrecerá primero un código que nadie puede aprobar; «Usar")
+        nota("contraseña» sigue ahí, así que el probador llega — después de dudar")
 
 
 def comprobar_biblioteca(base: str) -> None:
@@ -275,8 +298,9 @@ def comprobar_selector(registro: str, base_jellyfin: str) -> None:
         {"installId": "comprobar-demo", "appVersion": "0.0.0"}
     ).encode())
     if estado == 404:
-        mal("selector", "/v1/proveedor → 404: la rama del selector no está desplegada")
-        nota("sin esto el probador tiene que teclear la dirección con el mando")
+        roce("selector", "/v1/proveedor → 404: la rama del selector no está desplegada")
+        nota("el probador tendrá que teclear la dirección entera con el mando, que es")
+        nota("justo lo que el selector existe para evitar. No le cierra la puerta")
         return
     if estado != 200:
         mal("selector", f"/v1/proveedor → {estado or texto}")
@@ -347,8 +371,9 @@ def comprobar_config(canales_base: str) -> dict | None:
 
     marca = cfg.get("brand")
     if not marca:
-        mal("marca", "«brand» nulo: el probador verá la marca neutra")
-        nota("las tres ranuras de §8 no se prueban en los 14 días")
+        roce("marca", "«brand» nulo: el probador verá la marca neutra")
+        nota("la marca neutra está diseñada para esto, así que no se ve roto;")
+        nota("lo que se pierde es probar las tres ranuras de §8 en los 14 días")
     else:
         nombre, acento = marca.get("displayName"), (marca.get("accent") or "")
         bien(f"marca: «{nombre}», acento {acento or '(ninguno)'}")
@@ -439,7 +464,12 @@ def main() -> int:
     p.add_argument("--jellyfin-puerto", type=int, default=8096)
     p.add_argument("--canales-puerto", type=int, default=8097)
     p.add_argument("--registro", default="https://authjelly.satmx.net")
+    p.add_argument("--estricto", action="store_true",
+                   help="los roces también fallan; para usar antes de invitar a nadie")
     a = p.parse_args()
+
+    global ESTRICTO
+    ESTRICTO = a.estricto
 
     base = f"http://{a.host}:{a.jellyfin_puerto}"
     canales = f"http://{a.host}:{a.canales_puerto}"
@@ -467,12 +497,18 @@ def main() -> int:
     if fallos:
         print(f"{ROJO}{len(fallos)} cosa(s) impiden que un probador use la app: "
               f"{', '.join(dict.fromkeys(fallos))}{FIN_COLOR}")
-        return 1
-    if avisos:
+    if roces:
+        print(f"{AMARILLO}{len(roces)} roce(s) que gastan la paciencia del probador "
+              f"sin cerrarle la puerta: {', '.join(dict.fromkeys(roces))}{FIN_COLOR}")
+    if avisos and not fallos and not roces:
         print(f"{AMARILLO}listo, con {len(avisos)} aviso(s){FIN_COLOR}")
-        return 0
-    print(f"{VERDE}el site está listo para la prueba cerrada{FIN_COLOR}")
-    return 0
+    if not fallos and not roces and not avisos:
+        print(f"{VERDE}el site está listo para la prueba cerrada{FIN_COLOR}")
+    if fallos:
+        return 1
+    # Antes de mandar doce invitaciones, un roce sí cuenta: cada uno es una
+    # llamada de alguien que está haciendo un favor.
+    return 1 if (ESTRICTO and roces) else 0
 
 
 if __name__ == "__main__":

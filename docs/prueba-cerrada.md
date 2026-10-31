@@ -29,6 +29,13 @@ Ninguno de los tres está en este repositorio, y **ninguno debe llegar aquí**
 | el **código del proveedor** (`DEMO-####`) | lo genera el panel del autorizador al dar de alta el site | mensaje, o dictado por teléfono |
 | **usuario y contraseña** del Jellyfin del demo | los creas tú en el panel de ese Jellyfin | mensaje |
 
+**Ninguno de los cuatro roces que detecta `comprobar-demo.py` le cierra la
+puerta a un probador**, y conviene no confundirlos con bloqueos: la dirección a
+mano nunca se esconde, «Usar contraseña» nunca se quita y la marca neutra está
+diseñada para esto. Lo que hacen es gastar la paciencia de alguien que está
+haciendo un favor, así que se quitan antes de invitar a nadie —
+`comprobar-demo.py --estricto` falla mientras quede uno.
+
 **Su correo de Google tiene que estar en la lista de probadores de la Console
 antes de que el enlace funcione.** Un probador que abre el enlace sin estar en
 la lista ve un error de Play y no un error nuestro, y va a reportarlo como si
@@ -59,7 +66,14 @@ selector toca la puerta compartida con el VOD).
 3. Teclea el código → **«¿Eres cliente de Palomera Demo?»** → «Sí, conectar».
    La app rellena la dirección y sigue por el mismo camino que si la hubiera
    escrito a mano.
-4. **«¿Quién está viendo?»** con la cuenta de probador. La elige con el mando.
+4. **«Este servidor no muestra ninguna cuenta»** y un botón para añadirla.
+   **Esto es lo normal, no un fallo del demo**: medido el 31-oct,
+   `/Users/Public` devuelve `[]` tanto en el demo como en el Jellyfin de la
+   oficina —el que usamos todos los días y donde `test` entra sin problema—,
+   así que es el valor por defecto. El probador pulsa el botón y teclea el
+   usuario. Si se consigue hacer visible una cuenta desde el panel, este paso
+   se convierte en elegirla con el mando; **no está verificado** que baste con
+   desmarcar la casilla en esta versión.
 5. **La contraseña.** Con QuickConnect apagado en el demo, la app va directa
    aquí y no ofrece un código de activación que nadie podría aprobar.
 6. **Inicio**, con el VOD del site y «TV en vivo» en la barra.
