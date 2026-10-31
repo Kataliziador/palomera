@@ -219,6 +219,35 @@ y guardar el resultado—:
 - usar la **misma normalización** de §2 para comparar. Comparar cadenas crudas
   daría por distinto `TV.REDTV.MX:8096` de `tv.redtv.mx`.
 
+### 2.bis Dos direcciones del mismo Jellyfin, y tú eliges cuál mandas
+
+**Añadido el 31-oct, y ya está implementado en el autorizador.** Guarda dos
+direcciones por site y manda una según cómo acertaste:
+
+- **acertaste por IP** → la caja está **dentro** de la red de ese ISP, porque
+  eso es lo que significa que su IP de origen cuadre con sus rangos. Mándale la
+  dirección **de LAN**;
+- **acertaste por código** → puede estar en cualquier parte. Mándale la
+  **pública**.
+
+La app recibe un solo `serverUrl` y no sabe que había dos. No necesita saberlo,
+y por eso esto no costó una versión de la APK.
+
+**Si mandas la pública a una caja interna**, sólo funciona cuando ese ISP tiene
+hairpin NAT o DNS de horizonte partido. Cuando no: «no se pudo conectar» en la
+primera pantalla, en todas sus cajas, con todo bien dado de alta. Es el fallo
+más caro de los que puede causar el registro, y el que menos se parece a un
+fallo del registro.
+
+**Y la dirección de LAN se escribe con un nombre**, no con una IP privada:
+`http://tv.redtv.lan:8096`. Tiene que ser alias del site —la caja preguntará
+`resolve` con ese host— y los alias son únicos en todo el registro, así que con
+`192.168.1.10` el segundo ISP que lo intente no se puede dar de alta.
+
+**Un site sólo con dirección de LAN no se ofrece por código.** Es deliberado:
+mandar la dirección interna de un ISP a quien está fuera lo lleva a una máquina
+que en su red no existe.
+
 ### 3. Lo que las tres direcciones tienen en común
 
 Las resuelve **la caja del abonado**. Una dirección buena desde el site y mala

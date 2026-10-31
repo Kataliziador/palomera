@@ -109,6 +109,16 @@ Sin coincidencia:
    el síntoma sale semanas después, en la sala de un abonado. Se valida igual
    que `channelsUrl`: lo que no es `http://` ni `https://` se descarta y se
    registra.
+4. **Y es un solo campo con dos contenidos posibles** —añadido el 31-oct—. El
+   registro guarda la dirección pública y la de dentro de la red del ISP, y
+   entrega la que toca: **por IP, la de LAN**, porque acertar por IP significa
+   que la caja está dentro; **por código, la pública**, porque puede estar en
+   cualquier parte. La app no sabe que había dos.
+
+   Sin esto, la ruta 1 entrega a una caja interna una dirección que sólo
+   funciona con hairpin NAT o DNS de horizonte partido: «no se pudo conectar»
+   en todas las cajas de ese ISP a la vez. **Y la prueba cerrada no lo habría
+   visto**, porque sus doce probadores están fuera y entran por la ruta 2.
 
 **Por qué no se reutiliza `/v1/resolve`:** esa pregunta es «¿este host está
 autorizado?», y aquí **todavía no hay host**. Son preguntas distintas y

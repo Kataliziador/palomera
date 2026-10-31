@@ -342,6 +342,31 @@ Sin coincidencia:
 `serverUrl` **lleva esquema y puerto**, y se valida como `channelsUrl`: lo que
 no empieza por `http://` o `https://` se descarta y se registra.
 
+**Y es un solo campo con dos posibles contenidos, que elige el registro.**
+Añadido el 31-oct. El registro guarda dos direcciones del mismo Jellyfin y
+entrega la que corresponde a cómo acertó:
+
+| acertó | la caja está | entrega |
+|---|---|---|
+| **por IP** | **dentro** de la red del ISP, por definición: su IP de origen cuadró con los rangos de ese ISP | la dirección **de LAN**, si el site la tiene; si no, la pública |
+| **por código** | en cualquier parte: su casa, la oficina, datos móviles | la **pública**, siempre |
+
+La app no sabe que existe la distinción, y no tiene por qué: recibe una
+dirección que funciona desde donde está. **Cero cambios en la APK.**
+
+**El fallo que esto evita** es total y silencioso. A una caja dentro de la red
+del ISP, la dirección pública sólo le sirve si ese ISP tiene *hairpin NAT* o
+DNS de horizonte partido, y muchos no: sin eso la caja no alcanza su propio
+Jellyfin y enseña «no se pudo conectar» en la primera pantalla, en **todas**
+las cajas de ese ISP a la vez. Y no se detecta probando desde fuera, que es
+como se prueba: un probador en su casa llega por código, recibe la pública, y
+para él es la correcta.
+
+**Un site sólo con dirección de LAN no se ofrece por código.** Darle la
+dirección interna del ISP a quien puede estar en cualquier red sería mandarlo
+a una máquina que en la suya no existe; es mejor no ofrecer nada y que escriba
+la dirección a mano, que es un camino que funciona.
+
 ### Tres reglas que no se negocian
 
 1. **Nunca más de un proveedor, y no existe ningún endpoint que liste.** Una
@@ -421,6 +446,29 @@ alias         redtv.ispjelly.net           ← lo único que el registro reconoc
 alias del site.** Un site repartido necesita por tanto **el alias de su
 Jellyfin**, aunque sus canales estén en otra máquina: el alias identifica la
 puerta por la que entra la caja, no dónde están los canales.
+
+### 2.bis La dirección de LAN se escribe con un nombre, no con una IP privada
+
+Consecuencia de la regla anterior y de que `alias.host` sea clave primaria: la
+dirección de LAN **también** la va a usar la caja para preguntar `resolve`, así
+que **también** tiene que ser alias del site. Y un alias es único en todo el
+registro.
+
+Con `http://192.168.1.10:8096`, el primer ISP que lo use se queda la cadena y
+**el segundo no se puede dar de alta** — y `192.168.1.x` lo usan todos. Con
+`http://tv.redtv.lan:8096` el problema desaparece: es único como cadena, y
+resolverlo es un registro en el resolutor del propio ISP, que un ISP sabe
+hacer.
+
+**La alternativa que se descartó, escrita para que nadie la reintroduzca:**
+mandar el `id` del site en la pregunta de `/v1/resolve`, para no depender de un
+host único. Resolvería la colisión y **abriría el agujero que todo el diseño
+del selector evita**: los ids son `demo`, `redtv`, `pruebas` —se adivinan—, así
+que resolver por id convierte el registro en el endpoint de enumeración que §2
+del diseño prohíbe y que una prueba del autorizador vigila. Si algún día un ISP
+exige una IP privada desnuda, la salida limpia no es el `id` sino una **clave
+opaca por site** que el selector entregue y la app guarde; cuesta un campo en
+la base, uno en la pregunta y persistencia en la app, y **hoy no hace falta**.
 
 ### 3. La dirección que importa es la que ve la caja
 
