@@ -27,7 +27,23 @@ Ninguno de los tres está en este repositorio, y **ninguno debe llegar aquí**
 |---|---|---|
 | el enlace de participación de Play | Play Console, al crear la prueba cerrada | el mismo medio por el que se le invita |
 | el **código del proveedor** (`DEMO-####`) | lo genera el panel del autorizador al dar de alta el site | mensaje, o dictado por teléfono |
-| **usuario y contraseña** del Jellyfin del demo | los creas tú en el panel de ese Jellyfin | mensaje |
+| **usuario y contraseña** del Jellyfin del demo | los crea el script del despliegue (abajo) | mensaje |
+
+**Las cuentas y el QuickConnect no se tocan a mano.** En el repositorio del
+despliegue de la demo, `herramientas/configurar-jellyfin.sh` crea la cuenta
+`probador` —no administradora, con acceso a la biblioteca, visible en la
+pantalla de acceso y sin bloqueo por intentos fallidos—, mantiene la del
+`revisor` aparte y **apaga QuickConnect**. Es idempotente, así que se vuelve a
+correr sin pensar, y vale igual para el segundo site:
+
+```bash
+PALCO_DEMO_JELLYFIN_URL=http://xtsrt01.ddns.net:8096 \
+PALCO_DEMO_PROBADOR_CLAVE='…' ./herramientas/configurar-jellyfin.sh
+```
+
+Después, `./herramientas/comprobar-demo.py` desde este repositorio: de cuatro
+roces tienen que bajar a uno, el del selector, que lo cierra el despliegue del
+autorizador.
 
 **Ninguno de los cuatro roces que detecta `comprobar-demo.py` le cierra la
 puerta a un probador**, y conviene no confundirlos con bloqueos: la dirección a
