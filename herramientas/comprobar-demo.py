@@ -266,14 +266,22 @@ def comprobar_tls(registro: str) -> None:
         bien(f"certificado válido {dias} días más ({fin:%Y-%m-%d})")
 
 
-def comprobar_resolve(registro: str, host: str) -> None:
+def comprobar_resolve(registro: str, host: str) -> str | None:
+    """Devuelve el `channelsUrl` que el registro entrega, si entrega alguno.
+
+    Lo devuelve porque **es el que la app va a usar**. Comprobar el 8097 del
+    host de Jellyfin comprobaría la convención, que es sólo el respaldo: en un
+    site con los servicios en máquinas distintas (`REGISTRY_SCHEMA.md` §5.ter)
+    la convención apunta a una máquina que no sirve canales, y mirar ahí daría
+    el veredicto equivocado en los dos sentidos.
+    """
     cuerpo = json.dumps(
         {"host": host, "installId": "comprobar-demo", "appVersion": "0.0.0"}
     ).encode()
     estado, texto = pedir(f"{registro}/v1/resolve", cuerpo)
     if estado != 200:
         mal("resolve", f"/v1/resolve → {estado or texto}")
-        return
+        return None
     r = json.loads(texto)
     if not r.get("authorized"):
         mal("resolve", f"el registro no autoriza «{host}»: {texto}")
@@ -296,6 +304,7 @@ def comprobar_resolve(registro: str, host: str) -> None:
             nota("AUTORIZADOR_VENTANA_DIAS=7 mientras dure la prueba")
         else:
             bien(f"ventana de {dias} días: el diagnóstico llegará dentro de la prueba")
+    return canales
 
 
 def comprobar_selector(registro: str, base_jellyfin: str) -> None:
@@ -330,10 +339,34 @@ def comprobar_selector(registro: str, base_jellyfin: str) -> None:
     bien(f"el código resuelve a «{prov.get('nombre')}» → {url}")
     # Una errata aquí manda la caja a ninguna parte y el síntoma sale semanas
     # después, en la sala de un abonado (docs/selector-de-proveedor.md §4).
-    if urlparse(url).hostname != urlparse(base_jellyfin).hostname:
-        mal("codigo", f"ese serverUrl no es el Jellyfin que acabo de comprobar")
     if not url.startswith(("http://", "https://")):
         mal("codigo", "el serverUrl no lleva esquema: la app lo descartará")
+    if urlparse(url).hostname != urlparse(base_jellyfin).hostname:
+        mal("codigo", "ese serverUrl no es el Jellyfin que acabo de comprobar")
+
+    # **El cuadre que nadie valida** (`REGISTRY_SCHEMA.md` §5.ter §2). La app
+    # da de alta el servidor con este `serverUrl` y más tarde pregunta
+    # `/v1/resolve` **con el host de esta misma dirección**. Si ese host no es
+    # alias del site, el registro deniega su propia alta, y el síntoma es el
+    # peor que hay: el abonado entra, el VOD funciona y TV en vivo le dice que
+    # su servidor no está dado de alta. Parece una baja de contrato, no una
+    # errata, y sale días después en su sala.
+    anfitrion = urlparse(url).hostname
+    if anfitrion:
+        estado, texto = pedir(f"{registro}/v1/resolve", json.dumps(
+            {"host": anfitrion, "installId": "comprobar-demo", "appVersion": "0.0.0"}
+        ).encode())
+        r = json.loads(texto) if estado == 200 else {}
+        if not r.get("authorized"):
+            mal("cuadre", f"el registro NO reconoce «{anfitrion}», que es el host que "
+                          f"el código entrega: la caja entrará y TV en vivo denegará")
+            nota("falta ese host como alias del site (REGISTRY_SCHEMA.md §5.ter)")
+        elif (r.get("site") or {}).get("id") != prov.get("id"):
+            mal("cuadre", f"«{anfitrion}» resuelve al site "
+                          f"«{(r.get('site') or {}).get('id')}» y el código dice "
+                          f"«{prov.get('id')}»: dos sites se pisan")
+        else:
+            bien(f"cuadra: el host que entrega el código resuelve al mismo site")
 
 
 def comprobar_sin_enumeracion(registro: str) -> None:
@@ -355,11 +388,18 @@ def comprobar_sin_enumeracion(registro: str) -> None:
 
 # --------------------------------------------------------- servicio de canales
 
-def comprobar_config(canales_base: str) -> dict | None:
+def comprobar_config(url: str, derivada: bool) -> dict | None:
     print("\nEl servicio de canales")
-    estado, texto = pedir(f"{canales_base}/config.json")
+    if derivada:
+        nota(f"el registro no dio channelsUrl; derivado por convención: {url}")
+    else:
+        nota(f"la dirección que entrega el registro: {url}")
+    estado, texto = pedir(url)
     if estado != 200:
         mal("config", f"config.json → {estado or texto}")
+        if derivada:
+            nota("derivado por convención: si este site tiene los canales en otra")
+            nota("máquina, falta «channelsUrl» en el registro (§5.ter)")
         return None
     try:
         cfg = json.loads(texto)
@@ -515,11 +555,12 @@ def main() -> int:
         comprobar_biblioteca(base)
 
     comprobar_tls(registro)
-    comprobar_resolve(registro, a.host)
+    canales_url = comprobar_resolve(registro, a.host)
     comprobar_selector(registro, base)
     comprobar_sin_enumeracion(registro)
 
-    cfg = comprobar_config(canales)
+    cfg = comprobar_config(canales_url or f"{canales}/config.json",
+                           derivada=canales_url is None)
     if cfg:
         comprobar_canales(cfg)
         comprobar_epg(cfg)

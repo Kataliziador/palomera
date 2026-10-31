@@ -368,6 +368,87 @@ seguro.
 
 ---
 
+## 5.ter Cada servicio en su dirección: el mapa de un site
+
+**Definido el 31-oct, a petición de Edgar.** Un ISP no tiene *un* servidor:
+tiene varios, y nada obliga a que estén en la misma máquina. Esta sección dice
+**de dónde sale cada dirección**, porque hasta ahora estaba repartido entre §5,
+§5.bis y el `config.json`, y repartido se contradice.
+
+| servicio | de quién es | la app lo aprende de | si no se sabe |
+|---|---|---|---|
+| **Jellyfin** (VOD y sesión) | del ISP | `proveedor.serverUrl` del selector, o lo teclea el abonado | no hay app: es la puerta |
+| **servicio de canales** (lista, grupos, marca, `deviceOverrides`) | del ISP, con nuestra tabla de modelos inyectada | `site.channelsUrl` de `/v1/resolve` | se **deriva** del host de Jellyfin, puerto 8097 (§5) |
+| **EPG** | del ISP | el puntero `epg.url` **dentro del `config.json`** | la guía sale vacía; la sección funciona |
+| **panel de abonados** (activar por QuickConnect) | del ISP | **nada: la app no lo consulta nunca** | — |
+
+Cuatro consecuencias, y las cuatro importan más en cuanto los servicios dejan
+de compartir máquina.
+
+### 1. Si el servicio de canales no vive en el Jellyfin, `channelsUrl` deja de ser opcional
+
+La tabla de §3 dice que `site.channelsUrl` es opcional y que sin él la app
+deriva por convención. Eso es verdad **y es una trampa para un site repartido**:
+la convención es «el host de Jellyfin, puerto 8097», así que derivar apunta a
+una máquina que no sirve canales.
+
+**Regla: para un site cuyo servicio de canales no esté en el host de su
+Jellyfin, `channelsUrl` es obligatorio.** No lo puede comprobar el registro
+—no sabe qué hay detrás de cada dirección—, así que es una condición de alta,
+y el panel es donde tiene que verse.
+
+### 2. El host de `servidor_url` tiene que ser alias del site
+
+Esto es la trampa de verdad, y **hoy nada lo valida**.
+
+El selector entrega `serverUrl` y la app da de alta ese servidor. Más tarde,
+al entrar a la sección de canales, pregunta `/v1/resolve` **con el host de esa
+misma dirección**. Si ese host no es alias del site, el registro no lo
+reconoce y deniega.
+
+El síntoma es el peor posible: **el abonado entra, el VOD funciona, y TV en
+vivo le dice que su servidor no está dado de alta.** No se parece a una errata
+de configuración; se parece a que no tiene contratada la televisión. Y aparece
+días después del alta, en su sala.
+
+```
+servidor_url  http://tv.redtv.mx:8096      ← lo que recibe la caja
+alias         redtv.ispjelly.net           ← lo único que el registro reconoce
+                                             → resolve deniega
+```
+
+**Regla: el host de `servidor_url`, normalizado, tiene que estar entre los
+alias del site.** Un site repartido necesita por tanto **el alias de su
+Jellyfin**, aunque sus canales estén en otra máquina: el alias identifica la
+puerta por la que entra la caja, no dónde están los canales.
+
+### 3. La dirección que importa es la que ve la caja
+
+Las tres direcciones las resuelve **la caja del abonado**, no el registro ni el
+servicio de canales. Una dirección correcta desde el site y equivocada desde la
+caja —`localhost`, una IP de una LAN distinta, un nombre que solo resuelve
+dentro— pasa todas las validaciones y falla en el único sitio donde cuenta.
+
+Vale para `channelsUrl`, para `servidor_url` y para el `epg.url` que el
+servicio de canales declara dentro de su propio documento.
+
+### 4. El panel de abonados no es dirección de la app, y es a propósito
+
+El panel lo usa **el operador del ISP**, no la caja: el abonado dicta su código
+de activación por teléfono y alguien lo aprueba ahí. La app nunca lo consulta,
+así que su dirección no está en el registro y no tiene por qué estarlo.
+
+Lo que el panel sí necesita es alcanzar el **Jellyfin de su propio site**, que
+es un asunto interno de esa LAN.
+
+**Lo que esto deja pendiente, y es decisión de producto:** la primera pantalla
+le dice al abonado «llama a tu proveedor» **sin decirle a quién**. El registro
+ya manda `brand.displayName`; mandar también un teléfono o un horario
+convertiría esa pantalla en algo accionable. Es una ranura más, con su
+validación, y no está decidido.
+
+---
+
 ## 6. Lo que queda fuera, y por qué está escrito
 
 **Cajas que nunca alcanzan internet.** Si ese escenario existe, la autorización

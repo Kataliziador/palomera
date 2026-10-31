@@ -177,6 +177,64 @@ hay site al que apuntarlos.
 
 ---
 
+## 5.ter Un site con sus servicios en direcciones distintas
+
+**Añadido el 31-oct** (`REGISTRY_SCHEMA.md` §5.ter, que es el contrato; esto es
+lo que tienes que hacer tú).
+
+Cada ISP puede tener su Jellyfin en una máquina y su servicio de canales en
+otra. La app lo soporta sin cambios, porque `channelsUrl` siempre fue una URL
+completa y no un sufijo. Pero hay **dos cosas que el registro tiene que
+garantizar** y que hoy no comprueba.
+
+### 1. `channelsUrl` obligatorio en los sites repartidos
+
+Si el servicio de canales **no** está en el host del Jellyfin del site,
+`channelsUrl` deja de ser opcional. Sin él la app deriva por convención —el
+host del Jellyfin, puerto 8097— y eso apunta a una máquina que no sirve
+canales. El abonado entra y la sección se queda con la caché, o vacía.
+
+El registro no puede saber qué hay detrás de cada dirección, así que esto no es
+una validación: es una condición de alta que **el panel tiene que hacer
+visible**.
+
+### 2. El host de `servidor_url` tiene que ser alias del site
+
+La app usa `proveedor.serverUrl` para dar de alta el servidor, y después
+pregunta `/v1/resolve` **con el host de esa misma dirección**. Si ese host no
+es alias del site, deniegas tu propio alta.
+
+El síntoma, y por eso insisto: **el abonado entra, el VOD funciona y TV en vivo
+le dice que su servidor no está dado de alta.** Parece una baja de contrato, no
+una errata, y se descubre días después en su sala.
+
+Lo que recomiendo, y es lo que el panel ya hace con `channels_url` —comprobarlo
+y guardar el resultado—:
+
+- al guardar `servidor_url`, **avisar** si su host normalizado no está entre los
+  alias del site. Aviso y no error: al crear un site, los alias se añaden
+  después, así que un rechazo duro rompería el orden normal de trabajo;
+- recalcular ese aviso **también al añadir o quitar un alias**, que es el otro
+  lado por donde se descuadra;
+- usar la **misma normalización** de §2 para comparar. Comparar cadenas crudas
+  daría por distinto `TV.REDTV.MX:8096` de `tv.redtv.mx`.
+
+### 3. Lo que las tres direcciones tienen en común
+
+Las resuelve **la caja del abonado**. Una dirección buena desde el site y mala
+desde la caja —`localhost`, una IP de otra LAN, un nombre que solo resuelve
+dentro— pasa todas tus validaciones y falla en el único sitio que cuenta. Vale
+para `channelsUrl`, para `servidor_url` y para el `epg.url` que el servicio de
+canales declara en su propio documento.
+
+### 4. El panel de abonados no entra aquí
+
+La app **nunca** consulta el panel de activación: lo usa el operador para
+aprobar el código que el abonado le dicta. Su dirección no va en el registro y
+no hace falta que vaya.
+
+---
+
 ## 6. Lo que la APK no va a hacer
 
 - **No reintenta.** Un fallo es un fallo hasta la próxima vez que alguien entre
