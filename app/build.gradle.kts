@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
 	id("com.android.application")
 	kotlin("android")
@@ -15,6 +17,41 @@ plugins {
 // paquete son únicos en toda la tienda— y además la app choca con la Jellyfin de
 // verdad si alguien tiene las dos en la misma caja.
 val appId = "mx.kataliziador.palomera"
+
+// **`local.properties` no lo lee Gradle, y los dos sitios que mandaban usarlo
+// pedían un archivo sin efecto**: `PLAY.md` §1 y el mensaje de error del final
+// de este archivo. `findProperty` ve `gradle.properties`, los `-P` y las
+// `ORG_GRADLE_PROJECT_*`; `local.properties` es un archivo del plugin de
+// Android, pensado para `sdk.dir`, y nadie lo expone como propiedad del
+// proyecto. Medido el 01-nov: con las cuatro propiedades de firma ahí,
+// `assembleRelease` se detenía diciendo que faltaban las cuatro — y el propio
+// mensaje te devolvía a `local.properties`. Una instrucción circular, y justo
+// en el paso que no se puede deshacer.
+//
+// Se lee aquí y no en `buildSrc/Properties.kt`, que es donde vive el ayudante,
+// para no abrir territorio nuevo (§4.7): este archivo ya está en la lista y
+// `buildSrc/` no. El precio es que `jellyfin.version` sigue sin leerse de ahí,
+// y no hace falta: `PLAY.md` §8 la pasa por el entorno.
+//
+// El orden importa: una `-P` o una variable de entorno **mandan sobre el
+// archivo**, para poder firmar distinto en una compilación suelta sin editarlo.
+//
+// Y **una propiedad vacía cuenta como ausente**, que no es un detalle: el
+// archivo se deja preparado con las contraseñas en blanco para que sólo haya
+// que escribirlas, y `""` no es `null`. Sin esto, la configuración de firma se
+// crearía con una contraseña vacía, el guardián del final no vería nada raro y
+// el fallo saldría más tarde y sin nombrar la causa — que es exactamente el
+// modo de fallar que ese guardián existe para evitar.
+val propiedadesLocales = Properties().apply {
+	rootProject.file("local.properties")
+		.takeIf { it.isFile }
+		?.inputStream()
+		?.use { load(it) }
+}
+
+fun propiedadDeFirma(nombre: String): String? =
+	(getProperty(nombre) ?: propiedadesLocales.getProperty(nombre))
+		?.takeIf { it.isNotBlank() }
 
 android {
 	// El `namespace` **no** cambia: es el paquete Kotlin de ~2.000 archivos y
@@ -95,10 +132,10 @@ android {
 	}
 
 	signingConfigs {
-		val keystoreFile = getProperty("keystore.file")
-		val keystorePassword = getProperty("keystore.password")
-		val signingKeyAlias = getProperty("signing.key.alias")
-		val signingKeyPassword = getProperty("signing.key.password")
+		val keystoreFile = propiedadDeFirma("keystore.file")
+		val keystorePassword = propiedadDeFirma("keystore.password")
+		val signingKeyAlias = propiedadDeFirma("signing.key.alias")
+		val signingKeyPassword = propiedadDeFirma("signing.key.password")
 
 		if (keystoreFile != null && keystorePassword != null && signingKeyAlias != null && signingKeyPassword != null) {
 			create("release") {

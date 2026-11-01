@@ -44,6 +44,23 @@ nombres la firma no se aplica):
 Van en `local.properties`, que está en `.gitignore`, o en el entorno
 (`Properties.kt` convierte el punto en subrayado y pasa a mayúsculas).
 
+**Y hasta el 01-nov la mitad de esa frase era falsa: Gradle no lee
+`local.properties`.** `findProperty` ve `gradle.properties`, los `-P` y las
+`ORG_GRADLE_PROJECT_*`; `local.properties` es un archivo del plugin de Android,
+pensado para `sdk.dir`, y nada lo exponía como propiedad del proyecto. Medido
+con el mismo archivo y el mismo keystore, antes y después del arreglo: sin él
+`assembleRelease` se detenía diciendo que faltaban las cuatro propiedades —y el
+propio mensaje devolvía a `local.properties`—; con él compila. Ahora
+`app/build.gradle.kts` lo lee explícitamente, y **una propiedad en blanco cuenta
+como ausente**, para que dejar el archivo preparado con las contraseñas vacías
+falle con el mensaje de las cuatro en vez de crear una firma con contraseña
+vacía.
+
+El arreglo vive en `app/build.gradle.kts` y no en `buildSrc/Properties.kt`, que
+es donde está el ayudante, para no abrir territorio nuevo en §4.7. Consecuencia:
+**`jellyfin.version` sigue sin leerse de `local.properties`** y va por el entorno
+o por `-P`, que es como la documenta §8.
+
 **Y si falta alguna, la compilación de release ahora se detiene** con los cuatro
 nombres en el mensaje. Antes no: `signingConfigs` solo crea la configuración
 cuando están las cuatro, `findByName("release")` devolvía `null` sin decir nada
