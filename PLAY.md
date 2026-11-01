@@ -576,6 +576,25 @@ conflicto lo decide el IMPI. La clase 41 —entretenimiento— sí parece libre 
 «Palomera» a secas, y si hay que pelear o registrar algo, ése es el dato que un
 abogado querrá primero.
 
+**Decidido el 01-nov, por Edgar, con el hallazgo delante: se sigue con Palomera
+y se envía.** El razonamiento, para que no se vuelva a discutir sin dato nuevo:
+
+- hoy **no hay ningún derecho concedido** que lo impida, así que el envío no
+  choca con nada;
+- el peor caso realista —que a GARLAV se la concedan y se queje a Play— se
+  arregla **cambiando el nombre visible**, que sí se puede cambiar. El paquete
+  no, y el paquete no es lo que un titular de marca hace valer: no se le enseña
+  a nadie salvo en la URL de la ficha;
+- lo que se pierde es registrarlo en clase 38, y eso **no bloquea publicar**;
+- y el reloj de los 14 días es la restricción que manda (§2). Parar días por un
+  riesgo recuperable, para ganar un registro que no hace falta para enviar, sale
+  caro.
+
+**Lo que queda abierto a propósito, y no bloquea:** preguntar a un abogado de
+marcas por el registro en **clase 41**, que la búsqueda de arriba deja libre
+para «Palomera» a secas, y si conviene vigilar u oponerse al expediente 3666237.
+Eso se hace en paralelo al envío, no antes.
+
 Falta todavía que el título esté libre en la Play Console, y a mano en
 Samsung, LG y Roku, que no tienen buscador público alcanzable. Si estuviera
 tomado se cambia el nombre visible sin tocar el paquete, pero el paquete ya
