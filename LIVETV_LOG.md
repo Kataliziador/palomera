@@ -390,6 +390,58 @@ declararla.
 
 ## Entradas
 
+### [B] El primer envío: la clave de firma, y dos defectos de la propia preparación — 2026-11-01
+
+**Síntoma:** ninguno. No hubo queja ni fallo observado: lo que había era la
+clave de firma por generar y la ficha por rellenar. Los dos defectos salieron
+de preparar eso, que es el argumento de `PLAY.md` §7 otra vez — publicar es un
+instrumento de medida, y apuntarlo también lo es.
+
+**Hipótesis:** que sólo faltaban accesos de Edgar y papeleo.
+
+**Cambio:**
+
+1. **`app/build.gradle.kts` lee `local.properties`.** No lo leía nadie:
+   `findProperty` ve `gradle.properties`, los `-P` y las
+   `ORG_GRADLE_PROJECT_*`, y `local.properties` es un archivo del plugin de
+   Android pensado para `sdk.dir`. **Y los dos sitios que mandaban usarlo eran
+   `PLAY.md` §1 y el propio mensaje de error del build**, así que la
+   instrucción era circular: pones las cuatro propiedades donde dice la
+   documentación, falla, y el error te devuelve al mismo archivo. Ocurría con
+   la clave recién generada, en el único paso del proyecto que no se puede
+   deshacer. De paso, **una propiedad en blanco cuenta ahora como ausente**,
+   porque el archivo se deja preparado con las contraseñas vacías y `""` no es
+   `null`: sin eso se habría firmado con contraseña vacía y el guardián no
+   habría visto nada raro.
+2. **La búsqueda de marca del IMPI, hecha.** `PLAY.md` decía que el nombre
+   estaba verificado «sólo contra el buscador de las tiendas» y que eso no es
+   una búsqueda de marcas. En MARCANET, por denominación y por fonética:
+   «PALOMERA» da 10 registros y **ninguno en clase 38 ni 41**, pero la fonética
+   encuentra **«LA PALOMERA», expediente 3666237, clase 38, "servicios de
+   telecomunicaciones"**, presentada el 16/07/2026 — **solicitud en trámite**,
+   sin concesión. El detalle y los dos riesgos separados, en `PLAY.md` §6.
+
+**Prueba:** el `local.properties`, con el mismo archivo y el mismo keystore,
+antes y después del arreglo. El IMPI, leído del registro público con el
+instrumento que usa el examinador, no de una búsqueda web.
+
+**Resultado:** sin el arreglo, `assembleRelease` se detiene con «no tiene clave
+de firma»; con él, compila. Y con las contraseñas en blanco vuelve a
+detenerse, que es lo que se quería. Sobre el nombre, **decisión de Edgar: se
+sigue con Palomera y se envía** —no hay derecho concedido que lo impida y el
+peor caso se arregla cambiando el nombre visible—, quedando abierto a propósito
+preguntar a un abogado por la clase 41.
+
+**Y una medida mía que no midió nada**, apuntada porque es el error que esta
+bitácora existe para no repetir: la primera comprobación del `local.properties`
+escondió la salida de `keytool`, que había fallado por una contraseña de cinco
+caracteres. No existían ni el keystore ni el archivo, así que la compilación
+falló por no tener ninguna propiedad y yo lo leí como «no se lee
+`local.properties`». La conclusión coincidió por casualidad con la correcta.
+Repetida desde cero.
+
+**Estado:** cerrada
+
 ### [B] El selector de proveedor: la caja ya no pide una dirección que nadie sabe — 2026-10-30
 
 La primera pantalla de toda instalación pedía «escribe la dirección del
