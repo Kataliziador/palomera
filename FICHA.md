@@ -87,12 +87,27 @@ inglés, así que el botón se nombra en los dos idiomas.
 Palomera is a client for a TV service provided by internet service providers (ISPs). It has no content of its own: channels and catalogue are broadcast by each ISP, who holds the rights and is responsible for them. We provide a demo server with our own test content (test-card channels and two generated videos, no third-party material).
 
 1. Open the app. On the "Add server" screen enter: http://xtsrt01.ddns.net:8096
-2. The first screen shows an activation code, because real subscribers call their provider to activate. As a reviewer, press "Use a password" ("Usar contraseña" in Spanish).
-3. Username: revisor   Password: ⟨la de `PALCO_DEMO_REVISOR_CLAVE` en el `.env` de la demo — se escribe al pegar en la Console, no se guarda aquí⟩
-4. Live TV: open the "Live TV" section ("TV en vivo" in Spanish) and use the D-pad up/down to change channels. Movies: open the library row on the home screen.
+2. The app lists the accounts on that server. Choose "revisor" and enter the password provided above. (The app asks for a username and password directly; no activation code is involved on this server.)
+3. Live TV: open the "Live TV" section ("TV en vivo" in Spanish) and use the D-pad up/down to change channels. Movies: open the library row on the home screen.
 
 The demo server is available 24/7. Contact: avhelmc@icloud.com
 ```
+
+**Reescritas el 01-nov, porque describían una pantalla que ya no sale.** Decían
+que la primera pantalla enseña un código de activación y que hay que pulsar
+«Usar contraseña». Ese día se **apagó QuickConnect** en la demo y se
+**publicaron las cuentas**, así que lo que el revisor ve ahora es la lista de
+cuentas del servidor y, al elegir una, el formulario de usuario y contraseña:
+con `quickConnectState == UnavailableQuickConnectState` la app deshabilita el
+botón del código y llama a `setLoginMethod<UserLoginCredentialsFragment>()`
+(`UserLoginFragment.kt:96-97`). Unas instrucciones que mandan pulsar un botón
+que no está son un rechazo con otro nombre.
+
+**Comprobado el 01-nov, ya con los dos cambios aplicados:** `/Users/Public`
+devuelve `probador` y `revisor`, `/QuickConnect/Enabled` devuelve `false`, y el
+`revisor` entra y ve la biblioteca «Películas» con las dos «Demostracion
+Palomera». El código del selector **no** hace falta por esta ruta: la dirección
+a mano no se esconde nunca.
 
 **Comprobado el 29-oct contra la demo de OVH** (`xtsrt01.ddns.net`, la misma
 máquina que el Flussonic de producción, que ocupa el 80 y el 443 — por eso la
