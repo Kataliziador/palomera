@@ -172,7 +172,14 @@ acabar (`docs/DESPLIEGUE_SELECTOR.md` §1). `comprobar-demo.py` lo avisa.
 - la **contraseña** de la cuenta del demo;
 - el **código del proveedor** una vez generado. No es un secreto —es un tope de
   velocidad (`docs/selector-de-proveedor.md` §4)—, pero publicarlo invita a
-  cualquiera a apuntar su app al site de demostración.
+  cualquiera a apuntar su app al site de demostración;
+- la **dirección del segundo site**, el de §8. Por lo mismo que el código y con
+  una razón más: ahí hay **contenido real cuyos derechos responde Edgar**, y el
+  revisor de Google entra por el demo precisamente para no verlo. La separación
+  de §8 no es un candado —quien conozca la dirección puede teclearla, igual que
+  cualquiera puede compilar este fork—, es que **nadie tiene por qué
+  conocerla**. Escribirla aquí la pone a un clic y deja sin sentido la frase
+  «ningún material de terceros» de las notas de acceso.
 
 `comprobar-demo.py` los lee del entorno, nunca de un archivo:
 
