@@ -15,8 +15,14 @@ Palomera — TV de tu proveedor
 ```
 
 29 caracteres. Sigue la cuenta de `PLAY.md` §6: con un nombre de 8, quedan 19
-para el descriptor, y «TV de tu proveedor» son 18. **Falta la búsqueda de
-marca en el IMPI** (clases 38 y 41) antes del primer envío.
+para el descriptor, y «TV de tu proveedor» son 18.
+
+**La búsqueda del IMPI ya está hecha —01-nov— y hay un hallazgo** que decide
+Edgar antes del primer envío: «LA PALOMERA» es una **solicitud en trámite** en
+clase 38 sobre «servicios de telecomunicaciones», presentada el 16/07/2026 por
+CONSORICIO GARLAV S.A. de C.V. No hay nada concedido que impida publicar hoy,
+pero el nombre probablemente **no es registrable** en esa clase. El detalle, los
+expedientes y los dos riesgos separados están en `PLAY.md` §6.
 
 ## 2. Descripción breve — máximo 80
 

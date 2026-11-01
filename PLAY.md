@@ -523,10 +523,60 @@ commit exacto de cada versión que se publique en Play. La oferta es del código
   se quita (§8): mientras un site no tenga panel de abonados instalado, es
   también el único camino de alta que no mete la caja como administrador.
 
-**La decisión que no es técnica:** el nombre «Palomera» está **verificado solo
-contra el buscador de las tiendas** —Play México y App Store México, las dos
-limpias—, y eso **no es una búsqueda de marcas**. Falta comprobarlo en **IMPI,
-clases 38 y 41**, que el título esté libre en la Play Console, y a mano en
+**La decisión que no es técnica, y el 01-nov dejó de ser una incógnita.** El
+nombre estaba verificado **solo contra el buscador de las tiendas** —Play México
+y App Store México, las dos limpias—, y eso no es una búsqueda de marcas. Hecha
+ya la del IMPI, en MARCANET (`acervomarcas.impi.gob.mx:8181`), por denominación
+y **por fonética**, que es como examina el Instituto:
+
+| | leído el 01-nov-2026 |
+|---|---|
+| «PALOMERA» por denominación | **10 registros**, en clases 21, 29, 30, 35 y 44. **Ninguno en 38 ni 41** |
+| fonética en clase 38 | 285 resultados; **dos** contienen la raíz |
+| fonética en clase 41 | 298 resultados; seis contienen la raíz, **ninguno es «Palomera» a secas** |
+
+**El que importa: «LA PALOMERA», expediente 3666237, clase 38.**
+
+| | |
+|---|---|
+| servicios | **«SERVICIOS DE TELECOMUNICACIONES.»** — el encabezado entero de la clase, la reclamación más ancha posible |
+| presentada | **16/07/2026**; publicada el 23/07/2026 |
+| número de registro | **vacío** |
+| fecha de concesión | **vacía** → es una **solicitud en trámite**, no un registro concedido |
+| titular | CONSORICIO GARLAV S.A. DE C.V., Mérida, Yucatán |
+| códigos de Viena | claquetas, palomitas de maíz, películas → una marca de cine |
+
+El correo de contacto del expediente es del dominio `sipse.com.mx`, que es un
+grupo de medios yucateco; **que el titular sea ese grupo es inferido del
+dominio, no leído del expediente**.
+
+**El segundo, «CINE PALOMERO» (registro 1567228, clase 38), está vencido:**
+presentado el 26/06/2015, concedido el 26/08/2015 y con **vigencia hasta el
+26/06/2025**, o sea hace más de un año. Una renovación tardía todavía cabría y
+MARCANET podría no reflejarla, así que se da por caído **con esa reserva**.
+
+**Qué significa y qué no**, y conviene separarlo porque son dos riesgos
+distintos:
+
+- **No hay hoy ningún derecho concedido que impida usar el nombre.** Google
+  actúa sobre quejas de titulares de marcas **registradas**; una solicitud en
+  trámite no da esa palanca. Publicar hoy no choca con nada vigente.
+- **Pero «Palomera» probablemente ya no es registrable en clase 38 en México.**
+  La solicitud de GARLAV es anterior a cualquiera nuestra y el IMPI cita de
+  oficio. Y ahí se cae el motivo por el que `CLAUDE.md` §8 eligió este nombre:
+  «arbitraria para un servicio de televisión, que es la clase más fácil de
+  registrar y de defender». Si no se puede registrar, esa ventaja desaparece.
+- **Y si a GARLAV se la conceden**, un grupo de medios tendrá «LA PALOMERA»
+  para servicios de telecomunicaciones en México y entonces sí podría quejarse
+  a Play. El nombre visible se cambia; **el paquete no**.
+
+**Esto no es una opinión legal.** Es una búsqueda en el registro público, hecha
+con el instrumento que usa el examinador, y dice dónde mirar; quién gana un
+conflicto lo decide el IMPI. La clase 41 —entretenimiento— sí parece libre para
+«Palomera» a secas, y si hay que pelear o registrar algo, ése es el dato que un
+abogado querrá primero.
+
+Falta todavía que el título esté libre en la Play Console, y a mano en
 Samsung, LG y Roku, que no tienen buscador público alcanzable. Si estuviera
 tomado se cambia el nombre visible sin tocar el paquete, pero el paquete ya
 lleva la palabra: `mx.kataliziador.palomera` es irreversible desde el primer
