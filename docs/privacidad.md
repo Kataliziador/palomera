@@ -102,6 +102,16 @@ nada.
 
 Responderemos en un plazo máximo de 20 días hábiles.
 
+**Qué se borra, y qué se queda.** Se borra el identificador de instalación y
+todo lo que cuelga de él: el inventario de decoders de tu aparato y los
+informes de diagnóstico de los canales que fallaron. No queda nada más,
+porque no hay nada más — nunca supimos tu nombre, tu correo ni qué viste
+(§2). Si no pides nada, se borra solo a los 12 meses (§5).
+
+**Los informes de fallo no los podemos borrar nosotros**, y conviene saberlo:
+van al servidor de tu proveedor, no a nosotros (§4). Para ésos, la petición
+va a tu proveedor de internet.
+
 ## 7. Si esto cambia
 
 Cualquier cambio se publica en esta misma dirección, con la fecha de la última
