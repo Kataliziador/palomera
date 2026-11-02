@@ -348,14 +348,45 @@ independientemente de si esa información se te transmite a ti o a un
 tercero»—. La contraseña la escribe el abonado para entrar donde él eligió.
 Una es telemetría automática; la otra, una acción suya.
 
-### Pantalla 3 — Detalle del identificador
+### Pantalla 3 — Uso y gestión, tipo por tipo
 
-| Pregunta | Respuesta |
-|---|---|
-| ¿Se recopila o se comparte? | **Se recopila** (no se comparte) |
-| ¿Es obligatorio o puede el usuario elegir? | **Obligatorio** — va siempre |
-| Finalidades | **Funciones de la app** y **Estadísticas** |
-| ¿Está vinculado a la identidad del usuario? | **No** — es un UUID aleatorio que crea la propia app y se borra al desinstalar |
+Play pregunta lo mismo de cada uno de los tres.
+
+| | ID de dispositivo | Diagnósticos | Registros de fallos |
+|---|---|---|---|
+| ¿se recoge? | **sí** | **sí** | **sí** |
+| ¿se comparte? | **no** | **no** | **no** (el juicio de más abajo) |
+| ¿tratamiento efímero? | **no** | **no** | **no** |
+| ¿obligatorio u opcional? | **obligatorio** | **obligatorio** | **opcional** |
+| finalidades | **funciones de la app** y **estadísticas** | **estadísticas** | **estadísticas** |
+
+**El identificador lleva «funciones de la app» y los diagnósticos no**, y la
+diferencia es real: el `installId` hace algo *por esa caja* —es con lo que el
+registro la reconoce y le responde si su site está autorizado—, mientras que
+el diagnóstico no le devuelve nada a quien lo manda. Sirve para que el
+`deviceOverrides` de la próxima versión sepa que ese modelo no aguanta
+tunneled, o sea para los demás. Eso es estadística, y marcar «funciones de la
+app» ahí sería inflar la respuesta.
+
+**«Opcional» en los informes de fallo es un hecho comprobable**, no una
+intención: `CrashReportingPreferencesScreen` es una pantalla de ajustes con
+dos casillas, una para el informe y otra para los registros del sistema que lo
+acompañan. El diagnóstico y el identificador **no** tienen interruptor, así
+que son obligatorios y así se declaran.
+
+**Ninguno es efímero.** La exención de tratamiento temporal es para datos que
+sólo existen en memoria durante una petición; estos se guardan —en nuestro
+registro los dos primeros, en el servidor del ISP el tercero—.
+
+**No se marca prevención de fraude ni seguridad.** La autorización del
+registro es un interruptor operativo sobre gente que coopera, no un candado
+antifraude (`CLAUDE.md` §8), y declararlo así daría una impresión equivocada
+de lo que hace.
+
+**Y el identificador no está vinculado a la identidad**, si la pantalla lo
+pregunta: es un UUID aleatorio que crea la propia app, se borra al
+desinstalar, y no hay nada del otro lado con lo que cruzarlo — no sabemos el
+nombre de nadie.
 
 ### Y lo que casi se queda fuera: los informes de fallo
 
