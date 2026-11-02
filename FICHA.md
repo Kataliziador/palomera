@@ -281,8 +281,32 @@ no coincide con lo que la app hace de verdad, es causa de retirada.
 | Pregunta | Respuesta |
 |---|---|
 | ¿Tu app recopila o comparte alguno de los tipos de datos de usuario obligatorios? | **Sí** |
-| ¿Todos los datos de usuario recopilados por tu app se cifran en tránsito? | **Sí** — el registro va por HTTPS y la app lleva dentro las raíces de ISRG para que también lo sea en cajas anteriores a Android 7.1.1 (`RegistryTrust`) |
+| ¿Todos los datos de usuario recopilados por tu app se cifran en tránsito? | **No** — y ver abajo, porque esta respuesta decía «sí» hasta el 02-nov |
 | ¿Proporcionas una forma de que los usuarios soliciten que se eliminen sus datos? | **Sí** — por correo, y desinstalar la app borra el identificador. Está en el aviso §6 |
+
+**Por qué «no», si el registro va por HTTPS.** La pregunta es por **todos**
+los datos declarados, y son dos flujos, no uno:
+
+| qué sale de la caja | a dónde | cifrado |
+|---|---|---|
+| el identificador y el diagnóstico | nuestro registro | **sí**, HTTPS, y además con las raíces de ISRG dentro de la app para las cajas anteriores a Android 7.1.1 (`RegistryTrust`) |
+| el informe de fallo | el Jellyfin del propio ISP | **no necesariamente** |
+
+El informe de fallo se manda a `crashReportUrl`, que es **la dirección del
+servidor al que el abonado entró** (`TelemetryPreferences`), y esa dirección es
+`http://` en todo lo que hemos desplegado: la demo va por HTTP porque el
+Flussonic de producción ocupa el 80 y el 443, y en el site de un ISP el
+Jellyfin vive en su LAN. El `network_security_config` permite tráfico en claro
+de forma global **a propósito** —lo necesitan el Jellyfin y los streams— y sólo
+lo prohíbe hacia el registro.
+
+Así que hay un dato declarado que puede viajar sin cifrar, y la respuesta
+honesta es «no». **Decir «sí» sería falso en una declaración jurada**, que es
+causa de retirada, y la ficha enseñará una línea menos bonita a cambio de ser
+cierta.
+
+La salida, el día que se quiera cambiar la respuesta, **no es tocar el
+formulario**: es que el informe de fallo no salga por HTTP, o que no salga.
 
 ### Pantalla 2 — Tipos de datos
 
@@ -322,6 +346,17 @@ Ajustes → Informes de fallo— y finalidad **Estadísticas**.
 
 Es el único dato que no va a un servicio nuestro, y es el que más fácil se
 olvida porque no lo escribimos nosotros.
+
+**Y la única respuesta de todo el formulario que es un juicio, no un hecho:
+¿se «comparte»?** Play llama compartir a transferir a un tercero. El informe
+va al Jellyfin **al que el propio abonado entró**, con **su** token de sesión,
+y no llega ni a nosotros ni a nadie nuestro: el servidor del ISP es la otra
+mitad del servicio que el abonado contrató, no un tercero al que le pasamos
+sus datos. Se declara **recogido y no compartido**.
+
+Queda escrito porque es discutible. Si alguna vez Google lee al ISP como un
+tercero, la corrección es marcar también «compartido» —cuesta una línea en la
+ficha— y no hay nada en el código que cambiar.
 
 ## 8. Clasificación de contenido — el cuestionario de IARC
 
