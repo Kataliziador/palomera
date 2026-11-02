@@ -83,15 +83,37 @@ Play Console → *Contenido de la aplicación* → *Acceso a la aplicación* →
 revisor que no habla español, y la caja de pruebas de Google puede estar en
 inglés, así que el botón se nombra en los dos idiomas.
 
-```
-Palomera is a client for a TV service provided by internet service providers (ISPs). It has no content of its own: channels and catalogue are broadcast by each ISP, who holds the rights and is responsible for them. We provide a demo server with our own test content (test-card channels and two generated videos, no third-party material).
+**El campo admite 500 caracteres.** Lo de abajo son **496**, contados; si se
+le añade una frase hay que quitar otra, y la que no se quita es ninguna de las
+dos primeras.
 
-1. Open the app. On the "Add server" screen enter: http://xtsrt01.ddns.net:8096
-2. The app lists the accounts on that server. Choose "revisor" and enter the password provided above. (The app asks for a username and password directly; no activation code is involved on this server.)
-3. Live TV: open the "Live TV" section ("TV en vivo" in Spanish) and use the D-pad up/down to change channels. Movies: open the library row on the home screen.
-
-The demo server is available 24/7. Contact: avhelmc@icloud.com
 ```
+Palomera is a client for TV services run by internet providers; all channels and catalogue belong to each ISP, who holds the rights. Our demo server carries only test-card channels and two generated videos.
+
+Server: http://xtsrt01.ddns.net:8096 - HTTP because ports 80/443 serve other production traffic. Online 24/7.
+Sign in: choose the account "revisor", password above.
+Live TV: open "TV en vivo"; D-pad up/down changes channel.
+Movies: the home screen library row.
+Contact: avhelmc@icloud.com
+```
+
+**Recortadas el 02-nov para caber en el campo.** La versión anterior pasaba de
+900 caracteres. Lo que se fue: la aclaración «no activation code is involved»,
+que sobraba desde que QuickConnect está apagado —la app ya no enseña ningún
+código por esta ruta, así que no hay nada que desmentir—, y «It has no content
+of its own», que repetía la frase siguiente. Lo que **no** se toca al recortar
+son las dos primeras afirmaciones: que el contenido es de cada ISP y que el
+demo sólo lleva material propio. Eso es §8 del `CLAUDE.md` y es lo que un
+revisor de una app de televisión busca; el resto son instrucciones de uso y se
+pueden comprimir.
+
+Y se añadió una que no estaba: **el porqué del HTTP**. En la lista de pasos no
+hacía falta, pero el revisor que mira la dirección antes de teclearla ve
+`http://` y no ve el motivo. Está en el mismo renglón del servidor para que lo
+lea ahí y no tenga que buscarlo.
+
+El guion de `Server:` es un guion normal, no una raya: no vale la pena
+arriesgar caracteres en un campo medido al límite.
 
 **Reescritas el 01-nov, porque describían una pantalla que ya no sale.** Decían
 que la primera pantalla enseña un código de activación y que hay que pulsar
