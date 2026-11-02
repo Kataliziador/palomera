@@ -310,21 +310,43 @@ formulario**: es que el informe de fallo no salga por HTTP, o que no salga.
 
 ### Pantalla 2 — Tipos de datos
 
-De toda la lista de Play, se marca **un solo tipo**:
+Se marcan **tres**, en dos grupos. Esta sección decía «un solo tipo» hasta el
+02-nov y le faltaba el segundo, que es el que más datos manda.
 
-- **Identificadores del dispositivo o de otro tipo** → sí.
+| grupo | tipo | qué es, de verdad |
+|---|---|---|
+| IDs de dispositivo o de otro tipo | **ID de dispositivo o de otro tipo** | el `installId` |
+| Información y rendimiento de la app | **Diagnósticos** | el `device.decoders` y el bloque `diagnostico` de `/v1/resolve`: sesiones, ms al primer fotograma, rebuffers, minutos reproducidos, contadores de tunneled, fallos por causa y por canal |
+| Información y rendimiento de la app | **Registros de fallos** | el informe de ACRA |
 
-**Nada más.** Ni nombre, ni correo, ni ubicación aproximada o precisa, ni
-contactos, ni fotos, ni archivos, ni audio, ni actividad de la app, ni
-historial de navegación, ni información financiera, ni de salud. La app no los
-pide y no los puede leer.
+**Por qué faltaban los diagnósticos, y por qué no es opinable.** El artículo
+10787469 del centro de ayuda lo dice con todas las letras: *si envías
+diagnósticos asociados a un identificador de dispositivo, debes declarar
+también los diagnósticos*. Los nuestros viajan en la misma petición que el
+`installId`, así que no hay forma de leerlo de otra manera.
 
-**Dos que sorprenden y hay que contestar que no, con su razón:**
+**«Otros datos de rendimiento» no se marca**: todo lo que mandamos cabe en
+diagnósticos.
+
+**Nada más.** Ni ubicación, ni información personal, ni financiera, ni de
+salud, ni mensajes, ni fotos, ni archivos, ni calendario, ni contactos, ni
+navegación web —no hay un solo `WebView` en el árbol—.
+
+**Tres que sorprenden y hay que contestar que no, con su razón:**
 
 | Tipo | Respuesta | Por qué |
 |---|---|---|
 | Grabaciones de audio | **no** | `RECORD_AUDIO` existe para la búsqueda por voz del upstream; el audio va al reconocedor del sistema y no llega ni a nosotros ni al servidor del ISP |
-| Actividad en la app | **no** | el diagnóstico cuenta **qué canales fallaron**, sin marcas de tiempo, sin orden y sin duraciones individuales. De ahí no se reconstruye qué vio nadie |
+| Actividad en la app | **no** | el diagnóstico no lleva marcas de tiempo, ni orden, ni duraciones por título. Lo más cerca que está de la conducta es `fallosPorCanal`, que es un mapa de *qué canales fallaron* y cuántas veces: deja ver que esa caja sintonizó ese canal alguna vez, y nada más. Es telemetría de error, no de uso — y la descripción de la ficha ya lo dice en voz alta: «los canales que fallaron» |
+| Nombre de usuario y contraseña | **no** | los teclea el abonado para entrar **al Jellyfin de su propio proveedor**; no llegan a nosotros, y en la caja se quedan en el dispositivo. El centro de ayuda no tiene una exención con ese nombre: la más parecida es la de subir un archivo a Drive o Dropbox —*si la app nunca recoge ni accede a esos datos, no hay que declararlos*— y es el mismo caso. **Inferido por analogía, no leído literalmente** |
+
+**Y la diferencia con el informe de fallo, que va al mismo servidor y sí se
+declara:** ése lo manda **nuestro SDK, solo, de fábrica y sin que nadie lo
+pida**, y es justo lo que la pantalla de introducción obliga a revelar
+—«datos enviados fuera del dispositivo mediante bibliotecas o SDKs,
+independientemente de si esa información se te transmite a ti o a un
+tercero»—. La contraseña la escribe el abonado para entrar donde él eligió.
+Una es telemetría automática; la otra, una acción suya.
 
 ### Pantalla 3 — Detalle del identificador
 
