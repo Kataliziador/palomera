@@ -358,15 +358,27 @@ Play pregunta lo mismo de cada uno de los tres.
 | ¿se comparte? | **no** | **no** | **no** (el juicio de más abajo) |
 | ¿tratamiento efímero? | **no** | **no** | **no** |
 | ¿obligatorio u opcional? | **obligatorio** | **obligatorio** | **opcional** |
-| finalidades | **funciones de la app** y **estadísticas** | **estadísticas** | **estadísticas** |
+| finalidades | **análisis** | **análisis** | **análisis** |
 
-**El identificador lleva «funciones de la app» y los diagnósticos no**, y la
-diferencia es real: el `installId` hace algo *por esa caja* —es con lo que el
-registro la reconoce y le responde si su site está autorizado—, mientras que
-el diagnóstico no le devuelve nada a quien lo manda. Sirve para que el
-`deviceOverrides` de la próxima versión sepa que ese modelo no aguanta
-tunneled, o sea para los demás. Eso es estadística, y marcar «funciones de la
-app» ahí sería inflar la respuesta.
+**Los tres llevan «análisis» y ninguno lleva «funcionalidad de la aplicación»,
+y esto estuvo mal escrito aquí hasta el 02-nov.** La ficha decía que el
+identificador habilita una función, razonando que es con lo que el registro
+reconoce la caja. Leídas las dos puntas, no:
+
+- en el registro, `apuntar()` **sólo apunta**: con el `installId` da de alta la
+  caja en el inventario del site. La autorización **no lo lee**, se decide por
+  el host. Medido además desde fuera el 29-oct, una consulta sin `installId`
+  devolvió `authorized: true` igual;
+- `proveedor.py`, el selector, **no menciona el `installId` ni una vez**:
+  resuelve por IP o por código.
+
+Así que el identificador no habilita ninguna función ni autentica a nadie:
+sirve para saber cuántas cajas hay en cada ISP y de qué modelo, y para que los
+diagnósticos de una misma caja no se cuenten dos veces. El diagnóstico y el
+informe de fallo tampoco le devuelven nada a quien los manda. Los tres son
+análisis, y la descripción que Play da de esa finalidad —«monitorizar el
+estado de la aplicación, diagnosticar y solucionar errores o bloqueos, mejorar
+el rendimiento en el futuro»— es literalmente para lo que existen.
 
 **«Opcional» en los informes de fallo es un hecho comprobable**, no una
 intención: `CrashReportingPreferencesScreen` es una pantalla de ajustes con
@@ -378,10 +390,13 @@ que son obligatorios y así se declaran.
 sólo existen en memoria durante una petición; estos se guardan —en nuestro
 registro los dos primeros, en el servidor del ISP el tercero—.
 
-**No se marca prevención de fraude ni seguridad.** La autorización del
-registro es un interruptor operativo sobre gente que coopera, no un candado
-antifraude (`CLAUDE.md` §8), y declararlo así daría una impresión equivocada
-de lo que hace.
+**No se marca prevención de fraude ni seguridad**, aunque tiente con un
+identificador de dispositivo. La autorización del registro es un interruptor
+operativo sobre gente que coopera, no un candado antifraude (`CLAUDE.md` §8),
+y declararlo así daría una impresión equivocada de lo que hace.
+
+**Ni gestión de cuentas:** la cuenta del abonado vive en el Jellyfin de su
+ISP, y nada de lo que mandamos la toca.
 
 **Y el identificador no está vinculado a la identidad**, si la pantalla lo
 pregunta: es un UUID aleatorio que crea la propia app, se borra al
