@@ -325,19 +325,52 @@ olvida porque no lo escribimos nosotros.
 
 ## 8. Clasificación de contenido — el cuestionario de IARC
 
-Se contesta como **app de reproducción de vídeo en continuo**, no como app con
-contenido propio. Las respuestas que importan:
+**La pregunta que hay que contestar antes de abrirlo: ¿de qué contenido habla
+el cuestionario?** La tentación es decir «de ninguno, el contenido lo pone el
+ISP», y es la respuesta que hunde el trámite. **IARC no clasifica quién
+produce el contenido, sino qué puede encontrarse quien usa la app.** Un cliente
+de televisión por el que se ven películas, noticias y deporte da acceso a todo
+eso aunque no lo emita ni lo elija.
 
-| Pregunta | Respuesta |
-|---|---|
-| ¿La app permite a los usuarios interactuar o intercambiar contenido? | **No** — no hay chat, comentarios, perfiles ni subida de nada |
-| ¿Comparte la ubicación del usuario? | **No** |
-| ¿Permite compras? | **No** — el servicio lo contrata el abonado con su proveedor, fuera de la app |
-| ¿Contiene violencia, sexo, lenguaje, drogas o juegos de azar propios? | **No propios.** La app da acceso a televisión abierta y de paga que programa cada proveedor |
+Contestar «no» a todo porque el contenido es de otro no evita la clasificación:
+la retrasa. Una autoridad de clasificación puede **anular** la calificación
+después de revisarla, y entonces hay que rehacer el cuestionario entero con el
+envío ya en marcha (Play Console Help, artículo 9859655).
 
-**Esa última es la que hay que contestar con cuidado**, y conviene declarar en
-el campo de texto libre que el contenido lo programa un tercero —el proveedor—
-y que la app no lo produce ni lo selecciona. Es lo mismo que dicen la pantalla
-de Información, la descripción y la página pública: **los cuatro textos tienen
-que decir lo mismo**, porque una contradicción entre el cuestionario y la ficha
-es lo que dispara una revisión manual.
+### La decisión, y lo que cuesta
+
+**Se declara que por la app se llega a contenido de televisión abierta y de
+paga que nosotros no controlamos**, y se acepta la clasificación alta que salga
+de ahí.
+
+Cuesta poco y aquí no cuesta nada: el público objetivo de §6 ya es **18+** por
+esta misma razón, y quien instala esta app es el abonado adulto que contrató
+el servicio con su ISP. No hay un público infantil que perder.
+
+Lo que sí cuesta la respuesta contraria es el envío.
+
+### Las respuestas
+
+El cuestionario cambia de redacción y se ramifica según lo que se va
+contestando, así que esto es **por tema, no por pantalla**. Lo que no cambia es
+el criterio: **se mira lo que el abonado puede ver, no quién lo emite**.
+
+| tema | respuesta | por qué |
+|---|---|---|
+| categoría de la app | **Entretenimiento** | la misma de §6. **No** «noticias»: que haya canales de noticias en el lineup de un ISP no convierte esto en una app de noticias, y esa categoría abre una declaración aparte |
+| violencia, sexo, lenguaje, drogas, juegos de azar **en el contenido al que se accede** | **sí**, al nivel de la televisión abierta y de paga | es lo que hay en un lineup real: películas, series, noticieros, deporte. Que no lo programemos nosotros no cambia lo que se ve |
+| ¿contenido **generado por usuarios**? | **no** | nadie sube nada: no hay chat, comentarios, perfiles ni subida de archivos |
+| ¿los usuarios interactúan o intercambian contenido? | **no** | lo mismo |
+| ¿comparte la ubicación? | **no** | la app no pide ningún permiso de ubicación |
+| ¿compras digitales? | **no** | el servicio lo contrata el abonado con su proveedor, fuera de la app |
+| ¿navegador o acceso abierto a internet? | **no** | la lista de canales la sirve el site del ISP; la app no abre URLs arbitrarias que el usuario escriba como si fuera un navegador |
+
+**Las dos que no pueden salir mal, y van en direcciones opuestas:** decir que
+*no* hay contenido maduro accesible es lo que hace que te anulen la
+clasificación; decir que *sí* hay contenido generado por usuarios es falso y
+clava la app en la clasificación más alta sin motivo. Una habla del contenido,
+la otra de quién lo pone ahí.
+
+**Y si una pregunta no se parece a ninguna de estas, no se adivina.** La
+redacción exacta no es pública —no está en el centro de ayuda, sólo dentro del
+formulario—, así que lo escrito aquí es el criterio, no una transcripción.
