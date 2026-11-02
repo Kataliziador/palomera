@@ -216,6 +216,23 @@ La 4 es la más floja porque la carátula de la demo es otra carta de ajuste.
 Es honesto —no hay ni un fotograma de un tercero— y no se arregla sin meter
 material que no es nuestro.
 
+**Dónde están, y por qué no en este repositorio.** Las cuatro viven en
+`/home/proyectos/palomera-ficha/`, junto al icono, el banner y el gráfico
+destacado:
+
+```
+1-seccion-de-canales.png   2-barra-de-canal.png
+3-activacion.png           4-inicio.png
+palomera-icono-512-ficha.png   palomera-banner-1280.png
+palomera-destacado-1024.png
+```
+
+Hasta el 02-nov sólo existían en el directorio temporal de una sesión, que se
+borra. Los tres últimos se regeneran con `herramientas/marca/generar.sh`; las
+cuatro capturas **no**, porque haría falta levantar otra vez el emulador
+`tv34`, la demo y el release 0.1.0-rc.1 de aquel día. Son el único archivo de
+toda la ficha que no se puede rehacer con una orden.
+
 ## 6. Otros campos
 
 | campo | valor |
@@ -223,12 +240,32 @@ material que no es nuestro.
 | categoría | Entretenimiento |
 | nombre del desarrollador | **Kataliziador** — puesto el 30-oct. Es un nombre comercial sin registrar, y Console lo acepta en una cuenta personal aunque el nombre legal del titular sea otro (`PLAY.md` §1) |
 | correo de contacto | `avhelmc@icloud.com` — **se publica en la ficha**, así que lo encuentran los recolectores de direcciones |
-| política de privacidad | `https://kataliziador.github.io/palomera/privacidad` |
+| política de privacidad | `https://kataliziador.github.io/palomera/privacidad` — comprobada el 02-nov: 200 |
+| icono de la ficha | `palomera-icono-512-ficha.png`, 512×512 RGB sin alfa |
+| banner de TV | `palomera-banner-1280.png`, 1280×720 RGB sin alfa |
+| gráfico destacado | `palomera-destacado-1024.png`, 1024×500 RGB sin alfa. **Play no publica una ficha sin él**, y hasta el 02-nov no teníamos ninguno nuestro |
 | países | México |
 | público objetivo | 18+ — el contenido lo pone el ISP y la app no puede garantizar que sea para menores |
 | anuncios | no |
 | clasificación de contenido | el cuestionario de IARC; la app no tiene contenido propio, pero da acceso a televisión abierta y de paga, así que se contesta como app de *streaming* de vídeo |
 | factores de forma | Android TV. El manifiesto declara también `LAUNCHER` y no exige pantalla táctil, así que Play la dejaría instalar en teléfonos: si no se quiere, se excluyen en *Catálogo de dispositivos* y no se suben capturas de teléfono. **Al revisar ese catálogo, comprobar que las cajas sin WiFi aparecen**: hasta el 29-oct `ACCESS_WIFI_STATE` las excluía en silencio (`LIVETV_LOG.md`, entrada del 29-oct) |
+
+**La trampa de los tres gráficos: el árbol ya traía dos, y son del upstream.**
+`fastlane/metadata/android/en-US/images/featureGraphic.png` y `tvBanner.png`
+vienen del repositorio de Jellyfin —último commit suyo, «Recreate icon/banner
+resources»— y **dicen Jellyfin**. Tienen exactamente las medidas que Play pide,
+así que son lo primero que encuentra quien busque «el gráfico destacado» en
+este árbol, y subirlos pondría la marca de otro proyecto en la cabecera de
+nuestra ficha. Los que se suben son los tres de `/home/proyectos/palomera-ficha/`.
+
+**Y una costura medida en el logotipo, que no bloquea nada.** En el banner y en
+el destacado hay una línea de **un píxel** donde el asta de la «P» se junta con
+su panza: 221 contra 244 en el destacado, 194 contra 244 en el banner. Son dos
+formas que se tocan en vez de solaparse, y el antialias deja el borde entre
+ellas. No se ve a los tamaños a los que la tienda los enseña y no es motivo
+para rehacer nada ahora; la salida, el día que se toque el dibujo, es solapar
+las dos formas en `app_logo.xml` —lo que arregla también el logotipo dentro de
+la app, donde la costura es la misma—.
 
 ## 7. Seguridad de los datos — qué se marca en cada pantalla
 

@@ -73,6 +73,37 @@ rsvg-convert -w 512 -h 512 -f png -o "$salida/palomera-icono-512-ficha.png" "$tm
 convertir "$vectores/app_banner_background.xml" "$vectores/app_banner_foreground.xml" > "$tmp/banner.svg"
 rsvg-convert -w 1280 -h 720 -f png -o "$salida/palomera-banner-1280.png" "$tmp/banner.svg"
 
+# Y el gráfico destacado de la ficha, 1024 x 500.
+#
+# **Play no publica una ficha sin él**, y el que venía en el árbol
+# —`fastlane/metadata/.../featureGraphic.png`— es el del upstream: dice
+# Jellyfin. Subirlo habría puesto la marca de otro proyecto en la cabecera de
+# nuestra ficha, que es justo lo que §8 no permite.
+#
+# Es **el banner en un lienzo más ancho**, y se hace así para no elegir otra vez
+# dónde va el logotipo: el banner ya lo centra ópticamente sobre la tinta —no
+# sobre el lienzo, que tiene aire a los lados— y ese trabajo está hecho en
+# `app_banner_foreground.xml`. Aquí sólo se recorta el lienzo de 180 a 156.25
+# de alto (320/156.25 = 2.048, que es 1024/500 exacto) y se sube el dibujo la
+# mitad de la diferencia. El fondo es un rectángulo de 180 de alto, así que
+# después de subirlo sigue cubriendo el lienzo entero.
+#
+# Cero números del dibujo copiados aquí: si alguien retoca el logotipo o el
+# color, esto cambia con él.
+python3 - "$tmp/banner.svg" > "$tmp/destacado.svg" <<-'PY'
+	import sys
+	lineas = open(sys.argv[1]).read().splitlines()
+	alto_banner, alto_ficha = 180.0, 156.25
+	subir = (alto_banner - alto_ficha) / 2
+	print(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 {alto_ficha:g}">')
+	print(f'  <g transform="translate(0,{-subir:g})">')
+	for l in lineas[1:-1]:
+	    print("  " + l)
+	print("  </g>")
+	print("</svg>")
+	PY
+rsvg-convert -w 1024 -h 500 -f png -o "$salida/palomera-destacado-1024.png" "$tmp/destacado.svg"
+
 printf '\n%s\n' "en $salida:"
 for f in "$salida"/*.png; do
 	python3 - "$f" <<-'PY'
