@@ -8083,3 +8083,55 @@ deje pantalla negra**. El contador de fotogramas no lo verá; hay que verlo.
 
 **Estado:** implementado y apagado de fábrica. **Pendiente del visto bueno de
 Edgar en pantalla** antes de volverlo el comportamiento por defecto.
+
+#### La primera medición del ABR afinado no enseña ninguna mejora — 2026-11-02
+
+Dos brazos en la misma caja, el mismo canal, el mismo build —la APK de
+depuración con el interruptor— y la misma duración, uno detrás de otro:
+
+| | **afinado ENCENDIDO** | **apagado (fábrica)** |
+|---|---|---|
+| duración | 4,2 min (126 latidos) | 4,1 min (124 latidos) |
+| cambios de resolución | **2** | **2** |
+| secuencia | 576p → **720p a los 1,9 s** | 576p → **720p a los 1,9 s** |
+| después | sin más cambios | sin más cambios |
+| rebuffers | 1 | 1 |
+| `directoS` | 10,5–16,0 | 10,5–15,9 |
+| `bufferS` medio | 6,0 | 10,0 |
+| ancho de banda medio | 11 903 kbps | 11 635 kbps |
+
+**No hay diferencia.** Con los valores de fábrica el motor sube a la mejor
+calidad igual de rápido y se queda igual de quieto. La predicción de la entrada
+anterior —que el freno de fábrica impediría subir— **no se reprodujo**: en los
+dos brazos la subida ocurre a los 1,9 s, cuando el buffer todavía es pequeño,
+así que el freno no estaba atando en el arranque. El modelo con el que se
+justificó el cambio está incompleto.
+
+**Dos errores de instrumento que esto destapó, y el segundo es mío de hoy:**
+
+1. **`dumpsys media.metrics` no sirve para esto.** Reporta la configuración con
+   la que se creó el decodificador, no la que acabó usando: Media3 cambia de
+   variante **reutilizando la instancia** (`reuso=2` en el log), así que el
+   contador del sistema seguía diciendo 1024×576 con la pantalla ya en 720p.
+   Las tres resoluciones que se apuntaron esta tarde con él medían la elección
+   **inicial**, y la conclusión «dos de tres sesiones corrieron en la variante
+   baja» no se sostiene. El instrumento bueno estaba ya en la app:
+   `video.formato` y `player.videoSize`.
+2. **El parpadeo observado antes no era el estado estable.** Los cuatro cambios
+   en tres minutos salieron de la sesión larga del build viejo, que llevaba
+   **8 rebuffers** y excursiones de `directoS` de 10,3 a 57,9 s: una sesión
+   perturbada. Atribuirlo al freno de subida fue inferir una causa de una
+   correlación con un solo tramo.
+
+**Qué queda en pie del trabajo:** el diagnóstico, que es lo que ha permitido
+decir esto. `abr.variasCalidades` con los parámetros en uso, `calidades` y
+`umbralSubirS` en el latido, y la línea de resolución por cada cambio dan la
+historia de calidad de una sesión, que antes no existía.
+
+**Qué no queda en pie:** la justificación del cambio. Se queda **apagado de
+fábrica y no se promueve**. Una muestra por brazo, en una red que daba 11,8
+Mbps para un stream de 3,2 de pico — o sea, sin estrés ninguno, que es el único
+sitio donde estos dos números podrían notarse. O se mide con el ancho de banda
+limitado a propósito y entonces se decide, o se retira.
+
+**Estado:** implementado, apagado, **sin evidencia a favor**.
