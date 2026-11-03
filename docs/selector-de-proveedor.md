@@ -220,7 +220,24 @@ que se reproduzca — el pendiente 4 sigue en pie.
 - **La IP falla** con CGNAT, con datos móviles y con el ISP que no nos dé sus
   rangos. Por eso la ruta 2 no es opcional.
 - **Cada site de producción necesita un nombre DNS público**, por lo de la
-  clave primaria de §2.
+  clave primaria de §2. **Y ese nombre se crea con un día de antelación, no el
+  mismo día.** Medido el 03-nov dando de alta un site: un nombre recién creado
+  en Cloudflare resolvía bien en los autoritativos y en 1.1.1.1, 8.8.8.8 y
+  9.9.9.9, y la caja seguía diciendo «no se pudo conectar» durante media hora.
+  Son **dos cachés negativas en serie**, y ninguna se puede vaciar desde fuera:
+
+  | dónde | cuánto | cómo se vacía |
+  |---|---|---|
+  | el resolutor de esa red | el TTL negativo del dominio — 1800 s en Cloudflare | esperando, o vaciando ese servidor si es tuyo |
+  | **la propia caja** (`netd`, por red) | lo mismo, contado desde que ella preguntó | esperando, o reiniciando, o quitando y poniendo el cable de red |
+
+  La segunda es la mala: no hay forma de vaciarla sin root, y reiniciar la caja
+  de pruebas cuesta el `adb` por red si `persist.adb.tcp.port` está vacío.
+  Quitar y poner el cable sí vale, porque Android indexa esa caché **por red** y
+  al volver el enlace la red es otra. El error que se ve mientras tanto no dice
+  nada de DNS: `addServer` prueba `https` y `http` y los dos salen como «No se
+  pudo conectar». La causa está una capa más abajo, en el `logcat`:
+  `android_getaddrinfo failed: EAI_NODATA`.
 - **No es Modo B puro.** Toca la pantalla de alta, que es la puerta de entrada
   **compartida con el VOD**: añade un camino y no quita el que hay, pero
   `CLAUDE.md` §4.7 ya establece que un cambio de comportamiento en una pantalla

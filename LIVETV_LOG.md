@@ -8135,3 +8135,54 @@ sitio donde estos dos números podrían notarse. O se mide con el ancho de banda
 limitado a propósito y entonces se decide, o se retira.
 
 **Estado:** implementado, apagado, **sin evidencia a favor**.
+
+### [B] El selector de proveedor, recorrido entero en la caja — 2026-11-03
+
+Primera validación en pantalla de la **ruta 1** de `docs/selector-de-proveedor.md`,
+la que reconoce al abonado por la IP pública desde la que llama. Hasta hoy sólo
+se había probado con `curl` contra el contrato.
+
+Con la app recién borrada (`pm clear`) y un site dado de alta en el registro con
+su rango de IP, la pantalla de alta ofreció el proveedor **sin que nadie
+tecleara nada**, y al confirmar entró al Jellyfin y pintó la sección de TV en
+vivo con la marca de ese site:
+
+```
+proveedor.respuesta porCodigo=false encontrado=true proveedor=<site>
+catalogo.listo origen=RED canales=1 grupos=1 marca=<marca> marcaOrigen=registro
+```
+
+`marcaOrigen=registro` es la confirmación en campo de lo que decide
+`LiveTvCatalog.kt:336` —`autorizacion?.brand ?: config.brand`—: **la marca del
+registro gana a la del servidor de canales.** Eso es lo que permite que dos
+sites compartan el mismo Jellyfin y el mismo servicio de canales y se vean como
+dos proveedores distintos, que es exactamente para lo que hizo falta hoy.
+
+**Lo que costó media hora, y no era de la app.** Un nombre DNS recién creado
+resolvía en los autoritativos y en los tres resolutores públicos, y la caja
+seguía sin conectar. Son dos cachés negativas en serie —la del resolutor de esa
+red y la de `netd` en la propia caja—, las dos con el TTL negativo del dominio.
+Está escrito en §7 del diseño, con la tabla y con la forma de vaciarlas, porque
+le va a pasar a quien dé de alta el primer ISP.
+
+**Dos cegueras del instrumental, medidas hoy:**
+
+- **`run-as` no sirve contra el APK instalado**, que es *release* y no
+  depurable. Una orden con `|| echo` detrás da el mensaje tranquilizador sin
+  haber leído nada: así di por comprobado que la caja no tenía apuntado un
+  registro de pruebas, y no lo había comprobado. Lo que sí vale en release es
+  `logcat -s livetv`, porque `LogInitializer` planta el árbol de Timber **sin
+  mirar `BuildConfig.DEBUG`**.
+- **El buffer de `logcat` se da la vuelta en minutos** con el ruido de Play
+  Services y YouTube. Lo que no se lea en el momento se perdió; el anillo de la
+  app sobrevive, pero sólo se saca por el menú de desarrollador.
+
+**De paso, un pendiente cerrado sin escribir código.** Quedaba por explicar por
+qué una vez la app apareció resuelta a `192.168.20.249` con 12 canales y marca
+«pruebas» en vez de al site que tocaba. No era el registro: la pantalla de
+bienvenida enseña **«Servidores descubiertos»** con ese Jellyfin de la oficina,
+encontrado por descubrimiento en la LAN, y está a una pulsación. Se vio en la
+captura de la caja recién borrada.
+
+**Estado:** cerrada. Falta el visto bueno de Edgar sobre la entrada al **VOD**
+por este camino, que es lo que `CLAUDE.md` §4.7 exige de una pantalla compartida.
