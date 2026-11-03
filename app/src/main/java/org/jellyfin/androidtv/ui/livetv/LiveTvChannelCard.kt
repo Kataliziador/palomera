@@ -229,12 +229,26 @@ fun LiveTvChannelCard(
 		}
 
 		Spacer(modifier = Modifier.height(8.dp))
+		// **Dos líneas, no una.** «Discovery Home & Health» no cabe en los 168
+		// dp de la tarjeta y se leía «Discovery Home & Hea…»: visto en la caja
+		// el 03-nov, en el último grupo del site de los probadores. Un nombre
+		// cortado a media palabra obliga a mirar el número para saber de qué
+		// canal se trata, que es lo contrario de para lo que está escrito.
+		//
+		// Dos y no tres: un nombre de tres líneas empuja la fila siguiente
+		// fuera de pantalla, y con 53 canales eso se paga en cada grupo. La
+		// fila crece solo si alguno de sus canales lo necesita —las tarjetas se
+		// alinean por arriba—, así que el resto de la sección no cambia.
+		//
+		// Ensanchar el texto más allá de la tarjeta no vale: se metería en los
+		// 16 dp que la separan de la siguiente y dos nombres largos seguidos se
+		// tocarían.
 		Text(
 			text = channel.name,
 			color = if (enfocada) Color.White else LiveTvPaleta.tintaApagada,
 			fontWeight = if (enfocada) FontWeight.SemiBold else FontWeight.Normal,
 			fontSize = 15.sp,
-			maxLines = 1,
+			maxLines = 2,
 			overflow = TextOverflow.Ellipsis,
 			modifier = Modifier.padding(horizontal = 2.dp).then(atenuada),
 		)

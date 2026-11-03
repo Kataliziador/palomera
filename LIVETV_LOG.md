@@ -8186,3 +8186,40 @@ captura de la caja recién borrada.
 
 **Estado:** cerrada. Falta el visto bueno de Edgar sobre la entrada al **VOD**
 por este camino, que es lo que `CLAUDE.md` §4.7 exige de una pantalla compartida.
+
+---
+
+### [B] El último grupo de la guía: un nombre cortado y otro pegado al borde — 2026-11-03
+
+Lo vio Edgar en la caja, con los 53 canales del site de los probadores: «hay
+algunas partes que no muestra bien el nombre del canal, el último grupo». Son
+**dos defectos distintos en la misma fila**, y los dos se ven en la captura del
+grupo «Documentales» (801 «Discovery Home & Health», 802 «History»).
+
+**1. El nombre no cabía y se cortaba.** La tarjeta mide 168 dp y el nombre iba
+a una línea con elipsis: se leía **«Discovery Home & Hea…»**. De los 53 canales
+le pasaba a uno —el más largo que cabe justo es «El Financiero Bloomberg», con
+los mismos 23 caracteres pero glifos más estrechos—, así que es un defecto que
+depende del lineup y que un site con nombres largos vería por todas partes.
+Ahora el nombre va a **dos líneas**; la fila crece solo si alguno de sus
+canales lo necesita, porque las tarjetas se alinean por arriba.
+
+**2. El último grupo acababa pegado al borde de abajo, con la cola de la «y»
+cortada.** La lista llega a su tope de desplazamiento y lo que sobra del último
+elemento ya no puede subir. El arreglo es `contentPadding` en el `LazyColumn`,
+**no un `padding`**, y la distinción es la que importa: un relleno abajo encoge
+el alto de la lista y recorta justo por donde ya estaba recortando —por eso se
+quitó del contenedor de la sección en su día—, mientras que el `contentPadding`
+añade espacio *dentro* de lo que se desplaza, detrás del último elemento.
+
+**Por qué no había salido antes.** Con los seis canales de desarrollo en uno o
+dos grupos la lista **no llega a desplazarse**, así que nunca hay un «último
+grupo» en el borde. Hizo falta un lineup de verdad —53 canales en 8 grupos— para
+que apareciera. Es el mismo argumento de `PLAY.md` §7: publicar —o en este caso
+cargar datos reales— es un instrumento de medida.
+
+**Medido en la caja** (Skyworth, 1920×1080, APK de depuración instalada junto a
+la de Play, que no se tocó), una captura antes y otra después de cada arreglo.
+Modo B: no toca decodificación, red, buffers ni render.
+
+**Estado:** cerrada.

@@ -226,6 +226,7 @@ fun LiveTvChannelGrid(
 			state = verticalState,
 			modifier = modifier.focusGroup(),
 			verticalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FILAS),
+			contentPadding = PaddingValues(bottom = AIRE_AL_FINAL),
 		) {
 			itemsIndexed(sections, key = { _, s -> s.id }) { indiceSeccion, seccion ->
 				Column(
@@ -337,6 +338,29 @@ private val SEPARACION_ENTRE_FILAS = 20.dp
 
 /** Lo que tarda una fila en desaparecer bajo la banda de arriba. */
 private val ALTO_VELO = 16.dp
+
+/**
+ * El aire que queda debajo del último grupo.
+ *
+ * **Va en `contentPadding` y no en un `padding`, y toda la diferencia está
+ * ahí.** Un relleno abajo encoge el alto de la lista, o sea que recorta lo que
+ * se ve por abajo: es justo por lo que se quitó del contenedor de la sección
+ * (ver `LiveTvFragment`). El `contentPadding` de una lista perezosa no encoge
+ * nada — añade espacio *dentro* de lo que se desplaza, detrás del último
+ * elemento—, así que el último grupo puede subir hasta despegarse del borde.
+ *
+ * **Sin él, el nombre del último canal acababa pegado al borde de abajo de la
+ * pantalla, con la cola de la «y» cortada.** Medido el 03-nov en la caja con
+ * los 53 canales del site de los probadores: al llegar al último grupo
+ * —«Documentales»— la lista toca su tope de desplazamiento y lo que sobra del
+ * último elemento ya no puede subir. Con seis canales de desarrollo en un solo
+ * grupo no se veía nunca, porque la lista no llega a desplazarse.
+ *
+ * Veinticuatro dp es una línea de nombre entera más su cola. **No cubre el
+ * sobrebarrido**: eso lo recorta la tele y es suyo. Esto es que el texto no
+ * toque el borde del lienzo.
+ */
+private val AIRE_AL_FINAL = 24.dp
 
 /**
  * Lo que se ve al teclear un número con el mando.
