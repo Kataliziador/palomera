@@ -39,6 +39,108 @@ object LiveTuning {
 	const val BUFFER_FOR_PLAYBACK_MS = 2_000
 	const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 4_000
 
+	// --- ABR: varias calidades por canal ------------------------------------
+	/**
+	 * **Decisión de Edgar del 2026-11-02, y revierte la prohibición de
+	 * `CLAUDE.md` §6.** El ABR pasa de prohibido a querido: el motor elige la
+	 * calidad que el ancho de banda del abonado aguante, como hace cualquier
+	 * reproductor. Lo que §6 prohibía era *implementarlo*; Media3 lo trae de
+	 * fábrica y ya estaba ocurriendo en campo sin que nadie lo afinara.
+	 *
+	 * **El problema que arreglan estas constantes está medido** (2026-11-02,
+	 * caja Skyworth, canal `estrellasabr` por internet, build de depuración).
+	 * Los valores de fábrica de `AdaptiveTrackSelection` están pensados para
+	 * VOD, y en directo con poco retardo el freno de subida queda justo encima
+	 * del buffer:
+	 *
+	 * | | |
+	 * |---|---|
+	 * | offset al directo medido | 11,8 s |
+	 * | buffer | 5,0–9,0 s, en sierra del tamaño del segmento (2,8 s) |
+	 * | umbral de subida de fábrica | `min((11,8 − 2,8) × 0,75 ; 10) = 6,75 s` |
+	 *
+	 * El buffer promedia 6,9 contra un umbral de 6,75, así que cruza la línea
+	 * en los dos sentidos cada pocos segundos: sube cuando respira y baja al
+	 * primer bache. Medido en los contadores de la caja: una sesión a 1280×720
+	 * de 11 s y dos a 1024×576 de 124 y 319 s, con 9,7 Mbps disponibles para un
+	 * stream que pide 3,2 de pico. **El ancho de banda no era el límite; el
+	 * freno sí.**
+	 *
+	 * Y la bajada no tiene freno ninguno: aplazarla exige
+	 * [ABR_MAX_BUFFER_PARA_BAJAR_MS] de buffer, que con 11,8 s de offset no se
+	 * alcanza nunca.
+	 *
+	 * **La alternativa descartada** era subir el offset a 16–20 s para que el
+	 * buffer superase el umbral de 10 s. Funciona y cuesta ~8 s más de retardo
+	 * al directo y un zapeo más lento, para conseguir lo mismo que estas dos
+	 * fracciones.
+	 *
+	 * Los valores de fábrica de Media3 1.8.0, para poder comparar:
+	 * `minDurationForQualityIncrease` 10 000 · `maxDurationForQualityDecrease`
+	 * 25 000 · `minDurationToRetainAfterDiscard` 25 000 · `maxWidthToDiscard`
+	 * 1279 · `maxHeightToDiscard` 719 · `bandwidthFraction` 0,7 ·
+	 * `bufferedFractionToLiveEdgeForQualityIncrease` 0,75.
+	 */
+	const val ABR_AFINADO_DEFAULT = false
+
+	/**
+	 * La fracción de lo que queda hasta el directo que hay que tener en el
+	 * buffer para **subir** de calidad. De fábrica 0,75.
+	 *
+	 * Con 0,35 y el offset medido el umbral baja a
+	 * `min((11,8 − 2,8) × 0,35 ; 10) = 3,15 s`, que el buffer actual supera
+	 * **siempre**. No es un número elegido por gusto: es el que deja el umbral
+	 * por debajo del valle de la sierra del buffer (5,0 s) con margen.
+	 */
+	const val ABR_FRACCION_AL_DIRECTO_PARA_SUBIR = 0.35f
+
+	/**
+	 * La misma fracción, como la trae Media3. Existe como constante para que el
+	 * diagnóstico pueda decir **qué umbral se está aplicando de verdad** con el
+	 * interruptor apagado, en vez de dejarlo deducir.
+	 */
+	const val ABR_FRACCION_AL_DIRECTO_DE_FABRICA = 0.75f
+
+	/**
+	 * Qué parte del ancho de banda estimado se considera disponible. De fábrica
+	 * 0,7, para cubrir el error del estimador.
+	 *
+	 * Se sube a 0,8 porque con 0,7 se descartaba un 30 % de una medida que en
+	 * la sesión del 02-nov dio 6,8–10,6 Mbps para un stream de 3,2 de pico: el
+	 * margen de seguridad era mayor que el propio stream.
+	 */
+	const val ABR_FRACCION_ANCHO_BANDA = 0.8f
+
+	/** Como de fábrica. El cálculo del directo lo acota por abajo igualmente. */
+	const val ABR_MIN_BUFFER_PARA_SUBIR_MS = 10_000
+
+	/** Como de fábrica: con tanto buffer, una bajada se puede aplazar. */
+	const val ABR_MAX_BUFFER_PARA_BAJAR_MS = 25_000
+
+	/** Como de fábrica. Media3 exige que no sea menor que el de subida. */
+	const val ABR_MIN_BUFFER_A_CONSERVAR_MS = 25_000
+
+	/** Como de fábrica: por encima de esto no se descarta para subir antes. */
+	const val ABR_MAX_ANCHO_A_DESCARTAR = 1279
+	const val ABR_MAX_ALTO_A_DESCARTAR = 719
+
+	/**
+	 * El umbral de subida que Media3 va a aplicar, para poder **verlo** en el
+	 * diagnóstico en vez de deducirlo.
+	 *
+	 * Reproduce `AdaptiveTrackSelection.minDurationForQualityIncreaseUs` para
+	 * el caso de directo: se descuenta un segmento de lo que queda hasta el
+	 * directo, se toma esa fracción, y el resultado se acota por el mínimo de
+	 * VOD. Si esta función y Media3 dejaran de coincidir, el número del log
+	 * sería mentira, así que vive aquí al lado de las constantes que lo
+	 * alimentan y tiene prueba propia.
+	 */
+	fun umbralSubidaMs(hastaElDirectoMs: Long, segmentoMs: Long, fraccion: Float): Long {
+		if (hastaElDirectoMs <= 0L) return ABR_MIN_BUFFER_PARA_SUBIR_MS.toLong()
+		val disponible = (hastaElDirectoMs - segmentoMs.coerceAtLeast(0L)).coerceAtLeast(0L)
+		return minOf((disponible * fraccion).toLong(), ABR_MIN_BUFFER_PARA_SUBIR_MS.toLong())
+	}
+
 	// --- Red ----------------------------------------------------------------
 	/** Un canal caído por lluvia es un estado temporal, no un error (CLAUDE.md §6). */
 	const val CONNECT_TIMEOUT_MS = 8_000

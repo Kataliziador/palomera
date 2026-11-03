@@ -475,18 +475,25 @@ lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
   una sola pista. El master los declara como `EXT-X-MEDIA` separadas y la app
   ve las tres.
 
-  **Y la mayoría del lineup real SÍ es ABR.** Los seis de desarrollo declaran un
-  solo `EXT-X-STREAM-INF`, pero medido el 03-oct, la mayoría de los 44 streams
-  vivos usan plantillas `*-ABR` de Flussonic y su master trae **dos calidades**,
-  576p y 720p. Publicados tal cual, la app haría ABR.
+  **Y la mayoría del lineup real es ABR, que desde el 02-nov es lo que se
+  quiere.** Los seis de desarrollo declaran un solo `EXT-X-STREAM-INF`, pero
+  medido el 03-oct, la mayoría de los 44 streams vivos usan plantillas `*-ABR`
+  de Flussonic y su master trae **dos calidades**, 576p y 720p. Se publican
+  **tal cual**: `index.m3u8`, sin filtro, que trae las dos calidades y los
+  audios como `EXT-X-MEDIA`.
 
-  **La salida es la URL, no recompilar ni tocar Flussonic:** el generador publica
-  `index.m3u8?filter=tracks:v2a1a2`, que devuelve un master de una sola calidad
-  con todos los audios. Está en `INTEGRACION_CANALES.md` como condición.
+  Aquí decía que la salida era publicar `index.m3u8?filter=tracks:v2a1a2` para
+  dejar una sola calidad. Eso ya no aplica, y el filtro **no debe usarse**: con
+  él se pierde el ABR que ahora se busca. El `video.m3u8` tampoco vale, y es la
+  trampa en la que cayó el primer lineup de los probadores: trae las dos
+  calidades pero **multiplexa los audios**, así que Media3 expone una sola
+  pista y el abonado se queda sin la de inglés.
 
-  La app **no puede impedirlo**, solo verlo: un master con varias calidades
-  registra `abr.variasVariantes` en vez de ponerse a conmutar en silencio. Si
-  el generador se olvida del filtro, ese aviso es el único rastro.
+  La app **lo registra**: un master con varias calidades deja un
+  `abr.variasCalidades` con cuántas hay y con qué parámetros se está decidiendo,
+  y el latido añade `calidades` y `umbralSubirS`. Hace falta porque desde ahora
+  la calidad que ve un abonado **no es un dato fijo del canal**: depende de su
+  red, y sin ese rastro «se ve blando» no tendría dónde mirarse.
 
   **Por qué importa más de lo que parece:** en algunos satélites **la etiqueta
   de idioma miente** —una pista marcada `spa` trae inglés—. Si la app solo
@@ -496,7 +503,37 @@ lo toca, los rebases son triviales y las mejoras del VOD llegan gratis.
   Costo medido: ~180 ms más al primer fotograma y una conexión más.
 - Conserva el contenedor MPEG-TS sin conversión, que es lo que permite llevar
   MPEG-2 y MP2 tal cual.
-- **Prohibido implementar ABR.** Una sola calidad por canal.
+- **ABR permitido, y afinado para directo.** Decisión de Edgar del 2026-11-02,
+  que invierte la prohibición anterior —«Prohibido implementar ABR. Una sola
+  calidad por canal»—. El motor elige la calidad que la red del abonado
+  aguante, como cualquier reproductor.
+
+  **Nunca hubo nada que implementar:** Media3 lo hace de fábrica, y ya estaba
+  ocurriendo en campo. Medido el 02-nov en la Skyworth con un canal por
+  internet: tres sesiones, una a 1280×720 y dos a 1024×576, con 9,7 Mbps
+  disponibles para un stream de 3,2 de pico, y el decodificador configurado a
+  `maxwidth=1280 maxheight=720` mientras entregaba 1024×576 —la firma de una
+  selección adaptativa, con tunneled encendido—.
+
+  **Lo que sí había que arreglar es el afinado**, porque los valores de fábrica
+  son de VOD: en directo, el freno de subida es
+  `min((hastaElDirecto − unSegmento) × 0,75 ; 10 s)`, que con 11,8 s de offset
+  da 6,75 s, y el buffer medido va en sierra de 5,0 a 9,0 con media de 6,9.
+  Cruza la línea en los dos sentidos cada pocos segundos: sube cuando respira y
+  baja al primer bache, sin que el ancho de banda tenga nada que ver. La bajada
+  además no tiene freno —aplazarla pide 25 s de buffer, que nunca hay—.
+
+  El arreglo son dos números, no una arquitectura: la fracción al directo de
+  0,75 a **0,35** (umbral de 3,15 s, por debajo del valle de la sierra) y la
+  del ancho de banda de 0,7 a **0,8**. Viven en `LiveTuning` y entran por
+  `AdaptiveTrackSelection.Factory`. **Descartado** subir el offset a 16–20 s
+  para que el buffer superase el umbral de 10 s: consigue lo mismo pagando ~8 s
+  de retardo al directo y un zapeo más lento.
+
+  Va detrás de **`abrAfinadoEnabled`** en el menú de desarrollador, apagado de
+  fábrica, **pendiente de validación en pantalla**. Es Modo A: el riesgo que hay
+  que mirar en una tele no es qué calidad elige, es que **conmutar de resolución
+  con tunneled encendido** no deje pantalla negra en alguna caja.
 
 ### Motor
 - **Media3/ExoPlayer** como motor principal para todos los canales.
@@ -782,7 +819,8 @@ durante meses**, así que:
 
 ## 7. Fuera de alcance
 
-- ABR, DRM, transcodificación en cliente
+- DRM y transcodificación en cliente. **ABR salió de esta lista el 02-nov**
+  (§6): se quiere, y Media3 ya lo hacía
 - Transcodificación de **video** en el headend
 - Subtítulos **de pista aparte**. Los *closed captions* **sí entran** desde el
   01-oct: `estrellashd` los emite incrustados en el vídeo como CEA-608 y con

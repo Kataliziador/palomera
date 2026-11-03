@@ -467,17 +467,24 @@ No lo pidas ni lo diseñes esperándolo:
   no decodifica, no suena.
 - **No lleva decoders de MP2, MP3 ni AC-3**, y no los va a llevar. Por eso la
   regla del AAC no es una preferencia.
-- **No hace ABR**, pero desde el 02-oct **sí lee el master**: el endpoint es
-  `index.m3u8`. Emite un master con **un solo `EXT-X-STREAM-INF`**.
+- **Sí hace ABR, y desde el 02-nov es lo que se quiere.** El endpoint sigue
+  siendo `index.m3u8`, y el master puede traer **varias calidades**: el motor
+  elige la que aguante la red del abonado.
 
-  **La mayoría del lineup real no cumple eso por defecto:** las plantillas
-  `*-ABR` de Flussonic dan 576p y 720p. Publica
-  `index.m3u8?filter=tracks:v<N>a<M>…` y el master sale con una calidad y todos
-  los audios, sin tocar el headend.
+  **Esto cambió el 02-nov** (`CLAUDE.md` §6). Antes esta línea decía «no hace
+  ABR» y te pedía publicar `index.m3u8?filter=tracks:v<N>a<M>…` para dejar una
+  sola calidad. **Ese filtro ya no debe usarse**: quita el ABR que ahora se
+  busca.
 
-  Si se te cuela un master con varias, **la app no puede impedirlo**: registra
-  `abr.variasVariantes` y Media3 se pone a conmutar calidad, que §6 prohíbe. Ese
-  aviso es el único rastro que queda.
+  **`video.m3u8` sigue sin valer, y es la trampa.** Trae las dos calidades
+  —así que parece correcto— pero multiplexa los audios en la variante, y
+  entonces Media3 expone **una sola pista**. Medido el 02-nov en el site de los
+  probadores: el canal traía español e inglés y en la caja había uno.
+
+  La app registra `abr.variasCalidades` con cuántas calidades declaró el master
+  y con qué parámetros se está decidiendo, y el latido añade `calidades` y
+  `umbralSubirS`. No es un aviso de error: es el único rastro de por qué un
+  abonado vio peor imagen que su vecino.
 - **Con más de un audio, añade `separate_audio=true`.** Sin él, Flussonic
   declara los audios como renditions `EXT-X-MEDIA` **y además** apunta la
   variante a `tracks-v1a1`, que los lleva multiplexados dentro del TS: la
@@ -485,8 +492,21 @@ No lo pidas ni lo diseñes esperándolo:
 
   Medido el 11-oct con `ffprobe` sobre los masters reales de HBO y Discovery:
   **3 pistas de audio sin el parámetro, 2 con él**, y `tracks-v1/mono.m3u8`
-  entrega solo vídeo. Los dos parámetros se combinan:
-  `index.m3u8?filter=tracks:v2a1a2&separate_audio=true`.
+  entrega solo vídeo.
+
+  **Y desde el 02-nov, con ABR, este parámetro es el que hace la URL correcta,
+  no un extra.** Medido ese día sobre `estrellasabr`: `index.m3u8` a secas
+  apunta las variantes a `tracks-v1a1` y `tracks-v2a1` —vídeo **más** el primer
+  audio dentro—, así que a las dos renditions se les suma la copia multiplexada.
+  Con `?separate_audio=true` las variantes pasan a `tracks-v1` y `tracks-v2`,
+  solo vídeo, y quedan exactamente dos pistas. La URL de un canal con varias
+  calidades y varios audios es:
+
+  ```
+  index.m3u8?separate_audio=true
+  ```
+
+  Sin `filter`, que es lo que mataba el ABR.
 
   **La app no puede arreglarlo** y es deliberado: distinguir cuál de las dos
   pistas `spa` es la copia sería adivinar, y una regla que se equivoque esconde

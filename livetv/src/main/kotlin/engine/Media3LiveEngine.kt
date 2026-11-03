@@ -25,6 +25,7 @@ import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.hls.playlist.DefaultHlsPlaylistTracker
 import androidx.media3.exoplayer.hls.playlist.HlsPlaylistTracker
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -93,6 +94,22 @@ class Media3LiveEngine(
 
 	/** Un master con varias calidades se avisa una vez, no en cada evento. */
 	private var abrYaAvisado = false
+
+	/** Cuántas calidades declaró el master de esta sesión. 0 = aún no se sabe. */
+	private var calidadesDeVideoSesion = 0
+
+	/**
+	 * Si esta sesión se preparó con el ABR afinado. Se fija al construir el
+	 * reproductor y no se vuelve a leer del interruptor: cambiarlo a mitad de
+	 * una sesión no cambia la fábrica ya construida, y leerlo otra vez haría
+	 * que el diagnóstico contara una sesión que no existió.
+	 */
+	private var abrAfinadoSesion = false
+
+	/** La fracción que Media3 está aplicando de verdad en esta sesión. */
+	private fun fraccionAlDirectoEnUso(): Float =
+		if (abrAfinadoSesion) LiveTuning.ABR_FRACCION_AL_DIRECTO_PARA_SUBIR
+		else LiveTuning.ABR_FRACCION_AL_DIRECTO_DE_FABRICA
 
 	private val listeners = CopyOnWriteArrayList<EngineListener>()
 	private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
@@ -340,6 +357,7 @@ class Media3LiveEngine(
 		audioPorDefectoAplicado = false
 		audioPorDefectoAvisado = false
 		abrYaAvisado = false
+		calidadesDeVideoSesion = 0
 
 		val httpFactory = DefaultHttpDataSource.Factory()
 			.setConnectTimeoutMs(LiveTuning.CONNECT_TIMEOUT_MS)
@@ -419,7 +437,31 @@ class Media3LiveEngine(
 		// La reproducción tunneled se pide por el selector de pistas: solo se
 		// elegirán decoders capaces de entregar directamente al hardware de
 		// pantalla.
-		val selector = DefaultTrackSelector(context).apply {
+		//
+		// Y con el ABR afinado, el selector se construye con **nuestra**
+		// fábrica de selección adaptativa en vez de la de fábrica de Media3:
+		// los valores por defecto están pensados para VOD y en directo con
+		// poco retardo dejan el freno de subida justo encima del buffer
+		// (`LiveTuning.ABR_AFINADO_DEFAULT` lo explica con lo medido). Con el
+		// interruptor apagado se pasa la de siempre, construida igual que la
+		// construiría Media3, para que el camino sea el mismo y la única
+		// diferencia sean los números.
+		abrAfinadoSesion = dev.abrAfinadoEnabled
+		val fabricaDeSeleccion = if (abrAfinadoSesion) {
+			AdaptiveTrackSelection.Factory(
+				LiveTuning.ABR_MIN_BUFFER_PARA_SUBIR_MS,
+				LiveTuning.ABR_MAX_BUFFER_PARA_BAJAR_MS,
+				LiveTuning.ABR_MIN_BUFFER_A_CONSERVAR_MS,
+				LiveTuning.ABR_MAX_ANCHO_A_DESCARTAR,
+				LiveTuning.ABR_MAX_ALTO_A_DESCARTAR,
+				LiveTuning.ABR_FRACCION_ANCHO_BANDA,
+				LiveTuning.ABR_FRACCION_AL_DIRECTO_PARA_SUBIR,
+				androidx.media3.common.util.Clock.DEFAULT,
+			)
+		} else {
+			AdaptiveTrackSelection.Factory()
+		}
+		val selector = DefaultTrackSelector(context, fabricaDeSeleccion).apply {
 			setParameters(buildUponParameters().setTunnelingEnabled(tunnelingSesion))
 		}
 		trackSelector = selector
@@ -587,6 +629,21 @@ class Media3LiveEngine(
 		// Android 11 `/proc/loadavg` da EACCES, y repetir `carga1=null` en cada
 		// una de las 20 000 líneas del anillo solo estorba al leerlo.
 		val extra = c?.loadAvg1?.let { arrayOf("carga1" to "%.2f".format(it) as Any?) } ?: emptyArray()
+		// Solo en canales con varias calidades: en uno de una sola no hay nada
+		// que decidir, y serían dos columnas de ruido en cada una de las 20 000
+		// líneas del anillo.
+		//
+		// `umbralSubirS` es el **techo** del umbral que Media3 aplica, no el
+		// umbral exacto: su fórmula descuenta la duración del segmento que está
+		// pidiendo, y ese dato no está aquí, así que se calcula con cero. Sirve
+		// para lo que hace falta —si `bufferS` lo supera, subir de calidad está
+		// permitido con seguridad— y por eso se llama techo.
+		val abr: Array<Pair<String, Any?>> = if (calidadesDeVideoSesion > 1) arrayOf(
+			"calidades" to calidadesDeVideoSesion,
+			"umbralSubirS" to "%.1f".format(
+				LiveTuning.umbralSubidaMs(s.liveOffsetMs, 0L, fraccionAlDirectoEnUso()) / 1000.0
+			),
+		) else emptyArray()
 		LiveLog.debug(
 			"latido",
 			"n" to latidos,
@@ -605,6 +662,7 @@ class Media3LiveEngine(
 			"reintentos" to s.loadRetries,
 			"timelines" to cambiosDeTimeline,
 			"cpu" to c?.let { "%.0f%%".format(it.cpuPercent) },
+			*abr,
 			*extra,
 			"ramLibreMb" to c?.ramAvailableMb,
 			"anchoBandaKbps" to s.bandwidthBps / 1000,
@@ -1421,21 +1479,25 @@ class Media3LiveEngine(
 				},
 			)
 
-			// `CLAUDE.md` §6 prohíbe ABR: una sola calidad por canal. Con
-			// `index.m3u8` eso lo sostiene el headend —un solo
-			// `EXT-X-STREAM-INF`— y aquí no hay forma de impedirlo, pero sí de
-			// **verlo**. Un master con varias calidades pondría a Media3 a
-			// conmutar sin que nadie se enterara.
-			val calidadesDeVideo = tracks.groups
+			// Varias calidades en el master ya **no** son un defecto: desde
+			// el 02-nov el ABR es lo que se quiere (`CLAUDE.md` §6). Lo que
+			// sigue haciendo falta es verlo, porque de aquí en adelante la
+			// calidad que ve el abonado deja de ser un dato fijo del canal y
+			// pasa a depender de su red: sin esta línea, «se ve blando» no
+			// tendría ningún rastro al que mirar.
+			calidadesDeVideoSesion = tracks.groups
 				.filter { it.type == C.TRACK_TYPE_VIDEO }
 				.sumOf { it.length }
-			if (calidadesDeVideo > 1 && !abrYaAvisado) {
+			if (calidadesDeVideoSesion > 1 && !abrYaAvisado) {
 				abrYaAvisado = true
-				LiveLog.warn(
-					"abr.variasVariantes",
+				LiveLog.info(
+					"abr.variasCalidades",
 					"canal" to channel?.id,
-					"calidades" to calidadesDeVideo,
-					"detalle" to "el master declara más de una calidad; §6 prohíbe ABR",
+					"calidades" to calidadesDeVideoSesion,
+					"afinado" to abrAfinadoSesion,
+					"fraccionAlDirecto" to fraccionAlDirectoEnUso(),
+					"fraccionAnchoBanda" to
+						if (abrAfinadoSesion) LiveTuning.ABR_FRACCION_ANCHO_BANDA else 0.7f,
 				)
 			}
 

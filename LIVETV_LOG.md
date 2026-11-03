@@ -7997,3 +7997,89 @@ Edgar para el VOD**. Es la primera vez que §4.7 admite lógica en una pantalla
 compartida: el invariante no se rompe —las películas se reproducen igual— pero
 el camino de **entrada** cambia para todos los usuarios en dos casos, y eso se
 valida en pantalla, no por lectura.
+
+---
+
+### [A] El ABR deja de estar prohibido, y los valores de fábrica son de VOD — 2026-11-02 → **pendiente de validar en pantalla**
+
+**Decisión de Edgar**, y revierte la prohibición de `CLAUDE.md` §6: el motor
+debe elegir la calidad que la red del abonado aguante, como cualquier
+reproductor.
+
+**No había nada que implementar, y eso es el hallazgo.** Media3 hace ABR de
+fábrica, y ya estaba ocurriendo en campo sin que nadie lo hubiera afinado. §6
+prohibía *implementarlo* y encargaba al headend servir una sola calidad; el
+primer lineup del site de los probadores no lo hizo y nadie se enteró hasta
+mirar la caja.
+
+**Instrumento y muestras.** Skyworth YDA, canal `estrellasabr` por **internet**
+—primer dato del proyecto fuera de LAN—, build de **depuración** en primer
+plano. Los latidos del anillo (42 retenidos de una sesión de 65,2 min, contador
+en n=1957) y `dumpsys media.metrics`, que guarda las dimensiones de cada
+decodificador al liberarlo. Las sesiones con resolución son del build de Play,
+**tres**; la sesión en curso no se pudo leer porque con tunneled encendido ni
+`dumpsys media.codec` ni la capa de SurfaceFlinger ven nada
+(`geomBufferSize=[0 0 -1 -1]`) — el instrumento está ciego al fenómeno, §6
+otra vez.
+
+| hora | resolución | duró |
+|---|---|---|
+| 16:25:16 | **1280×720** | 11 s |
+| 16:27:32 | **1024×576** | 124 s |
+| 16:35:03 | **1024×576** | 319 s |
+
+Con `maxwidth=1280 maxheight=720` en las dos de 576p: el decodificador
+configurado para conmutar dentro de la misma instancia, **con tunneled
+activo**. Es la prueba de que el camino existe en esta caja — una caja, un
+modelo.
+
+**Por qué no sube, con los números.** `AdaptiveTrackSelection` (leído en la
+fuente de 1.8.0, no recordado) pide para subir
+`min((hastaElDirecto − unSegmento) × 0,75 ; 10 s)`. Medido: 11,8 s hasta el
+directo, segmentos de 2,8 s → **umbral 6,75 s**, y el buffer va en sierra de
+**5,0 a 9,0 s, media 6,9**. Cruza la línea en los dos sentidos cada pocos
+segundos. Bajar no tiene freno: aplazarlo pide 25 s de buffer. Y el ancho de
+banda no era el límite — 6,8–10,6 Mbps medidos para un stream de 3,2 de pico,
+del que el 0,7 de fábrica además descartaba el 30 %.
+
+**El cambio:** fracción al directo 0,75 → **0,35** (umbral 3,15 s, bajo el valle
+de la sierra) y fracción de ancho de banda 0,7 → **0,8**, por nuestra propia
+`AdaptiveTrackSelection.Factory`. Detrás de `abrAfinadoEnabled`, **apagado de
+fábrica**. Descartado subir el offset a 16–20 s: lo mismo a cambio de ~8 s de
+retardo y peor zapeo.
+
+**Y el instrumento que faltaba:** el latido añade `calidades` y `umbralSubirS`
+—el **techo** del umbral, calculado sin la duración del segmento, que no está
+disponible ahí— sólo en canales con varias calidades. `abr.variasVariantes`
+pasa a `abr.variasCalidades` y de aviso a información, con los parámetros en
+uso. `LiveTuning.umbralSubidaMs` reproduce la fórmula de Media3 y tiene seis
+pruebas propias, porque un número mentiroso en el diagnóstico es peor que no
+tenerlo.
+
+**El otro defecto del mismo día, y es del lineup, no de la app.** El canal
+publicaba `video.m3u8`: dos calidades y los **audios multiplexados**, así que
+Media3 exponía una sola pista en un canal con español e inglés. Medido sobre
+`estrellasabr`: `index.m3u8` a secas apunta las variantes a `tracks-v1a1` y
+`tracks-v2a1` —vídeo más el primer audio— y suma la copia a las dos
+renditions; con **`?separate_audio=true`** pasan a `tracks-v1`/`tracks-v2`,
+sólo vídeo, y quedan exactamente dos pistas. El lineup del site quedó con esa
+URL. `INTEGRACION_CANALES.md` reescrito: el `filter=tracks:…` que antes se
+exigía **ya no debe usarse**, porque mata el ABR.
+
+**Dato nuevo de ventana:** `estrellasabr` sirve **14 segmentos de 2,8 s (~39 s)**,
+`TARGETDURATION 3`, sin `EXT-X-SERVER-CONTROL`. §6 dice que los streams de
+producción sin `segment_count` propio dan 4 × 5,5 s (~22 s) y de ahí sale el
+techo de ~11 s para `targetOffsetMs`. Con 39 s ese techo no aplica, y conviene
+revisarlo cuando se sepa qué plantilla usan los ISPs de verdad.
+
+**Comprobado por aquí:** `:livetv:test` 426 pruebas en verde, `comprobar.py` con
+sus siete comprobaciones —la c) cazó el interruptor a medio cablear y se
+corrigió—, `:app:compileDebugKotlin` limpio, y §4.7 b) con la única excepción
+registrada.
+
+**Lo que hay que mirar en una tele, y es el motivo de que esto sea Modo A:** no
+qué calidad elige, sino que **conmutar de resolución con tunneled encendido no
+deje pantalla negra**. El contador de fotogramas no lo verá; hay que verlo.
+
+**Estado:** implementado y apagado de fábrica. **Pendiente del visto bueno de
+Edgar en pantalla** antes de volverlo el comportamiento por defecto.

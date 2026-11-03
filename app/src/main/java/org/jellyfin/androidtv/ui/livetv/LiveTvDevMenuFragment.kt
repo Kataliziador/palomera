@@ -193,6 +193,17 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "ABR afinado para directo",
+				value = if (dev.abrAfinadoEnabled) "ACTIVO" else "apagado (fábrica)",
+				changed = dev.abrAfinadoEnabled,
+			) { change { dev.abrAfinadoEnabled = !dev.abrAfinadoEnabled } }
+		}
+		item {
+			Info("Solo afecta a canales cuyo master declara varias calidades. Apagado usa los valores de Media3, pensados para VOD: en directo el freno de subida queda justo encima del buffer y la calidad oscila. Activo baja ese freno y deja de descartar el 30 % del ancho de banda medido. Mira que la imagen no se quede negra al cambiar de resolución. Pendiente de validación.")
+		}
+
+		item {
+			Row(
 				label = "Zapear desde las pantallas de aviso",
 				value = if (dev.zapeoEnAvisoEnabled) "ACTIVO" else "apagado (pendiente 82)",
 				changed = dev.procedenciaDe(DevOptions.K_ZAPEO_AVISO) == "menú",
