@@ -8223,3 +8223,104 @@ la de Play, que no se tocó), una captura antes y otra después de cada arreglo.
 Modo B: no toca decodificación, red, buffers ni render.
 
 **Estado:** cerrada.
+
+---
+
+### [B] La guía pasa a fichas, y la barra de canal se reordena — 2026-11-04
+
+Lo pidió Edgar después de ver las dos propuestas del lienzo de diseño
+(`https://claude.ai/artifact/WXYGApPAaMYxhZVzGyjf4Q`): «puedes implementar la B
+y la barra de zapeo nueva». La **A** —lista de canales con un panel de
+escenario al lado— queda descartada por ahora; esta entrada implementa la **B**.
+
+**Qué estaba mal, y no era un defecto.** La guía funcionaba: cincuenta y tres
+mosaicos con el número grande, el nombre debajo y el programa contado **una
+sola vez**, arriba, para el canal que tuviera el foco. El problema es lo que
+esa pantalla dedica a cada cosa: toda su superficie trabaja para decir el
+número —que es lo único que el abonado ya sabe, porque acaba de marcarlo— y una
+línea para decir qué están dando. Y los grupos cortos —«Documentales» y
+«Películas» tienen dos canales— dejaban tres cuartos de fila en negro, que se
+lee como «esto no acabó de cargar».
+
+**Tres cambios, y los tres son de reparto del espacio:**
+
+1. **La tarjeta pasa a ficha de 198×162 dp, cuatro por fila en vez de cinco.**
+   El ancho sale de una cuenta y no de un gusto: 864 dp útiles, cuatro fichas y
+   tres huecos de 24 dan (864 − 72) / 4 = 198. Dentro van la identidad arriba
+   (el logo si lo hay, y si no el número, que es el caso de 52 de los 53
+   canales del site de los probadores), la pista de progreso en medio y, abajo,
+   **el nombre en dos líneas fijas y el programa en una**.
+
+   Las dos líneas son fijas, no «hasta dos»: si la caja del nombre creciera
+   solo cuando hace falta, el programa de una ficha quedaría a distinta altura
+   que el de la de al lado y la fila se leería como una escalera.
+
+   La línea del programa **solo se reserva si el site publica guía**. Con un
+   site sin EPG —lo normal mientras un ISP monta su tubería— diría «Sin guía»
+   cincuenta y tres veces; sin ella la ficha mide 145 dp.
+
+2. **El encabezado de grupo lleva una línea hasta el borde y la cuenta de
+   canales.** La línea es lo que cierra las filas cortas. La cuenta no es
+   adorno: con la fila desplazable, el número es lo único que dice si a la
+   derecha quedan dos canales o quince sin tener que ir a mirar.
+
+3. **La barra de canal se reordena.** Lo que había ponía el logo en un cuadro
+   de 84 dp a la izquierda —que en 52 de 53 canales enseñaba tres iniciales que
+   no distinguen nada, «Estrellas HD» y «Estrellas SD» dan las dos `EST`— y
+   amontonaba a la derecha dos relojes distintos: la hora que es y las horas
+   del programa. Ahora la izquierda es **el número**, en un bloque de tamaño
+   fijo para que al zapear no se mueva el nombre; la derecha es **solo el
+   reloj**; las horas del programa bajan a la línea del programa, que es a lo
+   que pertenecen; el progreso cruza la barra entera en vez del 72 %, y su
+   relleno lleva **el acento del ISP** en vez de blanco — es el mismo color que
+   viste la pista de cada ficha, y es lo que hace que las dos pantallas se lean
+   como la misma app. Se añade la hora de lo que viene luego: «Luego Rescata mi
+   restaurante 10:15 p. m.» dice si eso es dentro de dos minutos o de hora y
+   media, que es justo lo que alguien decide mirando esa línea.
+
+**Lo que esto deja desfasado y se corrige en el mismo commit:** el comentario
+de `QueDanAhora` sostenía que el programa no cabe en la tarjeta. Era verdad con
+168 dp. La línea de arriba **se queda** y no por inercia: en la ficha el título
+va recortado a una línea y sin horas, y arriba cabe entero con la hora de
+inicio, la de fin y los minutos que quedan. Son dos niveles de detalle, no el
+mismo dato dos veces.
+
+**Lo que cuesta.** El paso de fila sube de ~193-211 dp a ~222: se ve algo menos
+de la segunda fila. Es el precio de que cada ficha diga qué están dando, y es
+lo que se eligió al elegir la B.
+
+**Medido en la caja** (Skyworth, 1920×1080, APK de depuración instalada junto a
+la de Play, que no se tocó), contra el site de los probadores: 53 canales, 8
+grupos, EPG real. Cuatro capturas — la guía desde arriba, el último grupo, la
+barra al sintonizar y la barra al volver a ella. **Una caja y un lineup**, que
+es lo único que hay (§9).
+
+- la ficha del canal 801 **«Discovery Home & Health» cabe entera en una sola
+  línea**, que es el nombre que el 03-nov se cortaba en «Discovery Home & Hea…»;
+- el último grupo —«Documentales», 2 canales— cierra con su línea y su «2
+  canales», y el borde de abajo deja ~22 dp de aire;
+- la barra sale con el bloque «801», HD y ES, el reloj a la derecha, «El socio
+  9:27 p. m. – 10:15 p. m.», «quedan 31 min», el progreso cruzando la pantalla
+  y «Luego Rescata mi restaurante 10:15 p. m.».
+
+**Lo que NO está medido, y conviene que se sepa:**
+
+- **el contraste del progreso de la barra sobre vídeo claro.** El velo no se
+  tocó —sigue el del 30-oct, con sus siete filas de texto medidas— pero el
+  relleno pasó de blanco al acento del ISP, y eso no se ha vuelto a medir
+  contra vídeo blanco. El argumento por el que no debería bajar es indirecto:
+  §8 valida el acento contra el fondo oscuro de la sección al cargarlo, así que
+  un acento que pase esa validación es necesariamente claro. **Es un argumento,
+  no una medida.** Y con el site de los probadores no se puede medir: su marca
+  es la neutra, o sea el mismo gris de siempre;
+- **cualquier cosa sobre el vídeo**, porque con tunneled puesto `screencap` no
+  lo ve (§6). Las dos capturas de la barra salen con el fondo en negro y eso no
+  significa que no hubiera imagen;
+- **cómo se ve con logos de verdad.** 52 de 53 canales no traen `logoUrl`, así
+  que el camino «con logo» de la ficha y de la barra —el número que se va a la
+  esquina y al lado del nombre— está escrito y compilado, no visto.
+
+Modo B: no toca decodificación, red, buffers, render ni recuperación.
+`comprobar.py` en verde, las dos comprobaciones de §4.7 sin novedades.
+
+**Estado:** cerrada, a reserva de lo que Edgar vea en pantalla.

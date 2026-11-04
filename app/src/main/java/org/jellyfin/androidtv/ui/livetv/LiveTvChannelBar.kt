@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jellyfin.androidtv.ui.base.Text
@@ -32,18 +34,18 @@ import org.jellyfin.livetv.source.ChannelProfile
 import java.util.Date
 
 /**
- * La barra de canal.
+ * La barra de canal: lo que se ve al zapear y al pulsar OK sobre el vídeo.
  *
  * **El condicionante no es el contenido: es que vive encima de vídeo que no
  * controlamos** —nieve, un partido, una película oscura— y de eso salen las
  * decisiones:
  *
- * - **Monocroma, con un solo punto rojo para «en vivo».** Cualquier color se
- *   lee como dominante sobre imagen ajena. El rojo del directo es convención
- *   universal y no hace falta explicarlo. Deja además el hueco limpio para que
- *   el color de marca de cada ISP entre después como relleno del progreso.
- * - **El programa es el protagonista, no el canal.** Al pulsar OK el abonado
- *   ya sabe qué canal ve; lo que no sabe es qué están dando.
+ * - **Casi monocroma.** Cualquier color se lee como dominante sobre imagen
+ *   ajena. Quedan dos: el punto rojo del directo, que es convención universal
+ *   y no hace falta explicar, y el relleno del progreso, que lleva el acento
+ *   del ISP porque es el único sitio donde el color de marca dice algo —cuánto
+ *   lleva el programa— en vez de decorar. Es la misma regla que en la ficha de
+ *   la guía, y es lo que hace que las dos pantallas se lean como una.
  * - **El tiempo es el eje.** Progreso, lo que queda, lo que viene y el reloj:
  *   todo se ordena respecto a «ahora».
  * - **Velo degradado, nunca un bloque opaco.** Pesado bajo el texto y
@@ -61,10 +63,26 @@ import java.util.Date
  *   Lo segundo que hizo falta es que **las tintas secundarias dejen de ser
  *   grises fijos sobre vídeo** ([LiveTvPaleta.tintaSutilSobreVideo]): ningún
  *   velo razonable sube un `#9DA1A6` a 4,5:1 contra blanco.
- * - **Monoespaciada solo en el número**, porque al zapear los dígitos tienen
- *   que caer siempre en el mismo sitio.
  *
- * Tamaños pensados para tres metros de distancia: nada por debajo de 16 sp.
+ * ## Lo que cambió el 04-nov
+ *
+ * La barra anterior ponía el logo del canal en un cuadro de 84 dp a la
+ * izquierda y amontonaba a la derecha el reloj, las horas del programa y los
+ * minutos que quedaban, uno debajo de otro. Dos problemas, los dos medidos en
+ * el site de los probadores:
+ *
+ * - **ese cuadro estaba casi siempre vacío de información**: 52 de 53 canales
+ *   no traen `logoUrl`, así que lo que enseñaba eran tres iniciales que no
+ *   distinguen nada —«Estrellas HD» y «Estrellas SD» dan las dos `EST`—;
+ * - **la columna de la derecha mezclaba dos relojes distintos**: la hora que
+ *   es y las horas del programa. Al zapear, los dos números cambian a la vez y
+ *   cuesta un segundo saber cuál es cuál.
+ *
+ * Ahora la izquierda es **el número**, que es la identidad real del canal y lo
+ * que el abonado acaba de marcar; el logo entra en su sitio cuando lo hay y el
+ * número se va al lado del nombre. La derecha es **solo el reloj**. Las horas
+ * del programa bajan a la línea del programa, que es a lo que pertenecen, y el
+ * progreso cruza la barra entera en lugar del 72 %.
  */
 @Composable
 fun LiveTvChannelBar(
@@ -78,11 +96,21 @@ fun LiveTvChannelBar(
 	/** Alta definición **medida**, no la que declare el `config.json`. */
 	altaDefinicion: Boolean,
 	enVivo: Boolean,
+	/**
+	 * El acento del ISP, ya validado contra el fondo.
+	 *
+	 * Un site sin marca configurada manda [org.jellyfin.livetv.config.ACENTO_NEUTRO],
+	 * que es el gris de la sección: la barra queda monocroma y no medio teñida.
+	 */
+	accent: Color,
 	controles: List<Control> = emptyList(),
 	/** −1 = el foco está en el canal, no en la fila. */
 	controlSeleccionado: Int = -1,
 	modifier: Modifier = Modifier,
 ) {
+	val contexto = LocalContext.current
+	val ahora = epg?.ahora
+
 	Column(
 		modifier = modifier
 			.fillMaxWidth()
@@ -96,42 +124,124 @@ fun LiveTvChannelBar(
 					1f to Color.Black.copy(alpha = 0.90f),
 				)
 			)
-			.padding(start = 56.dp, end = 56.dp, top = 56.dp, bottom = 32.dp)
+			.padding(start = 48.dp, end = 48.dp, top = 56.dp, bottom = 34.dp)
 	) {
-		Row(verticalAlignment = Alignment.Top) {
-			LogoDeCanal(channel, modifier = Modifier.size(84.dp))
+		IdentidadDelCanal(
+			channel = channel,
+			favorito = favorito,
+			idiomaAudio = idiomaAudio,
+			altaDefinicion = altaDefinicion,
+			ahoraMs = ahoraMs,
+		)
 
-			Spacer(modifier = Modifier.width(22.dp))
+		Spacer(modifier = Modifier.height(22.dp))
 
-			Column(modifier = Modifier.weight(1f)) {
-				IdentidadDelCanal(channel, favorito, idiomaAudio, altaDefinicion)
-				Spacer(modifier = Modifier.height(14.dp))
-				QueEstanDando(channel, state, detail, epg, ahoraMs, enVivo)
-			}
+		// La línea del programa: qué dan, desde cuándo hasta cuándo, y cuánto
+		// queda. Las tres cosas son el mismo dato visto de tres formas, así que
+		// van en la misma línea y no repartidas por la barra.
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			// El título y las horas van juntos y se reparten el ancho que
+			// sobra; «quedan X min» se ancla a la derecha. Si los tres
+			// compitieran por el mismo peso, un título largo empujaría la hora
+			// fuera de la barra, que es el dato que menos se puede perder.
+			Row(
+				modifier = Modifier.weight(1f),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				if (enVivo) {
+					Box(
+						modifier = Modifier
+							.size(11.dp)
+							.clip(CircleShape)
+							.background(LiveTvPaleta.enVivo),
+					)
+					Spacer(modifier = Modifier.width(12.dp))
+				}
 
-			Spacer(modifier = Modifier.width(28.dp))
+				Text(
+					// Sin programación, el estado ocupa el sitio del título: es
+					// lo más importante que se puede decir en ese momento.
+					text = ahora?.titulo ?: state,
+					color = Color.White,
+					fontWeight = FontWeight.Bold,
+					fontSize = 26.sp,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis,
+					modifier = Modifier.weight(1f, fill = false),
+				)
 
-			val contexto = LocalContext.current
-			Column(horizontalAlignment = Alignment.End) {
-				Reloj(ahoraMs)
-				epg?.ahora?.let { p ->
-					Spacer(modifier = Modifier.height(14.dp))
+				if (ahora != null) {
+					Spacer(modifier = Modifier.width(18.dp))
 					Text(
-						text = "${hora(contexto, p.inicioMs)} – ${hora(contexto, p.finMs)}",
+						text = "${hora(contexto, ahora.inicioMs)} – ${hora(contexto, ahora.finMs)}",
 						color = LiveTvPaleta.tintaApagadaSobreVideo,
 						fontSize = 17.sp,
-					)
-					Spacer(modifier = Modifier.height(3.dp))
-					Text(
-						text = "quedan ${p.restanteMin(ahoraMs)} min",
-						color = LiveTvPaleta.tintaSutilSobreVideo,
-						fontSize = 16.sp,
+						maxLines = 1,
 					)
 				}
 			}
+
+			if (ahora != null) {
+				Spacer(modifier = Modifier.width(18.dp))
+				Text(
+					text = "quedan ${ahora.restanteMin(ahoraMs)} min",
+					color = LiveTvPaleta.tintaSutilSobreVideo,
+					fontSize = 17.sp,
+					maxLines = 1,
+				)
+			}
 		}
 
-		Spacer(modifier = Modifier.height(22.dp))
+		if (ahora != null) {
+			Spacer(modifier = Modifier.height(14.dp))
+			BarraDeProgreso(ahora.progreso(ahoraMs), accent)
+		}
+
+		epg?.luego?.let { siguiente ->
+			Spacer(modifier = Modifier.height(16.dp))
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Text(text = "Luego", color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 16.sp)
+				Spacer(modifier = Modifier.width(12.dp))
+				Text(
+					text = siguiente.titulo,
+					color = LiveTvPaleta.tintaApagadaSobreVideo,
+					fontSize = 16.sp,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis,
+					modifier = Modifier.weight(1f, fill = false),
+				)
+				Spacer(modifier = Modifier.width(10.dp))
+				// **La hora de lo que viene, que antes no estaba.** «Luego
+				// Piensa rápido» no dice si eso es dentro de dos minutos o
+				// dentro de hora y media, que es justo lo que alguien decide
+				// cuando mira esta línea.
+				Text(
+					text = hora(contexto, siguiente.inicioMs),
+					color = LiveTvPaleta.tintaSutilSobreVideo,
+					fontSize = 16.sp,
+					maxLines = 1,
+				)
+			}
+		}
+
+		// Lo que el ISP quiso añadir y la app no entiende. Va después del
+		// programa porque es lo menos urgente de la barra.
+		if (channel.extras.isNotEmpty()) {
+			Spacer(modifier = Modifier.height(14.dp))
+			DatosExtra(
+				channel.extras,
+				colorEtiqueta = LiveTvPaleta.tintaSutilSobreVideo,
+				colorValor = LiveTvPaleta.tintaApagadaSobreVideo,
+			)
+		}
+
+		// El detalle técnico solo aparece cuando algo va mal: en marcha estorba.
+		if (!enVivo && detail != null) {
+			Spacer(modifier = Modifier.height(10.dp))
+			Text(text = detail, color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 15.sp)
+		}
+
+		Spacer(modifier = Modifier.height(20.dp))
 
 		if (controles.isEmpty()) {
 			Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
@@ -154,122 +264,124 @@ fun LiveTvChannelBar(
 	}
 }
 
+/**
+ * Quién es este canal: el número, el nombre, lo que trae y qué hora es.
+ *
+ * **El número vive en un bloque y no suelto**, y es para que al zapear caiga
+ * siempre en el mismo sitio con el mismo tamaño: un «9» y un «207» sueltos
+ * mueven el nombre entero de posición en cada pulsación. El bloque es fijo,
+ * el número va centrado y monoespaciado, y el nombre no se entera.
+ */
 @Composable
 private fun IdentidadDelCanal(
 	channel: ChannelProfile,
 	favorito: Boolean,
 	idiomaAudio: String?,
 	altaDefinicion: Boolean,
+	ahoraMs: Long,
 ) {
+	val numero = channel.number
+	val conLogo = !channel.logoUrl.isNullOrBlank()
+
 	Row(verticalAlignment = Alignment.CenterVertically) {
-		channel.number?.let { numero ->
-			Text(
-				text = numero.toString(),
-				color = Color.White,
-				fontFamily = FontFamily.Monospace,
-				fontWeight = FontWeight.Medium,
-				fontSize = 40.sp,
+		// El bloque: el logo cuando lo hay, y si no, el número. Es la misma
+		// regla que la ficha de la guía, para que el canal se vea igual en las
+		// dos pantallas.
+		Box(
+			modifier = Modifier
+				.width(ANCHO_BLOQUE)
+				.height(ALTO_BLOQUE)
+				.clip(RoundedCornerShape(10.dp))
+				.background(Color.White.copy(alpha = 0.08f)),
+			contentAlignment = Alignment.Center,
+		) {
+			LogoDeCanal(
+				channel = channel,
+				modifier = Modifier.fillMaxSize().padding(8.dp),
+				fondo = Color.Transparent,
+				respaldo = {
+					Text(
+						text = numero?.toString() ?: inicialesDeCanal(channel.name),
+						color = Color.White,
+						fontFamily = FontFamily.Monospace,
+						fontWeight = FontWeight.Bold,
+						fontSize = 30.sp,
+					)
+				},
 			)
-			Spacer(modifier = Modifier.width(18.dp))
 		}
 
+		Spacer(modifier = Modifier.width(18.dp))
+
+		Column(modifier = Modifier.weight(1f)) {
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				// Con logo, el número no cabe en el bloque y se dice aquí: el
+				// abonado acaba de marcarlo y tiene que poder confirmarlo sin
+				// buscarlo.
+				if (conLogo && numero != null) {
+					Text(
+						text = numero.toString(),
+						color = LiveTvPaleta.tintaApagadaSobreVideo,
+						fontFamily = FontFamily.Monospace,
+						fontWeight = FontWeight.Bold,
+						fontSize = 21.sp,
+					)
+					Spacer(modifier = Modifier.width(12.dp))
+				}
+
+				Text(
+					text = channel.name,
+					color = Color.White,
+					fontWeight = FontWeight.Bold,
+					fontSize = 23.sp,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis,
+					modifier = Modifier.weight(1f, fill = false),
+				)
+
+				if (favorito) {
+					Spacer(modifier = Modifier.width(12.dp))
+					Text(text = "★", color = Color.White, fontSize = 19.sp)
+				}
+			}
+
+			Spacer(modifier = Modifier.height(9.dp))
+
+			Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+				// «HD» dice más que «1920x1080» a quien está en el sofá.
+				Distintivo(if (altaDefinicion) "HD" else "SD")
+				idiomaAudio?.let { Distintivo(it) }
+			}
+		}
+
+		Spacer(modifier = Modifier.width(24.dp))
+
+		// Solo la hora que es. Las del programa están en su línea.
 		Text(
-			text = channel.name,
+			text = hora(LocalContext.current, ahoraMs),
 			color = Color.White,
-			fontWeight = FontWeight.SemiBold,
+			fontWeight = FontWeight.Medium,
 			fontSize = 26.sp,
 		)
-
-		Spacer(modifier = Modifier.width(16.dp))
-
-		// «HD» dice más que «1920x1080» a quien está en el sofá.
-		Distintivo(if (altaDefinicion) "HD" else "SD")
-		idiomaAudio?.let { Spacer(modifier = Modifier.width(8.dp)); Distintivo(it) }
-
-		if (favorito) {
-			Spacer(modifier = Modifier.width(12.dp))
-			Text(text = "★", color = Color.White, fontSize = 20.sp)
-		}
-	}
-}
-
-@Composable
-private fun QueEstanDando(
-	channel: ChannelProfile,
-	state: String,
-	detail: String?,
-	epg: FranjaEpg?,
-	ahoraMs: Long,
-	enVivo: Boolean,
-) {
-	val ahora = epg?.ahora
-
-	Row(verticalAlignment = Alignment.CenterVertically) {
-		if (enVivo) {
-			Box(
-				modifier = Modifier
-					.size(11.dp)
-					.clip(CircleShape)
-					.background(LiveTvPaleta.enVivo),
-			)
-			Spacer(modifier = Modifier.width(12.dp))
-		}
-
-		Text(
-			// Sin programación, el estado ocupa el sitio del título: es lo más
-			// importante que se puede decir en ese momento.
-			text = ahora?.titulo ?: state,
-			color = Color.White,
-			fontWeight = FontWeight.Bold,
-			fontSize = 32.sp,
-		)
-	}
-
-	if (ahora != null) {
-		Spacer(modifier = Modifier.height(12.dp))
-		BarraDeProgreso(ahora.progreso(ahoraMs))
-	}
-
-	val siguiente = epg?.luego
-	if (siguiente != null) {
-		Spacer(modifier = Modifier.height(12.dp))
-		Row {
-			Text(text = "Luego", color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 17.sp)
-			Spacer(modifier = Modifier.width(14.dp))
-			Text(text = siguiente.titulo, color = LiveTvPaleta.tintaApagadaSobreVideo, fontSize = 17.sp)
-		}
-	}
-
-	// Lo que el ISP quiso añadir y la app no entiende. Va al final del bloque
-	// del programa porque es lo menos urgente de la barra: debajo de qué están
-	// dando y de qué viene luego.
-	if (channel.extras.isNotEmpty()) {
-		Spacer(modifier = Modifier.height(12.dp))
-		DatosExtra(
-			channel.extras,
-			colorEtiqueta = LiveTvPaleta.tintaSutilSobreVideo,
-			colorValor = LiveTvPaleta.tintaApagadaSobreVideo,
-		)
-	}
-
-	// El detalle técnico solo aparece cuando algo va mal: en marcha estorba.
-	if (!enVivo && detail != null) {
-		Spacer(modifier = Modifier.height(8.dp))
-		Text(text = detail, color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 15.sp)
 	}
 }
 
 /**
- * El único elemento gráfico de la barra, y el que lleva «cuánto llevas».
+ * Cuánto lleva el programa.
  *
- * Blanco sobre blanco al 22 %: monocromo a propósito, para que el color de
- * marca del ISP pueda sustituir el relleno sin rediseñar nada.
+ * **Cruza la barra entera**, antes el 72 %: una barra que se para a tres
+ * cuartos invita a leer ese final como el final del programa, y no lo es.
+ *
+ * **Y el relleno lleva el acento del ISP**, que era blanco. Es el único
+ * elemento gráfico de la barra y el único sitio donde el color de marca
+ * significa algo; en la guía ya se usa así en cada ficha, y usarlo aquí
+ * también es lo que hace que las dos pantallas parezcan la misma app.
  */
 @Composable
-private fun BarraDeProgreso(progreso: Float) {
+private fun BarraDeProgreso(progreso: Float, accent: Color) {
 	Box(
 		modifier = Modifier
-			.fillMaxWidth(0.72f)
+			.fillMaxWidth()
 			.height(5.dp)
 			.clip(RoundedCornerShape(3.dp))
 			.background(Color.White.copy(alpha = 0.22f)),
@@ -283,20 +395,10 @@ private fun BarraDeProgreso(progreso: Float) {
 					.fillMaxWidth(progreso.coerceIn(0f, 1f))
 					.height(5.dp)
 					.clip(RoundedCornerShape(3.dp))
-					.background(Color.White),
+					.background(accent),
 			)
 		}
 	}
-}
-
-@Composable
-private fun Reloj(ahoraMs: Long) {
-	Text(
-		text = hora(LocalContext.current, ahoraMs),
-		color = Color.White,
-		fontWeight = FontWeight.Medium,
-		fontSize = 30.sp,
-	)
 }
 
 @Composable
@@ -330,6 +432,11 @@ private fun Pista(tecla: String, que: String) {
 		Text(text = que, color = LiveTvPaleta.tintaSutilSobreVideo, fontSize = 14.sp)
 	}
 }
+
+/** El bloque del número: fijo, para que al zapear nada se mueva. */
+private val ANCHO_BLOQUE = 96.dp
+
+private val ALTO_BLOQUE = 58.dp
 
 /**
  * La hora como la escribe el resto de la caja.

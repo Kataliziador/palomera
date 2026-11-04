@@ -536,6 +536,11 @@ private fun ChannelRow(
 					favorites = favoritosIds,
 					franja = { canal -> epg.franja(canal.id, ahoraMs) },
 					ahoraMs = ahoraMs,
+					// Si este site publica guía. Decide si las fichas reservan
+					// la línea del programa; con un site sin EPG —lo normal
+					// mientras un ISP monta su tubería— dirían «Sin guía» 53
+					// veces y la fila sería 17 dp más alta para nada.
+					siteConGuia = epg.canales > 0,
 					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
@@ -618,26 +623,18 @@ private fun FilaFantasma() {
 				.clip(ShapeDefaults.ExtraSmall)
 				.background(LiveTvPaleta.hueco),
 		)
-		Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+		// Un solo hueco por ficha: desde el 04-nov el nombre va **dentro** de
+		// la ficha, así que el segundo recuadro que había aquí dibujaría un
+		// nombre donde no va a aparecer ninguno.
+		Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
 			repeat(TARJETAS_FANTASMA) {
-				Column {
-					Box(
-						modifier = Modifier
-							.width(ANCHO_TARJETA)
-							.height(ALTO_TARJETA)
-							.clip(ShapeDefaults.Medium)
-							.background(LiveTvPaleta.hueco),
-					)
-					Spacer(modifier = Modifier.height(8.dp))
-					Box(
-						modifier = Modifier
-							.padding(horizontal = 2.dp)
-							.width(ANCHO_NOMBRE_FANTASMA)
-							.height(ALTO_TITULO_FANTASMA)
-							.clip(ShapeDefaults.ExtraSmall)
-							.background(LiveTvPaleta.hueco),
-					)
-				}
+				Box(
+					modifier = Modifier
+						.width(ANCHO_TARJETA)
+						.height(ALTO_TARJETA)
+						.clip(ShapeDefaults.Medium)
+						.background(LiveTvPaleta.hueco),
+				)
 			}
 		}
 	}
@@ -707,22 +704,30 @@ private val HUECO_ANTES_DE_LA_LISTA = 16.dp
 /** El ancho máximo de «Luego», para que un título largo no empuje la hora. */
 private val ANCHO_MAXIMO_LUEGO = 260.dp
 
-/** Las que caben en el ancho de la pantalla de la caja, ni una más. */
-private const val TARJETAS_FANTASMA = 5
+/**
+ * Las que caben en el ancho de la pantalla de la caja, ni una más.
+ *
+ * Eran cinco; la ficha pasó de 168 a 198 dp de ancho el 04-nov y ahora son
+ * cuatro. Un hueco de más asomando por el borde derecho enseña exactamente el
+ * salto que la fila fantasma existe para evitar.
+ */
+private const val TARJETAS_FANTASMA = 4
 
 private val ANCHO_TITULO_FANTASMA = 120.dp
-private val ANCHO_NOMBRE_FANTASMA = 96.dp
 private val ALTO_TITULO_FANTASMA = 16.dp
 
 /** Acepta tanto la fila superior como el teclado numérico del mando. */
 /**
- * Qué dan en el canal que tiene el foco.
+ * Qué dan en el canal que tiene el foco, **entero**.
  *
- * **Una vez y arriba de la guía, no en cada tarjeta.** En la tarjeta no cabe:
- * 168 dp cortan cualquier título real a media palabra, y lo que se gana
- * poniéndolo 120 veces se pierde en ruido. Aquí cabe entero, con la hora y los
- * minutos que quedan, y cambia al moverse el foco — que es como se recorre un
- * lineup buscando qué ver. Lo que sí va en la tarjeta es la línea de progreso,
+ * **Esta línea decía que el programa no cabe en la tarjeta, y desde el 04-nov
+ * ya no es verdad: la ficha lo lleva dentro.** Lo que la ficha no puede llevar
+ * es el título completo —recorta a una línea de 176 dp— ni las horas ni los
+ * minutos que quedan. Eso es lo que se lee aquí, para el canal que tiene el
+ * foco, y es la razón por la que esta línea sigue existiendo: son dos niveles
+ * de detalle, no el mismo dato dos veces.
+ *
+ * Lo que sí va en la ficha es la línea de progreso,
  * que no es texto y se lee a tres metros.
  *
  * **Una línea, no dos.** Lo de ahora manda a la izquierda y lo que viene luego

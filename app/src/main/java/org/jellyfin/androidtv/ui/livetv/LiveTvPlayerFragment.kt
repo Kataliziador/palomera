@@ -755,6 +755,10 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				// la lista de arranque no trae `hd` y etiquetaba HBO como SD.
 				altaDefinicion = mostrado.hd || stats.videoHeight >= 720,
 				enVivo = enVivo && !sintonizando,
+				// El acento del ISP, para el relleno del progreso. Es lo único
+				// con color de la barra junto al punto del directo, y es el
+				// mismo que viste la pista de cada ficha de la guía.
+				accent = Color(canales.brand.accent),
 				controles = if (barraVisible) controles else emptyList(),
 				controlSeleccionado = if (enControles) controlSeleccionado else -1,
 				modifier = Modifier.align(Alignment.BottomCenter),

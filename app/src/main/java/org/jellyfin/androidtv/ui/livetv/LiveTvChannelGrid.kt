@@ -114,6 +114,14 @@ fun LiveTvChannelGrid(
 	/** El reloj con el que se calcula el progreso. Lo mueve quien dibuja. */
 	ahoraMs: Long = 0L,
 	/**
+	 * Si **el site** publica guía, no si la publica para un canal concreto.
+	 *
+	 * Decide si las fichas reservan la línea del programa. Va por la lista
+	 * entera y no canal por canal porque si no, dos fichas de la misma fila
+	 * tendrían distinta altura: la que tiene programación y la que no.
+	 */
+	siteConGuia: Boolean = false,
+	/**
 	 * El acento de la marca del proveedor, ya validado contra el fondo.
 	 *
 	 * Los títulos de grupo son el único sitio de la guía donde el color del ISP
@@ -234,39 +242,27 @@ fun LiveTvChannelGrid(
 						if (it.hasFocus) scope.launch { verticalState.animateScrollToItem(indiceSeccion) }
 					}
 				) {
-					// **El título de grupo no lleva el acento del ISP.** Lo llevaba,
-					// y con doce grupos el color de marca salía doce veces en una
-					// pantalla para decir «Nacionales»: mobiliario. El acento queda
-					// para lo único donde el color dice algo que no se puede decir
-					// de otra forma —cuánto lleva el programa, en la línea de
-					// progreso de cada tarjeta—, que es además lo que pide el
-					// sistema de diseño del proyecto.
-					//
-					// Color explícito y no el del tema: el del tema está pensado
-					// para el fondo claro de la app y sobre esta sección queda casi
-					// invisible. Un título de grupo que no se lee convierte la guía
-					// en una lista suelta.
-					Text(
-						text = seccion.title,
-						color = LiveTvPaleta.tintaApagada,
-						fontWeight = FontWeight.Bold,
-						fontSize = 17.sp,
-						modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-					)
+					CabeceraDeGrupo(titulo = seccion.title, canales = seccion.channels.size)
 
 					val horizontalState =
 						if (indiceSeccion == posicionConFoco?.first) filaConFoco
 						else rememberLazyListState()
 					LazyRow(
 						state = horizontalState,
-						horizontalArrangement = Arrangement.spacedBy(16.dp),
+						// 24 dp, y no es un número suelto: con 198 dp de ficha es
+						// lo que hace que entren exactamente cuatro en los 864 dp
+						// útiles de la sección (ver [ANCHO_TARJETA]).
+						horizontalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FICHAS),
 					) {
 						itemsIndexed(seccion.channels, key = { _, c -> c.id }) { indice, canal ->
+							val suya = franja(canal)
 							LiveTvChannelCard(
 								channel = canal,
 								favorite = canal.id in favorites,
-								progreso = franja(canal)?.ahora?.progreso(ahoraMs),
-							accent = accent,
+								progreso = suya?.ahora?.progreso(ahoraMs),
+								programa = suya?.ahora?.titulo,
+								siteConGuia = siteConGuia,
+								accent = accent,
 								onClick = { onChannelClick(canal) },
 								onLongClick = { onChannelLongClick(canal) },
 								modifier = Modifier
@@ -326,6 +322,66 @@ fun LiveTvChannelGrid(
 		}
 	}
 }
+
+/**
+ * El encabezado de un grupo: su nombre, una línea hasta el borde y cuántos
+ * canales tiene.
+ *
+ * **La línea existe por los grupos cortos.** «Documentales» tiene dos canales y
+ * «Películas» dos: con el título suelto a la izquierda, esas filas dejaban
+ * tres cuartos de pantalla en negro y la sección parecía a medio cargar. Una
+ * línea que llega al borde cierra la fila — dice «esto es todo lo que hay
+ * aquí» en vez de «falta algo».
+ *
+ * **Y la cuenta no es decoración.** Con la fila desplazable, el abonado no
+ * tiene forma de saber si a la derecha quedan dos canales o quince; el número
+ * es lo único que lo dice sin moverse.
+ *
+ * **El encabezado no lleva el acento del ISP.** Lo llevaba, y con doce grupos
+ * el color de marca salía doce veces en una pantalla para decir «Nacionales»:
+ * mobiliario. El acento queda para lo único donde el color dice algo que no se
+ * puede decir de otra forma —cuánto lleva el programa, en la pista de cada
+ * ficha—, que es además lo que pide el sistema de diseño del proyecto.
+ *
+ * Colores explícitos y no los del tema: el del tema está pensado para el fondo
+ * claro de la app y sobre esta sección queda casi invisible. Un título de grupo
+ * que no se lee convierte la guía en una lista suelta.
+ */
+@Composable
+private fun CabeceraDeGrupo(titulo: String, canales: Int) {
+	Row(
+		modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Text(
+			text = titulo,
+			color = LiveTvPaleta.tintaApagada,
+			fontWeight = FontWeight.Bold,
+			fontSize = 15.sp,
+		)
+		Spacer(modifier = Modifier.width(14.dp))
+		Box(
+			modifier = Modifier
+				.weight(1f)
+				.height(1.dp)
+				.background(Color.White.copy(alpha = 0.09f)),
+		)
+		Spacer(modifier = Modifier.width(14.dp))
+		Text(
+			text = if (canales == 1) "1 canal" else "$canales canales",
+			color = LiveTvPaleta.tintaSutil,
+			fontSize = 13.sp,
+		)
+	}
+}
+
+/**
+ * La separación entre dos fichas de la misma fila.
+ *
+ * Ver [ANCHO_TARJETA]: los dos números y el margen de la sección son una sola
+ * cuenta, y tocar uno sin los otros corta la cuarta ficha por el borde.
+ */
+private val SEPARACION_ENTRE_FICHAS = 24.dp
 
 /**
  * La separación entre dos filas de canales.
