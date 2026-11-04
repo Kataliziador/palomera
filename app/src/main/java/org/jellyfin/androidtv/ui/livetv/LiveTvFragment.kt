@@ -541,6 +541,7 @@ private fun ChannelRow(
 					// mientras un ISP monta su tubería— dirían «Sin guía» 53
 					// veces y la fila sería 17 dp más alta para nada.
 					siteConGuia = epg.canales > 0,
+					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
 					onChannelFocus = { enfocado = it },

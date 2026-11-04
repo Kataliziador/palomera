@@ -8366,66 +8366,36 @@ por lo de siempre: con tunneled, `screencap` no ve el vídeo (§6).
 
 ---
 
-### [B] El progreso pasa a semáforo: verde, naranja y rojo — 2026-11-04
+### [B] El semáforo del progreso, probado y retirado el mismo día — 2026-11-04
 
-Lo pidió Edgar: «si el programa está antes del 30 % de avance que esté en
-verde, si está entre 31 % y 70 % naranja y si pasa de 71 % rojo». Hecho en la
-pista de cada ficha de la guía y en el progreso de la barra de canal, con los
-mismos cortes en los dos sitios —30 y 70, en `LiveTvPaleta.colorDeProgreso`—
-porque dos semáforos con umbrales distintos serían dos respuestas a la misma
-pregunta en la misma pantalla.
+Edgar pidió por la mañana que la pista cambiara de color según el avance
+—verde hasta el 30 %, naranja hasta el 70, rojo a partir de ahí—, se
+implementó y se vio en la caja, y **al verlo lo descartó**: «no me gustó, me
+gustó mejor la barra solo en el color» del lienzo de diseño, o sea el acento
+único del proveedor. Revertido en el mismo día (`git revert` de `e8275fcda`).
 
-**Qué dice, que no es lo que un semáforo suele decir.** Aquí el rojo no
-significa «esto va mal»: un programa avanzado no es un fallo. Significa
-**cuánto te queda si entras ahora**, que es la decisión que alguien toma
-recorriendo una guía. Conviene tenerlo escrito porque el color sí arrastra la
-otra lectura.
+Se anota porque **la idea es razonable y va a volver a aparecer**, y conviene
+que quien la retome sepa lo que ya se midió:
 
-**Los tres colores están medidos, y uno hubo que cambiarlo.** Lo que hay que
-distinguir no es el relleno contra el fondo de la pantalla sino **el relleno
-contra su propio surco**, que es lo que tiene al lado (WCAG 1.4.11, 3:1 para
-un elemento gráfico). Los surcos reales son `#333334` en una ficha en reposo,
-`#434346` en una enfocada y `#383838` en la barra:
+- **el rojo no puede ser el del directo.** `#E53935` da 2,99 de contraste
+  sobre el surco de una ficha en reposo y **2,33** sobre el de una enfocada,
+  los dos por debajo del 3:1 que pide WCAG 1.4.11 para un elemento gráfico
+  contra lo que tiene al lado. Hay que subirlo a algo como `#FF6B5E`, y
+  entonces **chocan dos rojos en la barra**: el punto del directo y el
+  progreso casi acabado salen en la misma línea significando cosas distintas;
+- **tres colores que pasan** el 3:1 contra los tres surcos reales (`#333334`
+  en una ficha, `#434346` en una enfocada, `#383838` en la barra): verde
+  `#35C26A` (5,45 / 4,26 / 5,07), naranja `#F0883E` (4,99 / 3,90 / 4,63) y
+  rojo `#FF6B5E` (4,52 / 3,53 / 4,20);
+- **cuesta legibilidad sobre vídeo claro.** Con el velo de la barra y vídeo
+  blanco debajo, el relleno se distingue de su surco con 3,17 / 2,90 / 2,63
+  según el color, contra los 6,3 del relleno blanco;
+- **y se lleva por delante el único sitio de la guía con el color del ISP**,
+  que es el argumento del blanco de marca: color donde significa algo. Ese
+  acabó siendo el motivo de peso, aunque la decisión la tomó Edgar mirando la
+  pantalla y no leyendo esto.
 
-| | ficha | ficha con foco | barra |
-|---|---|---|---|
-| verde `#35C26A` | 5,45 | 4,26 | 5,07 |
-| naranja `#F0883E` | 4,99 | 3,90 | 4,63 |
-| rojo `#FF6B5E` | 4,52 | 3,53 | 4,20 |
+Lo que **no** se midió y seguiría abierto si vuelve: si el semáforo ayuda de
+verdad a decidir qué ver. Lo que se juzgó fue cómo se ve.
 
-**El rojo no puede ser el del directo.** `#E53935` da 2,99 sobre el surco de
-una ficha en reposo y **2,33** sobre el de una enfocada: por debajo del 3:1 en
-los dos. Hubo que subirlo.
-
-**Lo que cuesta, medido:** sobre vídeo blanco bajo el velo de la barra el surco
-queda en `#565656` y el relleno se distingue de él con 3,17 en verde, 2,90 en
-naranja y 2,63 en rojo, contra los 6,3 que daba el relleno blanco. El borde
-entre lo emitido y lo que falta se lee peor en ese caso concreto. Lo largo de
-la barra no cambia, porque sus dos extremos siguen anclados, y **el color no
-es el único canal**: la longitud ya dice lo mismo, así que quien no distinga
-rojo de verde no pierde información.
-
-**Lo que esto se lleva por delante, y es una decisión que no es mía.** La pista
-del progreso era **el único sitio de la guía con el color del ISP**, y era el
-argumento del blanco de marca: color donde significa algo. Con el semáforo, el
-acento del proveedor se queda solo en la cabecera de la sección —el nombre o su
-logo, el icono del aviso del operador y el campo de búsqueda— y desaparece de
-las 53 fichas y de la barra. Los parámetros `accent` de `LiveTvChannelCard`,
-`LiveTvChannelGrid` y `LiveTvChannelBar` se retiran en el mismo commit en vez
-de quedarse sin usar.
-
-**Y hay un choque de rojos en la barra**, visible en la captura: el punto del
-directo (`#E53935`) y el progreso casi acabado (`#FF6B5E`) salen en la misma
-línea y los dos son rojos, significando cosas distintas. No se arregla
-cambiando el punto —rojo para «en vivo» es convención y está decidido— así que
-o se vive con ello o el semáforo se queda solo en la guía.
-
-**Medido en la caja** contra el site de los probadores con su EPG real, dos
-capturas. En la guía salen los tres colores a la vez: 202 y 203 en verde recién
-empezados, 103, 105 y 106 en naranja a media emisión, 104 en rojo con 20 min
-por acabar de dos horas. En la barra, 104 en rojo al 84 %.
-
-Modo B. `comprobar.py` en verde.
-
-**Estado:** cerrada, a reserva de lo que Edgar decida sobre las dos cosas de
-arriba —el acento sin sitio y el choque de rojos—.
+**Estado:** descartada.

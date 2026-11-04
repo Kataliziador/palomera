@@ -122,6 +122,13 @@ fun LiveTvChannelGrid(
 	 * tendrían distinta altura: la que tiene programación y la que no.
 	 */
 	siteConGuia: Boolean = false,
+	/**
+	 * El acento de la marca del proveedor, ya validado contra el fondo.
+	 *
+	 * Los títulos de grupo son el único sitio de la guía donde el color del ISP
+	 * cabe sin competir con los canales, que son lo que la gente viene a ver.
+	 */
+	accent: Color,
 	onChannelClick: (ChannelProfile) -> Unit,
 	onChannelLongClick: (ChannelProfile) -> Unit,
 	/**
@@ -286,6 +293,7 @@ fun LiveTvChannelGrid(
 								progreso = suya?.ahora?.progreso(ahoraMs),
 								programa = suya?.ahora?.titulo,
 								siteConGuia = siteConGuia,
+								accent = accent,
 								onClick = { onChannelClick(canal) },
 								onLongClick = { onChannelLongClick(canal) },
 								modifier = Modifier

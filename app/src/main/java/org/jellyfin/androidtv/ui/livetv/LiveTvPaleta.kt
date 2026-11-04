@@ -123,62 +123,6 @@ object LiveTvPaleta {
 	val enVivo = Color(0xFFE53935)
 
 	/**
-	 * El semáforo del programa en curso: verde hasta el 30 %, naranja hasta el
-	 * 70 %, rojo a partir de ahí.
-	 *
-	 * **Petición de Edgar del 04-nov.** Lo que dice no es «esto va bien o va
-	 * mal» —un programa avanzado no es un fallo— sino **cuánto te queda si
-	 * entras ahora**: en rojo, lo que estés mirando se acaba enseguida. Es la
-	 * decisión que alguien toma recorriendo una guía.
-	 *
-	 * **Los tres colores están medidos contra los tres surcos reales**, que es
-	 * el fondo contra el que hay que distinguirlos, no contra el de la pantalla
-	 * (WCAG 1.4.11 pide 3:1 para un elemento gráfico contra lo que tiene al
-	 * lado). El surco de una ficha en reposo es `#333334`, el de una enfocada
-	 * `#434346` y el de la barra `#383838`:
-	 *
-	 * | | ficha | ficha con foco | barra |
-	 * |---|---|---|---|
-	 * | [progresoTemprano] `#35C26A` | 5,45 | 4,26 | 5,07 |
-	 * | [progresoMedio] `#F0883E` | 4,99 | 3,90 | 4,63 |
-	 * | [progresoTarde] `#FF6B5E` | 4,52 | 3,53 | 4,20 |
-	 *
-	 * **El rojo no es [enVivo], y no por gusto: `#E53935` no pasa.** Da 2,99
-	 * sobre el surco de una ficha en reposo y **2,33** sobre el de una
-	 * enfocada, los dos por debajo del 3:1. Hizo falta subirlo. Que además no
-	 * coincida con el punto del directo es conveniente: los dos salen juntos en
-	 * la barra y significan cosas distintas.
-	 *
-	 * **El color no es el único canal**, y eso es lo que hace que esto no sea
-	 * un problema de accesibilidad: lo largo de la barra ya dice lo mismo, así
-	 * que quien no distinga rojo de verde no pierde información. El color la
-	 * repite de un vistazo, que es para lo que sirve a tres metros.
-	 */
-	val progresoTemprano = Color(0xFF35C26A)
-
-	/** Ver [progresoTemprano]. */
-	val progresoMedio = Color(0xFFF0883E)
-
-	/** Ver [progresoTemprano]. */
-	val progresoTarde = Color(0xFFFF6B5E)
-
-	/**
-	 * El color que le toca a un avance de 0 a 1.
-	 *
-	 * Los cortes son los que pidió Edgar —30 y 70— y están aquí y no repartidos
-	 * por la ficha y la barra: dos semáforos con umbrales distintos serían dos
-	 * respuestas a la misma pregunta en la misma pantalla.
-	 */
-	fun colorDeProgreso(progreso: Float): Color = when {
-		progreso <= CORTE_TEMPRANO -> progresoTemprano
-		progreso <= CORTE_MEDIO -> progresoMedio
-		else -> progresoTarde
-	}
-
-	private const val CORTE_TEMPRANO = 0.30f
-	private const val CORTE_MEDIO = 0.70f
-
-	/**
 	 * El velo bajo las marcas de esquina de una tarjeta: número, HD, favorito
 	 * y «sin señal».
 	 *
