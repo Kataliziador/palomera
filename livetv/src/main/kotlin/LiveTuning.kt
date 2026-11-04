@@ -614,6 +614,16 @@ object LiveTuning {
 	const val VIGILAR_SUSPENSION_REINTENTO_MS = 60_000L
 
 	/**
+	 * Lo que tarda en saltar el simulador «suspendido dentro de un rato».
+	 *
+	 * Cuarenta y cinco segundos: lo justo para encenderlo en el menú, volver a
+	 * la guía, entrar a un canal y que dé imagen —en la caja de pruebas, de 1
+	 * a 2 s de sintonía más el paseo con el mando— y aun así verlo saltar sin
+	 * esperar de pie delante de la tele. Sólo lo usa el simulador.
+	 */
+	const val SIMULAR_SUSPENSION_RETARDO_MS = 45_000L
+
+	/**
 	 * Espera entre escalones de recuperación.
 	 *
 	 * Un salto al borde tarda en surtir efecto; medir antes de que se note

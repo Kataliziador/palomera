@@ -94,9 +94,21 @@ class LiveTvSuspension private constructor(context: Context) : KoinComponent {
 	fun comprobarSiHaceFalta(ahoraMs: Long = System.currentTimeMillis()) {
 		// El simulador manda y no pregunta a nadie: sirve para ver las dos
 		// pantallas sin suspender de verdad a un abonado de un site vivo.
-		if (dev.simularSuspension) {
-			if (!_suspendido.value) _suspendido.value = true
-			return
+		when (dev.simularSuspension) {
+			1 -> {
+				if (!_suspendido.value) _suspendido.value = true
+				return
+			}
+
+			2 -> {
+				// Con retardo, que es la única forma de provocar el caso que
+				// decide el diseño: el 403 que llega **con un canal en
+				// marcha**. Ver [DevOptions.simularSuspension].
+				val desde = dev.simularSuspensionDesdeMs
+				val toca = desde > 0 && ahoraMs - desde >= LiveTuning.SIMULAR_SUSPENSION_RETARDO_MS
+				if (toca && !_suspendido.value) _suspendido.value = true
+				return
+			}
 		}
 		if (!dev.vigilarSuspensionEnabled) {
 			if (_suspendido.value) _suspendido.value = false

@@ -157,7 +157,13 @@ LITERALES_JELLYFIN = {
 
 # `K_OVERLAY_MODE` está fuera de `CLAVES_DEL_MENU` a propósito: el overlay es
 # instrumento de medida, no una degradación. Lo dice el comentario de la lista.
-EXENTAS = {"K_OVERLAY_MODE"}
+#
+# `K_SIM_SUSPENDIDO_DESDE` tampoco es un interruptor: es el sello de tiempo que
+# acompaña a `K_SIM_SUSPENDIDO` para saber cuándo saltar en el modo «en 45 s».
+# No tiene fila propia porque no se enciende por separado —lo escribe la misma
+# pulsación que enciende el simulador— y no va en `describe()` porque ahí ya
+# sale «FINGE SUSPENDIDO=2», que es lo que hay que leer en una captura.
+EXENTAS = {"K_OVERLAY_MODE", "K_SIM_SUSPENDIDO_DESDE"}
 
 
 class Informe:

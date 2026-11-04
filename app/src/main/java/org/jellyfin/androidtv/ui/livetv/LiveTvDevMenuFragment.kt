@@ -233,12 +233,21 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Fingir abonado suspendido",
-				value = if (dev.simularSuspension) "FINGIENDO" else "no",
-				changed = dev.simularSuspension,
-			) { change { dev.simularSuspension = !dev.simularSuspension } }
+				value = when (dev.simularSuspension) {
+					1 -> "YA"
+					2 -> "EN 45 s"
+					else -> "no"
+				},
+				changed = dev.simularSuspension > 0,
+			) {
+				change {
+					dev.simularSuspension = (dev.simularSuspension + 1) % 3
+					dev.simularSuspensionDesdeMs = System.currentTimeMillis()
+				}
+			}
 		}
 		item {
-			Info("Enseña las dos pantallas del pendiente 84 sin suspender a nadie de verdad: en la guía, la de «Servicio suspendido»; sobre el vídeo, el aviso pequeño, y la primera tecla devuelve a la guía.")
+			Info("Enseña las dos pantallas del pendiente 84 sin suspender a nadie de verdad. «YA»: la guía sale cerrada. «EN 45 s»: da tiempo a entrar a un canal y ver lo que pasa con la imagen en marcha — el aviso sale encima del vídeo, no se corta nada, y la primera tecla devuelve a la guía.")
 		}
 
 		item {

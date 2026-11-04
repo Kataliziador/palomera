@@ -299,9 +299,26 @@ class DevOptions(context: Context) {
 	 * el que lo activa quiere ver la pantalla, no recordar que hay que
 	 * encender dos cosas.
 	 */
-	var simularSuspension: Boolean
-		get() = prefs.getBoolean(K_SIM_SUSPENDIDO, false)
-		set(v) = put { putBoolean(K_SIM_SUSPENDIDO, v) }
+	/**
+	 * `0` apagado · `1` suspendido ya · `2` suspendido dentro de un rato.
+	 *
+	 * **El `2` es el que permite validar la mitad difícil.** Con el `1` se ve
+	 * la pantalla de la guía, pero el caso que decide el diseño es el otro: la
+	 * suspensión que llega **mientras se está viendo un canal**, que es cuando
+	 * hay que decidir si se corta la imagen. Ese estado no se puede provocar
+	 * desde fuera —cambiar la preferencia con la app abierta no la relee, y el
+	 * Jellyfin de un site vivo no va a contestar 403 por encargo—, así que el
+	 * simulador tiene que traerlo dentro: se enciende en el menú, se entra a
+	 * un canal y salta solo.
+	 */
+	var simularSuspension: Int
+		get() = prefs.getInt(K_SIM_SUSPENDIDO, 0)
+		set(v) = put { putInt(K_SIM_SUSPENDIDO, v.coerceIn(0, 2)) }
+
+	/** Cuándo se encendió el `2`, para saber cuándo toca fingir el 403. */
+	var simularSuspensionDesdeMs: Long
+		get() = prefs.getLong(K_SIM_SUSPENDIDO_DESDE, 0L)
+		set(v) = put { putLong(K_SIM_SUSPENDIDO_DESDE, v) }
 
 	/**
 	 * Fingir que no llegó el primer fotograma, para poder ver el rescate.
@@ -616,7 +633,7 @@ class DevOptions(context: Context) {
 		if (abrAfinadoEnabled != LiveTuning.ABR_AFINADO_DEFAULT) add("abr afinado")
 		if (registryUrlOverride != null) add("registro=manual")
 		if (simularDenegacion > 0) add("FINGE DENEGADO=$simularDenegacion")
-		if (simularSuspension) add("FINGE SUSPENDIDO")
+		if (simularSuspension > 0) add("FINGE SUSPENDIDO=$simularSuspension")
 		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_ZAPEO_AVISO)) add("zapeoEnAviso=${if (zapeoEnAvisoEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_VIGILAR_SUSPENSION)) add("vigilaSuspension=${if (vigilarSuspensionEnabled) "ON" else "OFF"}")
@@ -681,6 +698,7 @@ class DevOptions(context: Context) {
 		const val K_ZAPEO_AVISO = "zapeoEnAvisoEnabled"
 		const val K_VIGILAR_SUSPENSION = "vigilarSuspensionEnabled"
 		const val K_SIM_SUSPENDIDO = "simularSuspension"
+		const val K_SIM_SUSPENDIDO_DESDE = "simularSuspensionDesdeMs"
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 		const val K_REGISTRY_URL = "registryUrlOverride"
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"

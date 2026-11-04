@@ -8858,5 +8858,26 @@ un servidor lento apague la televisión de quien está al día. Las nueve
 comprobaciones en verde, `:app:assembleDebug`, `:app:testDebugUnitTest` y
 `:livetv:test` también.
 
-**Estado:** abierta — a falta de validar en pantalla el aviso sobre el vídeo, y
-de que Edgar decida encenderlo de fábrica.
+### Validado en pantalla el mismo día, incluida la mitad difícil
+
+**El aviso sobre el vídeo era lo que faltaba, y no se podía provocar desde
+fuera**: cambiar la preferencia con la app abierta no la relee, y el Jellyfin
+de un site vivo no contesta 403 por encargo. Por eso el simulador pasó de dos
+estados a tres —`0` apagado, `1` suspendido ya, `2` dentro de 45 s—: el `2` da
+tiempo a encenderlo, volver a la guía, entrar a un canal y verlo saltar con la
+imagen en marcha, que es el caso que decide el diseño.
+
+Medido en la caja, con un canal del site de los probadores:
+
+| | |
+|---|---|
+| el aviso aparece sobre el vídeo | sí, con el punto ámbar y la frase corta |
+| **¿se cortó la imagen?** | **no**: `reproduciendo=true`, `posS` avanzando |
+| al pulsar ▼ | `abonado.suspendido.sale canal=estrellas` y la guía con la pantalla entera |
+
+El fondo de esa captura sale negro porque el vídeo va en tunneled y
+`screencap` no ve esa superficie (§6); lo que prueba que seguía habiendo
+imagen no es la captura, es el latido.
+
+**Estado:** cerrada en lo técnico — queda que Edgar decida encenderlo de
+fábrica, que es lo único que lo pone en manos de un abonado.
