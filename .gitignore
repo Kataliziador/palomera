@@ -33,3 +33,9 @@ herramientas/__pycache__/
 # escritos públicos no se revela ninguna dirección de servidor (decisión de
 # Edgar, 04-nov). La plantilla versionada es `herramientas/entorno.ejemplo`.
 herramientas/entorno.local
+
+# Los logos de los canales que Edgar dejó aquí el 04-nov para procesarlos.
+# **No entran en el repositorio**, y no es por peso: son marcas registradas de
+# terceros —HBO, Discovery, Televisa…— y esto es un repositorio GPL-2.0 público.
+# Su sitio es el servidor de canales, que no se publica. Ver LIVETV_LOG.md.
+logoscanales/
