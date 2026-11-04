@@ -213,8 +213,40 @@ compilación de depuración.
   ajuste el nombre del canal quedaba en 2,03:1. Arreglado el 30-oct
   (`LIVETV_LOG.md`); la captura 2 lleva esa corrección dentro.
 
-**Las cuatro están sacadas** el 30-oct, 1920×1080, de un release 0.1.0-rc.1 en
-es-MX sobre `tv34`, contra la demo. En este orden:
+**Tres de las cuatro caducaron el 04-nov, y hay que rehacerlas.** La interfaz
+se congeló ese día (`CLAUDE.md` §7) precisamente porque cada cambio las
+invalida, pero los cambios de los dos días anteriores ya habían pasado:
+
+| captura | qué la caducó | cómo se ve |
+|---|---|---|
+| 1 · la sección | `39109f28e` — la guía pasó a fichas | la del 02-nov tiene el logo centrado y el número en una pastilla pequeña; hoy el número es grande, hay insignia HD, barra de progreso y el programa dentro de la tarjeta |
+| 2 · la barra de canal | el mismo commit **la reordenó**, y `7f8450d2d` le quitó un número duplicado | — |
+| 4 · el inicio | `f18ad1141` **borró la fila «TV en vivo»**, y la captura la enseña con su botón | el revisor vería en la foto una fila que no existe |
+| 3 · la activación | nada la ha tocado | **sigue válida** |
+
+**Y ahora se rehacen con una orden**, que es lo que faltaba:
+
+```bash
+set -a; . herramientas/entorno.local; set +a
+python3 -I herramientas/capturar-ficha.py
+```
+
+Levanta `tv34`, instala el release, lo pone en es-MX y hora de México, entra a
+la demo y saca la 1, la 2 y la 4. **Necesita `DEMO_USUARIO` y `DEMO_CLAVE`** en
+`herramientas/entorno.local`, que es donde tiene que vivir esa clave.
+
+No usa relojes: **espera a que aparezca un texto concreto** en el árbol de
+vistas, porque un `sleep` fijo sobre un emulador lento captura una pantalla a
+medio pintar y eso se ve en la foto pero no en el código. Aun así, **hay que
+mirarlas antes de subirlas**: una automatización de interfaz puede acertar
+todos los pasos y encuadrar mal el último.
+
+**La 3 no la rehace, y no es un olvido:** la pantalla del código aparece sólo
+con QuickConnect encendido, y la demo lo tiene **apagado a propósito** para que
+el probador vaya directo a usuario y contraseña.
+
+**Las cuatro actuales están sacadas** el 02-nov, 1920×1080, de un release
+0.1.0-rc.1 en es-MX sobre `tv34`, contra la demo. En este orden:
 
 | | qué enseña |
 |---|---|
@@ -239,10 +271,15 @@ palomera-destacado-1024.png
 ```
 
 Hasta el 02-nov sólo existían en el directorio temporal de una sesión, que se
-borra. Los tres últimos se regeneran con `herramientas/marca/generar.sh`; las
-cuatro capturas **no**, porque haría falta levantar otra vez el emulador
-`tv34`, la demo y el release 0.1.0-rc.1 de aquel día. Son el único archivo de
-toda la ficha que no se puede rehacer con una orden.
+borra. Los tres últimos se regeneran con `herramientas/marca/generar.sh`.
+
+**Las capturas también, desde el 04-nov**, con `herramientas/capturar-ficha.py`.
+Aquí ponía que eran «el único archivo de toda la ficha que no se puede rehacer
+con una orden», y esa frase describía un hecho que resultó ser la **causa** de
+que tres de ellas se quedaran atrás sin que nadie lo notara: lo que cuesta
+media tarde no se rehace cada vez que cambia una pantalla. Convertirlo en una
+orden es lo que hace sostenible la congelación de `CLAUDE.md` §7 — porque
+congelar no es no cambiar nunca, es que cada cambio pague su factura.
 
 ## 6. Otros campos
 

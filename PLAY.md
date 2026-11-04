@@ -79,12 +79,41 @@ keytool -genkeypair -v -keystore palomera-subida.jks -storetype PKCS12 \
   -dname "CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX"
 ```
 
-**Lo que hay hoy no sirve para publicar, y lo dice en su propio certificado.**
-Las compilaciones de verificación se firman con un keystore desechable
-—`CN=solo-para-validar-local, O=NO-PUBLICAR`, un año de validez— que vive en el
-directorio temporal de la sesión y desaparece con ella. Está así a propósito:
-sirve para comprobar el empaquetado y es imposible confundirlo con la de
-producción.
+**Hecho el 01-nov: la clave de producción existe.** Lo ejecutó Edgar y la
+contraseña no ha pasado por ningún chat. Leído del propio almacén el 04-nov con
+`keytool -list -v`, no supuesto:
+
+| | leído |
+|---|---|
+| alias | `palomera` |
+| titular | `CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX` |
+| creada | 01-nov-2026 |
+| vigencia | hasta el **24-oct-2056** — 30 años, por encima de los 25 que pide la documentación de Android |
+| clave | **RSA de 4096 bits**, firma `SHA384withRSA` |
+| las cuatro propiedades | puestas en `local.properties`, que está en `.gitignore` |
+
+Con eso, `assembleRelease` ya no se detiene en la guarda de firma y el AAB sale
+firmado con la clave de verdad.
+
+**Lo que esto convierte en urgente, y no está hecho:** el archivo vive en
+**una sola máquina**, que es un contenedor. §1 pide «copia en un segundo sitio
+que no sea la misma máquina ni la misma cuenta» y esa copia **no existe
+todavía**. Hasta que exista, un disco perdido es la ficha perdida.
+
+Lo que la rescata es la segunda decisión de §1: **con Play App Signing esta
+clave es la de *subida*, y una clave de subida sí se puede sustituir.** El
+nombre del archivo —`palomera-subida.jks`— ya dice que ésa es la intención.
+Conviene activarlo en el primer envío, que es cuando se decide; después
+también se puede, pero entonces hay que pedirlo.
+
+**Y el keystore desechable sigue existiendo para lo que servía:** las
+compilaciones de verificación se firmaban con uno
+—`CN=solo-para-validar-local, O=NO-PUBLICAR`, un año de validez— que vivía en el
+directorio temporal de la sesión y desaparecía con ella. Era imposible
+confundirlo con la de producción, que es justo por lo que la tabla de §8 del
+29-oct lo nombra: aquel AAB **no era publicable y lo decía en su certificado**.
+El que se construya ahora sí lo es, y por eso hay que leer la firma otra vez
+antes de subir.
 
 ### Y un dato de la consola decide cuándo hace falta la clave
 
@@ -526,6 +555,14 @@ commit exacto de cada versión que se publique en Play. La oferta es del código
   viven fuera del repositorio. Las capturas tienen que ser de **la interfaz**:
   la lista de canales con sus nombres y logos, la guía, la barra de canal sobre
   un fondo propio. Eso además se hace con la caja libre, no durante un remojo.
+- **`fastlane/metadata/` no es nuestra ficha, y no hay que tocarla.** Son los
+  títulos, descripciones y tres capturas **del upstream**, en cuarenta idiomas,
+  que dicen «Jellyfin para Android TV» y enseñan la app de Jellyfin con su
+  logotipo. No viajan en el APK, ningún flujo las usa y el único que publicaría
+  está vetado por `repository_owner` (§8). Se quedan por el mismo motivo que la
+  guía vieja de `CLAUDE.md` §4.5: borrarlas agranda el diff contra upstream sin
+  ganar nada. **Lo que no se puede hacer es confundirlas con la ficha**: la
+  nuestra está en `FICHA.md` y las capturas en `/home/proyectos/palomera-ficha/`.
 - **Clasificación de contenido** y **público objetivo**: la app no tiene
   contenido propio, lo sirve el ISP.
 - **Países**: México.
@@ -651,16 +688,33 @@ La variable es obligatoria y **el build la exige**: sin ella el
    `palomera-v<versión>-release.aab`. **Si hay otro AAB más viejo al lado, se
    borra**: el riesgo real de este paso es subir el archivo equivocado
 2. `versionCode` mayor que el del envío anterior
-3. `python3 herramientas/comprobar.py` sale en verde. Son **siete**
-   comprobaciones, no las dos de §4.7: el territorio, el camino de VOD, el
-   cable de los interruptores, la confianza TLS de cada conexión, que ningún
-   idioma llame Jellyfin a la app, que no lo haga tampoco un literal del
-   código ni una cadena viva de `values/` **(la `g)`, nueva el 30-oct)**, y
-   las pruebas de unidad
+3. `python3 herramientas/comprobar.py` sale en verde. Son **nueve**
+   comprobaciones, no las dos de §4.7: el territorio `a)`, el camino de VOD
+   `b)`, el cable de los interruptores `c)`, las pruebas de unidad `d)`, la
+   confianza TLS de cada conexión `e)`, que ningún idioma llame Jellyfin a la
+   app `f)`, que no lo haga tampoco un literal del código ni una cadena viva
+   de `values/` `g)` **(nueva el 30-oct)**, que no haya ninguna dirección de
+   servidor escrita en el repositorio `h)` y que no quede código muerto en lo
+   nuestro `i)` **(las dos nuevas el 04-nov)**.
+
+   **Aquí ponía «siete» y se quedó atrás el mismo día en que se añadieron las
+   dos últimas.** Importa más de lo que parece: esta lista es lo que alguien
+   lee antes de subir, y una lista que nombra menos comprobaciones de las que
+   hay enseña a dar por bueno un verde incompleto.
 4. La entrada correspondiente está escrita en `LIVETV_LOG.md`
 5. **El commit se etiqueta en el repositorio público** con la misma versión
    (`v0.1.0-rc.1`). La oferta de la GPL-2.0 es del código **correspondiente al
-   binario**, y sin etiqueta nadie puede saber cuál lo produjo (§5)
+   binario**, y sin etiqueta nadie puede saber cuál lo produjo (§5).
+
+   **Empujar esa etiqueta no dispara nada, y conviene saberlo antes de
+   dudarlo:** el upstream trae un flujo `app-publish.yaml` que arranca con
+   `push: tags: v*`, pero lleva `if: contains(github.repository_owner,
+   'jellyfin')` y el nuestro es `Kataliziador`. Comprobado leyéndolo el 04-nov
+6. **Las capturas de la ficha corresponden a esta versión.** Es nuevo en la
+   lista y está aquí porque ya falló una vez: tres de las cuatro se quedaron
+   describiendo una interfaz que había cambiado dos días antes, y el revisor
+   compara la foto con lo que ve. Se rehacen con
+   `python3 -I herramientas/capturar-ficha.py` (`FICHA.md` §5)
 
 ### Lo verificado el 29-oct sobre `0.1.0-rc.1`
 
