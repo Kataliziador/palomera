@@ -175,12 +175,24 @@ sólo prueba que el contrato es igual o posterior a esa fecha.
 
 ## 5. Capturas de TV — mínimo 1, 1920×1080
 
-De **la demo**, nunca del site de un cliente (`PLAY.md` §6). Cuatro bastan:
+De **la demo**, nunca del site de un cliente (`PLAY.md` §6). **Se suben tres**:
 
 1. la sección de TV en vivo con la guía y el canal enfocado;
 2. un canal de carta de ajuste con la barra de canal encima (ahora y luego);
-3. la pantalla «Activa tu televisión» con el código;
-4. la fila de películas en el inicio.
+3. la pantalla «Activa tu televisión» con el código.
+
+**La cuarta —el inicio— se descartó el 04-nov.** Aquí ponía que «cuatro
+bastan» y que la 4 «es la más floja»; desde que `f18ad1141` borró de esa
+pantalla la fila «TV en vivo», dejó de ser floja y pasó a restar: una
+biblioteca, dos películas que son cartas de ajuste y los títulos cortados a
+media palabra. En un carrusel de tienda una pantalla medio vacía trabaja en
+contra, y las otras tres cuentan la historia entera — qué canales hay, cómo se
+ve uno, cómo se activa el aparato.
+
+Se sigue capturando en cada pasada, a `no-se-suben/`, porque es una
+comprobación barata de que el inicio sigue en pie. Que la app también tiene
+VOD se dice en la descripción y en las notas al revisor (§3 y §4), que es
+donde esa información sirve de algo.
 
 Con tunneled puesto, `screencap` sale **negro** sobre un canal (§6); la 2 se
 saca en el emulador de TV o con el interruptor de diagnóstico apagado en una
@@ -236,7 +248,8 @@ viven en `/home/proyectos/palco-demo/.env` —`PALCO_DEMO_USUARIO` y
 de ahí en vez de copiarse. Un secreto duplicado en dos archivos diverge.
 
 Levanta `tv34`, instala el **release**, lo pone en es-MX y hora de México,
-entra a la demo y saca **las cuatro**.
+entra a la demo y saca las tres que se suben, más el inicio en
+`no-se-suben/`.
 
 No usa relojes: **espera a que aparezca un texto concreto** en el árbol de
 vistas, y para moverse **mira dónde está el foco** en vez de contar

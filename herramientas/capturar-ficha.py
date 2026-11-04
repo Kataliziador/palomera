@@ -172,8 +172,8 @@ def enfocar(destino: str, direccion: str = "KEYCODE_DPAD_DOWN", pasos: int = 8) 
 
 
 def captura(nombre: str) -> Path:
-    DESTINO.mkdir(parents=True, exist_ok=True)
     destino = DESTINO / nombre
+    destino.parent.mkdir(parents=True, exist_ok=True)
     r = subprocess.run(["adb", "-s", SERIE, "exec-out", "screencap", "-p"], capture_output=True)
     destino.write_bytes(r.stdout)
     print(f"{VERDE}  ✓ {nombre}  ({len(r.stdout) / 1024:.0f} kB){FIN}")
@@ -377,7 +377,11 @@ def main() -> int:
 
     print("capturando")
     time.sleep(5)
-    captura("4-inicio.png")
+    # El inicio se captura pero **no se sube** (ver no-se-suben/LEEME.txt):
+    # desde que se borró la fila «TV en vivo» esa pantalla queda casi vacía y
+    # en un carrusel de tienda una pantalla vacía resta. Se sigue sacando
+    # porque es una comprobación barata de que el inicio sigue en pie.
+    captura("no-se-suben/4-inicio.png")
 
     # Subir a la barra principal y caminar hasta «TV en vivo». Dos direcciones
     # porque desde el inicio hay que subir, y una vez arriba moverse de lado.
