@@ -8769,3 +8769,94 @@ también.
 Modo B.
 
 **Estado:** cerrada.
+
+---
+
+## La televisión se entera de la suspensión sin esperar a un reinicio — 2026-11-04
+
+El **pendiente 84**, abierto desde que el panel de abonados lo pidió y
+bloqueado esperando una decisión de Edgar sobre la imagen.
+
+La sección sólo usaba la sesión de Jellyfin para sacar el host del servidor de
+canales, así que una caja **encendida** seguía dando televisión después de que
+el operador suspendiera al abonado: el corte esperaba al siguiente arranque y
+una caja de salón pasa días sin reiniciarse. Para un ISP, eso es que el corte
+por impago no sirva de nada.
+
+### Lo que decidió Edgar, y lo que decidí yo
+
+Él pidió la pantalla: **«una pantalla de color sólido que diga cuenta
+suspendida, comuníquese con su proveedor para reactivar»**. Y me dejó el resto
+—«confío en tu juicio»—, que era la parte Modo A: qué le pasa a la imagen que
+está en marcha cuando llega el 403.
+
+**No se corta nada.** Cortar en seco es apagarle la televisión a alguien que a
+lo mejor pagó hace diez minutos y el panel todavía no se ha enterado; y
+esperar al siguiente encendido es lo que ya pasaba y es justo lo que se viene
+a arreglar. El punto medio: **el aviso sale encima del vídeo al instante**, lo
+que se está viendo termina, y **la primera tecla devuelve a la guía**, donde
+está la pantalla entera. Se entera en segundos, no se le corta la película, y
+no hay forma de seguir zapeando sin verla. ATRÁS se deja pasar: va al mismo
+sitio por su propio camino.
+
+### El texto no es nuevo, y eso es lo que lo hace bueno
+
+Son las cadenas `livetv_acceso_suspendido_*`, escritas el 28-oct para este
+mismo caso al arrancar la app. Reusarlas no es ahorro: es que el abonado lea
+**lo mismo** se entere al encender la caja o a media tarde. La frase que más
+vale es la segunda —«no hace falta activar el aparato otra vez»—, porque sin
+ella el abonado reactivado llama pidiendo un código nuevo, entra con otra
+sesión y el panel del operador ve un dispositivo de más.
+
+**La barra de arriba se queda** en la pantalla de suspendido. Sin ella el
+abonado se queda mirando un mensaje sin ninguna salida a la vista, y el propio
+texto le promete que sus películas siguen ahí.
+
+### Tampoco hizo falta inventar el protocolo
+
+El Jellyfin del ISP **ya contesta 403** a cualquier petición de un abonado
+suspendido, medido el 28-oct contra 10.11.11 y 12.0.0. Así que esto es
+preguntar por `GET /Users/Me` cada cuarto de hora y leer la respuesta con la
+clasificación que ya existía (`SessionFailure`).
+
+| respuesta | qué significa | qué hace |
+|---|---|---|
+| **403** | contrato suspendido, el token sigue vivo | **cierra la sección** |
+| no contesta | el site apagado, sin red, reiniciándose | nada, y reintenta en 1 min en vez de 15 |
+| 401 y lo demás | la credencial ya no sirve | nada: de eso se encarga la puerta de la sesión |
+
+**Que un «no contesta» no cierre nada no es prudencia, es la regla de §6 otra
+vez**: en el despliegue normal la caja llega a la LAN del ISP antes que a nada
+más, y cortar la televisión porque un servidor tardó en responder convierte
+cada hipo del site en una llamada a soporte. Y **401 tampoco cierra con este
+texto**: quiere decir «hay que activar la caja otra vez», no «paga», y
+enseñar «Servicio suspendido» mandaría al abonado a pagar lo que ya pagó.
+
+Los quince minutos son los que pide el panel. No se baja más porque **el coste
+no es la petición, es el corte de más**: preguntar cada minuto multiplica por
+quince los encuentros con un servidor a medio reiniciar.
+
+### Apagado de fábrica, que es lo que manda el Modo A
+
+`vigilarSuspensionEnabled`, apagado: el valor por defecto es el comportamiento
+anterior hasta que Edgar lo valide en pantalla (§3). Y con él viene
+**`simularSuspension`**, porque sin un simulador la única forma de ver estas
+pantallas sería suspender de verdad a un abonado de un site vivo — tocar
+producción para mirar una maqueta. Es el mismo recurso que `simularDenegacion`.
+
+### Comprobado
+
+**Visto en la caja**, con el simulador y el APK de hoy: la sección enseña
+«Servicio suspendido» con las dos frases y la línea del VOD, bajo la barra de
+siempre. Queda la captura. Lo que **no** se ha visto todavía es el aviso sobre
+el vídeo ni la vuelta a la guía al pulsar una tecla: hace falta un canal
+reproduciendo, y eso entra en la sesión de validación de las cinco pantallas.
+
+Seis pruebas nuevas en `app/src/test/kotlin/livetv/`, sobre la tabla de
+decisiones y no sobre la petición: lo que no puede cambiar por descuido es que
+un servidor lento apague la televisión de quien está al día. Las nueve
+comprobaciones en verde, `:app:assembleDebug`, `:app:testDebugUnitTest` y
+`:livetv:test` también.
+
+**Estado:** abierta — a falta de validar en pantalla el aviso sobre el vídeo, y
+de que Edgar decida encenderlo de fábrica.

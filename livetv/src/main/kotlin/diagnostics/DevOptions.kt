@@ -277,6 +277,33 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_ZAPEO_AVISO, v) }
 
 	/**
+	 * Vigilar que el contrato del abonado siga vivo mientras la sección está
+	 * abierta (pendiente 84).
+	 *
+	 * Apagado de fábrica: es Modo A y el valor por defecto tiene que ser el
+	 * comportamiento anterior hasta que se valide en pantalla.
+	 */
+	var vigilarSuspensionEnabled: Boolean
+		get() = prefs.getBoolean(K_VIGILAR_SUSPENSION, LiveTuning.VIGILAR_SUSPENSION_DEFAULT)
+		set(v) = put { putBoolean(K_VIGILAR_SUSPENSION, v) }
+
+	/**
+	 * Fingir que el servidor del ISP contesta 403, sin suspender a nadie.
+	 *
+	 * **Sin esto no hay forma de validar el pendiente 84 en pantalla**: habría
+	 * que suspender de verdad a un abonado en el Jellyfin de un site vivo, que
+	 * es tocar producción para mirar una maqueta. Es el mismo recurso que
+	 * [simularDenegacion] para la puerta del registro.
+	 *
+	 * Enciende la vigilancia aunque [vigilarSuspensionEnabled] esté apagado:
+	 * el que lo activa quiere ver la pantalla, no recordar que hay que
+	 * encender dos cosas.
+	 */
+	var simularSuspension: Boolean
+		get() = prefs.getBoolean(K_SIM_SUSPENDIDO, false)
+		set(v) = put { putBoolean(K_SIM_SUSPENDIDO, v) }
+
+	/**
 	 * Fingir que no llegó el primer fotograma, para poder ver el rescate.
 	 *
 	 * Sin esto no hay forma de probarlo: la caja de pruebas entrega imagen con
@@ -589,8 +616,10 @@ class DevOptions(context: Context) {
 		if (abrAfinadoEnabled != LiveTuning.ABR_AFINADO_DEFAULT) add("abr afinado")
 		if (registryUrlOverride != null) add("registro=manual")
 		if (simularDenegacion > 0) add("FINGE DENEGADO=$simularDenegacion")
+		if (simularSuspension) add("FINGE SUSPENDIDO")
 		if (prefs.contains(K_RESCATE_TUNNELED)) add("rescateTunneled=${if (rescateTunneledEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_ZAPEO_AVISO)) add("zapeoEnAviso=${if (zapeoEnAvisoEnabled) "ON" else "OFF"}")
+		if (prefs.contains(K_VIGILAR_SUSPENSION)) add("vigilaSuspension=${if (vigilarSuspensionEnabled) "ON" else "OFF"}")
 		if (prefs.contains(K_AUDIO_DEFAULT)) add("audioPorDefecto=${if (audioDefaultEnabled) "ON" else "OFF"}")
 		if (wideTimestampSearch) add("búsqueda amplia")
 		if (prefs.contains(K_TS_AUD)) add("AUD=${if (tsDetectAccessUnits) "on" else "off"}")
@@ -650,6 +679,8 @@ class DevOptions(context: Context) {
 		const val K_RESCATE_TUNNELED = "rescateTunneledEnabled"
 		const val K_ABR_AFINADO = "abrAfinadoEnabled"
 		const val K_ZAPEO_AVISO = "zapeoEnAvisoEnabled"
+		const val K_VIGILAR_SUSPENSION = "vigilarSuspensionEnabled"
+		const val K_SIM_SUSPENDIDO = "simularSuspension"
 		const val K_SIM_SIN_IMAGEN = "simularTunneledSinImagen"
 		const val K_REGISTRY_URL = "registryUrlOverride"
 		const val K_ATTACH_AL_CAMBIAR = "attachSoloAlCambiar"
@@ -670,7 +701,7 @@ class DevOptions(context: Context) {
 			K_RESCATE_TUNNELED, K_SIM_SIN_IMAGEN, K_REGISTRY_URL, K_ATTACH_AL_CAMBIAR,
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
 			K_PREP_SUPERFICIE, K_RESYNC_CALC, K_RESYNC_ADELANTA, K_RESYNC_MARGEN,
-			K_ZAPEO_AVISO, K_ABR_AFINADO,
+			K_ZAPEO_AVISO, K_ABR_AFINADO, K_VIGILAR_SUSPENSION, K_SIM_SUSPENDIDO,
 		)
 
 		const val OVERLAY_OCULTO = 0

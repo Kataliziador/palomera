@@ -215,6 +215,34 @@ private fun DevMenu() {
 
 		item {
 			Row(
+				label = "Vigilar la suspensión del abonado",
+				value = if (dev.vigilarSuspensionEnabled) "ACTIVO" else "apagado (pendiente 84)",
+				changed = dev.procedenciaDe(DevOptions.K_VIGILAR_SUSPENSION) == "menú",
+			) { change { dev.vigilarSuspensionEnabled = !dev.vigilarSuspensionEnabled } }
+		}
+		item {
+			Info(
+				"Pregunta al Jellyfin del ISP cada 15 min si el contrato sigue vivo. " +
+					"Con un 403 la sección se cierra con la pantalla de suspendido, y lo que " +
+					"se está viendo no se corta: el aviso sale sobre el vídeo y la pantalla " +
+					"aparece al cambiar de canal o volver a la guía. Un «no contesta» nunca " +
+					"cierra nada."
+			)
+		}
+
+		item {
+			Row(
+				label = "Fingir abonado suspendido",
+				value = if (dev.simularSuspension) "FINGIENDO" else "no",
+				changed = dev.simularSuspension,
+			) { change { dev.simularSuspension = !dev.simularSuspension } }
+		}
+		item {
+			Info("Enseña las dos pantallas del pendiente 84 sin suspender a nadie de verdad: en la guía, la de «Servicio suspendido»; sobre el vídeo, el aviso pequeño, y la primera tecla devuelve a la guía.")
+		}
+
+		item {
+			Row(
 				label = "Fingir tunneled sin imagen",
 				value = if (dev.simularTunneledSinImagen) "FINGIENDO" else "no",
 				changed = dev.simularTunneledSinImagen,

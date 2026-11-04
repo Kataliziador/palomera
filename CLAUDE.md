@@ -399,6 +399,15 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      `ui/startup/fragment/UserLogin{Credentials,QuickConnect}Fragment.kt`, más
      su prueba en `app/src/test/kotlin/auth/` **(añadidos el 28-oct)**.
 
+     **Y `app/src/test/kotlin/livetv/`, añadido el 04-nov** con la vigilancia
+     de la suspensión (pendiente 84). Son pruebas de la sección, no de la
+     puerta de la sesión; están aquí y no en el módulo porque la regla que
+     protegen usa `SessionFailure`, que es de `app`. Lo que prueban es la
+     **tabla de decisiones** —qué respuesta del Jellyfin del ISP cierra la
+     televisión y cuál no—, que es lo único de todo esto que no puede cambiar
+     por descuido: la petición es trivial, y un servidor que tarda en
+     responder no puede apagarle la televisión a un abonado que está al día.
+
      **Qué arregla:** el servidor del ISP distingue tres cosas y la app las
      trataba como una. `SessionRepository` atrapaba `ApiClientException` a
      secas, así que un **403** —contrato suspendido, el token sigue vivo— y un

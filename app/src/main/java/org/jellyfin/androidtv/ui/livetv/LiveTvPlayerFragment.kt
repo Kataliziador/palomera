@@ -455,6 +455,19 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 	// de horas, y la llamada no hace nada si ya la cubre.
 	LaunchedEffect(ahoraMs / 60_000) { LiveTvCatalog.of(context).guiaSiHaceFalta(ahoraMs) }
 
+	// Si el contrato del abonado sigue vivo (pendiente 84). Aquí **no se corta
+	// la imagen**: lo que se está viendo termina, y el aviso sale encima del
+	// vídeo. La pantalla entera aparece en cuanto se toque algo —zapear o
+	// volver a la guía—, y de eso se encarga el manejo de teclas de abajo.
+	val vigilante = remember { LiveTvSuspension.of(context) }
+	val suspendido by vigilante.suspendido.collectAsState()
+	LaunchedEffect(vigilante) {
+		while (true) {
+			vigilante.comprobarSiHaceFalta()
+			delay(LiveTuning.VIGILAR_SUSPENSION_REINTENTO_MS)
+		}
+	}
+
 	val favoritos = remember { LiveTvFavorites.of(context) }
 	val favoritosIds by favoritos.ids.collectAsState()
 
@@ -619,6 +632,20 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				if (evento.type != KeyEventType.KeyDown) return@onKeyEvent false
 				pulsacion++
 
+				// **Suspendido: la primera tecla devuelve a la guía**, que es
+				// donde está la pantalla que lo explica (pendiente 84).
+				//
+				// Así se cumplen las dos mitades de la decisión: lo que se
+				// estaba viendo no se corta —el aviso de arriba avisa y ya
+				// está— pero **no se puede seguir zapeando**, que sería dejar
+				// la televisión abierta a quien ya no la paga. ATRÁS se deja
+				// pasar: va al mismo sitio por su propio camino.
+				if (suspendido && evento.key != Key.Back && evento.key != Key.Escape) {
+					LiveLog.info("abonado.suspendido.sale", "canal" to channel.id)
+					alSalir()
+					return@onKeyEvent true
+				}
+
 				// Un menú abierto se queda con las teclas: ▲▼ recorren sus
 				// opciones en vez de cambiar de canal.
 				val menu = menuAbierto
@@ -729,6 +756,13 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		// entonces hay que volver a entregársela aunque la vista sea la misma.
 		LaunchedEffect(engine, vista, dev.attachSoloAlCambiar) {
 			if (dev.attachSoloAlCambiar) vista?.let { engine.attach(it) }
+		}
+
+		// El aviso de suspensión va **encima de todo y siempre visible**, no
+		// dentro de la barra: la barra se esconde sola a los pocos segundos y
+		// este aviso tiene que seguir ahí hasta que el abonado haga algo.
+		if (suspendido) {
+			AvisoSuspendido(modifier = Modifier.align(Alignment.TopCenter).padding(top = 28.dp))
 		}
 
 		if (barraVisible) {

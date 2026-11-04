@@ -113,6 +113,9 @@ PERMITIDO = [
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ServerFragment\.kt$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/UserLogin(Credentials|QuickConnect)Fragment\.kt$",
 	r"^app/src/test/kotlin/auth/",
+	# las pruebas de la sección que no caben en el módulo porque necesitan
+	# tipos de `app` — la tabla de decisiones del pendiente 84 (04-nov)
+	r"^app/src/test/kotlin/livetv/",
 	# utilería fuera de la app
 	r"^herramientas/",
 	r"^headend/",
@@ -147,6 +150,9 @@ DICEN_JELLYFIN = {
 LITERALES_JELLYFIN = {
 	"sin host de Jellyfin que consultar": "motivo de diagnóstico, no se pinta",
 	"derivada de Jellyfin": "procedencia de la URL en el latido",
+	"Pregunta al Jellyfin del ISP cada 15 min si el contrato sigue vivo. ":
+		"la ayuda del interruptor del pendiente 84: nombra el servidor del ISP, "
+		"que es a quien se le pregunta, y sólo se ve en el menú de depuración",
 }
 
 # `K_OVERLAY_MODE` está fuera de `CLAVES_DEL_MENU` a propósito: el overlay es

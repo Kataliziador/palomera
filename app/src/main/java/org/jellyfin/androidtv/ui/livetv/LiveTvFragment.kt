@@ -113,18 +113,42 @@ class LiveTvFragment : Fragment() {
 				}
 			}
 
+			// Si el contrato del abonado sigue vivo (pendiente 84). Se mira al
+			// entrar y cada cuarto de hora: una caja de salón pasa días sin
+			// reiniciarse, y hasta ahora el corte esperaba al siguiente
+			// arranque. Ver [LiveTvSuspension].
+			val vigilante = remember { LiveTvSuspension.of(requireContext()) }
+			val suspendido by vigilante.suspendido.collectAsState()
+			LaunchedEffect(vigilante) {
+				while (true) {
+					vigilante.comprobarSiHaceFalta()
+					delay(LiveTuning.VIGILAR_SUSPENSION_REINTENTO_MS)
+				}
+			}
+
 			Column(modifier = Modifier.fillMaxSize()) {
+				// **La barra se queda también con la sección cerrada**, y es
+				// deliberado: sin ella el abonado se queda mirando un mensaje
+				// sin ninguna salida a la vista. Es lo único que le dice que
+				// Inicio sigue ahí, que es justo lo que el texto promete.
 				MainToolbar(MainToolbarActiveButton.LiveTv)
 
-				ChannelRow(
-					catalog = catalogo,
-					onChannelClick = { channel ->
-						navigationRepository.navigate(Destinations.liveTvPlayer(channel.id))
-					},
-					onDiagnosticsClick = {
-						navigationRepository.navigate(Destinations.liveTvDevMenu)
-					},
-				)
+				if (suspendido) {
+					// Nada de canales detrás: la sección no está «con un
+					// aviso», está cerrada. Lo demás ni se compone, así que
+					// tampoco sigue pidiendo catálogo ni guía.
+					PantallaSuspendido()
+				} else {
+					ChannelRow(
+						catalog = catalogo,
+						onChannelClick = { channel ->
+							navigationRepository.navigate(Destinations.liveTvPlayer(channel.id))
+						},
+						onDiagnosticsClick = {
+							navigationRepository.navigate(Destinations.liveTvDevMenu)
+						},
+					)
+				}
 			}
 		}
 	}

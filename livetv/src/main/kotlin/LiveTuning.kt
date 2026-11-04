@@ -568,6 +568,51 @@ object LiveTuning {
 	 */
 	const val ZAPEO_EN_AVISO_DEFAULT = true
 
+	// --- Suspensión del abonado ---------------------------------------------
+
+	/**
+	 * Si la sección vigila que el contrato del abonado siga vivo mientras está
+	 * abierta.
+	 *
+	 * **El pendiente 84.** La sección sólo usa la sesión de Jellyfin para sacar
+	 * el host del servidor de canales, así que una caja **encendida** sigue
+	 * dando televisión después de que el operador suspenda al abonado: el corte
+	 * esperaba al siguiente arranque, y una caja de salón está días sin
+	 * reiniciarse. Para un ISP eso es la diferencia entre que el corte por
+	 * impago sirva de algo o no.
+	 *
+	 * **Apagado de fábrica porque es Modo A** (`CLAUDE.md` §3): el valor por
+	 * defecto es el comportamiento anterior hasta que Edgar lo valide en
+	 * pantalla. Lo que hay que mirar en una tele no es la petición —eso es
+	 * trivial— sino qué le pasa a la imagen cuando contesta 403.
+	 */
+	const val VIGILAR_SUSPENSION_DEFAULT = false
+
+	/**
+	 * Cada cuánto se le pregunta al Jellyfin del ISP si el contrato sigue vivo.
+	 *
+	 * Quince minutos, que es lo que pide el panel de abonados. No se baja más
+	 * porque **el coste no es la petición, es el corte de más**: una caja que
+	 * pregunta cada minuto multiplica por quince las veces que puede toparse
+	 * con un servidor a medio reiniciar, y un falso corte molesta mucho más que
+	 * enterarse de la suspensión un cuarto de hora tarde. El abonado que acaba
+	 * de pagar tampoco espera volver en segundos.
+	 *
+	 * Y no se sube más porque quince minutos ya es el tiempo que un abonado
+	 * suspendido sigue viendo televisión gratis.
+	 */
+	const val VIGILAR_SUSPENSION_CADA_MS = 15 * 60 * 1000L
+
+	/**
+	 * Lo que se espera antes de volver a preguntar tras un «no contesta».
+	 *
+	 * Un minuto, no quince: si el site estaba reiniciándose, quince minutos de
+	 * penalización por una respuesta que no era un «no» es demasiado. **Un «no
+	 * contesta» nunca cierra la sección** —eso lo decide sólo el 403— así que
+	 * reintentar pronto es barato.
+	 */
+	const val VIGILAR_SUSPENSION_REINTENTO_MS = 60_000L
+
 	/**
 	 * Espera entre escalones de recuperación.
 	 *
