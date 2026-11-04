@@ -8324,3 +8324,42 @@ Modo B: no toca decodificación, red, buffers, render ni recuperación.
 `comprobar.py` en verde, las dos comprobaciones de §4.7 sin novedades.
 
 **Estado:** cerrada, a reserva de lo que Edgar vea en pantalla.
+
+#### Dos cosas que vio Edgar el mismo día
+
+**1. El anillo de foco perdía el trazo del lado de fuera en la primera ficha de
+cada fila.** Confirmado ampliando el borde izquierdo del canal 101 en la
+captura: el anillo se dibuja arriba, abajo y en las dos esquinas redondeadas,
+y **falta la vertical izquierda**. La ficha enfocada crece un 4 % —unos 8 dp
+de 198—, o sea que asoma 4 dp por cada lado; la primera de una fila empieza
+justo en el borde de la lista y una lista perezosa recorta lo que se sale.
+
+No se arregla con un `padding`, que encogería la lista y movería las fichas
+hacia dentro. La guía se mide ahora **8 dp más ancha** de lo que le dan y se
+coloca 4 dp a la izquierda, y esos 4 dp se devuelven como `contentPadding` de
+cada fila: el recorte se va hacia fuera y las fichas siguen donde estaban.
+Comprobado con el mismo recorte ampliado, que ahora enseña la vertical entera.
+
+El caso del borde derecho **no se llegó a ver y probablemente no existía**: la
+fila se desplaza sola hasta centrar lo que tiene el foco, así que la última
+ficha visible por la derecha nunca se queda enfocada pegada al borde. La
+holgura lo cubre igual por los dos lados.
+
+**2. «La pista del progreso sale gris, en el lienzo era de un color
+llamativo.»** No es un defecto: ese color **es la marca del ISP** y el site de
+los probadores **no publica `brand`** —verificado con `curl` contra
+`148.113.220.228:8097/config.json`: devuelve `null`—, así que la app cae a
+`Brand.NEUTRA` y su `ACENTO_NEUTRO`, que es el mismo gris de la tinta
+secundaria. Un site sin marca se ve monocromo a propósito (ver `LiveTvPaleta`).
+
+**Y de paso cierra uno de los «no medidos» de arriba: el camino del acento está
+ahora recorrido de punta a punta.** Se sirvió desde esta máquina una copia del
+`config.json` de los probadores con `"brand": {"displayName": "Fibranet",
+"accent": "#17B9A8"}` y se apuntó la APK de depuración ahí con
+`configUrlOverride` (`shared_prefs/livetv.dev.xml`, por `run-as`). El acento
+sale en los tres sitios y en ninguno más: el nombre de la cabecera, **la pista
+de cada ficha** y **el relleno del progreso de la barra**. El override se quitó
+y el site no se tocó.
+
+**Lo que esto sigue sin medir** es el contraste de esa pista sobre vídeo claro,
+por lo de siempre: con tunneled, `screencap` no ve el vídeo (§6).

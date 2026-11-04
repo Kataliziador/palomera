@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -229,10 +230,36 @@ fun LiveTvChannelGrid(
 		label = "velo",
 	)
 
-	Box(modifier = Modifier.fillMaxWidth()) {
+	Box(
+		modifier = Modifier
+			.fillMaxWidth()
+			// **La holgura del anillo de foco, y es un arreglo del 04-nov.** La
+			// ficha enfocada crece un 4 % —unos 8 dp de 198—, o sea que asoma 4
+			// dp por cada lado. En las fichas de en medio sobra sitio, pero la
+			// **primera** de una fila empieza justo en el borde de la lista y
+			// la **última** acaba justo en el otro: ahí los 4 dp caen fuera, y
+			// una lista perezosa recorta lo que se sale. El resultado es un
+			// anillo al que le falta el trazo vertical de ese lado — visto en
+			// la caja, ampliando el borde izquierdo del canal 101.
+			//
+			// No se arregla con un `padding`, que encogería la lista y movería
+			// las fichas hacia dentro. Se arregla midiendo la guía **8 dp más
+			// ancha** de lo que le dan y colocándola 4 dp a la izquierda: el
+			// recorte se va 4 dp hacia fuera por los dos lados y las fichas
+			// siguen exactamente donde estaban, porque la holgura se devuelve
+			// como `contentPadding` de cada fila.
+			.layout { medible, restricciones ->
+				val extra = HOLGURA_DEL_FOCO.roundToPx() * 2
+				val ancho = restricciones.maxWidth
+				val colocable = medible.measure(
+					restricciones.copy(minWidth = ancho + extra, maxWidth = ancho + extra)
+				)
+				layout(ancho, colocable.height) { colocable.place(-extra / 2, 0) }
+			}
+	) {
 		LazyColumn(
 			state = verticalState,
-			modifier = modifier.focusGroup(),
+			modifier = modifier.fillMaxWidth().focusGroup(),
 			verticalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FILAS),
 			contentPadding = PaddingValues(bottom = AIRE_AL_FINAL),
 		) {
@@ -253,6 +280,10 @@ fun LiveTvChannelGrid(
 						// lo que hace que entren exactamente cuatro en los 864 dp
 						// útiles de la sección (ver [ANCHO_TARJETA]).
 						horizontalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FICHAS),
+						// Devuelve la holgura que la guía se tomó de más, para
+						// que la primera ficha siga empezando donde empieza el
+						// título de su grupo.
+						contentPadding = PaddingValues(horizontal = HOLGURA_DEL_FOCO),
 					) {
 						itemsIndexed(seccion.channels, key = { _, c -> c.id }) { indice, canal ->
 							val suya = franja(canal)
@@ -350,7 +381,9 @@ fun LiveTvChannelGrid(
 @Composable
 private fun CabeceraDeGrupo(titulo: String, canales: Int) {
 	Row(
-		modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+		// 8 = los 4 de siempre más los 4 de holgura que la guía se tomó por
+		// fuera; así el título sigue alineado con la primera ficha.
+		modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		Text(
@@ -382,6 +415,16 @@ private fun CabeceraDeGrupo(titulo: String, canales: Int) {
  * cuenta, y tocar uno sin los otros corta la cuarta ficha por el borde.
  */
 private val SEPARACION_ENTRE_FICHAS = 24.dp
+
+/**
+ * Lo que asoma una ficha enfocada por cada lado, y que la lista tiene que
+ * poder dibujar sin recortarlo.
+ *
+ * Sale de la escala del foco: 198 dp al 1,04 son 7,92 de más, 3,96 por lado.
+ * Cuatro redondeando. Si cambia `ESCALA_ENFOCADA` o [ANCHO_TARJETA], este
+ * número cambia con ellos.
+ */
+private val HOLGURA_DEL_FOCO = 4.dp
 
 /**
  * La separación entre dos filas de canales.
