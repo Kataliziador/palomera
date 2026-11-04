@@ -227,23 +227,41 @@ invalida, pero los cambios de los dos días anteriores ya habían pasado:
 **Y ahora se rehacen con una orden**, que es lo que faltaba:
 
 ```bash
-set -a; . herramientas/entorno.local; set +a
 python3 -I herramientas/capturar-ficha.py
 ```
 
-Levanta `tv34`, instala el release, lo pone en es-MX y hora de México, entra a
-la demo y saca la 1, la 2 y la 4. **Necesita `DEMO_USUARIO` y `DEMO_CLAVE`** en
-`herramientas/entorno.local`, que es donde tiene que vivir esa clave.
+Sin argumentos y **sin escribir ninguna clave**: las credenciales de la demo ya
+viven en `/home/proyectos/palco-demo/.env` —`PALCO_DEMO_USUARIO` y
+`PALCO_DEMO_CLAVE`, con el nombre de cuando la app se llamaba Palco— y se leen
+de ahí en vez de copiarse. Un secreto duplicado en dos archivos diverge.
+
+Levanta `tv34`, instala el **release**, lo pone en es-MX y hora de México,
+entra a la demo y saca **las cuatro**.
 
 No usa relojes: **espera a que aparezca un texto concreto** en el árbol de
-vistas, porque un `sleep` fijo sobre un emulador lento captura una pantalla a
-medio pintar y eso se ve en la foto pero no en el código. Aun así, **hay que
-mirarlas antes de subirlas**: una automatización de interfaz puede acertar
-todos los pasos y encuadrar mal el último.
+vistas, y para moverse **mira dónde está el foco** en vez de contar
+pulsaciones. Las dos cosas salieron de fallos reales el 04-nov: un `sleep` fijo
+captura una pantalla a medio pintar, y contar pulsaciones funciona hasta que
+alguien añade una fila — un «abajo» de más hizo que la captura 2 saliera del
+canal 201 en vez del 101. Aun así, **hay que mirarlas antes de subirlas**: una
+automatización puede acertar todos los pasos y encuadrar mal el último.
 
-**La 3 no la rehace, y no es un olvido:** la pantalla del código aparece sólo
-con QuickConnect encendido, y la demo lo tiene **apagado a propósito** para que
-el probador vaya directo a usuario y contraseña.
+**Dos cosas que hay que saber de las dos demos, y una contradice lo que este
+documento decía:**
+
+- **la copia local sí tiene QuickConnect encendido**, así que la captura 3 —la
+  del código— **sí se rehace**. La de OVH lo tiene apagado a propósito, para
+  que el probador vaya directo a usuario y contraseña;
+- **se usa la copia local, y por su IP de LAN, no por `10.0.2.2`.** Medido el
+  04-nov contra `/v1/resolve`: el host de OVH y la IP de LAN de esta máquina
+  dan `authorized=true` y site `demo`; **`10.0.2.2` da `authorized=false`** y
+  la sección enseña «Este servidor no está dado de alta». Llegan al mismo
+  Jellyfin; lo que cambia es el nombre que la app le dice al registro.
+
+  Se usa la local y no la de OVH porque **la de OVH es la del revisor de
+  Google**, y Jellyfin desactiva una cuenta tras varios intentos fallidos: las
+  cuentas `probador` y `revisor` no se gastan en los reintentos de una
+  automatización.
 
 **Las cuatro actuales están sacadas** el 02-nov, 1920×1080, de un release
 0.1.0-rc.1 en es-MX sobre `tv34`, contra la demo. En este orden:

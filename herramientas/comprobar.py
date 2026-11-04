@@ -595,6 +595,7 @@ def ninguna_direccion_de_site(inf: Informe) -> None:
 		"1.1.1.1": "resolutor de Cloudflare, citado como ejemplo",
 		"8.8.8.8": "resolutor de Google, citado como ejemplo",
 		"9.9.9.9": "resolutor de Quad9, citado como ejemplo",
+		"10.0.2.2": "la máquina anfitriona vista desde cualquier emulador de Android; una constante de la plataforma, no un servidor",
 	}
 	# RFC 5737: reservadas para documentación. No son de nadie y no se enrutan.
 	DOCUMENTACION = (
