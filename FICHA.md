@@ -246,6 +246,26 @@ alguien añade una fila — un «abajo» de más hizo que la captura 2 saliera d
 canal 201 en vez del 101. Aun así, **hay que mirarlas antes de subirlas**: una
 automatización puede acertar todos los pasos y encuadrar mal el último.
 
+**Nada de lo que se ve en las cuatro tiene licencia de nadie, y está
+comprobado**, no supuesto — leído el 04-nov del `config.json`, del `epg.xml` y
+de la biblioteca de la demo:
+
+| en la captura | qué es |
+|---|---|
+| los 8 canales | «Palomera Uno» … «Palomera Ocho», con logos que son cuadrados de color nuestros |
+| los programas de la guía | «Señal de prueba», «Barras de color», «Pantalla de ajuste», «Tono de referencia» |
+| el vídeo bajo la barra de canal | carta de ajuste generada por `preparar.sh` |
+| la biblioteca de la 4 | dos películas falsas, carátulas de carta de ajuste |
+
+**Y había una fuga, encontrada al comprobarlo:** la biblioteca tenía además
+dos vídeos llamados **«Demostracion Palco»**, huérfanos de antes del cambio de
+nombre del 27-oct. En la captura 4 no salieron por el orden de la fila
+«Recientes», no por garantía. «Palco» es el nombre que el proyecto abandonó
+**porque está tomado por otros en Play México** (`CLAUDE.md` §8), así que
+publicarlo en una captura de tienda era lo contrario de lo que se busca.
+Apartados el 04-nov a `palco-demo/retirados/`, fuera de la biblioteca y fuera
+del control de versiones.
+
 **Dos cosas que hay que saber de las dos demos, y una contradice lo que este
 documento decía:**
 
