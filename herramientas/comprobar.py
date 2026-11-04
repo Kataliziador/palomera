@@ -630,31 +630,85 @@ REGLAS_DE_CODIGO_MUERTO = (
 )
 
 
+INFORME_DETEKT = RAIZ / "build/reports/detekt/detekt.xml"
+
+
+def _es_nuestro(ruta: str) -> bool:
+	"""Si de ese archivo respondemos nosotros.
+
+	**Son tres sitios, no dos.** La primera versión de esta comprobación miraba
+	`livetv/` y `ui/livetv/`, y con eso **no habría visto el defecto que la hizo
+	nacer**: el `navigationRepository` que quedó muerto en `HomeRowsFragment`,
+	que vive en `ui/home/`. Nuestro código es el módulo, la interfaz de la
+	sección **y los archivos que §4.7 nos deja tocar fuera de los dos**, que es
+	exactamente la lista `PERMITIDO` de arriba — así esto se amplía solo cada
+	vez que esa lista crece.
+
+	Lo que queda fuera es el upstream, y queda fuera a propósito: §4 prohíbe
+	tocarlo, así que un aviso suyo haría salir roja una comprobación que nadie
+	puede arreglar. Hoy son tres —`MediaCodecCapabilitiesTest`, un `@Preview` de
+	`fadingEdges` y un parámetro de `playback/jellyfin`— y no son nuestros.
+	"""
+	if ruta.startswith("livetv/src/"):
+		return True
+	if ruta.startswith("app/src/main/java/org/jellyfin/androidtv/ui/livetv/"):
+		return True
+	return any(re.search(p, ruta) for p in PERMITIDO)
+
+
 def nada_de_codigo_muerto(inf: Informe) -> None:
 	"""i) — ninguna de las reglas de código muerto de detekt, en nuestro código.
 
-	Acotada a `livetv/` y a `ui/livetv/`: el resto del árbol es del upstream y
-	sus avisos no son nuestros para arreglar — ponerlos aquí haría que la
-	comprobación saliera roja por algo que §4 prohíbe tocar.
+	**Lee el informe XML, no la salida de la consola, y la primera versión leía
+	la consola.** Con eso daba un falso negativo de libro: `./gradlew detekt`
+	deja la tarea en `UP-TO-DATE` en cuanto nada ha cambiado y entonces **no
+	reimprime ni un aviso**, así que la comprobación salía en verde por no ver
+	nada, no por no haber nada. Medido el 04-nov: con 534 avisos en el informe,
+	la consola imprimió cero y la comprobación pasó.
+
+	Que saliera bien al probarla al revés no la salvaba — meter un parámetro
+	muerto cambia un archivo, así que detekt se volvía a ejecutar y sí imprimía.
+	El instrumento funcionaba **solo en la condición en que se probó**, que es
+	la trampa contra la que avisa la propia regla de medir antes de afirmar.
+
+	El informe en disco no tiene ese problema: lo escribe la tarea y sigue
+	siendo válido mientras siga `UP-TO-DATE`, porque lo que la deja así es que
+	el código no haya cambiado.
 	"""
 	r = subprocess.run(
 		["./gradlew", "detekt", "--console=plain", "-q"],
 		cwd=RAIZ, capture_output=True, text=True,
 	)
-	salida = (r.stdout + r.stderr).splitlines()
-	nuestro = ("/livetv/src/", "/ui/livetv/")
-	muerto = [
-		l.strip() for l in salida
-		if any(s in l for s in nuestro)
-		and any(f"[{regla}]" in l for regla in REGLAS_DE_CODIGO_MUERTO)
-	]
-	if muerto:
+	if not INFORME_DETEKT.exists():
 		inf.mal(
-			"i) queda código muerto en la sección",
-			[l.replace(str(RAIZ) + "/", "") for l in muerto],
+			"i) detekt no dejó informe que leer",
+			[str(INFORME_DETEKT.relative_to(RAIZ))]
+			+ (r.stdout + r.stderr).splitlines()[-10:],
 		)
+		return
+
+	import xml.etree.ElementTree as ET
+
+	try:
+		arbol = ET.parse(INFORME_DETEKT)
+	except ET.ParseError as fallo:
+		inf.mal("i) el informe de detekt no se puede leer", [str(fallo)])
+		return
+
+	muerto = []
+	for archivo in arbol.getroot().findall("file"):
+		ruta = (archivo.get("name") or "").replace(str(RAIZ) + "/", "")
+		if not _es_nuestro(ruta):
+			continue
+		for aviso in archivo.findall("error"):
+			regla = (aviso.get("source") or "").split(".")[-1]
+			if regla in REGLAS_DE_CODIGO_MUERTO:
+				muerto.append(f"{ruta}:{aviso.get('line')} [{regla}] {aviso.get('message')}")
+
+	if muerto:
+		inf.mal("i) queda código muerto en nuestro código", sorted(muerto))
 	else:
-		inf.bien("i) ningún código muerto en la sección, según detekt")
+		inf.bien("i) ningún código muerto en nuestro código, según detekt")
 
 
 GANCHO = """#!/bin/sh
