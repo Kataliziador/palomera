@@ -50,6 +50,13 @@ PERMITIDO = [
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/shared/toolbar/MainToolbar\.kt$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/home/HomeFragmentLiveTVRow\.kt$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/home/HomeRowsFragment\.kt$",
+	# el tile de la biblioteca de TV en vivo del Jellyfin del ISP llevaba a la
+	# guía vieja y a DVR; ahora apunta a la sección nueva (04-nov)
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/itemhandling/ItemLauncher\.java$",
+	# la sección «TV en vivo» del inicio ya no dibuja nada: deja de ofrecerse
+	# en Preferencias y deja de ser la ranura 5 de fábrica (04-nov)
+	r"^app/src/main/java/org/jellyfin/androidtv/constant/HomeSectionType\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/preference/UserSettingPreferences\.kt$",
 	# la excepción registrada de deviceProfile (retirada de nextlib)
 	r"^app/src/main/java/org/jellyfin/androidtv/util/profile/deviceProfile\.kt$",
 	# marca y avisos legales
@@ -517,6 +524,139 @@ def pruebas(inf: Informe) -> None:
 		inf.mal("d) :livetv:test falla", (r.stdout + r.stderr).splitlines()[-20:])
 
 
+def ninguna_direccion_de_site(inf: Informe) -> None:
+	"""h) — ninguna dirección de un site real en el repositorio.
+
+	**El repositorio es público**, y `docs/prueba-cerrada.md` §6 lo dice con una
+	razón que no es la de siempre: en el segundo site hay **contenido real cuyos
+	derechos responde Edgar**, y el revisor de Google entra por el demo
+	precisamente para no verlo. Escribir su dirección aquí la pone a un clic y
+	deja sin sentido la frase «ningún material de terceros» de las notas de
+	acceso.
+
+	Esa regla llevaba desde el 31-oct **sin instrumento**, y el 04-nov se
+	incumplió: la IP del site de los probadores entró dos veces en
+	`LIVETV_LOG.md`, escribiendo las entradas sobre el color de su marca. No lo
+	vio nadie hasta que se buscó a mano. Las seis comprobaciones de entonces
+	salían en verde, que es el argumento de la `f)` y la `g)` otra vez: una
+	regla sin comprobación es una regla que se cumple cuando alguien se acuerda.
+
+	**No lleva escrita ninguna dirección, y es deliberado**: un comprobador que
+	guarde el dato que prohíbe publicar es el propio fallo con otro nombre. Lo
+	que busca es la **forma** —cualquier IPv4 enrutable en archivos
+	versionados—, así que también pilla el site del ISP siguiente, que nadie ha
+	escrito todavía.
+
+	Las privadas pasan: `192.168.*` y `10.*` son el entorno de pruebas de §9 y
+	están en la documentación a propósito. Lo que no pasa es una pública, con
+	las excepciones de abajo, cada una con su motivo escrito por lo mismo que
+	`DICEN_JELLYFIN`: el trabajo no es acordarse de la lista, es contestar «¿de
+	quién es esta dirección?» cada vez que aparece una nueva.
+
+	**El filtro es `is_global`, y la primera versión no lo era.** Enumeraba a
+	mano lo que hay que dejar pasar —privada, loopback, multicast, reservada,
+	link-local— y se probó con `203.0.113.7`, que es la red de documentación de
+	la RFC 5737: la comprobación salió **en verde** y pareció que funcionaba.
+	No era que funcionara, era que `ipaddress` cuenta las redes de
+	documentación como privadas y ninguna de las negaciones las nombraba.
+	`is_global` es exactamente la pregunta que esto quiere hacer —«¿es una
+	dirección a la que se puede llegar desde internet?»— y se verificó al
+	revés, con una enrutable de verdad, viéndola salir en rojo.
+	"""
+	import ipaddress
+
+	# Resolutores públicos, nombrados en la documentación de red. No son sites.
+	PERMITIDAS = {
+		"1.1.1.1": "resolutor de Cloudflare, citado como ejemplo",
+		"8.8.8.8": "resolutor de Google, citado como ejemplo",
+		"9.9.9.9": "resolutor de Quad9, citado como ejemplo",
+	}
+
+	patron = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
+	intrusas: dict[str, set[str]] = {}
+	for ruta in git("ls-files"):
+		archivo = RAIZ / ruta
+		try:
+			texto = archivo.read_text(errors="ignore")
+		except OSError:
+			continue
+		for encontrada in patron.findall(texto):
+			if encontrada in PERMITIDAS:
+				continue
+			try:
+				dir_ip = ipaddress.IPv4Address(encontrada)
+			except ipaddress.AddressValueError:
+				continue
+			if not dir_ip.is_global:
+				continue
+			intrusas.setdefault(encontrada, set()).add(ruta)
+
+	if intrusas:
+		inf.mal(
+			"h) hay una dirección pública escrita en el repositorio",
+			[
+				f"{ip} — en {', '.join(sorted(donde))}"
+				for ip, donde in sorted(intrusas.items())
+			] + [
+				"si es un site, no entra (docs/prueba-cerrada.md §6);",
+				"si no lo es, se añade a PERMITIDAS con su motivo",
+			],
+		)
+	else:
+		inf.bien("h) ninguna dirección pública de un site en el repositorio")
+
+
+# Las reglas de detekt que señalan **código muerto**, y solo ésas.
+#
+# Detekt lleva configurado desde el principio y nadie lo mira: no rompe la
+# compilación y no estaba aquí, así que sus 539 avisos del 04-nov eran un
+# montón que nadie abre. La mayoría es ruido legítimo —332 `MagicNumber` que
+# son `dp` de Compose y divisiones por 1000 para formatear un log, no sintonía
+# de §5.7—, y por eso **esta comprobación no pide detekt en verde**: pedirlo
+# obligaría a callar reglas útiles para que el montón bajara.
+#
+# Lo que sí pide es que no quede código muerto, porque es lo que de verdad se
+# colaba: el 04-nov quedaron sin usar `navigationRepository` en
+# `HomeRowsFragment` —residuo del commit que borró la fila del inicio, el mismo
+# que se justificaba diciendo que la clase «se borra en vez de pudrirse»—, el
+# parámetro `tamano` de `LogoDeCanal` y dos parámetros de `opcionesDe`. Los
+# cuatro estaban en el informe de detekt del día anterior.
+REGLAS_DE_CODIGO_MUERTO = (
+	"UnusedParameter",
+	"UnusedPrivateProperty",
+	"UnusedPrivateMember",
+	"UnusedPrivateClass",
+	"UnusedImport",
+)
+
+
+def nada_de_codigo_muerto(inf: Informe) -> None:
+	"""i) — ninguna de las reglas de código muerto de detekt, en nuestro código.
+
+	Acotada a `livetv/` y a `ui/livetv/`: el resto del árbol es del upstream y
+	sus avisos no son nuestros para arreglar — ponerlos aquí haría que la
+	comprobación saliera roja por algo que §4 prohíbe tocar.
+	"""
+	r = subprocess.run(
+		["./gradlew", "detekt", "--console=plain", "-q"],
+		cwd=RAIZ, capture_output=True, text=True,
+	)
+	salida = (r.stdout + r.stderr).splitlines()
+	nuestro = ("/livetv/src/", "/ui/livetv/")
+	muerto = [
+		l.strip() for l in salida
+		if any(s in l for s in nuestro)
+		and any(f"[{regla}]" in l for regla in REGLAS_DE_CODIGO_MUERTO)
+	]
+	if muerto:
+		inf.mal(
+			"i) queda código muerto en la sección",
+			[l.replace(str(RAIZ) + "/", "") for l in muerto],
+		)
+	else:
+		inf.bien("i) ningún código muerto en la sección, según detekt")
+
+
 GANCHO = """#!/bin/sh
 # Las comprobaciones obligatorias de CLAUDE.md §4.7, más el cable de los
 # interruptores. Para saltárselo a propósito: git commit --no-verify
@@ -547,10 +687,13 @@ def main() -> int:
 	confianza_en_cada_conexion(inf)
 	la_app_no_se_llama_jellyfin(inf)
 	nadie_mas_se_llama_jellyfin(inf)
+	ninguna_direccion_de_site(inf)
 	if "--rapido" in sys.argv:
 		print(f"{GRIS}    d) pruebas de unidad omitidas (--rapido){FIN}")
+		print(f"{GRIS}    i) detekt omitido (--rapido){FIN}")
 	else:
 		pruebas(inf)
+		nada_de_codigo_muerto(inf)
 
 	print()
 	if inf.fallos:

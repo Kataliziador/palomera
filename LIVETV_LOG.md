@@ -8347,8 +8347,8 @@ holgura lo cubre igual por los dos lados.
 
 **2. «La pista del progreso sale gris, en el lienzo era de un color
 llamativo.»** No es un defecto: ese color **es la marca del ISP** y el site de
-los probadores **no publica `brand`** —verificado con `curl` contra
-`148.113.220.228:8097/config.json`: devuelve `null`—, así que la app cae a
+los probadores **no publica `brand`** —verificado con `curl` contra su
+`config.json`: devuelve `null`—, así que la app cae a
 `Brand.NEUTRA` y su `ACENTO_NEUTRO`, que es el mismo gris de la tinta
 secundaria. Un site sin marca se ve monocromo a propósito (ver `LiveTvPaleta`).
 
@@ -8402,7 +8402,7 @@ verdad a decidir qué ver. Lo que se juzgó fue cómo se ve.
 Hasta hoy servía `brand: null`, así que la pista salía con el `ACENTO_NEUTRO`
 —el mismo gris de la tinta secundaria— y por eso el color «no se veía». Con el
 visto bueno de Edgar se publicó `{"accent": "#17B9A8"}` en
-`148.113.220.228`, por el camino del propio servicio (`Borrador.guardar` +
+ese site, por el camino del propio servicio (`Borrador.guardar` +
 `Borrador.publicar` dentro del contenedor, que valida el color y deja copia en
 `datos/historial/`), no editando el `lineup.json` a mano. El servicio lo
 aprobó con 8,54 de contraste contra negro, muy por encima del 3 que exige.
@@ -8451,3 +8451,207 @@ canales** del catálogo propio —la del pendiente B8—, no un botón.
 Modo B. `comprobar.py` en verde.
 
 **Estado:** cerrada.
+
+---
+
+## Una revisión a fondo, y la puerta que seguía abierta — 2026-11-04
+
+Lo pidió Edgar: «analiza todo, verifica si encuentras fallos, cosas que no
+deberían estar allí, un buen análisis, enfócate en general y en más detalle en
+la zona de TV en vivo». Lo que salió fueron dos cosas de peso y una docena de
+detalles. Las dos de peso primero.
+
+### 1. La LiveTV de Jellyfin no estaba inalcanzable, y la puerta era más ancha que la que se cerró esta mañana
+
+§4 regla 5 dice que el código viejo «se queda en el árbol pero inalcanzable».
+No lo estaba. El camino, leído entero:
+
+```
+Inicio → fila de bibliotecas (homesection0, la de fábrica)
+  → tile «TV en vivo» del Jellyfin del ISP
+    → BrowseViewFragment, caso LIVETV  (showViews = true)
+      → fila «Vistas»: Guía · Grabaciones · Programación · Series
+        → ItemLauncher → Destinations.liveTvGuide
+          → LiveTvGuideFragment.java   ← la guía vieja
+```
+
+Tres cosas lo hacían real. **`UserViewsRepository` no filtra `LIVETV`**, así
+que esa biblioteca aparece en el inicio como una más —`unsupportedCollectionTypes`
+solo trae `BOOKS` y `FOLDERS`—. Los otros tres botones de esa fila son
+**grabaciones, programación y series**, o sea DVR, que §7 pone fuera de
+alcance: exactamente los tres que `9ce55cf36` quitó de la fila del inicio el
+02-oct y que seguían enteros por aquí. Y el tile se llama **«TV en vivo»**,
+igual que el botón de `MainToolbar`: dos entradas con el mismo nombre a dos
+secciones distintas en la misma pantalla.
+
+**Medido, no supuesto**, con una muestra y un instrumento que podía decir lo
+contrario: se le preguntó por HTTP al Jellyfin de la oficina —el de §9, el que
+se usa a diario— y devuelve una vista `livetv` llamada «TV en vivo» con
+`LiveTv.IsEnabled: true` y dos usuarios habilitados. El tile existe hoy. **Lo
+que no se hizo fue verlo en pantalla**: la caja está apuntando al site de los
+probadores y su sesión está cerrada, y probar credenciales contra un servidor
+con contenido real no es una medida, es otra cosa. Así que el camino está
+**leído en el código y medido por la API**, y queda pendiente de verlo.
+
+`ItemLauncher` manda ahora el caso `LIVETV` a `Destinations.liveTv`. Eso es
+literalmente lo que pide la regla 5 —«la fila del inicio apunta a la sección
+nueva»— y deja los cuatro botones sin ningún camino que los alcance.
+
+**Se redirige en vez de esconder la biblioteca**, y la alternativa se consideró:
+quitar `LIVETV` de `UserViewsRepository` cerraba la misma puerta en una línea,
+pero le borra del inicio algo que su proveedor configuró a propósito. Redirigir
+no quita nada y cierra lo que hacía daño.
+
+**Esto es lógica en un camino compartido con el VOD**, así que vale lo mismo que
+para la puerta de la sesión del 28-oct: el invariante se mantiene —`MOVIES`,
+`TVSHOWS` y `MUSIC` no se tocan, y `b)` sigue vacía— pero **exige que Edgar
+compruebe en pantalla que sus bibliotecas de películas y series siguen
+abriéndose igual**. Sin eso, esta entrada no está cerrada.
+
+De paso, la sección del inicio que ya no dibuja nada deja de poder elegirse:
+`HomeSectionType.LIVE_TV` pasa a `hidden` —Preferencias → Inicio seguía
+ofreciéndola, y elegirla no hacía nada, porque esa pantalla pinta el enum
+entero— y `homesection4` deja de traerla de fábrica, que era una de las diez
+ranuras gastada en una fila vacía. El valor serializado `livetv` **no se borra**:
+lo escribe jellyfin-web y puede estar guardado en la configuración de cualquier
+usuario, así que se queda para poder leerlo e ignorarlo.
+
+### 2. La dirección del segundo site estaba escrita en el repositorio público
+
+`docs/prueba-cerrada.md` §6 lo prohíbe con una razón que no es la de siempre: en
+ese site hay **contenido real cuyos derechos responde Edgar**, y el revisor de
+Google entra por el demo precisamente para no verlo. Escribir la dirección deja
+sin sentido la frase «ningún material de terceros» de las notas de acceso.
+
+La IP del site de los probadores aparecía **dos veces en este archivo**, en las
+entradas de hoy sobre el color de su marca. Las escribí yo esta mañana, en
+`dc29e7557` y `5e13b5916`. Las seis comprobaciones de `comprobar.py` salían en
+verde las dos veces, porque esa regla llevaba desde el 31-oct **sin
+instrumento**.
+
+Lo bueno es que `main` iba diez commits por delante de `origin/main`, así que
+nada estaba publicado y se arregla editando el texto. Se repasaron los diez
+commits pendientes buscando además correos de probadores, contraseñas y el
+código del proveedor: no había nada más.
+
+Y ahora hay instrumento. `comprobar.py h)` falla si aparece **cualquier IPv4
+enrutable** en un archivo versionado, con tres excepciones escritas con su
+motivo —1.1.1.1, 8.8.8.8 y 9.9.9.9, resolutores citados como ejemplo—. **No
+lleva escrita ninguna dirección**, y es deliberado: un comprobador que guarde el
+dato que prohíbe publicar es el mismo fallo con otro nombre. Busca la forma, así
+que también pillará el site del ISP siguiente, que nadie ha escrito todavía.
+
+**Y la primera versión del instrumento no servía.** Enumeraba a mano lo que
+había que dejar pasar —privada, loopback, multicast, reservada, link-local— y se
+probó con `203.0.113.7`, que es la red de documentación de la RFC 5737: salió en
+**verde** y pareció funcionar. No funcionaba; `ipaddress` cuenta las redes de
+documentación como privadas y ninguna de las negaciones las nombraba. Ahora el
+filtro es `is_global`, que es exactamente la pregunta que esto quiere hacer, y
+se verificó al revés con una enrutable de verdad, viéndola salir en rojo.
+
+### 3. Detekt llevaba desde el principio sin que nadie lo mirara
+
+539 avisos el 04-nov. No rompe la compilación y no estaba en `comprobar.py`, así
+que era un montón que nadie abre. La mayoría es **ruido legítimo** —332
+`MagicNumber` que son `dp` de Compose y divisiones por 1000 para formatear un
+log, no sintonía de §5.7—, y por eso la comprobación nueva **no pide detekt en
+verde**: pedirlo obligaría a callar reglas útiles para que el montón bajara.
+
+Lo que `i)` pide es que no quede **código muerto** en `livetv/` ni en
+`ui/livetv/`, que es lo que de verdad se colaba. Enterrados en esos 539 avisos
+estaban los cuatro de abajo, todos del día anterior o de antes:
+
+| | qué era |
+|---|---|
+| `HomeRowsFragment.navigationRepository` | inyectado y sin usar desde `f18ad1141`, el commit de esta mañana — el mismo que se justificaba diciendo que la clase borrada «se borra en vez de pudrirse» |
+| `LogoDeCanal(tamano = 84.dp)` | parámetro público que el cuerpo no mira; quien lo leyera creería que dimensiona el logo |
+| `opcionesDe(…, aspecto, subtitulosActivos)` | dos parámetros pasados en cada recomposición y nunca leídos |
+| `PlanBuilder.revisar(plan, …)` | recibía el plan anterior sin mirarlo. No revisa un plan: construye el del códec observado y devuelve `null` si no hay discrepancia. Quién compara —y decide si vale cortar la imagen dos segundos— es el llamante, que es el único que sabe si el canal está en marcha |
+
+Se verificó al revés, igual que `h)`: con un parámetro muerto metido a
+propósito, `i)` sale en rojo y lo nombra.
+
+### 4. Dos saltos de la lista, y los dos venían de preguntar lo que no era
+
+La ficha reserva la línea del programa solo en un site con guía, así que mide
+162 dp o 145. Esa decisión se tomaba con `epg.canales > 0` —o sea, con la guía
+**ya descargada**— y la guía viaja en un flujo aparte y pesa megas **a
+propósito**: lo normal es que los canales aparezcan antes. Las fichas se
+dibujaban a 145, llegaba el EPG y crecían todas de golpe. La línea de
+programación de la cabecera tenía el mismo problema y empujaba la lista otros
+26 dp.
+
+La pregunta correcta no es «¿ha llegado la guía?» sino «¿este site **publica**
+guía?», y eso viene en el mismo `config.json` que los canales. `LiveCatalog`
+gana `publicaGuia` y con él la altura se acierta en el primer dibujado.
+
+Y la **fila fantasma** dibujaba `ALTO_TARJETA` fijo, la ficha de un site *con*
+guía, así que en un site sin EPG daba un salto de 17 dp justo al llegar la
+lista — que es lo único que esa fila existe para evitar. Ahora recibe
+`conGuia`.
+
+**Inferido de la lectura, no visto**: los dos saltos salen de seguir el flujo en
+el código, no de una captura.
+
+### 5. El número del canal podía salir dos veces en la barra
+
+`IdentidadDelCanal` decidía «hay logo» con `logoUrl != null` a secas y **no
+escuchaba `alFallar`**. Con una URL que no carga, el bloque caía a su respaldo
+—el número a 30 sp— y la línea del nombre lo repetía a 21 sp porque seguía
+creyendo que había logo: dos cifras idénticas a 12 dp una de otra. La ficha de
+la guía ya llevaba ese hilo; la barra se quedó sin él.
+
+**Inferido**, y hoy no se puede ver: 52 de los 53 canales del site de los
+probadores no traen `logoUrl`. Esto espera al primer ISP que escriba una mal.
+
+### 6. Tres comentarios que decían lo contrario que el código
+
+En este proyecto los comentarios son la fuente de verdad, así que cuentan como
+defectos:
+
+- el KDoc de `accent` en `LiveTvChannelGrid` sostenía que el acento va a **los
+  títulos de grupo**. Va a la pista de cada ficha, y `CabeceraDeGrupo` explica
+  tres párrafos más abajo por qué **no** lo lleva;
+- el reloj de la guía se justificaba con «líneas de progreso de 168 dp» y «un
+  minuto no llega a mover un píxel». El ancho se quedó viejo al pasar la ficha a
+  198 dp, y la cuenta no salía ni con el viejo: en un programa de media hora la
+  pista avanza 6,6 dp por minuto, o sea 3,3 dp en estos 30 s —6,6 px a densidad
+  2— y en uno de dos horas, 1,65 px. **Los 30 s se quedan**, porque lo que los
+  sostiene es el otro lado de la balanza —un reloj por segundo recompone 120
+  fichas sesenta veces por minuto— pero el motivo escrito era falso;
+- y el KDoc de `digitoDe` llevaba cincuenta líneas colgado encima de
+  `QueDanAhora`, describiendo una función que no era.
+
+### Lo demás
+
+`LiveTvChannelGrid` aplicaba el `modifier` del parámetro al `LazyColumn` de
+dentro en vez de al nodo raíz. Funcionaba porque lo único que se le pasa es un
+`focusRequester`, y habría dejado de funcionar **en silencio** el día que
+alguien le pasara un `padding`. Al subirlo al raíz hubo que subir con él el
+`focusGroup()`: ese `focusRequester` es el destino de ABAJO desde la cabecera, y
+en un nodo que no agrupa nada la tecla no tendría dónde aterrizar.
+
+Y seis líneas de código indentadas con espacios donde todo el árbol usa
+tabulador, más el `package` pegado al primer `import` en `LiveTvPlayerFragment`.
+
+### Lo que se decidió NO arreglar, y por qué
+
+La sección **`ACTIVE_RECORDINGS`** del inicio se señaló en el análisis como
+«DVR, fuera de alcance (§7)» y **se queda**. Al seguirla hasta el final no lleva
+a la guía vieja: son grabaciones del servidor del ISP que se abren por el camino
+normal de items, o sea el de VOD. No está entre las secciones de fábrica, y
+ocultarla sería quitarle a un ISP algo que funciona por una regla que habla de
+lo que la **app** no implementa, no de lo que su servidor sirve.
+
+### Lo que sigue sin medirse
+
+- el camino del tile de TV en vivo, **en pantalla** (ver arriba);
+- que las bibliotecas de películas y series sigan abriéndose igual: es el visto
+  bueno que `ItemLauncher` exige;
+- los dos saltos de la lista y el número duplicado de la barra, los tres
+  inferidos de la lectura.
+
+Modo B, salvo el visto bueno de VOD que pide `ItemLauncher`. `comprobar.py` en
+verde con nueve comprobaciones, `:app:assembleDebug` y `:livetv:test` también.
+
+**Estado:** abierta — a falta del visto bueno en pantalla.
