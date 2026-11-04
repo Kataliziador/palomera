@@ -8655,7 +8655,18 @@ lo que la **app** no implementa, no de lo que su servidor sirve.
 Modo B, salvo el visto bueno de VOD que pide `ItemLauncher`. `comprobar.py` en
 verde con nueve comprobaciones, `:app:assembleDebug` y `:livetv:test` también.
 
-**Estado:** abierta — a falta del visto bueno en pantalla.
+**Visto bueno de Edgar el 04-nov, en la caja y con el APK de ese día:** «se ven
+bien los VOD». Es el que `ItemLauncher` exigía — el invariante de §4 se declara
+mirando una pantalla, no leyendo un diff—, así que con él queda cubierto el
+único cambio de esta tanda que tocaba un camino compartido con películas y
+series.
+
+**Lo que sigue sin verse en pantalla, y se escribe para no darlo por hecho:** el
+camino del tile de TV en vivo —ese servidor no tiene biblioteca de televisión,
+así que no hay tile que pulsar—, los dos saltos de la lista y el número
+duplicado de la barra, los tres inferidos de la lectura del código.
+
+**Estado:** cerrada.
 
 ---
 
