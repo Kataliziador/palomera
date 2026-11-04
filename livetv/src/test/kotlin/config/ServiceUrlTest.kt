@@ -17,15 +17,15 @@ class ServiceUrlTest : StringSpec({
 	fun url(direccion: String?) = ServiceUrl.configDesdeServidor(direccion, 8097, "/config.json")
 
 	"una dirección con puerto cambia de puerto" {
-		url("http://192.168.20.249:8096") shouldBe "http://192.168.20.249:8097/config.json"
+		url("http://192.0.2.10:8096") shouldBe "http://192.0.2.10:8097/config.json"
 	}
 
 	"una dirección sin puerto también" {
-		url("http://192.168.20.249") shouldBe "http://192.168.20.249:8097/config.json"
+		url("http://192.0.2.10") shouldBe "http://192.0.2.10:8097/config.json"
 	}
 
 	"la barra final no ensucia la URL" {
-		url("http://192.168.20.249:8096/") shouldBe "http://192.168.20.249:8097/config.json"
+		url("http://192.0.2.10:8096/") shouldBe "http://192.0.2.10:8097/config.json"
 	}
 
 	"el esquema se conserva: un site con TLS no se degrada a http" {
@@ -53,7 +53,7 @@ class ServiceUrlTest : StringSpec({
 	"sin esquema no se adivina" {
 		// Asumir http dejaría la sección muerta en un site con TLS, y asumir
 		// https la dejaría muerta en todos los demás.
-		url("192.168.20.249:8096") shouldBe null
+		url("192.0.2.10:8096") shouldBe null
 	}
 
 	"una dirección vacía o nula no es un error, es ausencia" {

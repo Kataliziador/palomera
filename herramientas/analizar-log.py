@@ -32,13 +32,17 @@ esperar a que nadie vuelque nada a mano.
 from __future__ import annotations
 
 import re
+import os
 import statistics as est
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-CAJA = "192.168.20.132:5555"
+# Las direcciones salen del entorno: el repositorio es público y en escritos
+# públicos no se revela ninguna dirección de servidor (decisión de Edgar,
+# 04-nov). Ver `herramientas/entorno.ejemplo`.
+CAJA = os.environ.get("PALOMERA_CAJA", "")
 DESCARGAS = "/sdcard/Download"
 
 # De `LiveTuning`: el latido va cada 2 s, y de ahí sale el tiempo que

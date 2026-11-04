@@ -550,8 +550,11 @@ def comprobar_epg(cfg: dict) -> None:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--host", default="xtsrt01.ddns.net",
-                   help="el alias público del site (por defecto, el del demo)")
+    # El host no está escrito aquí: el repositorio es público y en escritos
+    # públicos no se revela ninguna dirección de servidor (decisión de Edgar,
+    # 04-nov). Sale de PALOMERA_DEMO_HOST; ver `herramientas/entorno.ejemplo`.
+    p.add_argument("--host", default=os.environ.get("PALOMERA_DEMO_HOST", ""),
+                   help="el alias público del site (por defecto, PALOMERA_DEMO_HOST)")
     p.add_argument("--jellyfin-puerto", type=int, default=8096)
     p.add_argument("--canales-puerto", type=int, default=8097)
     p.add_argument("--registro", default="https://authjelly.satmx.net")

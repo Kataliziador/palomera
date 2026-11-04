@@ -103,11 +103,11 @@ class RegistryParserTest : StringSpec({
 		// comprueba lo que manda.
 		val a = parse(
 			"""{"authorized":true,"until":"2026-10-25T20:31:18Z","site":{"id":"pruebas",""" +
-				""""channelsUrl":"http://192.168.20.249:8097/config.json"},"brand":{"displayName":"pruebas",""" +
+				""""channelsUrl":"http://192.0.2.10:8097/config.json"},"brand":{"displayName":"pruebas",""" +
 				""""accent":"#E8A33D","logoUrl":"https://authjelly.satmx.net/marca/f7147a05bdda6f00.png"}}"""
 		)
 		a.authorized shouldBe true
-		a.channelsUrl shouldBe "http://192.168.20.249:8097/config.json"
+		a.channelsUrl shouldBe "http://192.0.2.10:8097/config.json"
 		a.brand!!.displayName shouldBe "pruebas"
 		a.brand!!.origen shouldBe "servidor"
 		a.vigente(ahora) shouldBe true

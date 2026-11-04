@@ -41,7 +41,7 @@ suyos y no comparte estado con nadie.
 
     # arrancar, desatendido, junto a un remojo en curso
     setsid nohup python3 herramientas/muestrear-memoria.py \\
-        --caja 192.168.20.132:5555 \\
+        --caja $PALOMERA_CAJA \\
         --paquete mx.kataliziador.palomera.debug \\
         --destino /ruta/del/remojo --cada 600 >/dev/null 2>&1 &
 
@@ -53,6 +53,7 @@ suyos y no comparte estado con nadie.
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -293,7 +294,8 @@ def informar_pendientes(filas: list) -> None:
 
 def main() -> int:
 	p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-	p.add_argument("--caja", help="serie de adb, p. ej. 192.168.20.132:5555")
+	p.add_argument("--caja", default=os.environ.get("PALOMERA_CAJA", ""),
+	               help="serie de adb; por defecto PALOMERA_CAJA del entorno")
 	p.add_argument("--paquete", default="mx.kataliziador.palomera.debug")
 	p.add_argument("--destino", type=Path, help="directorio donde escribir el crudo")
 	p.add_argument("--cada", type=int, default=600, help="segundos entre muestras (600)")

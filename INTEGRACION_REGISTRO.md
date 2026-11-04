@@ -298,7 +298,7 @@ ate a un proveedor concreto.
 de preferencias con `adb`, igual que el override del `config.json`:
 
 ```bash
-D=192.168.20.132:5555
+D="$PALOMERA_CAJA"
 cat > /tmp/livetv.dev.xml <<'XML'
 <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>

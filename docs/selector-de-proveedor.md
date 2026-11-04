@@ -12,7 +12,8 @@ repositorio es el que escribe los contratos.
 ## 1. El problema
 
 El abonado estrena la caja y lo primero que ve es **«Escribe la dirección del
-servidor»**. Lo que hay que escribir hoy es `http://192.168.20.249:8096`.
+servidor»**. Lo que hay que escribir hoy es la IP del Jellyfin del ISP con
+su puerto, algo como `http://192.168.1.10:8096`.
 Ningún abonado sabe eso, y el técnico que lo teclea por él se equivoca.
 
 La derivación de §6 ya evita la **segunda** dirección —la del servicio de
@@ -32,7 +33,7 @@ inventario de servidores Jellyfin a quien quiera probarlos. El repositorio es
 público: la dirección del endpoint se sabe.
 
 **Y las direcciones de hoy no sirven para elegir.** Son de LAN
-—`192.168.20.249`, `192.168.11.102`— y sólo funcionan dentro de esa red. Peor:
+—dos IPs privadas distintas— y sólo funcionan dentro de esa red. Peor:
 en el registro, `alias.host` es **clave primaria**, así que un host pertenece a
 un site y sólo a uno en todo el sistema. El día que dos ISPs tengan su Jellyfin
 en `192.168.1.10`, **el segundo no se puede dar de alta**. Un selector de
@@ -194,11 +195,11 @@ Comprobado desde fuera el 30 y el 31-oct, no supuesto:
 
 | | |
 |---|---|
-| `xtsrt01.ddns.net:8096` | `ServerName: Palomera Demo`, Jellyfin 10.11.11 |
+| el host del demo, puerto 8096 | `ServerName: Palomera Demo`, Jellyfin 10.11.11 |
 | `:8097/config.json` | HTTP 200, 3 grupos y 8 canales, `brand: null` |
 | `:8097/epg.xml` | HTTP 200, 1,2 MB, 8 canales y 5 576 programas |
 | los **ocho** `:8181/demoN/index.m3u8` | HTTP 200, una variante, `avc1.64001f,mp4a.40.2` |
-| `/v1/resolve host=xtsrt01.ddns.net` | `authorized: true`, `until` a 21 días, `channelsUrl` público |
+| `/v1/resolve host=‹el del demo›` | `authorized: true`, `until` a 21 días, `channelsUrl` público |
 | `/v1/proveedor` | **404** — la rama no está desplegada |
 
 **El alias público ya estaba.** Este documento decía que el site «hoy tiene el

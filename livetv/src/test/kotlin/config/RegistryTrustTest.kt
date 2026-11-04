@@ -109,7 +109,7 @@ class RegistryTrustTest : StringSpec({
 		// certificados leídos de los recursos, y en la LAN del ISP el
 		// `config.json` va por `http` en todas las sintonías.
 		var preguntada = false
-		val conexion = URL("http://192.168.20.249:8097/config.json").openConnection()
+		val conexion = URL("http://192.0.2.10:8097/config.json").openConnection()
 		RegistryTrust.aplicarA(conexion) { preguntada = true; fabricaDeMentira() }
 		preguntada shouldBe false
 	}

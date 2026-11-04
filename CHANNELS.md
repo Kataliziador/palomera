@@ -99,7 +99,7 @@ particularidades y sirven de línea base.
 
 ## 2. Tabla maestra
 
-URL: `http://192.168.11.250:8181/<canal>/mono.m3u8`
+URL: `$PALOMERA_HEADEND/<canal>/mono.m3u8` (ver `CLAUDE.md` §9)
 
 Las columnas de PID se eliminaron a propósito: **Flussonic los normaliza y son
 idénticos en todos los canales** (§2.bis). La ventana DVR ocupa su lugar porque
@@ -516,7 +516,7 @@ eso `targetOffsetMs` va **por canal** en el `config.json`, no global.
 | Plataforma | Amlogic, `HP46A` |
 | CPU | 4× Cortex-A35 (`CPU part 0xd04`), probable S905Y4 |
 | Android | 11 (API 30) |
-| IP | `192.168.20.132` |
+| IP | `$PALOMERA_CAJA`, ver `CLAUDE.md` §9 |
 | ABI | **`armeabi-v7a,armeabi`** — solo 32 bits, medido 2026-09-22 |
 
 ### Decoders relevantes

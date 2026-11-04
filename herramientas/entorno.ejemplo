@@ -1,0 +1,47 @@
+# Las direcciones del entorno de pruebas, que NO van en el repositorio.
+#
+# **Por qué este archivo existe.** El repositorio es público, y por decisión de
+# Edgar del 04-nov en escritos públicos no se revela ninguna dirección, y menos
+# de un servidor. Antes estaban escritas en `CLAUDE.md` §9, en seis
+# herramientas, en cuatro pruebas y en el `build.gradle.kts`: 68 apariciones de
+# cinco máquinas. Una dirección de la LAN de un cliente no es un secreto
+# criptográfico, pero publicada dice qué hay montado, en qué puerto y con qué
+# versión, y eso no se lo debemos a nadie.
+#
+# **Cómo se usa.** Copia este archivo a `herramientas/entorno.local`, rellena
+# los valores y cárgalo antes de trabajar:
+#
+#     cp herramientas/entorno.ejemplo herramientas/entorno.local
+#     # ...rellenar...
+#     set -a; . herramientas/entorno.local; set +a
+#
+# `entorno.local` está en el `.gitignore`. Las herramientas leen estas
+# variables y fallan con un mensaje claro si falta la que necesitan, en vez de
+# intentarlo contra una dirección por defecto que ya no existe.
+#
+# Gradle no lee este archivo: la suya va en `local.properties`, que también
+# está ignorado, con la clave `livetv.headend` (ver `app/build.gradle.kts`).
+# Sin ella la lista de canales de arranque queda vacía, que es lo que ya lleva
+# el APK de release.
+
+# El Jellyfin del entorno de pruebas (VOD). Usuario y clave de `CLAUDE.md` §9.
+#     http://‹host›:8096
+PALOMERA_JELLYFIN=
+
+# El servicio de canales derivado de ese mismo host (`LiveTuning.CHANNEL_SERVICE_PORT`).
+#     http://‹host›:8097
+PALOMERA_SITE=
+
+# El headend Flussonic de pruebas. **Compartido y de sólo lectura** (§9): no se
+# reconfigura desde aquí.
+#     http://‹host›:8181
+PALOMERA_HEADEND=
+
+# La caja de pruebas, en formato de serie de adb. Es de Edgar: si se ocupa para
+# una medida larga, hay que restaurarle energía y teclado al acabar.
+#     ‹host›:5555
+PALOMERA_CAJA=
+
+# El site de demostración, el que entra en la ficha de Play y por el que entra
+# el revisor de Google. Sólo el host, sin esquema ni puerto.
+PALOMERA_DEMO_HOST=

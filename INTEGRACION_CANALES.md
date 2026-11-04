@@ -529,7 +529,7 @@ No lo pidas ni lo diseñes esperándolo:
 ### Apuntar una caja a tu máquina
 
 ```bash
-D=192.168.20.132:5555
+D="$PALOMERA_CAJA"
 adb connect $D
 
 cat > /tmp/livetv.dev.xml <<'XML'

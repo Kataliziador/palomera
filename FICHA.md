@@ -83,6 +83,16 @@ Play Console → *Contenido de la aplicación* → *Acceso a la aplicación* →
 revisor que no habla español, y la caja de pruebas de Google puede estar en
 inglés, así que el botón se nombra en los dos idiomas.
 
+**`‹DEMO_HOST›` es un marcador, no un host.** El repositorio es público y en
+escritos públicos no se revela ninguna dirección de servidor (decisión de
+Edgar, 04-nov), así que la dirección del demo no se escribe aquí: se pega en la
+Play Console al rellenar el campo, y vive en `herramientas/entorno.local` como
+`PALOMERA_DEMO_HOST` (plantilla en `herramientas/entorno.ejemplo`).
+
+**Ojo al contar caracteres**: el marcador ocupa 13 y la dirección real ocupa
+más, así que el recuento de abajo hay que rehacerlo sobre el texto ya
+sustituido antes de pegarlo.
+
 **El campo admite 500 caracteres.** Lo de abajo son **496**, contados; si se
 le añade una frase hay que quitar otra, y la que no se quita es ninguna de las
 dos primeras.
@@ -90,7 +100,7 @@ dos primeras.
 ```
 Palomera is a client for TV services run by internet providers; all channels and catalogue belong to each ISP, who holds the rights. Our demo server carries only test-card channels and two generated videos.
 
-Server: http://xtsrt01.ddns.net:8096 - HTTP because ports 80/443 serve other production traffic. Online 24/7.
+Server: http://‹DEMO_HOST›:8096 - HTTP because ports 80/443 serve other production traffic. Online 24/7.
 Sign in: choose the account "revisor", password above.
 Live TV: open "TV en vivo"; D-pad up/down changes channel.
 Movies: the home screen library row.
@@ -131,9 +141,9 @@ devuelve `probador` y `revisor`, `/QuickConnect/Enabled` devuelve `false`, y el
 Palomera». El código del selector **no** hace falta por esta ruta: la dirección
 a mano no se esconde nunca.
 
-**Comprobado el 29-oct contra la demo de OVH** (`xtsrt01.ddns.net`, la misma
-máquina que el Flussonic de producción, que ocupa el 80 y el 443 — por eso la
-demo va por HTTP y en sus puertos):
+**Comprobado el 29-oct contra la demo de OVH** (la misma máquina que el
+Flussonic de producción, que ocupa el 80 y el 443 — por eso la demo va por HTTP
+y en sus puertos):
 
 - Jellyfin 10.11.11 «Palomera Demo», canales «Palomera Uno/Dos/Tres» con guía
   al día, dos películas «Demostracion Palomera»;
@@ -147,7 +157,8 @@ demo va por HTTP y en sus puertos):
   `demo`, `channelsUrl` correcta.
 
 **Resuelto el 30-oct: el registro devolvía el host como nombre de marca.**
-Decía `"brand": {"displayName": "xtsrt01.ddns.net"}`, y como el `config.json`
+Decía `"brand": {"displayName": "‹el host del demo›"}` —la dirección DDNS
+cruda—, y como el `config.json`
 de la demo no trae bloque `brand` ese texto ganaba (§8: registro → site →
 neutra) y la cabecera de la sección se dibujaba con una dirección DDNS cruda.
 Edgar vació el campo en el panel; comprobado desde fuera, el `brand` ya no

@@ -299,7 +299,7 @@ APK de release **no se llega a ellos**.
 ### 6 · Protección de streams — ❌
 
 URLs fijas, planas, sin token y sin caducidad:
-`http://192.168.11.250:8181/<stream>/index.m3u8`. `CLAUDE.md` §6 lo declara:
+`$PALOMERA_HEADEND/<stream>/index.m3u8`. `CLAUDE.md` §6 lo declara:
 «Auth del contenido: ninguna (v1)». No hay proxy ni restream —la caja va
 directa al Flussonic del ISP— y DRM está fuera de alcance (§7).
 
@@ -689,6 +689,6 @@ de comprometer 120. **No hay ninguna medida de esto hoy.**
 ## 8. Lo que esta auditoría no cubrió
 
 - **No ejecuté las pruebas** de `servidor-canales` ni de `autorizador`: habría sido seguro, pero no añadía evidencia sobre multi-operador.
-- **No audité el despliegue en producción** —ni el registro en `authjelly.satmx.net` ni el host del site— más allá de lecturas públicas. Un intento de entrar por consola a `192.168.20.249` fue bloqueado por el entorno, y no insistí.
+- **No audité el despliegue en producción** —ni el registro en `authjelly.satmx.net` ni el host del site— más allá de lecturas públicas. Un intento de entrar por consola al Jellyfin de la oficina fue bloqueado por el entorno, y no insistí.
 - **No revisé Katalog**, que alimenta el VOD y que no está en estos tres repositorios.
 - **No hay medición de carga de ninguna clase.** Todo lo dicho sobre escalabilidad en el punto 11 es razonamiento sobre el diseño, **no medido**.

@@ -49,7 +49,7 @@ val propiedadesLocales = Properties().apply {
 		?.use { load(it) }
 }
 
-fun propiedadDeFirma(nombre: String): String? =
+fun propiedadLocal(nombre: String): String? =
 	(getProperty(nombre) ?: propiedadesLocales.getProperty(nombre))
 		?.takeIf { it.isNotBlank() }
 
@@ -109,8 +109,20 @@ android {
 		// `index.m3u8` y no `mono.m3u8` (CLAUDE.md §6, revisado el 02-oct):
 		// el media playlist multiplexa los audios en un solo TS y Media3 solo
 		// expone uno. El master los declara como renditions y los expone todos.
-		val livetvBase = "http://192.168.11.250:8181"
-		val livetvBootstrapChannels = listOf(
+		// **La dirección del headend no está escrita aquí**, y es una regla de
+		// Edgar del 04-nov: en escritos públicos no se revelan direcciones de
+		// ningún tipo, y menos de servidores. Este repositorio es público.
+		//
+		// Sale de `livetv.headend` en `local.properties`, que el `.gitignore`
+		// deja fuera desde siempre, o de una `-P` suelta. **Sin ella la lista
+		// queda vacía**, que es exactamente lo que ya lleva el APK de release
+		// (ver `buildTypes`): un APK sin canales de arranque no es un APK roto,
+		// es el comportamiento normal fuera de nuestra LAN, porque la lista de
+		// verdad la sirve el `config.json` del site.
+		//
+		// `herramientas/entorno.ejemplo` dice qué poner y de dónde sale.
+		val livetvBase = propiedadLocal("livetv.headend").orEmpty()
+		val livetvBootstrapChannels = if (livetvBase.isEmpty()) "" else listOf(
 			"estrellashd|Estrellas HD|$livetvBase/test-sat77w-estrellashd-mp4/index.m3u8|h264|aac",
 			"beisbol|Béisbol|$livetvBase/beisbol/index.m3u8|h264|aac",
 			"discoveryhd|Discovery HD|$livetvBase/test-sat70w-discoveryhd-mp4/index.m3u8|h264|aac",
@@ -132,10 +144,10 @@ android {
 	}
 
 	signingConfigs {
-		val keystoreFile = propiedadDeFirma("keystore.file")
-		val keystorePassword = propiedadDeFirma("keystore.password")
-		val signingKeyAlias = propiedadDeFirma("signing.key.alias")
-		val signingKeyPassword = propiedadDeFirma("signing.key.password")
+		val keystoreFile = propiedadLocal("keystore.file")
+		val keystorePassword = propiedadLocal("keystore.password")
+		val signingKeyAlias = propiedadLocal("signing.key.alias")
+		val signingKeyPassword = propiedadLocal("signing.key.password")
 
 		if (keystoreFile != null && keystorePassword != null && signingKeyAlias != null && signingKeyPassword != null) {
 			create("release") {

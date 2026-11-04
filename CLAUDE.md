@@ -334,7 +334,7 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      defensa sin medida detrás)**,
      y `ui/startup/fragment/ServerAddFragment.kt` **(añadido el 30-oct: el
      selector de proveedor. Esa pantalla pedía «escribe la dirección del
-     servidor» y lo que hay que escribir es `http://192.168.20.249:8096`, que
+     servidor» y lo que hay que escribir es `http://192.168.1.10:8096`, que
      ningún abonado sabe. Ahora pregunta al registro por la red desde la que
      se llama y, si no la reconoce, pide el código que el ISP le dio al
      abonado; **la dirección a mano no se esconde**, porque es la única que
@@ -734,8 +734,8 @@ obliga a montar nginx en cada site— o va en el suyo. El puerto funciona haya
 proxy o no.
 
 ```
-Jellyfin   http://192.168.20.249:8096/        ← lo escribe el abonado
-Canales    http://192.168.20.249:8097/config.json   ← derivado
+Jellyfin   http://192.168.1.10:8096/        ← lo escribe el abonado
+Canales    http://192.168.1.10:8097/config.json   ← derivado
 ```
 
 Se conserva el esquema (un site con TLS no se degrada a `http`) y se descartan
@@ -1139,16 +1139,50 @@ con contrato. Ver B6.
 
 ## 9. Entorno de pruebas
 
-- **Jellyfin (VOD):** `http://192.168.20.249:8096/` — usuario `test`, clave `test`
-- **Canales:** `http://192.168.11.250:8181/<stream>/mono.m3u8`
-- **Caja de pruebas:** Skyworth YDA "4K Google TV Box", Amlogic Cortex-A35,
-  Android 11 (API 30), en `192.168.20.132`
+### Las direcciones no están escritas aquí
+
+**Decisión de Edgar, 04-nov: en escritos públicos no se revela ninguna
+dirección, y menos de un servidor.** Este repositorio es público, y hasta ese
+día este apartado era la fuente principal de las 68 apariciones que había de
+cinco máquinas — este documento, seis herramientas, cuatro pruebas y el
+`build.gradle.kts`.
+
+Una dirección de la LAN de un cliente no es un secreto criptográfico, y por eso
+la regla no se escribe como si lo fuera: es que **publicada dice qué hay
+montado, en qué puerto y con qué versión**, y eso no se lo debemos a nadie.
+Vale lo mismo que para la dirección del segundo site (`docs/prueba-cerrada.md`
+§6), solo que ahí había además contenido de terceros de por medio.
+
+Viven en **`herramientas/entorno.local`**, que el `.gitignore` deja fuera. La
+plantilla versionada es `herramientas/entorno.ejemplo`, que dice qué es cada
+una. Se cargan una vez por sesión:
 
 ```bash
-adb connect 192.168.20.132:5555
-adb -s 192.168.20.132:5555 install -r app-<flavor>-debug.apk
-adb -s 192.168.20.132:5555 logcat -v time | grep -iE "livetv|ExoPlayer|MediaCodec"
+set -a; . herramientas/entorno.local; set +a
 ```
+
+Y lo vigila `comprobar.py h)`, que falla si aparece una dirección en un archivo
+versionado. No lleva escrita ninguna: busca la forma, no una lista.
+
+- **Jellyfin (VOD):** `$PALOMERA_JELLYFIN` — usuario `test`, clave `test`
+- **Canales:** `$PALOMERA_HEADEND/<stream>/index.m3u8`
+- **Caja de pruebas:** Skyworth YDA "4K Google TV Box", Amlogic Cortex-A35,
+  Android 11 (API 30), en `$PALOMERA_CAJA`
+
+```bash
+adb connect "$PALOMERA_CAJA"
+adb -s "$PALOMERA_CAJA" install -r app-<flavor>-debug.apk
+adb -s "$PALOMERA_CAJA" logcat -v time | grep -iE "livetv|ExoPlayer|MediaCodec"
+```
+
+**Gradle no lee ese archivo**: la dirección del headend que necesita la lista de
+canales de arranque va en `local.properties`, con la clave `livetv.headend`.
+Sin ella la lista queda vacía, que es lo que ya lleva el APK de release.
+
+**Lo que sí se queda escrito son los ejemplos ficticios** —`192.168.1.10`,
+`tv.miproveedor.mx`, y los rangos de documentación de la RFC 5737 que usan las
+pruebas—. Un esquema sin ejemplos es inservible, y ninguno de ésos es la
+dirección de nadie.
 
 **Advertencia:** esta caja es el mejor caso posible (MPEG-2, MP2 y AC-3 por
 hardware). No desarrolles solo contra ella. Usa el menú de degradación

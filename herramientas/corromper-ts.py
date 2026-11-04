@@ -34,7 +34,7 @@ volver a encontrar las tablas él solo.
 ## Uso
 
     # 1. grabar limpio del headend (de solo lectura, solo se lee)
-    ffmpeg -y -i http://192.168.11.250:8181/test-sat77w-estrellassd-mp2v/index.m3u8 \\
+    ffmpeg -y -i $PALOMERA_HEADEND/test-sat77w-estrellassd-mp2v/index.m3u8 \\
            -c copy -t 60 -f mpegts limpio.ts
 
     # 2. romperlo

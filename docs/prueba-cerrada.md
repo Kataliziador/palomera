@@ -37,7 +37,7 @@ pantalla de acceso y sin bloqueo por intentos fallidos—, mantiene la del
 correr sin pensar, y vale igual para el segundo site:
 
 ```bash
-PALCO_DEMO_JELLYFIN_URL=http://xtsrt01.ddns.net:8096 \
+PALCO_DEMO_JELLYFIN_URL="http://$PALOMERA_DEMO_HOST:8096" \
 PALCO_DEMO_PROBADOR_CLAVE='…' ./herramientas/configurar-jellyfin.sh
 ```
 
@@ -179,7 +179,24 @@ acabar (`docs/DESPLIEGUE_SELECTOR.md` §1). `comprobar-demo.py` lo avisa.
   de §8 no es un candado —quien conozca la dirección puede teclearla, igual que
   cualquiera puede compilar este fork—, es que **nadie tiene por qué
   conocerla**. Escribirla aquí la pone a un clic y deja sin sentido la frase
-  «ningún material de terceros» de las notas de acceso.
+  «ningún material de terceros» de las notas de acceso;
+- y **ninguna otra dirección tampoco**, de ningún tipo y sobre todo de un
+  servidor **(ampliado el 04-nov, decisión de Edgar)**. Esta lista decía sólo
+  «la del segundo site», y con esa redacción el resto del repositorio llevaba
+  **68 apariciones de cinco máquinas** —`CLAUDE.md` §9, seis herramientas,
+  cuatro pruebas y el `build.gradle.kts`— sin que nada lo señalara.
+
+  Una dirección de la LAN de un cliente no es un secreto criptográfico, y la
+  regla no se escribe como si lo fuera: es que **publicada dice qué hay
+  montado, en qué puerto y con qué versión**, y eso no se lo debemos a nadie.
+
+  Viven en `herramientas/entorno.local`, que el `.gitignore` deja fuera, con
+  `herramientas/entorno.ejemplo` como plantilla versionada; la que necesita
+  Gradle va en `local.properties`. Lo vigila `comprobar.py h)`, que **no lleva
+  escrita ninguna**: busca la forma —IPv4 que no sea de documentación, y hosts
+  bajo un proveedor de DNS dinámico—, así que también pillará el site del ISP
+  siguiente. Siguen escritos los ejemplos ficticios, porque un esquema sin
+  ejemplos es inservible y ninguno es la dirección de nadie.
 
 `comprobar-demo.py` los lee del entorno, nunca de un archivo:
 

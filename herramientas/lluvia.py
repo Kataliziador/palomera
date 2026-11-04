@@ -58,12 +58,13 @@ igual aunque no llueva.
 
 Y en la caja, una sola vez:
 
-    herramientas/lluvia.py --apuntar-caja 192.168.20.132:5555
+    herramientas/lluvia.py --apuntar-caja $PALOMERA_CAJA
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import random
 import shlex
 import socket
@@ -318,8 +319,9 @@ def main() -> int:
 	p = argparse.ArgumentParser(description=__doc__,
 	                            formatter_class=argparse.RawDescriptionHelpFormatter)
 	p.add_argument("--puerto", type=int, default=8099)
-	p.add_argument("--headend", default="http://192.168.11.250:8181")
-	p.add_argument("--site", default="http://192.168.20.249:8097",
+	p.add_argument("--headend", default=os.environ.get("PALOMERA_HEADEND", ""),
+	               help="el headend del que se copian los segmentos (PALOMERA_HEADEND)")
+	p.add_argument("--site", default=os.environ.get("PALOMERA_SITE", ""),
 	               help="el servidor de canales del que se copia el lineup")
 	p.add_argument("--perdida", type=float, default=0.0, help="%% de segmentos que no llegan")
 	p.add_argument("--retardo", type=int, default=0, help="ms añadidos a cada respuesta")

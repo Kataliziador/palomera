@@ -57,13 +57,23 @@ set -uo pipefail
 # CANALES A ANALIZAR — editar aquí. Formato: "nombre|url"
 # Acepta HLS (.m3u8) y MPEG-TS progresivo indistintamente.
 # ─────────────────────────────────────────────────────────────────────
+# La dirección del headend sale del entorno: el repositorio es público y en
+# escritos públicos no se revela ninguna dirección de servidor (decisión de
+# Edgar, 04-nov). Ver `herramientas/entorno.ejemplo`.
+if [[ -z "${PALOMERA_HEADEND:-}" ]]; then
+  echo "falta PALOMERA_HEADEND. Carga el entorno antes:" >&2
+  echo "  set -a; . herramientas/entorno.local; set +a" >&2
+  echo "(la plantilla es herramientas/entorno.ejemplo)" >&2
+  exit 2
+fi
+
 CANALES=(
-  "beisbol|http://192.168.11.250:8181/beisbol/index.m3u8"
-  "mileniosd|http://192.168.11.250:8181/mileniosd/index.m3u8"
-  "estrellassd-mp2v|http://192.168.11.250:8181/test-sat77w-estrellassd-mp2v/index.m3u8"
-  "estrellashd-mp4|http://192.168.11.250:8181/test-sat77w-estrellashd-mp4/index.m3u8"
-  "discoveryhd-70w|http://192.168.11.250:8181/test-sat70w-discoveryhd-mp4/index.m3u8"
-  "hbohd-70w|http://192.168.11.250:8181/test-sat70w-hbohd-mp4/index.m3u8"
+  "beisbol|$PALOMERA_HEADEND/beisbol/index.m3u8"
+  "mileniosd|$PALOMERA_HEADEND/mileniosd/index.m3u8"
+  "estrellassd-mp2v|$PALOMERA_HEADEND/test-sat77w-estrellassd-mp2v/index.m3u8"
+  "estrellashd-mp4|$PALOMERA_HEADEND/test-sat77w-estrellashd-mp4/index.m3u8"
+  "discoveryhd-70w|$PALOMERA_HEADEND/test-sat70w-discoveryhd-mp4/index.m3u8"
+  "hbohd-70w|$PALOMERA_HEADEND/test-sat70w-hbohd-mp4/index.m3u8"
 )
 
 DURACION=15

@@ -33,8 +33,9 @@ import kotlinx.coroutines.launch
  * La pantalla de alta, con el **selector de proveedor** encima.
  *
  * Lo que había antes era «escribe la dirección del servidor», y lo que hay
- * que escribir es algo como `http://192.168.20.249:8096`. Ningún abonado sabe
- * eso, y el técnico que lo teclea por él se equivoca.
+ * que escribir es algo como `http://192.168.1.10:8096` — la IP de una máquina
+ * dentro de la LAN del ISP, con su puerto. Ningún abonado sabe eso, y el
+ * técnico que lo teclea por él se equivoca.
  *
  * Las tres rutas de `docs/selector-de-proveedor.md`, por orden:
  *

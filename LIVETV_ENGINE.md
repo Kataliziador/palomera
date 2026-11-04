@@ -557,7 +557,7 @@ Un archivo por ISP. Fuente de verdad de la lista, la sintonía y los overrides.
       "name": "Discovery HD",
       "group": "Documentales",
       "logo": "https://servidor/logos/discovery.png",
-      "url": "http://192.168.11.250:8181/test-sat70w-discoveryhd-mp4/mono.m3u8",
+      "url": "http://HEADEND:8181/test-sat70w-discoveryhd-mp4/mono.m3u8",
       "epgId": "discovery.mx",
       "engine": "media3",
       "enginesAllowed": ["media3", "libvlc"],

@@ -525,54 +525,80 @@ def pruebas(inf: Informe) -> None:
 
 
 def ninguna_direccion_de_site(inf: Informe) -> None:
-	"""h) — ninguna dirección de un site real en el repositorio.
+	"""h) — ninguna dirección de servidor escrita en el repositorio.
 
-	**El repositorio es público**, y `docs/prueba-cerrada.md` §6 lo dice con una
-	razón que no es la de siempre: en el segundo site hay **contenido real cuyos
-	derechos responde Edgar**, y el revisor de Google entra por el demo
-	precisamente para no verlo. Escribir su dirección aquí la pone a un clic y
-	deja sin sentido la frase «ningún material de terceros» de las notas de
-	acceso.
+	**Decisión de Edgar del 04-nov: en escritos públicos no se revela ninguna
+	dirección, y menos de un servidor.** Este repositorio es público, así que
+	eso es esto.
 
-	Esa regla llevaba desde el 31-oct **sin instrumento**, y el 04-nov se
-	incumplió: la IP del site de los probadores entró dos veces en
-	`LIVETV_LOG.md`, escribiendo las entradas sobre el color de su marca. No lo
-	vio nadie hasta que se buscó a mano. Las seis comprobaciones de entonces
-	salían en verde, que es el argumento de la `f)` y la `g)` otra vez: una
-	regla sin comprobación es una regla que se cumple cuando alguien se acuerda.
+	**La primera versión de esta comprobación sólo miraba las públicas**, y la
+	regla que le dio origen era más estrecha: `docs/prueba-cerrada.md` §6
+	prohíbe la dirección del segundo site porque ahí hay contenido real cuyos
+	derechos responde Edgar, y el revisor de Google entra por el demo
+	precisamente para no verlo. Esa regla llevaba desde el 31-oct sin
+	instrumento y el 04-nov se incumplió: la IP de ese site entró dos veces en
+	`LIVETV_LOG.md`. Al ampliarla Edgar la generalizó, y con razón — había **68
+	apariciones de cinco máquinas** repartidas por `CLAUDE.md` §9, seis
+	herramientas, cuatro pruebas y el `build.gradle.kts`.
+
+	Una dirección de la LAN de un cliente no es un secreto criptográfico, y la
+	comprobación no se escribe como si lo fuera: es que **publicada dice qué hay
+	montado, en qué puerto y con qué versión**, y eso no se lo debemos a nadie.
 
 	**No lleva escrita ninguna dirección, y es deliberado**: un comprobador que
 	guarde el dato que prohíbe publicar es el propio fallo con otro nombre. Lo
-	que busca es la **forma** —cualquier IPv4 enrutable en archivos
-	versionados—, así que también pilla el site del ISP siguiente, que nadie ha
-	escrito todavía.
+	que busca es la **forma**, así que también pilla el site del ISP siguiente,
+	que nadie ha escrito todavía. Las de verdad viven en
+	`herramientas/entorno.local`, fuera del control de versiones.
 
-	Las privadas pasan: `192.168.*` y `10.*` son el entorno de pruebas de §9 y
-	están en la documentación a propósito. Lo que no pasa es una pública, con
-	las excepciones de abajo, cada una con su motivo escrito por lo mismo que
-	`DICEN_JELLYFIN`: el trabajo no es acordarse de la lista, es contestar «¿de
-	quién es esta dirección?» cada vez que aparece una nueva.
+	Pasan tres clases de cosas, y las tres con su motivo escrito por lo mismo
+	que `DICEN_JELLYFIN`: el trabajo no es acordarse de la lista, es contestar
+	«¿de quién es esta dirección?» cada vez que aparece una nueva.
 
-	**El filtro es `is_global`, y la primera versión no lo era.** Enumeraba a
-	mano lo que hay que dejar pasar —privada, loopback, multicast, reservada,
-	link-local— y se probó con `203.0.113.7`, que es la red de documentación de
-	la RFC 5737: la comprobación salió **en verde** y pareció que funcionaba.
-	No era que funcionara, era que `ipaddress` cuenta las redes de
-	documentación como privadas y ninguna de las negaciones las nombraba.
-	`is_global` es exactamente la pregunta que esto quiere hacer —«¿es una
-	dirección a la que se puede llegar desde internet?»— y se verificó al
-	revés, con una enrutable de verdad, viéndola salir en rojo.
+	1. **Los rangos de documentación de la RFC 5737** —`192.0.2.*`,
+	   `198.51.100.*`, `203.0.113.*`—, que existen para esto y no son de nadie.
+	   Las pruebas de `ServiceUrl` y del registro los usan.
+	2. **Dos ejemplos genéricos**, `192.168.1.10` y `127.0.0.1`. El primero es
+	   la pasarela típica de cualquier casa y aparece en el texto de ayuda que
+	   lee el abonado y en los contratos; el segundo es localhost. Un esquema
+	   sin ejemplos es inservible.
+	3. **Tres resolutores públicos** citados como ejemplo en documentación de
+	   red.
+
+	**El filtro de las públicas es `is_global`, y la primera versión no lo
+	era.** Enumeraba a mano lo que hay que dejar pasar —privada, loopback,
+	multicast, reservada, link-local— y se probó con `203.0.113.7`, que es la
+	red de documentación: salió **en verde** y pareció funcionar. No era que
+	funcionara, era que `ipaddress` cuenta esas redes como privadas y ninguna de
+	las negaciones las nombraba.
 	"""
 	import ipaddress
 
-	# Resolutores públicos, nombrados en la documentación de red. No son sites.
+	# Ver el punto 1, 2 y 3 de arriba. Cada una con de quién es.
 	PERMITIDAS = {
+		"127.0.0.1": "localhost",
+		"0.0.0.0": "«todas las interfaces», no una máquina",
+		"192.168.1.10": "ejemplo genérico de LAN doméstica, en el texto del abonado y en los contratos",
+		"10.0.0.5": "el ISP imaginario de los ejemplos de CONFIG_SCHEMA.md, un contrato con otros dos proyectos",
 		"1.1.1.1": "resolutor de Cloudflare, citado como ejemplo",
 		"8.8.8.8": "resolutor de Google, citado como ejemplo",
 		"9.9.9.9": "resolutor de Quad9, citado como ejemplo",
 	}
+	# RFC 5737: reservadas para documentación. No son de nadie y no se enrutan.
+	DOCUMENTACION = (
+		ipaddress.IPv4Network("192.0.2.0/24"),
+		ipaddress.IPv4Network("198.51.100.0/24"),
+		ipaddress.IPv4Network("203.0.113.0/24"),
+	)
+	# Los proveedores de DNS dinámico con los que se publica un site. Un host
+	# bajo uno de éstos es por definición la dirección de una máquina concreta.
+	DNS_DINAMICO = re.compile(
+		r"\b[a-z0-9][a-z0-9.-]*\.(?:ddns\.net|duckdns\.org|no-ip\.\w+|dyndns\.\w+|"
+		r"zapto\.org|hopto\.org|serveftp\.com|myftp\.(?:biz|org))\b",
+		re.IGNORECASE,
+	)
 
-	patron = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
+	patron_ip = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
 	intrusas: dict[str, set[str]] = {}
 	for ruta in git("ls-files"):
 		archivo = RAIZ / ruta
@@ -580,30 +606,40 @@ def ninguna_direccion_de_site(inf: Informe) -> None:
 			texto = archivo.read_text(errors="ignore")
 		except OSError:
 			continue
-		for encontrada in patron.findall(texto):
+
+		for encontrada in patron_ip.findall(texto):
 			if encontrada in PERMITIDAS:
 				continue
 			try:
 				dir_ip = ipaddress.IPv4Address(encontrada)
 			except ipaddress.AddressValueError:
 				continue
-			if not dir_ip.is_global:
+			if any(dir_ip in red for red in DOCUMENTACION):
 				continue
+			if dir_ip.is_loopback or dir_ip.is_multicast or dir_ip.is_link_local:
+				continue
+			if dir_ip.is_unspecified or dir_ip.is_reserved:
+				continue
+			# Lo que queda es una privada de verdad o una enrutable: las dos son
+			# la dirección de una máquina y las dos sobran aquí.
 			intrusas.setdefault(encontrada, set()).add(ruta)
+
+		for host in DNS_DINAMICO.findall(texto):
+			intrusas.setdefault(host, set()).add(ruta)
 
 	if intrusas:
 		inf.mal(
-			"h) hay una dirección pública escrita en el repositorio",
+			"h) hay una dirección de servidor escrita en el repositorio",
 			[
-				f"{ip} — en {', '.join(sorted(donde))}"
-				for ip, donde in sorted(intrusas.items())
+				f"{donde_esta} — en {', '.join(sorted(archivos))}"
+				for donde_esta, archivos in sorted(intrusas.items())
 			] + [
-				"si es un site, no entra (docs/prueba-cerrada.md §6);",
-				"si no lo es, se añade a PERMITIDAS con su motivo",
+				"las direcciones van en herramientas/entorno.local (CLAUDE.md §9);",
+				"si es un ejemplo ficticio, se añade a PERMITIDAS con su motivo",
 			],
 		)
 	else:
-		inf.bien("h) ninguna dirección pública de un site en el repositorio")
+		inf.bien("h) ninguna dirección de servidor en el repositorio")
 
 
 # Las reglas de detekt que señalan **código muerto**, y solo ésas.

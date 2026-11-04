@@ -101,7 +101,7 @@ ejercita el piso de compatibilidad. **Estado:** cerrada.
 
 ### Inventario de la caja de pruebas — 2026-09-22
 
-Skyworth YDA, Amlogic Cortex-A35, Android 11, en `192.168.20.132`.
+Skyworth YDA, Amlogic Cortex-A35, Android 11, en `$PALOMERA_CAJA`.
 MPEG-2, MP2 y AC-3 por hardware; driver de desentrelazado presente.
 
 Es el **mejor caso posible**, así que el menú de degradación de la fase M1 es
@@ -382,7 +382,7 @@ declararla.
 | 83 | ~~**El motor libVLC dice no saber cosas que sí publica**~~ | — | el comentario de `VlcLiveEngine.stats()` afirma que libVLC «no expone el nombre del decodificador activo, ni fotogramas perdidos, ni la ventana DVR, ni el offset al directo», y por eso esos campos van en cero a propósito —decisión correcta: rellenarlos con estimaciones los haría indistinguibles de los de Media3, que sí están medidos—. **Pero de fotogramas perdidos sí sabe.** Leído el 22-oct en el binding 3.6.5 (`org.videolan.libvlc.interfaces.IMedia$Stats`): publica `lostPictures`, `displayedPictures`, `decodedVideo`, `lostAbuffers`, `demuxCorrupted` y `demuxDiscontinuity`. El `displayedPictures` ya se usa desde el 81; los otros cinco siguen sin leerse, y `lostPictures` con `demuxCorrupted` son justo lo que hace falta para juzgar una sesión con lluvia por este camino, que hoy es ciega. El arreglo es llenar esos campos del latido **y corregir el comentario**, que es lo que hizo que nadie volviera a mirar. **Cerrado el 27-oct, y el binding tiene quince campos, no seis** —verificado con `javap`, no leído de aquí—: se publican `droppedFrames`, `measuredFps` y tres campos nuevos y nullables (`demuxCorrupted`, `demuxDiscontinuity`, `lostAudioBuffers`). Medido en la caja en tres corridas, y **la tercera refuta la lectura de las dos primeras**: los contadores se mueven pero todavía no distinguen sano de degradado. `demuxCorrupted` **no se ha visto moverse nunca** y eso queda escrito en el campo; ejercitarlo pide el golden sample con `--tei` en bucle. El bitrate desde `readBytes` se intentó y se retiró: no avanza sobre HLS. Ver la entrada || ~~26~~ | ~~**La Skyworth no tiene decoder por software para MPEG-2**~~ | — | **corregido el 05-oct con el inventario que mandó la propia caja:** sí tiene `OMX.google.h264.decoder` para `video/avc`, declarado software por `isHardwareAccelerated()` —la API, no una heurística de nombres—. Lo que **no** tiene es software para `video/mpeg2`: ahí el único es `OMX.amlogic.mpeg2.decoder.awesome2`, por hardware. O sea: el paso 2 de la cascada **sí es alcanzable para H.264** y no para MPEG-2. Queda por ver si ese decoder funciona de verdad: declarado no es funcionando | **Cerrado 09-oct con M6:** el camino que faltaba es libVLC, y está probado en pantalla. No era «falta un decoder de plataforma» sino «el de hardware decodifica mal», que es peor porque la cascada no lo distingue sola |
 | 84 | **La TV en vivo no se entera de una suspensión mientras está abierta** | **A** | el punto 2 de A2 del panel de abonados, y lo único de esa petición que queda abierto tras el 28-oct. La sección sólo usa la sesión de Jellyfin para sacar el host (`LiveTvCatalog.kt`), así que una caja **encendida** sigue dando canales después de suspender al abonado; el corte sólo ocurre al siguiente arranque. El panel sugiere revalidar al entrar a la sección y cada ~15 min. Es **Modo A**: lo que se discute no es la llamada —eso es trivial— sino qué le pasa a la imagen cuando contesta 403, y una caja de TV se apaga por la noche, así que un corte que espera al siguiente encendido puede ser suficiente y uno que apaga la tele a media película no lo es. Decisión de Edgar antes de escribir nada. Lo que **no** queda abierto es distinguir el 403 del 401 ni el «no contesta»: hecho y medido en la caja el 28-oct |
 | ~~85~~ | ~~**El velo de la barra de canal subía encima del texto**~~ | — | **el enunciado original era falso y se corrige aquí: decía «no lleva velo», y sí lo llevaba.** Lo que pasaba es que el degradado repartía la subida por el 45 % de la altura de la barra, que es exactamente donde van el número, el nombre y las horas. Medido el 30-oct sobre la captura de la ficha, en una banda sin letras y tomando el máximo de la franja para que el patrón móvil no la falseara: el velo valía 0,71 donde va el nombre del canal. Proyectado a vídeo blanco a pantalla completa —alcanzable: nieve, un plató, unos créditos— el nombre salía a **2,03:1** y las horas a **1,66** y **1,58**. Cerrado el 30-oct con dos cambios: el desvanecido se agota dentro del relleno superior (0 → 0,72 en el 18 % de arriba, y de ahí plano hasta 0,90), y **las dos tintas secundarias dejan de ser grises fijos sobre vídeo**, porque ningún velo razonable sube un `#9DA1A6` a 4,5:1 contra blanco sin convertir la barra en una caja negra. Las siete filas de texto pasan ahora su suelo WCAG, la peor con 5,49 contra 4,5 |
-| ~~86~~ | ~~**La demo de OVH tenía tres canales y ningún logo**~~ | — | cerrado el 30-oct: ocho canales en tres grupos, con logo, corriendo en `xtsrt01.ddns.net`. **Lo medido allí, que es lo que vale:** antes del cambio Flussonic iba a 1040-1050 % de 1600 y la demo a 0,88 núcleos; después, Flussonic a 1000-1061 % —no se le quitó nada— y la demo a **213 % para los ocho, 0,267 núcleos por canal**, contra los 0,29 estimados con tres. El total es **77,8 % de CPU usado y 22,2 % ocioso**, medido con deltas de `/proc/stat` en 15 s, sin ningún proceso en estado D. **La carga media engañaba**: marcaba 18,3 sobre 16 núcleos y parecía saturación, pero contaba hilos ejecutables de ráfaga corta; el instrumento bueno aquí es `/proc/stat`, no `loadavg`. El despliegue destapó dos cosas que sólo aparecen fuera de la máquina de desarrollo, las dos en `palco-demo` `92ac32f`: el anfitrión de OVH **no tiene ffmpeg** (vive en el contenedor) y `emitir.sh` apuntaba la tipografía a una ruta inexistente sin que nada fallara, porque `drawtext` cae a fontconfig en silencio |
+| ~~86~~ | ~~**La demo de OVH tenía tres canales y ningún logo**~~ | — | cerrado el 30-oct: ocho canales en tres grupos, con logo, corriendo en la demo de OVH. **Lo medido allí, que es lo que vale:** antes del cambio Flussonic iba a 1040-1050 % de 1600 y la demo a 0,88 núcleos; después, Flussonic a 1000-1061 % —no se le quitó nada— y la demo a **213 % para los ocho, 0,267 núcleos por canal**, contra los 0,29 estimados con tres. El total es **77,8 % de CPU usado y 22,2 % ocioso**, medido con deltas de `/proc/stat` en 15 s, sin ningún proceso en estado D. **La carga media engañaba**: marcaba 18,3 sobre 16 núcleos y parecía saturación, pero contaba hilos ejecutables de ráfaga corta; el instrumento bueno aquí es `/proc/stat`, no `loadavg`. El despliegue destapó dos cosas que sólo aparecen fuera de la máquina de desarrollo, las dos en `palco-demo` `92ac32f`: el anfitrión de OVH **no tiene ffmpeg** (vive en el contenedor) y `emitir.sh` apuntaba la tipografía a una ruta inexistente sin que nada fallara, porque `drawtext` cae a fontconfig en silencio |
 | ~~25~~ | ~~**`engine.attach` se llama ~2 veces por segundo mientras reproduce**~~ | — | el `update` del `AndroidView` corre en cada recomposición y las estadísticas recomponen cada 500 ms. 206 llamadas en 115 s. Rota el buffer de logcat en menos de un minuto. Solo `AspectoDeVideo.aplicar` necesita las estadísticas; `attach` debería correr cuando cambia la vista. **cerrado 06-oct, validado en pantalla por Edgar y activo de fábrica.** De 115 llamadas en 60 s a **0**, y el log de la sección de 259 líneas a 28. Tres cambios de canal dan tres `attach` y tres `frames.first` a 1.5–1.7 s. El interruptor se queda para reproducir el comportamiento anterior |
 | ~~24~~ | ~~**El decodificador AVC de Amlogic ignora el pulldown de H.264**~~ | — | saca 2 campos por imagen = 48 fps en contenido de cine, −17.5 % del ideal. El de MPEG-2 lo respeta (−0.2 %). Afecta igual a libVLC (47.99), así que **no se arregla en el cliente**. Decisión de Edgar: aceptarlo o tratar el canal en el headend **Cerrado 08-oct: se acepta, y el tunneled es la mitigación.** Decisión de Edgar tras 24 min de `hbohd` en pantalla: «el stream se ve limpio mientras está de corrido». No se arregla en el cliente —libVLC falla igual, 47.99— y el tunneled, que es de fábrica, se adoptó precisamente porque elimina esos microcortes. **No es medible en la configuración que se publica** y eso no tiene arreglo de método: hace falta ver la entrega de fotogramas, y con tunneled no la ven ni el contador propio ni `SurfaceFlinger --latency` (§6); sin tunneled el canal se cae cada 4 s. Volverá a importar el día que una caja obligue a apagar el tunneled |
 
@@ -445,7 +445,7 @@ Repetida desde cero.
 ### [B] El selector de proveedor: la caja ya no pide una dirección que nadie sabe — 2026-10-30
 
 La primera pantalla de toda instalación pedía «escribe la dirección del
-servidor», y lo que hay que escribir es `http://192.168.20.249:8096`. Ningún
+servidor», y lo que hay que escribir es `http://192.168.1.10:8096`. Ningún
 abonado sabe eso; el técnico que lo teclea por él se equivoca.
 
 **Lo que se pidió era un desplegable con todos los proveedores, y eso no se
@@ -513,7 +513,7 @@ verdad** —uvicorn local, base propia, un site `demo` con código, rangos y
 |---|---|
 | por IP (rango que cubre la del emulador) | «¿Eres cliente de Palomera Demo?» **sin teclear nada**; `porCodigo=false encontrado=true` |
 | por código, `DEMO-4821` | lo mismo, y `porCodigo=true encontrado=true` |
-| confirmar | añadió `http://xtsrt01.ddns.net:8096` y entró a su pantalla de cuentas |
+| confirmar | añadió la dirección del demo y entró a su pantalla de cuentas |
 | escribiendo la dirección a mano | igual que antes, el camino viejo intacto |
 | **con el registro apagado** | «No pudimos consultar quién es tu proveedor», **no** «no existe» |
 
@@ -791,7 +791,8 @@ el historial completo. Tres cosas que no eran obvias al crearlo:
 3. **Barrido de secretos sobre todos los objetos del historial** antes de
    empujar, no sobre el árbol de trabajo: cero claves privadas y cero tokens.
    Los `.pem` que aparecen son raíces públicas de ISRG y fixtures de prueba.
-   Lo único que queda expuesto es `test`/`test` contra `192.168.20.249`, que
+   Lo único que queda expuesto es `test`/`test` contra el Jellyfin de la
+   oficina, que
    es una dirección privada e inalcanzable desde internet.
 
 **Y está bajo una organización, no bajo una cuenta personal.** No es
@@ -1788,7 +1789,7 @@ avisa desde el principio de que la Skyworth es **el mejor caso posible** y de
 que no se desarrolle solo contra ella; esta entrada es la primera medida que lo
 comprueba.
 
-**La caja**, en `192.168.20.165:5555`, prestada por Edgar:
+**La caja** prestada por Edgar:
 
 ```
 Build.MANUFACTURER   VS          ← no «MECOOL»
@@ -3695,7 +3696,7 @@ que se usó habría seguido en verde con la caja rota.
 #### Medido en la caja
 
 ```
-config.epg url=http://192.168.20.249:8097/epg.xml refrescoMin=1440
+config.epg url=http://‹site›:8097/epg.xml refrescoMin=1440
 epg.descargada bytes=90078 comprimido=false
 epg.interpretada canales=7 programas=59 descartados=0 fueraDeVentana=142 canalesDesconocidos=0
 epg.lista origen=RED canales=7 programas=59 antiguedadMin=0
@@ -4134,9 +4135,9 @@ registro pisa a la del site.
 **Medido en la caja, contra producción:**
 
 ```
-registro.respuesta host=192.168.20.249 autorizado=true hasta=… channelsUrl=… marca=pruebas
-registro.acceso    host=192.168.20.249 resultado=permitido motivo=autorizado por el registro
-catalogo.destino   url=http://192.168.20.249:8097/config.json procedencia=registro
+registro.respuesta host=‹site› autorizado=true hasta=… channelsUrl=… marca=pruebas
+registro.acceso    host=‹site› resultado=permitido motivo=autorizado por el registro
+catalogo.destino   url=http://‹site›:8097/config.json procedencia=registro
 catalogo.listo     canales=10 marca=pruebas marcaOrigen=registro
 ```
 
@@ -5491,12 +5492,12 @@ mirando otro lineup no mide lo que parece.
 
 ```
 # derivado, sin servicio levantado → respaldo
-catalogo.destino url=http://192.168.20.249:8097/config.json procedencia=derivada de Jellyfin
+catalogo.destino url=http://‹site›:8097/config.json procedencia=derivada de Jellyfin
 config.descargaFallida … ConnectException
 catalogo.desdeArranque canales=6
 
 # override a un servidor de prueba → red
-catalogo.destino url=http://192.168.11.102:8097/config.json procedencia=menú
+catalogo.destino url=http://‹otro site›:8097/config.json procedencia=menú
 config.desdeRed canales=6 · catalogo.listo origen=RED grupos=4
 engine.prepare … degradacion=config=manual
 
@@ -7527,7 +7528,7 @@ recorte de códecs del perfil. Ninguno altera el comportamiento del VOD.
 ### [Previo a M0] Auditoría de documentos contra el Flussonic real — 2026-09-22
 
 **Síntoma:** antes de escribir la primera línea de código se reverificaron los
-seis canales contra `192.168.11.250:8181`. `CHANNELS.md`, que se declara
+seis canales contra el headend de pruebas. `CHANNELS.md`, que se declara
 fuente de verdad, contenía cifras que no coinciden con lo que la app recibe.
 
 **Hallazgos medidos:**
@@ -8178,7 +8179,7 @@ le va a pasar a quien dé de alta el primer ISP.
   app sobrevive, pero sólo se saca por el menú de desarrollador.
 
 **De paso, un pendiente cerrado sin escribir código.** Quedaba por explicar por
-qué una vez la app apareció resuelta a `192.168.20.249` con 12 canales y marca
+qué una vez la app apareció resuelta al Jellyfin de la oficina con 12 canales y marca
 «pruebas» en vez de al site que tocaba. No era el registro: la pantalla de
 bienvenida enseña **«Servidores descubiertos»** con ese Jellyfin de la oficina,
 encontrado por descubrimiento en la LAN, y está a una pulsación. Se vio en la
@@ -8655,3 +8656,105 @@ Modo B, salvo el visto bueno de VOD que pide `ItemLauncher`. `comprobar.py` en
 verde con nueve comprobaciones, `:app:assembleDebug` y `:livetv:test` también.
 
 **Estado:** abierta — a falta del visto bueno en pantalla.
+
+---
+
+## Las direcciones salen del repositorio, todas — 2026-11-04
+
+Decisión de Edgar, el mismo día y a raíz de la anterior: **«si me gustaría que
+en escritos públicos no se revele direcciones de ningún tipo sobre todo de
+servidores»**.
+
+La entrada de arriba había sacado **una** dirección —la del site de los
+probadores— porque `docs/prueba-cerrada.md` §6 la prohibía por el contenido de
+terceros que hay detrás. Esto generaliza la regla, y al generalizarla aparece
+el tamaño real del asunto: **68 apariciones de cinco máquinas**, repartidas por
+`CLAUDE.md` §9 —que era la fuente—, seis herramientas, cuatro pruebas de unidad
+y el `app/build.gradle.kts`.
+
+Una dirección de la LAN de un cliente no es un secreto criptográfico, y la
+regla no se escribe como si lo fuera. Es que **publicada dice qué hay montado,
+en qué puerto y con qué versión**, y eso no se lo debemos a nadie.
+
+### Dónde viven ahora
+
+En **`herramientas/entorno.local`**, que el `.gitignore` deja fuera, con
+`herramientas/entorno.ejemplo` como plantilla versionada que explica qué es
+cada variable. Se cargan una vez por sesión:
+
+```bash
+set -a; . herramientas/entorno.local; set +a
+```
+
+Las seis herramientas las leen de ahí y **fallan con un mensaje que dice qué
+falta y cómo cargarlo**, en vez de intentarlo contra una dirección por defecto
+que ya no existe. Comprobado en `scan-canales.sh`, que es el único que aborta.
+
+Gradle no lee ese archivo: la que necesita la lista de canales de arranque va
+en `local.properties` —ignorado desde siempre— con la clave `livetv.headend`.
+**Sin ella la lista queda vacía, que es exactamente lo que ya llevaba el APK de
+release**, así que el caso «falta la clave» no es un fallo nuevo: es el
+comportamiento de producción. Verificado en el `BuildConfig` generado: debug la
+trae completa desde `local.properties`, release sigue en `""`.
+
+De paso `propiedadDeFirma` pasa a llamarse `propiedadLocal`, porque ya no lee
+sólo material de firma.
+
+### Lo que se queda escrito, y por qué
+
+**Los ejemplos ficticios.** Un esquema sin ejemplos es inservible, y ninguno de
+éstos es la dirección de nadie:
+
+| | de quién es |
+|---|---|
+| `192.168.1.10` | la pasarela típica de cualquier casa; sale en el texto de ayuda que lee el abonado y en los contratos |
+| `10.0.0.5` | el ISP imaginario de los ejemplos de `CONFIG_SCHEMA.md`, que es un contrato con los otros dos proyectos |
+| `192.0.2.*` y compañía | los rangos que la RFC 5737 reserva para documentación. Las pruebas de `ServiceUrl` y del registro usan éstos, que no se enrutan y no pueden ser la LAN de nadie |
+| `127.0.0.1`, `0.0.0.0` | localhost y «todas las interfaces». No son máquinas |
+
+Y dos marcadores que **no** son direcciones falsas, a propósito: `HEADEND` en
+`headend/config.json` y `‹DEMO_HOST›` en `FICHA.md`. Una IP inventada se copia
+y se sirve sin que nadie la mire, y entonces el fallo es «el canal no carga» en
+vez de «esto hay que rellenarlo». Los dos llevan al lado quién los rellena
+—`headend/README.md`, nuevo, y una nota en `FICHA.md`— y el de la ficha avisa
+de que **el recuento de 500 caracteres hay que rehacerlo** sobre el texto ya
+sustituido, porque el marcador ocupa menos que la dirección.
+
+### El instrumento
+
+`comprobar.py h)` pasa de «ninguna IP pública» a **«ninguna dirección de
+servidor»**: falla con cualquier IPv4 que no sea de documentación ni esté en la
+lista blanca, y además con cualquier host bajo un proveedor de DNS dinámico
+—`ddns.net`, `duckdns.org`, `no-ip.*`, `dyndns.*` y cuatro más—, porque un
+nombre así es por definición la dirección de una máquina concreta.
+
+Sigue sin llevar escrita ninguna dirección: busca la forma, así que pillará el
+site del ISP siguiente, que nadie ha escrito todavía.
+
+**Y encontró dos que la búsqueda a mano no vio**: `10.0.0.5` en
+`CONFIG_SCHEMA.md` —ficticia, se fue a la lista blanca con su motivo— y la del
+Jellyfin de la oficina en una nota de `docs/auditoria-multioperador.md`, que
+era real. Mis dos barridos previos filtraban por un patrón más estrecho y se la
+saltaron. Es el argumento de siempre, otra vez: la comprobación ve lo que el
+que la escribió no se acordó de buscar.
+
+Verificada en cuatro condiciones, no en una: roja con una privada, roja con una
+enrutable, roja con un `*.ddns.net`, y **verde** con `192.0.2.77` y
+`192.168.1.10` juntos, que es el caso que no debe molestar.
+
+**Y la quinta condición la puso esta misma entrada.** Al escribir el párrafo de
+arriba teclé la dirección real para contar dónde estaba, y `h)` saltó antes del
+commit. Es el fallo exacto que la regla previene —se cuela redactando, no
+configurando— y es la demostración de que el instrumento hacía falta: las dos
+veces que esto ha pasado hoy ha sido escribiendo una bitácora, no un servidor.
+
+### Comprobado
+
+Barrido independiente de la propia comprobación sobre todos los archivos
+versionados: lo único que queda son las cuatro clases de ejemplo de la tabla.
+`comprobar.py` con las nueve en verde, `:app:assembleDebug` y `:livetv:test`
+también.
+
+Modo B.
+
+**Estado:** cerrada.

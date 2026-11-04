@@ -28,3 +28,8 @@ herramientas/out/
 
 # Las herramientas son scripts, no un paquete: su caché no se versiona.
 herramientas/__pycache__/
+
+# Las direcciones del entorno de pruebas. El repositorio es público y en
+# escritos públicos no se revela ninguna dirección de servidor (decisión de
+# Edgar, 04-nov). La plantilla versionada es `herramientas/entorno.ejemplo`.
+herramientas/entorno.local
