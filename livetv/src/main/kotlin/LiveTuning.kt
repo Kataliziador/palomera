@@ -581,12 +581,20 @@ object LiveTuning {
 	 * reiniciarse. Para un ISP eso es la diferencia entre que el corte por
 	 * impago sirva de algo o no.
 	 *
-	 * **Apagado de fábrica porque es Modo A** (`CLAUDE.md` §3): el valor por
-	 * defecto es el comportamiento anterior hasta que Edgar lo valide en
-	 * pantalla. Lo que hay que mirar en una tele no es la petición —eso es
-	 * trivial— sino qué le pasa a la imagen cuando contesta 403.
+	 * **Activo de fábrica desde el 04-nov, con el visto bueno de Edgar en
+	 * pantalla.** Nació apagado, como manda el Modo A (`CLAUDE.md` §3): el
+	 * valor por defecto tenía que ser el comportamiento anterior hasta que se
+	 * viera en una tele. Lo que había que mirar no era la petición —eso es
+	 * trivial— sino qué le pasa a la imagen cuando llega el 403, y eso se vio:
+	 * el aviso sale encima del vídeo, **la imagen no se corta** —el latido
+	 * siguió en `reproduciendo=true` con la posición avanzando— y la primera
+	 * tecla devuelve a la guía con la pantalla entera.
+	 *
+	 * El interruptor se queda para poder reproducir el comportamiento anterior
+	 * si alguna vez hace falta compararlo, igual que el del rescate del
+	 * tunneled.
 	 */
-	const val VIGILAR_SUSPENSION_DEFAULT = false
+	const val VIGILAR_SUSPENSION_DEFAULT = true
 
 	/**
 	 * Cada cuánto se le pregunta al Jellyfin del ISP si el contrato sigue vivo.

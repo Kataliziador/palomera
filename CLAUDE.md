@@ -862,6 +862,32 @@ durante meses**, así que:
 
 ## 7. Fuera de alcance
 
+### La interfaz está congelada desde el 2026-11-04
+
+**Decisión de Edgar, y es la condición para publicar.** A partir de aquí, un
+cambio en lo que se ve exige una razón de peso y se decide antes de hacerlo —
+no se arregla «de paso» mientras se toca otra cosa.
+
+**Por qué, y no es burocracia:** las capturas de la ficha de Play enseñan la
+app, y un revisor las compara con lo que ve al abrirla. Cada cambio de
+interfaz las caduca. Ya pasó una vez: las del 02-nov quedaron obsoletas dos
+días después, cuando la guía pasó a fichas.
+
+Lo que **sí** sigue permitido sin discusión, porque no cambia lo que se ve:
+corregir un texto que miente, un contraste que no llega al suelo de la lista
+de comprobación, o un defecto que rompe una pantalla en un caso que no
+habíamos visto.
+
+**Está congelada sobre terreno mirado, no sobre lo que se vio por casualidad.**
+El 04-nov se validaron en la caja las variantes que ningún site vivo
+ejercitaba —ficha con logo, marca con logo del ISP, canal «sin señal», site
+sin guía y las dos pantallas de suspensión—, montando un `config.json` de
+prueba y apuntando la caja con `configUrlOverride`. Sin esa pasada, congelar
+habría sido congelar a ciegas.
+
+Lo que queda escrito como **no congelado y pendiente**: la fila de canales
+propios en el inicio (B8), que es una pantalla nueva y no un retoque.
+
 - DRM y transcodificación en cliente. **ABR salió de esta lista el 02-nov**
   (§6): se quiere, y Media3 ya lo hacía
 - Transcodificación de **video** en el headend

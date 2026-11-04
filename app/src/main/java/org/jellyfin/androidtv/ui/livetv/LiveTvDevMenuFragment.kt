@@ -216,7 +216,7 @@ private fun DevMenu() {
 		item {
 			Row(
 				label = "Vigilar la suspensión del abonado",
-				value = if (dev.vigilarSuspensionEnabled) "ACTIVO" else "apagado (pendiente 84)",
+				value = if (dev.vigilarSuspensionEnabled) "ACTIVO" else "apagado",
 				changed = dev.procedenciaDe(DevOptions.K_VIGILAR_SUSPENSION) == "menú",
 			) { change { dev.vigilarSuspensionEnabled = !dev.vigilarSuspensionEnabled } }
 		}

@@ -280,8 +280,8 @@ class DevOptions(context: Context) {
 	 * Vigilar que el contrato del abonado siga vivo mientras la sección está
 	 * abierta (pendiente 84).
 	 *
-	 * Apagado de fábrica: es Modo A y el valor por defecto tiene que ser el
-	 * comportamiento anterior hasta que se valide en pantalla.
+	 * Activo de fábrica desde el 04-nov, validado en pantalla. El interruptor
+	 * se queda para poder reproducir el comportamiento anterior.
 	 */
 	var vigilarSuspensionEnabled: Boolean
 		get() = prefs.getBoolean(K_VIGILAR_SUSPENSION, LiveTuning.VIGILAR_SUSPENSION_DEFAULT)
