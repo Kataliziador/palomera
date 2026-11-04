@@ -8398,4 +8398,21 @@ que quien la retome sepa lo que ya se midió:
 Lo que **no** se midió y seguiría abierto si vuelve: si el semáforo ayuda de
 verdad a decidir qué ver. Lo que se juzgó fue cómo se ve.
 
+**Y con la vuelta al acento, el site de los probadores pasa a tener marca.**
+Hasta hoy servía `brand: null`, así que la pista salía con el `ACENTO_NEUTRO`
+—el mismo gris de la tinta secundaria— y por eso el color «no se veía». Con el
+visto bueno de Edgar se publicó `{"accent": "#17B9A8"}` en
+`148.113.220.228`, por el camino del propio servicio (`Borrador.guardar` +
+`Borrador.publicar` dentro del contenedor, que valida el color y deja copia en
+`datos/historial/`), no editando el `lineup.json` a mano. El servicio lo
+aprobó con 8,54 de contraste contra negro, muy por encima del 3 que exige.
+
+**No se puso `displayName`**, que es la otra mitad de la marca: la cabecera de
+la sección sigue diciendo «TV en vivo» —el nombre de la marca neutra— pero ya
+en el color del site. Es lo que Edgar autorizó y nada más.
+
+Verificado en la caja con el APK revertido: las 53 pistas y el progreso de la
+barra en `#17B9A8`, y el punto rojo del directo sigue siendo lo único rojo de
+la barra, que era el choque que el semáforo había creado.
+
 **Estado:** descartada.
