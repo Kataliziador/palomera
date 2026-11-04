@@ -258,7 +258,15 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
    a una en el commit:
 
    - **enganches de navegación** — `Destinations.kt`, `MainToolbar.kt`,
-     `HomeFragmentLiveTVRow.kt`, `HomeRowsFragment.kt`;
+     `HomeRowsFragment.kt` y la **eliminación** de
+     `HomeFragmentLiveTVRow.kt` **(borrado el 04-nov)**. Esa fila del inicio
+     llevaba cabecera propia y un único botón «Guía de TV en vivo» para ir
+     exactamente adonde va el botón de `MainToolbar`, que está en las tres
+     pantallas y no depende de permisos ni de la configuración del servidor.
+     Un renglón entero del inicio para repetir algo que se ve siempre, y que
+     empujaba el catálogo hacia abajo. `HomeRowsFragment` deja de componer
+     esa sección (`HomeSectionType.LIVE_TV -> Unit`), así que la clase se
+     quedaba sin usar y se borra en vez de pudrirse;
    - **archivos de compilación** — `app/build.gradle.kts`,
      `settings.gradle.kts`, `.gitignore` y `gradle/libs.versions.toml`. El
      primero lleva además el `applicationId`, que es identidad publicada y no

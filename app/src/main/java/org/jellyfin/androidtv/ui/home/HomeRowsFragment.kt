@@ -81,7 +81,6 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	// Special rows
 	private val notificationsRow by lazy { NotificationsHomeFragmentRow(lifecycleScope, notificationsRepository) }
 	private val nowPlaying by lazy { HomeFragmentNowPlayingRow(lifecycleScope, playbackManager, mediaManager) }
-	private val liveTVRow by lazy { HomeFragmentLiveTVRow(requireActivity(), userRepository, navigationRepository) }
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -112,20 +111,32 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 				HomeSectionType.RESUME_BOOK -> Unit // Books are not (yet) supported
 				HomeSectionType.ACTIVE_RECORDINGS -> rows.add(helper.loadLatestLiveTvRecordings())
 				HomeSectionType.NEXT_UP -> rows.add(helper.loadNextUp())
-				// `loadOnNow()` consulta la LiveTV **de Jellyfin**
-				// (`/LiveTv/Programs/Recommended`), que es la sección que
-				// reemplazamos (`CLAUDE.md` §4, regla 5). En el Jellyfin de un
-				// ISP esa fila sale vacía o falla, y mientras tanto gasta una
-				// petición en cada carga del inicio. Los canales de la fila
-				// nueva saldrán del catálogo propio cuando haya EPG (B8).
+				// **Sin fila de TV en vivo en el inicio, y es el 04-nov.** Lo
+				// vio Edgar: «si eso ya lo tenemos en la parte superior, está
+				// de más». Lo está. Esa fila gastaba un renglón entero del
+				// inicio —cabecera «TV en vivo» y un único botón «Guía de TV
+				// en vivo»— para llevar exactamente adonde lleva el botón de
+				// la barra principal, que **está siempre**: no depende de
+				// permisos ni de la configuración del servidor y se ve en el
+				// inicio, en la sección y en la búsqueda (`MainToolbar`). Dos
+				// caminos al mismo sitio en la misma pantalla no son dos
+				// opciones; son uno que sobra y que empuja el catálogo hacia
+				// abajo.
 				//
-				// **Y ya no se condiciona a `enableLiveTvAccess`.** Ese permiso
-				// es del Jellyfin del ISP y habla de *su* LiveTV, que no
-				// usamos: nuestros canales salen del servidor del site y no
-				// requieren credenciales (§6). Un ISP con ese permiso apagado
-				// —lo normal cuando su Jellyfin no tiene TV configurada— se
-				// quedaba sin la fila del inicio hacia nuestra sección.
-				HomeSectionType.LIVE_TV -> rows.add(liveTVRow)
+				// Antes de esto, aquí había dos cosas más que quedan escritas
+				// porque explican por qué la fila no era la del upstream:
+				// `loadOnNow()` consultaba la LiveTV **de Jellyfin**
+				// (`/LiveTv/Programs/Recommended`), que es la sección que
+				// reemplazamos (§4 regla 5) y que en el Jellyfin de un ISP
+				// sale vacía o falla gastando una petición en cada carga; y la
+				// fila dejó de condicionarse a `enableLiveTvAccess`, un
+				// permiso que habla de *su* LiveTV y no de la nuestra.
+				//
+				// Lo que se pierde: nada que no esté a una tecla ARRIBA. Si
+				// alguna vez el inicio tiene que enseñar canales, lo que
+				// corresponde es una fila **con canales** del catálogo propio
+				// (B8), no un botón.
+				HomeSectionType.LIVE_TV -> Unit
 
 				HomeSectionType.NONE -> Unit
 			}
@@ -155,7 +166,6 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 		onItemViewClickedListener = CompositeClickedListener().apply {
 			registerListener(ItemViewClickedListener())
-			registerListener(liveTVRow::onItemClicked)
 			registerListener(notificationsRow::onItemClicked)
 		}
 

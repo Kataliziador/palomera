@@ -8416,3 +8416,38 @@ barra en `#17B9A8`, y el punto rojo del directo sigue siendo lo único rojo de
 la barra, que era el choque que el semáforo había creado.
 
 **Estado:** descartada.
+
+---
+
+### [B] Fuera la fila de TV en vivo del inicio — 2026-11-04
+
+Lo vio Edgar: «en la pantalla de inicio, debajo de los catálogos, hay un
+apartado de TV en vivo y debajo un botón de Guía de TV en vivo; si eso ya lo
+tenemos en la parte superior, está de más».
+
+Lo está. Esa fila gastaba un renglón completo del inicio —cabecera «TV en
+vivo» y **un** botón— para llevar exactamente adonde lleva el botón de la
+barra principal, que **se ve siempre**: está en el inicio, en la sección y en
+la búsqueda, y no depende de permisos ni de cómo tenga configurado su Jellyfin
+el ISP (`MainToolbar.kt`, comprobado leyendo el diff: el botón no lleva
+condición ninguna). Dos caminos al mismo sitio en la misma pantalla no son dos
+opciones: es uno que sobra, y que empujaba «Recientes en Películas» media
+pantalla hacia abajo.
+
+`HomeRowsFragment` deja de componer esa sección —`HomeSectionType.LIVE_TV ->
+Unit`— y con eso `HomeFragmentLiveTVRow` se quedaba sin usar, así que **se
+borra** en vez de quedarse pudriéndose con un escuchador que nadie dispara.
+`CLAUDE.md` §4.7 se actualiza en el mismo commit: la lista de enganches de
+navegación nombraba ese archivo y ahora nombra su eliminación.
+
+**Medido en la caja**, dos capturas: el inicio ya abre con «Mis medios» y
+«Recientes en Películas» sin desplazarse, y desde la barra de arriba se sigue
+entrando a la guía con ARRIBA y OK. Una caja.
+
+**Lo que se pierde: nada que no esté a una tecla ARRIBA.** Si algún día el
+inicio tiene que enseñar televisión, lo que corresponde es una fila **con
+canales** del catálogo propio —la del pendiente B8—, no un botón.
+
+Modo B. `comprobar.py` en verde.
+
+**Estado:** cerrada.
