@@ -59,8 +59,34 @@ public class ItemLauncher {
                 if (!enableSmartScreen) return Destinations.INSTANCE.libraryBrowser(baseItem);
                 else return Destinations.INSTANCE.librarySmartScreen(baseItem);
             case MUSIC:
-            case LIVETV:
                 return Destinations.INSTANCE.librarySmartScreen(baseItem);
+            // La biblioteca de TV en vivo del Jellyfin del ISP lleva a **nuestra**
+            // sección, que es lo que manda CLAUDE.md §4 regla 5: la LiveTV de
+            // Jellyfin se reemplaza, no convive.
+            //
+            // **Y no estaba cumplido.** Hasta el 04-nov este caso abría
+            // `BrowseViewFragment`, que para `LIVETV` monta una fila «Vistas» con
+            // cuatro botones: Guía de TV en vivo, Grabaciones, Programación y
+            // Series. El primero navegaba a `LiveTvGuideFragment` —la guía vieja,
+            // la que §4 declara inalcanzable— y los otros tres a DVR, que §7 pone
+            // fuera de alcance. Era la misma puerta que se cerró ese día en el
+            // inicio, más ancha: `UserViewsRepository` no filtra `LIVETV`, así que
+            // esa biblioteca aparece como una más entre las del inicio.
+            //
+            // Medido el 04-nov contra el Jellyfin de la oficina (§9): devuelve una
+            // vista `livetv` llamada «TV en vivo» y `LiveTv.IsEnabled: true`. O
+            // sea que el tile existe hoy, y encima con el mismo nombre que el
+            // botón de `MainToolbar` — dos entradas iguales a dos secciones
+            // distintas en la misma pantalla.
+            //
+            // **Se redirige en vez de esconder la biblioteca.** Quitarla de
+            // `UserViewsRepository` también cerraba la puerta, pero le borra al
+            // abonado algo que su proveedor configuró; §4 regla 5 pide que el
+            // enganche «apunte a la sección nueva», y eso es esto. De paso, los
+            // cuatro botones de la fila «Vistas» se quedan sin camino que los
+            // alcance, que era el daño de verdad.
+            case LIVETV:
+                return Destinations.INSTANCE.getLiveTv();
             default:
                 return Destinations.INSTANCE.libraryBrowser(baseItem);
         }

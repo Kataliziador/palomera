@@ -266,7 +266,33 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      Un renglón entero del inicio para repetir algo que se ve siempre, y que
      empujaba el catálogo hacia abajo. `HomeRowsFragment` deja de componer
      esa sección (`HomeSectionType.LIVE_TV -> Unit`), así que la clase se
-     quedaba sin usar y se borra en vez de pudrirse;
+     quedaba sin usar y se borra en vez de pudrirse.
+
+     **Y esa puerta no era la única; la otra era más ancha** (añadidos el
+     04-nov `ui/itemhandling/ItemLauncher.java`,
+     `constant/HomeSectionType.kt` y `preference/UserSettingPreferences.kt`).
+     La biblioteca de TV en vivo del Jellyfin del ISP aparece en el inicio
+     como una más —`UserViewsRepository` no filtra `LIVETV`— y abría
+     `BrowseViewFragment`, que para ese tipo monta una fila «Vistas» con
+     cuatro botones: **Guía de TV en vivo**, que navegaba a
+     `LiveTvGuideFragment` —la guía vieja que la regla 5 declara
+     inalcanzable—, y Grabaciones, Programación y Series, que son DVR y están
+     fuera de alcance (§7). Medido el 04-nov contra el Jellyfin de la oficina
+     (§9): devuelve una vista `livetv` llamada «TV en vivo» con
+     `LiveTv.IsEnabled: true`, o sea que el tile existe hoy y con el **mismo
+     nombre** que el botón de `MainToolbar`. `ItemLauncher` manda ahora ese
+     caso a `Destinations.liveTv`, que es lo que la regla 5 pide —«la fila del
+     inicio apunta a la sección nueva»— y deja los cuatro botones sin camino
+     que los alcance. **Se redirige en vez de esconder la biblioteca**:
+     quitarla de `UserViewsRepository` también cerraba la puerta, pero borra
+     del inicio algo que el proveedor configuró. Y como la sección del inicio
+     ya no dibuja nada, `HomeSectionType.LIVE_TV` pasa a `hidden` —dejaba
+     elegir en Preferencias una fila vacía— y `homesection4` deja de traerla
+     de fábrica. **`ItemLauncher` es lógica en un camino compartido con el
+     VOD**, así que vale lo mismo que para la puerta de la sesión: el
+     invariante se mantiene —los casos `MOVIES`, `TVSHOWS` y `MUSIC` no se
+     tocan— y **exige que Edgar compruebe en pantalla que sus bibliotecas
+     siguen abriéndose igual**;
    - **archivos de compilación** — `app/build.gradle.kts`,
      `settings.gradle.kts`, `.gitignore` y `gradle/libs.versions.toml`. El
      primero lleva además el `applicationId`, que es identidad publicada y no

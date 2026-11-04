@@ -21,7 +21,16 @@ class UserSettingPreferences(
 		val homesection1 = enumPreference("homesection1", HomeSectionType.RESUME)
 		val homesection2 = enumPreference("homesection2", HomeSectionType.RESUME_AUDIO)
 		val homesection3 = enumPreference("homesection3", HomeSectionType.RESUME_BOOK)
-		val homesection4 = enumPreference("homesection4", HomeSectionType.LIVE_TV)
+		// Era `LIVE_TV`, y desde el 04-nov esa sección no dibuja nada
+		// (`HomeRowsFragment`, `HomeSectionType.LIVE_TV`): la ranura de fábrica
+		// se gastaba en una fila vacía y, con la opción ya oculta en
+		// Preferencias, enseñaba un valor que no está entre los elegibles.
+		//
+		// `NONE` y no correr las de abajo un puesto: `activeHomesections` filtra
+		// `NONE`, así que el inicio queda exactamente como ya quedaba —
+		// bibliotecas, continuar viendo, continuar oyendo, continuar leyendo,
+		// siguiente episodio, novedades— sin tocar cuatro líneas más.
+		val homesection4 = enumPreference("homesection4", HomeSectionType.NONE)
 		val homesection5 = enumPreference("homesection5", HomeSectionType.NEXT_UP)
 		val homesection6 = enumPreference("homesection6", HomeSectionType.LATEST_MEDIA)
 		val homesection7 = enumPreference("homesection7", HomeSectionType.NONE)
