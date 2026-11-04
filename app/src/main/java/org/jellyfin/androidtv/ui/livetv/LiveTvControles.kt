@@ -146,7 +146,7 @@ private fun BotonDeControl(control: Control, enfocado: Boolean) {
 fun LiveTvOpciones(
 	titulo: String,
 	opciones: List<String>,
-    seleccionada: Int,
+	seleccionada: Int,
 	modifier: Modifier = Modifier,
 ) {
 	Column(

@@ -299,7 +299,6 @@ class PlanBuilderTest : StringSpec({
 		original.videoPath shouldBe DecodePath.HW
 
 		val revisado = PlanBuilder.revisar(
-			plan = original,
 			channel = h264,                 // el config dice h264
 			mimeObservado = "video/mpeg2",  // el stream dice otra cosa
 			caps = caps,
@@ -313,9 +312,8 @@ class PlanBuilderTest : StringSpec({
 
 	"si el stream confirma el config, no se rehace nada" {
 		val caps = caja(listOf(avcHw))
-		val original = plan(h264, caps)
 		PlanBuilder.revisar(
-			original, h264, "video/avc", caps, null, 0, false, null,
+			h264, "video/avc", caps, null, 0, false, null,
 		) shouldBe null
 	}
 

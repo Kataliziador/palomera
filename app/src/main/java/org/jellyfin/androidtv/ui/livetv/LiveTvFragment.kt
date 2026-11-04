@@ -169,10 +169,8 @@ private fun ChannelRow(
 	val fuente = remember { LiveTvCatalog.of(context) }
 	val epg by fuente.guia.collectAsState()
 
-	// El reloj de la sección. Mueve el progreso de las tarjetas y los minutos
-	// que quedan. Medio minuto es de sobra: la barra más larga de la pantalla
-	// mide 168 dp, así que un minuto de programa no llega a mover un píxel en
-	// casi ningún caso, y un reloj por segundo recompondría 120 tarjetas.
+	// El reloj de la sección. Mueve el progreso de las fichas y los minutos que
+	// quedan. Medio minuto, por lo que explica [GUIDE_CLOCK_REFRESH_MS].
 	var ahoraMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
 	LaunchedEffect(Unit) {
 		while (true) {
@@ -481,7 +479,13 @@ private fun ChannelRow(
 					?: "Este canal no está disponible por ahora."
 			}
 
-			if (epg.canales > 0 || sinSenal != null) {
+			// `publicaGuia` y no `epg.canales > 0`, por lo mismo que las fichas:
+			// con la guía descargada como condición, esta línea aparecía cuando
+			// llegaba el EPG y empujaba la lista 26 dp hacia abajo. El propio
+			// [QueDanAhora] ya reserva su hueco aunque el canal enfocado no
+			// tenga programación; reservarlo desde el primer dibujado es la
+			// misma idea llevada hasta el final.
+			if (catalog.publicaGuia || sinSenal != null) {
 				QueDanAhora(
 					// Con la lista vacía no hay canal enfocado, y dejar la
 					// programación del último sería contar lo que dan en algo
@@ -504,7 +508,7 @@ private fun ChannelRow(
 				// aquí sería mentir durante un segundo**, y el parpadeo entre
 				// «no hay nada» y una lista llena es lo que hace que una app
 				// parezca rota cuando solo estaba tardando.
-				FilaFantasma()
+				FilaFantasma(conGuia = catalog.publicaGuia)
 			} else if (secciones.isEmpty()) {
 				// Sin canales hay tres situaciones distintas y conviene no
 				// confundirlas: lo que se buscó no está, el servidor contestó
@@ -540,7 +544,15 @@ private fun ChannelRow(
 					// la línea del programa; con un site sin EPG —lo normal
 					// mientras un ISP monta su tubería— dirían «Sin guía» 53
 					// veces y la fila sería 17 dp más alta para nada.
-					siteConGuia = epg.canales > 0,
+					//
+					// **Sale del `config.json`, no de la guía descargada**, y es
+					// un arreglo del 04-nov: con `epg.canales > 0` la altura
+					// dependía de que la guía **ya hubiera llegado**, y llega
+					// después de los canales a propósito (pesa megas, va en su
+					// propio flujo). El resultado era que las fichas se
+					// dibujaban a 145 dp y crecían a 162 todas de golpe al
+					// llegar el EPG. Ver [LiveCatalog.publicaGuia].
+					siteConGuia = catalog.publicaGuia,
 					accent = Color(catalog.brand.accent),
 					onChannelClick = onChannelClick,
 					onChannelLongClick = { favoritos.toggle(it.id) },
@@ -611,9 +623,14 @@ private fun SinCanales(titulo: String, mensaje: String, conVod: Boolean = false)
  * milisegundos. Lo único que tiene que hacer es ocupar el sitio exacto —de ahí
  * que use las medidas de la tarjeta de verdad— para que la lista no dé un
  * salto al llegar.
+ *
+ * **Y `conGuia` es lo que hace que ocupe el sitio exacto de verdad.** Dibujaba
+ * `ALTO_TARJETA` fijo, que es la ficha de un site **con** guía; en un site sin
+ * EPG las fichas reales miden `ALTO_TARJETA_SIN_GUIA` y la lista daba un salto
+ * de 17 dp justo al llegar — que es lo único que esta fila existe para evitar.
  */
 @Composable
-private fun FilaFantasma() {
+private fun FilaFantasma(conGuia: Boolean) {
 	Column {
 		Box(
 			modifier = Modifier
@@ -631,7 +648,7 @@ private fun FilaFantasma() {
 				Box(
 					modifier = Modifier
 						.width(ANCHO_TARJETA)
-						.height(ALTO_TARJETA)
+						.height(if (conGuia) ALTO_TARJETA else ALTO_TARJETA_SIN_GUIA)
 						.clip(ShapeDefaults.Medium)
 						.background(LiveTvPaleta.hueco),
 				)
@@ -671,9 +688,21 @@ private const val NUMBER_ENTRY_TIMEOUT_MS = 1_500L
 /**
  * Cada cuánto avanza el reloj de la sección.
  *
- * Medio minuto: lo que se mueve con él son los minutos que quedan y unas
- * líneas de progreso de 168 dp de ancho. Un reloj por segundo recompondría la
- * lista entera 60 veces por minuto para no cambiar un píxel.
+ * Medio minuto, y **el motivo escrito aquí era falso**. Decía que con líneas de
+ * progreso «de 168 dp» un minuto de programa «no llega a mover un píxel»: el
+ * ancho se quedó viejo cuando la ficha pasó a 198 dp el 04-nov, y la cuenta no
+ * salía ni con el ancho viejo. La pista mide el ancho de la ficha, así que en
+ * un programa de media hora avanza 6,6 dp por minuto —3,3 dp en estos 30 s, o
+ * 6,6 px a densidad 2— y en uno de dos horas, 1,65 px. Se mueve, y se ve.
+ *
+ * Lo que sostiene el medio minuto es el otro lado de la balanza: un reloj por
+ * segundo recompone **las 120 fichas** sesenta veces por minuto para adelantar
+ * una décima de dp cada vez. A 30 s el salto sigue siendo de un par de píxeles
+ * en una pista de 3 dp de alto, que nadie está mirando mientras recorre la
+ * guía; lo que de verdad se lee de ella es la proporción, no el borde.
+ *
+ * El reloj de la barra del canal sí va por segundo, y ahí está bien: hay una
+ * sola barra y ocupa la pantalla entera (`BAR_CLOCK_REFRESH_MS`).
  */
 private const val GUIDE_CLOCK_REFRESH_MS = 30_000L
 
@@ -716,7 +745,6 @@ private const val TARJETAS_FANTASMA = 4
 private val ANCHO_TITULO_FANTASMA = 120.dp
 private val ALTO_TITULO_FANTASMA = 16.dp
 
-/** Acepta tanto la fila superior como el teclado numérico del mando. */
 /**
  * Qué dan en el canal que tiene el foco, **entero**.
  *
@@ -833,6 +861,7 @@ private fun QueDanAhora(franja: FranjaEpg?, ahoraMs: Long, sinSenal: String? = n
 	}
 }
 
+/** Acepta tanto la fila superior como el teclado numérico del mando. */
 private fun digitoDe(key: Key): Char? = when (key) {
 	Key.Zero, Key.NumPad0 -> '0'
 	Key.One, Key.NumPad1 -> '1'

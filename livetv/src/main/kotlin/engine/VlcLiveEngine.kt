@@ -444,7 +444,7 @@ class VlcLiveEngine(
 				// casi siempre y lo que no manda a nadie a revisar la antena
 				// por un fallo interno... al revés de lo que haría INTERNO.
 				ultimaCausa = CausaDeFallo.SENAL
-                LiveLog.error("player.error", null, "motor" to id, "evento" to "EncounteredError")
+				LiveLog.error("player.error", null, "motor" to id, "evento" to "EncounteredError")
 				notificar { it.onRecoverableError("vlcEncounteredError", null, ultimaCausa) }
 			}
 

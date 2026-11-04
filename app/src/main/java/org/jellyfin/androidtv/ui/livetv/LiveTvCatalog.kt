@@ -52,6 +52,25 @@ data class LiveCatalog(
 	/** Texto libre del ISP para la sección entera, ya acotado por el parser. */
 	val extras: List<ChannelExtra> = emptyList(),
 	/**
+	 * Si este site **declara** guía en su `config.json`, que no es lo mismo que
+	 * si la guía ya llegó.
+	 *
+	 * **La distinción arregla un salto de 17 dp**, y la pregunta la tenían que
+	 * hacer las fichas: reservan la línea del programa solo en un site con
+	 * guía, así que miden 162 dp o 145. Hasta el 04-nov eso se decidía con
+	 * `epg.canales > 0` —o sea, con la guía **ya descargada**—, y la guía viaja
+	 * en un flujo aparte y pesa megas a propósito: lo normal es que los canales
+	 * aparezcan antes. Las fichas se dibujaban a 145, llegaba la guía y
+	 * crecían todas de golpe.
+	 *
+	 * El puntero del EPG viene en el mismo `config.json` que los canales, así
+	 * que con él la altura se acierta en el primer dibujado y no cambia nunca.
+	 * Que de la guía descargada salgan cero canales —un XMLTV que no cubre a
+	 * nadie— es otra cosa, y entonces las fichas dicen «Sin guía», que ahí sí
+	 * es información.
+	 */
+	val publicaGuia: Boolean = false,
+	/**
 	 * Si se entra a la sección, según el registro de sites.
 	 *
 	 * Permitido mientras no se demuestre lo contrario: la sección nunca se
@@ -109,7 +128,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 			var anterior = dev.simularDenegacion
 			dev.revision.collect {
 				val ahora = dev.simularDenegacion
-                if (ahora == anterior) return@collect
+				if (ahora == anterior) return@collect
 				anterior = ahora
 				_state.value = _state.value.copy(acceso = comprobarAcceso())
 			}
@@ -353,6 +372,7 @@ class LiveTvCatalog private constructor(context: Context) : KoinComponent {
 					brand = marcaEfectiva,
 					extras = config.extras,
 					acceso = acceso,
+					publicaGuia = config.epg != null,
 				)
 			}
 

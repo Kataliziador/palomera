@@ -262,9 +262,16 @@ object PlanBuilder {
 	 * El códec declarado es una pista; el stream es la verdad. Si el headend
 	 * recodifica un canal y nadie actualiza el JSON, el plan se habría
 	 * construido sobre un dato falso.
+	 *
+	 * **No recibe el plan anterior, y lo recibía sin usarlo** (quitado el
+	 * 04-nov, lo señalaba detekt). Esto no revisa un plan: construye el que
+	 * corresponde al códec observado y devuelve `null` si no hay discrepancia.
+	 * Quién compara el nuevo con el viejo —y decide si vale la pena cortar la
+	 * imagen dos segundos para aplicarlo— es el llamante, que es el único que
+	 * sabe si el canal está en marcha. Un parámetro que la función no mira
+	 * promete lo contrario de lo que hace.
 	 */
 	fun revisar(
-		plan: PlaybackPlan,
 		channel: ChannelProfile,
 		mimeObservado: String?,
 		caps: DeviceCapabilities,

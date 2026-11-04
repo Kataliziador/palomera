@@ -198,7 +198,7 @@ object LiveLog {
 			actual.stackTrace.firstOrNull()?.let { append(" en ").append(it) }
 			val siguiente = actual.cause
 			actual = if (siguiente === actual) null else siguiente
-            nivel++
+			nivel++
 		}
 	}
 

@@ -1,4 +1,5 @@
 package org.jellyfin.androidtv.ui.livetv
+
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.SurfaceView
@@ -291,7 +292,6 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		)
 
 		val nuevo = PlanBuilder.revisar(
-			plan = plan,
 			channel = channel,
 			mimeObservado = observado,
 			caps = caps,
@@ -623,7 +623,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 				// opciones en vez de cambiar de canal.
 				val menu = menuAbierto
 				if (menu != null) {
-					val n = opcionesDe(menu, stats, aspecto, subtitulosActivos).size
+					val n = opcionesDe(menu, stats).size
 					return@onKeyEvent when (evento.key) {
 						Key.DirectionUp -> { opcionSeleccionada = (opcionSeleccionada - 1 + n) % n; true }
 						Key.DirectionDown -> { opcionSeleccionada = (opcionSeleccionada + 1) % n; true }
@@ -768,7 +768,7 @@ private fun LivePlayer(channelId: String?, alSalir: () -> Unit) {
 		menuAbierto?.let { menu ->
 			LiveTvOpciones(
 				titulo = tituloDeMenu(menu),
-				opciones = opcionesDe(menu, stats, aspecto, subtitulosActivos),
+				opciones = opcionesDe(menu, stats),
 				seleccionada = opcionSeleccionada,
 				// Justo encima de la fila de controles, no en el centro: es
 				// donde está mirando quien acaba de pulsar OK, y así no tapa
@@ -879,8 +879,6 @@ private fun tituloDeMenu(menu: String): String = when (menu) {
 private fun opcionesDe(
 	menu: String,
 	stats: EngineStats,
-	aspecto: AspectMode,
-	subtitulosActivos: Boolean,
 ): List<String> = when (menu) {
 	"audio" -> stats.audioTracks.map { it.label ?: it.language ?: "Pista" }
 	"subtitulos" -> listOf("Desactivados") +

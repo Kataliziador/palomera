@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +46,6 @@ import org.jellyfin.livetv.source.ChannelProfile
 fun LogoDeCanal(
 	channel: ChannelProfile,
 	modifier: Modifier = Modifier,
-	tamano: Dp = 84.dp,
 	tamanoTexto: TextUnit = 26.sp,
 	/**
 	 * El recuadro propio del logo.

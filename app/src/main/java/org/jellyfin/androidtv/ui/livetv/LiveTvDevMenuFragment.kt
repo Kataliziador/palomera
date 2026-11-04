@@ -137,7 +137,7 @@ private fun DevMenu() {
 			)
 		}
 
-        item { Header("Degradación — simular cajas peores") }
+		item { Header("Degradación — simular cajas peores") }
 		item {
 			Row(
 				label = "Forzar video por software",

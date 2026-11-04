@@ -125,8 +125,14 @@ fun LiveTvChannelGrid(
 	/**
 	 * El acento de la marca del proveedor, ya validado contra el fondo.
 	 *
-	 * Los títulos de grupo son el único sitio de la guía donde el color del ISP
-	 * cabe sin competir con los canales, que son lo que la gente viene a ver.
+	 * Va a **la pista de progreso de cada ficha**, y a nada más de la guía: es
+	 * el único sitio donde el color del ISP dice algo —cuánto lleva el
+	 * programa— en vez de decorar.
+	 *
+	 * **Esto decía que iba a los títulos de grupo, y era justo lo contrario de
+	 * lo que hace el código** (corregido el 04-nov). Lo llevaron un rato y se
+	 * quitó por lo que explica [CabeceraDeGrupo]: con doce grupos, el color de
+	 * marca salía doce veces en una pantalla para decir «Nacionales».
 	 */
 	accent: Color,
 	onChannelClick: (ChannelProfile) -> Unit,
@@ -231,8 +237,21 @@ fun LiveTvChannelGrid(
 	)
 
 	Box(
-		modifier = Modifier
+		// **El `modifier` del parámetro va aquí, al nodo raíz**, que es la
+		// convención de Compose y lo que esta función no cumplía: lo aplicaba
+		// al `LazyColumn` de dentro. Funcionaba porque lo único que se le pasa
+		// es un `focusRequester`, y habría dejado de funcionar en silencio el
+		// día que alguien le pasara un `padding` o un `size`: se habría medido
+		// contra el ancho de fuera y la holgura de abajo habría salido mal.
+		//
+		// **Y el `focusGroup()` se sube aquí con él.** Quien dibuja la sección
+		// pasa en ese `modifier` el `focusRequester` al que apunta ABAJO desde
+		// la cabecera; si el grupo de foco se quedara en el `LazyColumn`, el
+		// requester estaría en un nodo que no es focusable ni agrupa nada y la
+		// tecla ABAJO no tendría dónde aterrizar.
+		modifier = modifier
 			.fillMaxWidth()
+			.focusGroup()
 			// **La holgura del anillo de foco, y es un arreglo del 04-nov.** La
 			// ficha enfocada crece un 4 % —unos 8 dp de 198—, o sea que asoma 4
 			// dp por cada lado. En las fichas de en medio sobra sitio, pero la
@@ -259,7 +278,7 @@ fun LiveTvChannelGrid(
 	) {
 		LazyColumn(
 			state = verticalState,
-			modifier = modifier.fillMaxWidth().focusGroup(),
+			modifier = Modifier.fillMaxWidth(),
 			verticalArrangement = Arrangement.spacedBy(SEPARACION_ENTRE_FILAS),
 			contentPadding = PaddingValues(bottom = AIRE_AL_FINAL),
 		) {

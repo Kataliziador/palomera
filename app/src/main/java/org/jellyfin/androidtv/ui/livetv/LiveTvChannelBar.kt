@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -281,7 +285,18 @@ private fun IdentidadDelCanal(
 	ahoraMs: Long,
 ) {
 	val numero = channel.number
-	val conLogo = !channel.logoUrl.isNullOrBlank()
+
+	// **Hay que saber si el logo cargó, no solo si hay URL.** Con
+	// `conLogo = logoUrl != null` a secas, un canal cuya imagen no carga
+	// enseñaba el número **dos veces**: el bloque caía a su respaldo —el número
+	// a 30 sp— y la línea del nombre lo repetía a 21 sp porque seguía creyendo
+	// que había logo. Dos cifras idénticas a 12 dp una de otra.
+	//
+	// La ficha de la guía ya llevaba este hilo desde el 04-nov; la barra se
+	// quedó sin él. Atado a la URL: al zapear, un canal no debe heredar el
+	// fallo del anterior.
+	var falloLogo by remember(channel.logoUrl) { mutableStateOf(false) }
+	val conLogo = !channel.logoUrl.isNullOrBlank() && !falloLogo
 
 	Row(verticalAlignment = Alignment.CenterVertically) {
 		// El bloque: el logo cuando lo hay, y si no, el número. Es la misma
@@ -299,6 +314,7 @@ private fun IdentidadDelCanal(
 				channel = channel,
 				modifier = Modifier.fillMaxSize().padding(8.dp),
 				fondo = Color.Transparent,
+				alFallar = { falloLogo = true },
 				respaldo = {
 					Text(
 						text = numero?.toString() ?: inicialesDeCanal(channel.name),

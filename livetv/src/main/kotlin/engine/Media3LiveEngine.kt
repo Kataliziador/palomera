@@ -843,7 +843,7 @@ class Media3LiveEngine(
 
 		if (atascadoDesdeMs == 0L) {
 			atascadoDesdeMs = ahora
-            LiveLog.warn(
+			LiveLog.warn(
 				"vigilante.atascado",
 				"estado" to estadoLegible(exo.playbackState),
 				// La posición, porque en negativo dice algo que ninguna otra
