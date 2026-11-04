@@ -51,8 +51,9 @@ import org.jellyfin.livetv.source.ChannelProfile
  *
  * - **arriba, la identidad** — el logo si lo hay y, si no, el número, que es lo
  *   normal: 52 de los 53 canales del site de los probadores no traen `logoUrl`;
- * - **en medio, la línea de progreso**, que es el único sitio de la sección
- *   donde el color de marca del ISP dice algo en vez de decorar;
+ * - **en medio, la línea de progreso**, con el semáforo de
+ *   [LiveTvPaleta.colorDeProgreso]: verde si acaba de empezar, naranja a media
+ *   emisión, rojo si está por acabarse;
  * - **abajo, el nombre y el programa**, los dos dentro del ancho de la ficha.
  *
  * **Y por eso la ficha es más ancha: 198 dp y cuatro por fila, no cinco.** Es
@@ -102,14 +103,6 @@ fun LiveTvChannelCard(
 	 * «Sin guía», que ahí sí es información.
 	 */
 	siteConGuia: Boolean = false,
-	/**
-	 * El color de marca del ISP, ya validado contra el fondo de la sección.
-	 *
-	 * Es lo único de la ficha que lo lleva, y es deliberado: el progreso es el
-	 * único sitio donde el color dice algo —cuánto va del programa— en vez de
-	 * decorar. El sistema de diseño lo pide así.
-	 */
-	accent: Color,
 	onClick: () -> Unit,
 	onLongClick: () -> Unit,
 	modifier: Modifier = Modifier,
@@ -249,7 +242,7 @@ fun LiveTvChannelCard(
 					modifier = Modifier
 						.fillMaxWidth(progreso.coerceIn(0f, 1f))
 						.fillMaxHeight()
-						.background(accent),
+						.background(LiveTvPaleta.colorDeProgreso(progreso)),
 				)
 			}
 		}

@@ -42,10 +42,10 @@ import java.util.Date
  *
  * - **Casi monocroma.** Cualquier color se lee como dominante sobre imagen
  *   ajena. Quedan dos: el punto rojo del directo, que es convención universal
- *   y no hace falta explicar, y el relleno del progreso, que lleva el acento
- *   del ISP porque es el único sitio donde el color de marca dice algo —cuánto
- *   lleva el programa— en vez de decorar. Es la misma regla que en la ficha de
- *   la guía, y es lo que hace que las dos pantallas se lean como una.
+ *   y no hace falta explicar, y el relleno del progreso, que desde el 04-nov
+ *   lleva el semáforo de [LiveTvPaleta.colorDeProgreso] —verde, naranja,
+ *   rojo— en vez del acento del ISP. Es la misma regla que en la ficha de la
+ *   guía, y es lo que hace que las dos pantallas se lean como una.
  * - **El tiempo es el eje.** Progreso, lo que queda, lo que viene y el reloj:
  *   todo se ordena respecto a «ahora».
  * - **Velo degradado, nunca un bloque opaco.** Pesado bajo el texto y
@@ -96,13 +96,6 @@ fun LiveTvChannelBar(
 	/** Alta definición **medida**, no la que declare el `config.json`. */
 	altaDefinicion: Boolean,
 	enVivo: Boolean,
-	/**
-	 * El acento del ISP, ya validado contra el fondo.
-	 *
-	 * Un site sin marca configurada manda [org.jellyfin.livetv.config.ACENTO_NEUTRO],
-	 * que es el gris de la sección: la barra queda monocroma y no medio teñida.
-	 */
-	accent: Color,
 	controles: List<Control> = emptyList(),
 	/** −1 = el foco está en el canal, no en la fila. */
 	controlSeleccionado: Int = -1,
@@ -194,7 +187,7 @@ fun LiveTvChannelBar(
 
 		if (ahora != null) {
 			Spacer(modifier = Modifier.height(14.dp))
-			BarraDeProgreso(ahora.progreso(ahoraMs), accent)
+			BarraDeProgreso(ahora.progreso(ahoraMs))
 		}
 
 		epg?.luego?.let { siguiente ->
@@ -372,13 +365,18 @@ private fun IdentidadDelCanal(
  * **Cruza la barra entera**, antes el 72 %: una barra que se para a tres
  * cuartos invita a leer ese final como el final del programa, y no lo es.
  *
- * **Y el relleno lleva el acento del ISP**, que era blanco. Es el único
- * elemento gráfico de la barra y el único sitio donde el color de marca
- * significa algo; en la guía ya se usa así en cada ficha, y usarlo aquí
- * también es lo que hace que las dos pantallas parezcan la misma app.
+ * **Y el relleno lleva el semáforo**, igual que la pista de cada ficha de la
+ * guía: así las dos pantallas dicen lo mismo con el mismo color.
+ *
+ * **Lo que cuesta sobre vídeo claro, medido:** con el velo a 0,85 y vídeo
+ * blanco debajo, el surco queda en `#565656` y el relleno se distingue de él
+ * con 3,17 en verde, 2,90 en naranja y 2,63 en rojo — por debajo del 6,3 que
+ * daba el relleno blanco. El borde entre lo emitido y lo que falta se lee
+ * peor en ese caso concreto; lo largo de la barra no, porque sus dos extremos
+ * siguen anclados.
  */
 @Composable
-private fun BarraDeProgreso(progreso: Float, accent: Color) {
+private fun BarraDeProgreso(progreso: Float) {
 	Box(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -395,7 +393,7 @@ private fun BarraDeProgreso(progreso: Float, accent: Color) {
 					.fillMaxWidth(progreso.coerceIn(0f, 1f))
 					.height(5.dp)
 					.clip(RoundedCornerShape(3.dp))
-					.background(accent),
+					.background(LiveTvPaleta.colorDeProgreso(progreso)),
 			)
 		}
 	}
