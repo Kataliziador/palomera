@@ -716,14 +716,14 @@ La variable es obligatoria y **el build la exige**: sin ella el
    compara la foto con lo que ve. Se rehacen con
    `python3 -I herramientas/capturar-ficha.py` (`FICHA.md` §5)
 
-### Lo verificado el 29-oct sobre `0.1.0-rc.1`
+### Lo verificado el 05-nov sobre `0.1.0-rc.1`, commit `5486ddce0`
 
-**Reemplaza a la tabla del 14-oct**, que el propio documento avisaba que ya no
-describía la realidad: el 27-oct el paquete pasó a `mx.kataliziador.palomera` y
-la etiqueta a «Palomera».
+**Reemplaza a la tabla del 29-oct**, que describía un artefacto firmado con el
+keystore desechable. Ésta es la primera lectura de un AAB **publicable**.
 
-Construido de verdad —`assembleRelease` y `bundleRelease`— y leído con
-`aapt2 dump badging`, `aapt2 dump strings` y `apksigner verify`, no supuesto:
+Construido de verdad —`assembleRelease` y `bundleRelease` con
+`JELLYFIN_VERSION=0.1.0-rc.1`— y leído con `aapt2 dump badging`,
+`aapt2 dump strings` y `apksigner verify`, no supuesto:
 
 | | leído |
 |---|---|
@@ -732,25 +732,50 @@ Construido de verdad —`assembleRelease` y `bundleRelease`— y leído con
 | etiqueta | `Palomera` |
 | `minSdk` / `targetSdk` | 21 / 36 |
 | lanzadores | `LAUNCHER` y `leanback-launchable-activity`, los dos |
-| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` y **`wifi`** |
+| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` y `wifi` |
+| `uses-implied-feature` | **ninguna** — es lo que mantiene la ficha visible para una caja sólo-Ethernet (§4.7) |
 | ABIs | `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
 | `debuggable` | ausente |
-| firma | v1 y v2 verificadas; `CN=solo-para-validar-local, O=NO-PUBLICAR` |
-| APK / AAB | 106,1 MB / 104,4 MB |
+| **firma** | **`CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX`**, SHA-256 `e70dc8df…` — la misma huella que el almacén de §1 |
+| APK / AAB | 101,2 MB / 99,6 MB |
 
-**Y tres cadenas comprobadas dentro del artefacto**, porque los tres arreglos
-de hoy sólo valen si llegan al APK que se publica, no al de depuración:
+**Lo que de verdad se baja una caja**, medido sumando el tamaño comprimido de
+cada entrada del bundle, porque Play entrega común + un solo split de
+arquitectura:
+
+| | se baja |
+|---|---|
+| común, sin `lib/` | 16,5 MB |
+| `armeabi-v7a` (la Skyworth) | **35,3 MB** |
+| `arm64-v8a` | **38,0 MB** |
+| `x86` / `x86_64` | 36,2 / 39,3 MB |
+
+El AAB de ~100 MB no es lo que nadie baja, y conviene recordarlo porque el
+número asusta en la consola.
+
+**Y es ~5 MB menor que el del 29-oct** (106,1 / 104,4). **No se ha buscado la
+causa**, y se escribe así en vez de inventarle una: lo único que se afirma es
+que la cifra bajó entre aquella compilación y ésta.
+
+**Cuatro cadenas comprobadas dentro del artefacto**, porque un arreglo sólo
+vale si llega al APK que se publica:
 
 | | en el release |
 |---|---|
-| «¡Bienvenido a Jellyfin!» | **0 apariciones**, en los 65 idiomas |
+| «Bienvenido a Jellyfin» | **0 apariciones**, en los 65 idiomas |
 | «Te damos la bienvenida a Palomera» | presente |
 | «De quién es el contenido» | presente |
-| «Código fuente: %1$s y videolan.org» | presente |
+| «Código fuente» | presente |
 
-La fila del WiFi es nueva y es la que importa del catálogo de dispositivos:
-hasta hoy `ACCESS_WIFI_STATE` implicaba `android.hardware.wifi` **obligatorio**
-y excluía en silencio a las cajas sin radio.
+**Lo que falta para que este AAB se pueda subir**, y no es del artefacto:
 
-Lo que **no** está verificado y no se puede verificar aquí: que esta
-compilación corra en una ZTE B866V2, que es justo para lo que se publica (§7).
+1. **la copia de la clave de firma fuera de esta máquina** (§1). Hoy vive sólo
+   aquí, y aquí es un contenedor;
+2. **empujar el código y etiquetar este commit** como `v0.1.0-rc.1`. La oferta
+   de la GPL-2.0 va impresa dentro del APK y apunta a
+   `github.com/Kataliziador/palomera`: es una oferta del código
+   **correspondiente al binario**, válida tres años por cada caja. Subir a Play
+   un binario cuyo código no está ahí la incumple desde el primer día;
+3. **los cinco datos del aviso de privacidad** (§4), que sólo puede poner
+   Edgar;
+4. **el título libre en la Play Console** (§6).
