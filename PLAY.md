@@ -677,7 +677,7 @@ Dos cosas a tener presentes:
 ## 8. Lista de comprobación de cada envío
 
 ```bash
-JELLYFIN_VERSION=0.1.0-rc.1 ./gradlew :app:bundleRelease
+JELLYFIN_VERSION=0.1.0-rc.2 ./gradlew :app:bundleRelease
 ```
 
 La variable es obligatoria y **el build la exige**: sin ella el
@@ -710,25 +710,30 @@ La variable es obligatoria y **el build la exige**: sin ella el
    dudarlo:** el upstream trae un flujo `app-publish.yaml` que arranca con
    `push: tags: v*`, pero lleva `if: contains(github.repository_owner,
    'jellyfin')` y el nuestro es `Kataliziador`. Comprobado leyéndolo el 04-nov
-6. **Las capturas de la ficha corresponden a esta versión.** Es nuevo en la
+6. **Las capturas de la ficha corresponden a esta versión.** Para `rc.2` se
+   cumple sin rehacerlas, y es comprobable y no una suposición: su árbol de
+   código es el mismo que el de `rc.1` —entre los dos sólo hay commits de
+   documentos— y los artefactos se diferencian en 37 y 15 bytes de sello de
+   tiempo y firma. Si entre dos versiones hubiera **una** línea de interfaz,
+   esto no valdría. Es nuevo en la
    lista y está aquí porque ya falló una vez: tres de las cuatro se quedaron
    describiendo una interfaz que había cambiado dos días antes, y el revisor
    compara la foto con lo que ve. Se rehacen con
    `python3 -I herramientas/capturar-ficha.py` (`FICHA.md` §5)
 
-### Lo verificado el 05-nov sobre `0.1.0-rc.1`, commit `5486ddce0`
+### Lo verificado el 05-nov sobre `0.1.0-rc.2`, árbol de `b7472f428`
 
 **Reemplaza a la tabla del 29-oct**, que describía un artefacto firmado con el
 keystore desechable. Ésta es la primera lectura de un AAB **publicable**.
 
 Construido de verdad —`assembleRelease` y `bundleRelease` con
-`JELLYFIN_VERSION=0.1.0-rc.1`— y leído con `aapt2 dump badging`,
+`JELLYFIN_VERSION=0.1.0-rc.2`— y leído con `aapt2 dump badging`,
 `aapt2 dump strings` y `apksigner verify`, no supuesto:
 
 | | leído |
 |---|---|
 | paquete | `mx.kataliziador.palomera` |
-| versión | `versionCode='10001' versionName='0.1.0-rc.1'` |
+| versión | `versionCode='10002' versionName='0.1.0-rc.2'` |
 | etiqueta | `Palomera` |
 | `minSdk` / `targetSdk` | 21 / 36 |
 | lanzadores | `LAUNCHER` y `leanback-launchable-activity`, los dos |
@@ -737,7 +742,7 @@ Construido de verdad —`assembleRelease` y `bundleRelease` con
 | ABIs | `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
 | `debuggable` | ausente |
 | **firma** | **`CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX`**, SHA-256 `e70dc8df…` — la misma huella que el almacén de §1 |
-| APK / AAB | 101,2 MB / 99,6 MB |
+| APK / AAB | 101,2 MiB / 99,6 MiB  (`106 164 861` / `104 457 656` bytes) |
 
 **Lo que de verdad se baja una caja**, medido sumando el tamaño comprimido de
 cada entrada del bundle, porque Play entrega común + un solo split de
@@ -745,17 +750,31 @@ arquitectura:
 
 | | se baja |
 |---|---|
-| común, sin `lib/` | 16,5 MB |
-| `armeabi-v7a` (la Skyworth) | **35,3 MB** |
-| `arm64-v8a` | **38,0 MB** |
-| `x86` / `x86_64` | 36,2 / 39,3 MB |
+| común, sin `lib/` | 16,5 MiB |
+| `armeabi-v7a` (la Skyworth) | **35,3 MiB** |
+| `arm64-v8a` | **38,0 MiB** |
+| `x86` / `x86_64` | 36,2 / 39,3 MiB |
 
-El AAB de ~100 MB no es lo que nadie baja, y conviene recordarlo porque el
+El AAB de ~100 MiB no es lo que nadie baja, y conviene recordarlo porque el
 número asusta en la consola.
 
-**Y es ~5 MB menor que el del 29-oct** (106,1 / 104,4). **No se ha buscado la
-causa**, y se escribe así en vez de inventarle una: lo único que se afirma es
-que la cifra bajó entre aquella compilación y ésta.
+**Aquí decía «y es ~5 MB menor que el del 29-oct (106,1 / 104,4)». Era falso,
+y el error era de unidades** (corregido el 05-nov al compilar `rc.2`). Los
+`101,2 / 99,6` de la tabla de arriba son **MiB** y los `106,1 / 104,4` del
+29-oct son **MB**: son el mismo par de archivos contados de dos maneras.
+`104 457 641` bytes son 99,6 MiB **y** 104,5 MB a la vez. No bajó nada.
+
+Medido comparando los bytes del artefacto del 04-nov con los del `rc.2`:
+`106 164 824` contra `106 164 861` en el APK y `104 457 641` contra
+`104 457 656` en el AAB — **37 y 15 bytes**, que son el sello de tiempo y la
+firma. Las cinco cifras de la tabla de descarga salieron idénticas.
+
+**La lección no es la aritmética, es la forma de la afirmación.** La frase
+vieja decía «no se ha buscado la causa» y se daba por prudente, cuando el
+fenómeno **no existía**: declarar ignorancia sobre la causa de algo que no ha
+pasado suena honesto y no lo es. Antes de preguntarse por qué cambió un
+número, hay que comprobar que cambió, y en bytes. **De aquí en adelante los
+tamaños de esta tabla se escriben en MiB y con los bytes al lado.**
 
 **Cuatro cadenas comprobadas dentro del artefacto**, porque un arreglo sólo
 vale si llega al APK que se publica:
@@ -771,11 +790,19 @@ vale si llega al APK que se publica:
 
 1. **la copia de la clave de firma fuera de esta máquina** (§1). Hoy vive sólo
    aquí, y aquí es un contenedor;
-2. **empujar el código y etiquetar este commit** como `v0.1.0-rc.1`. La oferta
-   de la GPL-2.0 va impresa dentro del APK y apunta a
-   `github.com/Kataliziador/palomera`: es una oferta del código
-   **correspondiente al binario**, válida tres años por cada caja. Subir a Play
-   un binario cuyo código no está ahí la incumple desde el primer día;
+2. ~~empujar el código y etiquetar este commit~~ **hecho el 05-nov**:
+   `v0.1.0-rc.2` sobre `b7472f428`, empujada. La oferta de la GPL-2.0 va
+   impresa dentro del APK y apunta a `github.com/Kataliziador/palomera`: es
+   una oferta del código **correspondiente al binario**, válida tres años por
+   cada caja, y sin etiqueta nadie puede saber cuál lo produjo.
+
+   **Y así se descubrió que la etiqueta `v0.1.0-rc.1` no servía para eso.**
+   Estaba empujada desde el 01-nov sobre `f2d888aa7`, un commit que **nunca
+   produjo un AAB**: el artefacto llamado `rc.1` se compiló el 04 y 05-nov
+   sobre un árbol cuatro commits posterior. No se distribuyó nada, así que no
+   se incumplió nada; pero la etiqueta decía ser lo que no era, y es
+   exactamente el fallo que este apartado existe para evitar. La regla, dicha
+   del revés: **se etiqueta después de compilar y verificar, nunca antes**;
 3. **los cinco datos del aviso de privacidad** (§4), que sólo puede poner
    Edgar;
 4. **el título libre en la Play Console** (§6).

@@ -8931,3 +8931,51 @@ Queda fuera del congelado, por ser pantalla nueva y no retoque: la fila de
 canales propios en el inicio (B8).
 
 **Estado:** cerrada.
+
+---
+
+## El AAB `0.1.0-rc.2`, y la etiqueta que no servía — 2026-11-05
+
+**Síntoma:** el artefacto llamado `0.1.0-rc.1` se compiló el 04 y 05-nov, pero
+la etiqueta `v0.1.0-rc.1` estaba empujada desde el 01-nov sobre `f2d888aa7`,
+**cuatro commits antes**. `PLAY.md` §8.5 existe precisamente para que la
+etiqueta identifique el código que produjo el binario, y no lo hacía.
+
+**Cambio:** recompilado como `0.1.0-rc.2` sobre el árbol de `b7472f428`, con
+`JELLYFIN_VERSION=0.1.0-rc.2 ./gradlew :app:bundleRelease :app:assembleRelease`.
+`BUILD SUCCESSFUL in 2m 10s`. Etiquetado **después** de compilar y verificar,
+que es el orden que la etiqueta anterior no siguió.
+
+**Prueba:** leído, no supuesto. `aapt2 dump badging`: `versionCode='10002'`,
+`versionName='0.1.0-rc.2'`, `minSdk 21`, `targetSdk 36`, etiqueta `Palomera`,
+los dos lanzadores, cinco `uses-feature-not-required` y **ningún
+`uses-implied-feature`**, `debuggable` ausente. `apksigner verify`: firma
+`CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX`, SHA-256 `e70dc8df…`, la
+misma huella del almacén de `PLAY.md` §1. Las **nueve** comprobaciones de
+`herramientas/comprobar.py`, en verde.
+
+**Resultado:** y aquí apareció lo que no se buscaba. `PLAY.md` afirmaba que el
+AAB del 05-nov era «~5 MB menor que el del 29-oct (106,1 / 104,4)». **Es
+falso, y el error era de unidades:** los `101,2 / 99,6` que la tabla daba en
+«MB» son **MiB**, y son el mismo par de archivos. `104 457 641` bytes son 99,6
+MiB y 104,5 MB a la vez.
+
+Comparando los bytes del artefacto del 04-nov con los del `rc.2`:
+`106 164 824` contra `106 164 861` en el APK y `104 457 641` contra
+`104 457 656` en el AAB — **37 y 15 bytes**, el sello de tiempo y la firma. Y
+las cinco cifras de descarga por ABI, idénticas: común 16,5 MiB,
+`armeabi-v7a` 35,3, `arm64-v8a` 38,0, `x86` 36,2, `x86_64` 39,3.
+
+**Lo que esto enseña no es aritmética.** La frase vieja decía «no se ha
+buscado la causa» y eso la hacía parecer prudente, cuando **el fenómeno no
+existía**: declarar ignorancia sobre la causa de algo que no ha ocurrido suena
+honesto y no lo es. Antes de preguntarse por qué cambió un número, hay que
+comprobar que cambió, y en bytes. Desde hoy esa tabla se escribe en MiB con
+los bytes al lado.
+
+Efecto lateral útil: como entre `rc.1` y `rc.2` sólo hay commits de
+documentos, **las capturas de la ficha siguen valiendo sin rehacerlas**, y eso
+es comprobable y no una suposición. Con una sola línea de interfaz en medio no
+valdría.
+
+**Estado:** cerrada. Etiqueta `v0.1.0-rc.2` empujada.
