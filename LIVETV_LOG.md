@@ -9086,3 +9086,57 @@ queda es correrlo.
 Flussonic, que enciende la corrección por velocidad de Media3 sin tocar la
 app—, la meseta la corrige el reproductor solo y da igual dónde aterrice cada
 salto.
+
+---
+
+## Desarrollo congelado — 2026-11-06
+
+**Decisión de Edgar.** El trabajo de Android se para aquí y la atención pasa al
+proyecto de televisores (`/home/proyectos/Palomera-TV`). Esto no es una fase
+cerrada ni un pendiente: es el punto de parada, escrito para que retomarlo no
+cueste una tarde de arqueología.
+
+### Dónde queda
+
+| | |
+|---|---|
+| rama | `main` limpia, al día con `origin/main` en `a92e969a4` |
+| binario publicable | `0.1.0-rc.2`, compilado, leído y etiquetado sobre `b7472f428` |
+| comprobaciones | las nueve de `herramientas/comprobar.py` en verde |
+| pruebas | 220 casos del módulo en verde |
+| interfaz | congelada desde el 04-nov (§7 de `CLAUDE.md`); las tres capturas de la ficha siguen valiendo |
+
+**El último commit no cambia nada de serie.** El arreglo del pendiente 77 va
+detrás de `VIGILANTE_DESTINO_CALCULADO_DEFAULT`, apagado de fábrica, así que el
+comportamiento del árbol congelado es el mismo que el del binario etiquetado
+salvo lo que alguien encienda a mano en el menú.
+
+### Lo primero al volver
+
+1. **Nada del código.** Para subir `rc.2` a Play faltan tres cosas y las tres
+   son de Edgar: la copia de la clave de firma fuera de este contenedor, los
+   cinco datos del aviso de privacidad y el título libre en la Play Console
+   (`PLAY.md` §8).
+2. **El experimento del 77**, que es lo único listo y sin correr: dos remojos
+   completos con el interruptor en cada posición, leídos con
+   `herramientas/analizar-log.py`. Se mide en el latido, sin pantalla, y son
+   horas de Skyworth — que es la tele de Edgar y hay que devolverle los ajustes
+   de energía y teclado.
+3. **La decisión que sigue sin tomar:** la etiqueta `v0.1.0-rc.1` sigue
+   publicada apuntando a `f2d888aa7`, un commit que nunca produjo un binario.
+   Se dejó documentada en vez de borrarla, porque borrar una etiqueta pública
+   sin que lo pida nadie es peor que explicarla.
+
+### Y lo que no se para
+
+**Los contratos los sigue escribiendo este repositorio** —`CONFIG_SCHEMA.md`,
+`REGISTRY_SCHEMA.md` y los dos `INTEGRACION_*.md`—, y ya los leen tres
+clientes: el servicio de canales, el autorizador y ahora Palomera-TV, que lleva
+una copia con su procedencia y la comprueba con `herramientas/contratos.py
+--comprobar`. Congelar el desarrollo de la app **no congela la regla de
+sincronía de `CLAUDE.md` §1**: si cambia un contrato, se actualiza el documento
+de integración en el mismo commit, aquí, aunque la app no se toque.
+
+Y los once pendientes abiertos siguen abiertos, con su estado escrito arriba.
+Ninguno se cierra por congelar; cuatro necesitan a Edgar en pantalla, tres el
+headend, dos la ZTE y el satélite, uno tsduck con buen clima.
