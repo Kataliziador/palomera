@@ -459,11 +459,26 @@ Supervisor que corre cada segundo y observa: posición estancada con
 Escalera, cada escalón se dispara solo si el anterior no funcionó:
 
 1. Esperar (puede ser un hueco normal)
-2. `seekToDefaultPosition()`
+2. volver atrás dentro de la ventana
 3. `prepare()`
 4. Recrear el MediaSource
 5. Recrear el player
 6. Siguiente paso de la cascada
+
+**El escalón 2 era `seekToDefaultPosition()` y eso aterriza corto** (pendiente
+77). La posición por defecto de Media3 se calcula restando `ahora − fin del
+playlist` al objetivo de latencia —leído en
+`HlsMediaSource.getLiveWindowDefaultStartPositionUs`—, y ese término crece con
+el reloj mientras el origen no publica, que es exactamente la condición en la
+que este escalón actúa. Medido sobre 42 incidentes de un remojo de 36,1 h:
+dejaba 9,4 s de buffer de mediana donde los otros dos saltos dejaban 13,2 y
+15,0, y la meseta decide cuánto aguanta la sesión.
+
+El destino se calcula ahora con `VueltaAlBorde.destino` —`ventana − objetivo`,
+el mismo que usan los otros dos mecanismos—, detrás de
+`LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT` **apagado de fábrica** hasta
+que el experimento se corra. Con él apagado el escalón sigue siendo
+`seekToDefaultPosition()`.
 
 **Regla dura:** los errores ocurridos durante una ráfaga de corrupción de
 señal **no cuentan** contra el decoder. En banda Ku la lluvia hace fallar

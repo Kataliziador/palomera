@@ -873,9 +873,46 @@ class Media3LiveEngine(
 		// más caro y lo que más tarda en verse, así que es el último.
 		when (((escalon - 1) % 3) + 1) {
 			1 -> {
-				LiveLog.warn("vigilante.saltaAlBorde", "intento" to escalon)
-				runCatching { exo.seekToDefaultPosition() }
-					.onFailure { LiveLog.error("vigilante.saltoFallido", it) }
+				// A dónde salta este escalón es el pendiente 77: medido sobre
+				// 42 incidentes del remojo de 36,1 h, dejaba el buffer 4-6 s
+				// más fino que los otros dos saltos, que cuestan lo mismo. El
+				// motivo está leído en la fuente de Media3 y escrito en
+				// `LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT`: la posición
+				// por defecto se calcula restando `ahora − fin del playlist`,
+				// que es grande justo cuando este escalón actúa.
+				val rescate = VueltaAlBorde.rescateDelVigilante(
+					calculado = dev.vigilanteDestinoCalculado,
+					ventanaMs = windowDurationMs,
+					objetivoMs = activeTargetOffsetMs,
+				)
+				val calculado = rescate as? VueltaAlBorde.Rescate.Calculado
+				// Las columnas que faltaban para poder comparar las dos
+				// variantes: sin `via`, las mesetas de las dos se mezclan en
+				// una sola serie y el experimento que decide el 77 no se puede
+				// leer. Y sin `destinoMs` no se sabe si el salto fue a donde se
+				// pidió, que es el error que costó los pendientes 70 y 71.
+				LiveLog.warn(
+					"vigilante.saltaAlBorde",
+					"intento" to escalon,
+					"via" to if (calculado != null) "calculado" else "porDefecto",
+					"motivo" to (rescate as? VueltaAlBorde.Rescate.PosicionPorDefecto)?.motivo,
+					"ventanaMs" to windowDurationMs.takeIf { it != C.TIME_UNSET },
+					"posAntesMs" to exo.currentPosition,
+					"destinoMs" to calculado?.destinoMs,
+				)
+				runCatching {
+					if (calculado != null) exo.seekTo(calculado.destinoMs)
+					else exo.seekToDefaultPosition()
+				}.onFailure { LiveLog.error("vigilante.saltoFallido", it) }
+				// Y el resultado medido en el mismo sitio, igual que en los
+				// otros dos saltos. Sin esto, «el escalón 1 aterriza corto» se
+				// deduce del buffer diez minutos después, que es la conclusión
+				// que tardó tres lecturas en estabilizarse.
+				LiveLog.warn(
+					"offset.trasElSalto",
+					"posMs" to exo.currentPosition,
+					"offsetMs" to exo.currentLiveOffset,
+				)
 			}
 
 			2 -> {

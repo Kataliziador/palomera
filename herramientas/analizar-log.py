@@ -181,9 +181,14 @@ def main() -> int:
 		print(f"  directo    mediana {est.median(directo):>5.1f} s   p95 {sorted(directo)[int(.95 * len(directo))]:>5.1f} s   máximo {max(directo):.1f} s")
 
 	# --- la vuelta al borde -------------------------------------------------
+	# `vigilante.saltaAlBorde` entra en esta tabla desde el pendiente 77: antes
+	# no tenía ni destino ni medida posterior que enseñar —saltaba a la posición
+	# por defecto de Media3 y no se registraba dónde aterrizaba—, así que sus
+	# filas habrían salido vacías. Los volcados anteriores al 77 no las traen y
+	# eso no es un hueco: es que ese dato no existía.
 	saltos = [(l[:12], campos(l)) for l in cuerpo
 	          if "offset.vuelveAlBorde" in l or "offset.saltoNoAdelanta" in l
-	          or "offset.margenCorto" in l]
+	          or "offset.margenCorto" in l or "vigilante.saltaAlBorde" in l]
 	# `trasElSalto` se emparejaba por índice, y eso se rompió el 11-oct en
 	# cuanto hubo un salto **declinado**: el declinado no deja medida posterior,
 	# así que la columna «después» de la primera fila mostraba la medida del
@@ -247,11 +252,17 @@ def main() -> int:
 	MESETA_INI, MESETA_FIN = 60, 300        # latidos = 2 y 10 minutos
 	MISMO_INCIDENTE = 30                    # latidos = 60 s
 
+	# El vigilante son **dos** filas desde el pendiente 77 y no una: con el
+	# interruptor encendido salta al destino calculado y con él apagado a la
+	# posición por defecto de Media3. Mezclarlas en una sola serie es
+	# exactamente lo que impediría leer el experimento — el mismo error que esta
+	# sección existe para no repetir, una categoría más abajo.
 	tipo_de_salto = {
 		"offset.margenCorto": "margenCorto",
 		"offset.vuelveAlBorde": "vuelveAlBorde",
 		"vigilante.saltaAlBorde": "vigilante",
 	}
+	ORDEN_MESETAS = ("margenCorto", "vuelveAlBorde", "vigilante+destino", "vigilante")
 	buffers_latido: list[float] = []
 	saltos_en_latidos: list[tuple[int, str]] = []
 	for l in cuerpo:
@@ -261,6 +272,8 @@ def main() -> int:
 			continue
 		for marca, nombre in tipo_de_salto.items():
 			if marca in l:
+				if nombre == "vigilante" and campos(l).get("via") == "calculado":
+					nombre = "vigilante+destino"
 				saltos_en_latidos.append((len(buffers_latido), nombre))
 				break
 
@@ -284,12 +297,18 @@ def main() -> int:
 		print(f"\n{NEGRITA}La meseta que deja cada salto{FIN}  "
 		      f"({len(incidentes)} incidentes, buffer medio de 2 a 10 min después)")
 		print(f"{GRIS}  último salto del incidente      n   mediana    mínima    máxima{FIN}")
-		for nombre in ("margenCorto", "vuelveAlBorde", "vigilante"):
+		for nombre in ORDEN_MESETAS:
 			v = mesetas.get(nombre)
 			if v:
 				print(f"  {nombre:<28} {len(v):>3}  {est.median(v):>7.1f} s {min(v):>7.1f} s {max(v):>7.1f} s")
-		print(f"{GRIS}  los tres cuestan un corte; si uno deja el buffer varios segundos{FIN}")
-		print(f"{GRIS}  más fino que otro, es el destino lo que hay que igualar (pendiente 77){FIN}")
+		print(f"{GRIS}  todos cuestan un corte; si uno deja el buffer varios segundos{FIN}")
+		print(f"{GRIS}  más fino que otro, es el destino lo que hay que igualar (pendiente 77).{FIN}")
+		if "vigilante" in mesetas and "vigilante+destino" in mesetas:
+			# Si las dos tienen filas, el interruptor cambió a mitad de la
+			# sesión. No es comparable: lo que se compara son dos remojos.
+			print(f"{AMBAR}  ojo: las dos filas del vigilante tienen datos, así que el{FIN}")
+			print(f"{AMBAR}  interruptor se movió durante la sesión. El experimento del 77{FIN}")
+			print(f"{AMBAR}  son dos remojos completos, no dos tramos de uno.{FIN}")
 
 	# --- la firma de parada del origen --------------------------------------
 	#

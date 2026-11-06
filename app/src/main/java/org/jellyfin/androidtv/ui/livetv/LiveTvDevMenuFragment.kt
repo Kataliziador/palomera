@@ -352,6 +352,17 @@ private fun DevMenu() {
 			) { change { dev.resyncPorMargen = !dev.resyncPorMargen } }
 		}
 		item {
+			Row(
+				label = "Vigilante: saltar al destino calculado",
+				value = if (dev.vigilanteDestinoCalculado) "SÍ, EXPERIMENTO" else "no (fábrica)",
+				changed = dev.vigilanteDestinoCalculado,
+			) { change { dev.vigilanteDestinoCalculado = !dev.vigilanteDestinoCalculado } }
+		}
+		item {
+			Info("Pendiente 77. El escalón 1 del vigilante usa seekToDefaultPosition(), y medido sobre 42 incidentes de un remojo de 36,1 h deja el buffer en 9,4 s de mediana donde los otros dos saltos lo dejan en 13,2 y 15,0 — y la meseta decide cuánto aguanta la sesión: 18,6 s de directo dieron 4 h 07 sin un corte y 8,5 s murieron en 26 segundos. El motivo está leído en la fuente de Media3: la posición por defecto se calcula restando «ahora − fin del playlist», y eso es grande justo cuando este escalón actúa. Encendido, salta al mismo destino que los otros dos. Sale «vigilante.saltaAlBorde via=calculado» en el log, y la comparación se lee con herramientas/analizar-log.py. Lo que esto NO dice es que el escalón 1 falle: recuperó 30 de 30 veces.")
+		}
+
+		item {
 			Info("Cuando el origen deja de publicar, el reproductor se queda a 1,5 s del final de los datos y entra en un bucle de un corte cada tres segundos: 25 de los 35 cortes de la sesión del 10-oct. El latido lo detecta en 8 s y mueve la posición hacia atrás. Medido en 7 h 22 el 11-oct: 6 cortes contra 35, y 0,26 % de imagen parada contra 0,88. Lo que compra no es rellenar el buffer en el acto —medido, no lo rellena— sino dejar la posición lejos del borde durante horas: el tramo que salio de un salto dio 4 h 07 sin un corte. Sale «offset.margenCorto» en el log. Apagarlo vuelve al comportamiento anterior.")
 		}
 

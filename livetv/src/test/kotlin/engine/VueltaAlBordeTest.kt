@@ -3,6 +3,7 @@ package org.jellyfin.livetv.engine
 import androidx.media3.common.C
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import org.jellyfin.livetv.LiveTuning
 
 /**
  * La vuelta al borde, probada contra los nueve saltos que la midieron.
@@ -101,5 +102,89 @@ class VueltaAlBordeTest : StringSpec({
 		// importa es que el destino no se vaya por debajo de cero.
 		val d = VueltaAlBorde.decidir(60_000, 20_000, 1_000, 40_000)
 		d shouldBe VueltaAlBorde.Decision.NoAdelanta(destinoMs = 0, gananciaMs = -1_000)
+	}
+
+	// --- El escalón 1 del vigilante (pendiente 77) ---------------------------
+	//
+	// Las seis de abajo son el cable entero de `rescateDelVigilante`, en los dos
+	// sentidos. Importan porque el valor de fábrica es **el comportamiento
+	// anterior**, así que un fallo aquí no se vería en ninguna sesión normal: se
+	// vería el día que alguien enciende el interruptor para medir, y entonces la
+	// medición saldría mal sin que nadie supiera por qué.
+
+	"de fábrica no cambia nada: el vigilante sigue saltando como siempre" {
+		VueltaAlBorde.rescateDelVigilante(
+			calculado = false,
+			ventanaMs = 33_600,
+			objetivoMs = OBJETIVO,
+		) shouldBe VueltaAlBorde.Rescate.PosicionPorDefecto("interruptor apagado")
+	}
+
+	"encendido, salta al mismo destino que los otros dos mecanismos" {
+		// El mismo número que `offset.margenCorto` y `offset.vuelveAlBorde`
+		// calculan con `destino()`, que es justo lo que el 77 propone igualar.
+		VueltaAlBorde.rescateDelVigilante(true, 33_600, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.Calculado(destinoMs = 19_600)
+		VueltaAlBorde.destino(33_600, OBJETIVO) shouldBe 19_600L
+	}
+
+	"sin ventana no se inventa un destino" {
+		// Es el caso ciego de siempre: el vigilante rescata igual, por el
+		// camino de antes. Y el motivo viaja al log, porque una meseta por
+		// defecto con el interruptor encendido no dice por sí sola si fue una
+		// decisión o un instrumento que no medía.
+		VueltaAlBorde.rescateDelVigilante(true, C.TIME_UNSET, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.PosicionPorDefecto("ventana desconocida")
+		VueltaAlBorde.rescateDelVigilante(true, 0, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.PosicionPorDefecto("ventana desconocida")
+	}
+
+	"sin objetivo tampoco" {
+		// `activeTargetOffsetMs` vale 0 hasta la primera preparación, y el
+		// vigilante puede disparar antes de que el plan llegue.
+		VueltaAlBorde.rescateDelVigilante(true, 33_600, 0) shouldBe
+			VueltaAlBorde.Rescate.PosicionPorDefecto("objetivo desconocido")
+	}
+
+	"si la ventana no da para apartarse, no se salta al segmento que caduca" {
+		// `destino()` corta en cero, y cero es el primer segmento de la ventana
+		// —el que está a punto de desaparecer—. Saltar ahí cambiaría un buffer
+		// fino por un `BEHIND_LIVE_WINDOW`. Es el mismo caso que
+		// `MargenDeBuffer` avisa como `SinSitioDetras`.
+		VueltaAlBorde.rescateDelVigilante(true, 14_000, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.PosicionPorDefecto("la ventana no da para apartarse")
+		VueltaAlBorde.rescateDelVigilante(true, 9_000, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.PosicionPorDefecto("la ventana no da para apartarse")
+		// Un milisegundo de margen ya es un destino, y vale: el límite está
+		// escrito, no en el aire.
+		VueltaAlBorde.rescateDelVigilante(true, 14_001, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.Calculado(destinoMs = 1)
+	}
+
+	"el valor de fábrica es el comportamiento anterior, y eso lo manda el Modo A" {
+		// `CLAUDE.md` §3: todo cambio de comportamiento de motor va detrás de un
+		// interruptor con el valor por defecto igual al comportamiento anterior,
+		// hasta que Edgar lo valide. Esta línea es lo único que vigila esa
+		// regla para el 77: sin ella, encender el experimento de fábrica «de
+		// paso» no rompería ninguna prueba y la primera noticia sería una
+		// sesión de campo comportándose distinto a la medida.
+		//
+		// Cuando el experimento se valide, esta prueba se invierte **en el
+		// mismo commit** que el valor, y el commit explica con qué medida.
+		LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT shouldBe false
+		VueltaAlBorde.rescateDelVigilante(
+			calculado = LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT,
+			ventanaMs = 33_600,
+			objetivoMs = OBJETIVO,
+		) shouldBe VueltaAlBorde.Rescate.PosicionPorDefecto("interruptor apagado")
+	}
+
+	"la ventana de los seis canales de desarrollo da de sobra" {
+		// 29-36 s medidos desde que se subió `segment_count` a 12 (pendiente
+		// 17). Con el objetivo de 14 s, el destino cae a 15-22 s del principio.
+		VueltaAlBorde.rescateDelVigilante(true, 29_000, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.Calculado(destinoMs = 15_000)
+		VueltaAlBorde.rescateDelVigilante(true, 36_000, OBJETIVO) shouldBe
+			VueltaAlBorde.Rescate.Calculado(destinoMs = 22_000)
 	}
 })

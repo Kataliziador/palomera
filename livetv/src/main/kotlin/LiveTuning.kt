@@ -448,6 +448,71 @@ object LiveTuning {
 	 */
 	const val RESYNC_POR_MARGEN_DEFAULT = true
 
+	/**
+	 * El escalón 1 del vigilante salta al **destino calculado**, no a la
+	 * posición por defecto de Media3 (pendiente 77).
+	 *
+	 * `false` mantiene lo anterior: `seekToDefaultPosition()`.
+	 *
+	 * ## Qué está medido
+	 *
+	 * Sobre los 64 984 latidos del remojo de 36,1 h, agrupando los 74 saltos en
+	 * 42 incidentes y tomando el buffer medio de 2 a 10 min después del último
+	 * salto de cada uno, los tres mecanismos dejan mesetas distintas:
+	 *
+	 * | último salto del incidente | n | mediana | rango |
+	 * |---|---|---|---|
+	 * | `offset.margenCorto` | 7 | **15,0 s** | 11,8-16,0 |
+	 * | `offset.vuelveAlBorde` | 12 | 13,2 s | 11,8-14,2 |
+	 * | **`vigilante.saltaAlBorde`** | 23 | **9,4 s** | 7,1-13,5 |
+	 *
+	 * No se solapan por arriba: la mejor meseta del vigilante es la peor de los
+	 * otros dos. Y la meseta es la métrica porque el reproductor aguanta tantos
+	 * segundos de silencio del origen como segundos de buffer tenga
+	 * ([RESYNC_POR_MARGEN_DEFAULT] lo mide: 18,6 s de directo dieron 4 h 07 sin
+	 * un corte y 8,5 s murieron en 26 segundos).
+	 *
+	 * ## Y el mecanismo está LEÍDO, no inferido
+	 *
+	 * Esta fila decía «sospecha: la ventana está transitoriamente inflada
+	 * cuando el vigilante dispara, porque el origen acaba de volver». **Era la
+	 * sospecha equivocada**, y la fuente de Media3 1.8.0 dice otra cosa:
+	 *
+	 * - `HlsMediaSource.getLiveWindowDefaultStartPositionUs` sitúa la posición
+	 *   por defecto en `playlist.durationUs + liveEdgeOffsetUs − targetOffset`,
+	 *   redondeada hacia atrás al principio de segmento;
+	 * - y `getLiveEdgeOffsetUs` es `ahora − playlist.getEndTimeUs()` cuando el
+	 *   playlist trae `PROGRAM-DATE-TIME`, que es nuestro caso.
+	 *
+	 * O sea: **ese `liveEdgeOffsetUs` se resta del objetivo, y crece con el
+	 * reloj de pared mientras el origen no publica.** El vigilante dispara por
+	 * definición después de [WATCHDOG_STALL_MS] sin avanzar, así que cuando
+	 * llega a este escalón el borde ya se ha comido el objetivo entero y la
+	 * posición por defecto aterriza pegada al final de los datos que existen
+	 * —con el suelo de un segmento, que es lo que devuelve
+	 * `findClosestPrecedingSegment`—. No es que la ventana esté inflada: es que
+	 * el **offset al borde** lo está, y justo en la condición en que este
+	 * escalón actúa.
+	 *
+	 * [VueltaAlBorde.destino] no mira el reloj: es `ventana − objetivo`. Por eso
+	 * un playlist congelado no mueve su destino, y por eso los dos mecanismos
+	 * que lo usan dejan mesetas de 13-15 s donde éste deja 9,4.
+	 *
+	 * ## Lo que sigue sin medir, y por qué el interruptor nace apagado
+	 *
+	 * La lectura explica el **signo** del hueco, no su tamaño: 5,6 s de
+	 * diferencia no se derivan de la fuente, porque dependen de cuánto llevaba
+	 * parado el origen en cada uno de los 23 incidentes. Y la asociación
+	 * medida no separa el destino del **estado de partida**: el vigilante salta
+	 * con el reproductor ya atascado y `margenCorto` salta antes. Igualar el
+	 * destino es justo el experimento que los separa, y hasta correrlo esto es
+	 * Modo A con el valor de fábrica igual al comportamiento anterior.
+	 *
+	 * **Lo que esta medida NO dice:** que el escalón 1 sea peligroso. Recuperó
+	 * 30 de 30 veces. Lo que deja es una meseta más fina, no un fallo.
+	 */
+	const val VIGILANTE_DESTINO_CALCULADO_DEFAULT = false
+
 	// --- Reintentos ---------------------------------------------------------
 	/**
 	 * Reintentos efectivamente infinitos: prohibido cerrar el player ante un

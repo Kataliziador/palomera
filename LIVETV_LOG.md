@@ -373,7 +373,7 @@ declararla.
 | 74 | **El objetivo de latencia es solo una sugerencia inicial: nada lo mantiene, y la meseta donde cae el último salto decide la sesión** | **A** / headend | leído el 10-oct en `HlsMediaSource.updateLiveConfiguration` y **medido el 11-oct**. La corrección por velocidad está apagada porque el `MediaItem` no trae `minPlaybackSpeed` ni `maxPlaybackSpeed` **y** el playlist de Flussonic no trae `HOLD-BACK` —verificado contra `mileniosd` el 12-oct: `#EXT-X-VERSION:3` y ni una línea de `EXT-X-SERVER-CONTROL`—, así que las dos quedan en `1f` y `DefaultLivePlaybackSpeedControl` pone el objetivo en `C.TIME_UNSET`: `getAdjustedPlaybackSpeed` devuelve `1f` y sale, siempre. **La consecuencia medida es mucho mayor de lo que esta fila decía:** `targetOffsetMs = 14000` solo fija la posición de arranque, y después de cada salto el reproductor **se queda donde cayó durante horas**. Las cinco mesetas de la sesión del 11-oct —16,6 / 10,7 / 8,5 / **18,6** / 12,2 s de directo, o 12,8 / 7,0 / 3,6 / **14,8** / 8,6 s de buffer— y la supervivencia siguiéndolas: la de 18,6 s dio **4 h 07 min sin un corte** y la de 8,5 s murió en 26 segundos. **Mi objeción anterior —«se gobierna con el offset que miente»— queda refutada por los datos:** en régimen estable `directoS` = buffer + 3,75 s constante en los cinco tramos (los 3,75 s son el retraso de publicación de Flussonic contra su propio `PROGRAM-DATE-TIME`), así que no miente; solo miente mientras la lista está congelada, y entonces la velocidad es irrelevante porque no hay datos que correr. **Revisado el 30-oct: el atajo de servir LL-HLS, que sí trae `PART-HOLD-BACK` y encendería la corrección sin tocar nada, está cerrado — LL-HLS no sirve el vídeo MPEG-2 (medido; ver instrucción de headend nº 5). La salida más barata no es código:** declarar `HOLD-BACK` en Flussonic (instrucción de headend nº 5) enciende el mecanismo de Media3 sin tocar la app y sin pagar un corte por corrección |
 | ~~75~~ | ~~**El bucle de inanición: la posición pegada al borde de un origen lento cuesta tres cortes cada diez segundos**~~ | — | **cerrado el 12-oct.** El arreglo (`MargenDeBuffer`, evaluado en el latido) quedó **encendido de fábrica** tras la sesión de 7 h 22 del 11-oct: 6 cortes contra 35, **0,26 % de imagen parada contra 0,88 %** —9,2 s/h contra 31,8—, cuatro disparos y ninguno espurio, cero `player.error` y cero `BEHIND_LIVE_WINDOW`. Cuatro de los cinco criterios escritos de antemano se cumplen; el cuarto estaba **mal escrito por mí** —pedía que `offset.trasElSalto` dejara el directo en 17-19 s, y ese campo publica `currentLiveOffset`, el número que miente con la lista congelada, que es justo cuando saltamos: tercera vez que me equivoco con él—. El `posMs` coincide con el `destinoMs` en los cinco saltos. **Y el enunciado del mecanismo también estaba mal:** decía que el salto «pone 12,5 s ya publicados delante», y medido el buffer siguió en 1,5 / 1,4 / 2,7 s y cayó a cero en tres de los cuatro saltos, porque el salto tira el buffer y con el origen callado los segmentos de atrás tampoco se descargan. Lo que compra es **la meseta**: ver 74 y la entrada del 12-oct. Cerrado por declaración de Edgar sobre las medidas, **sin validación en pantalla** —no estuvo delante—, con el argumento de que el salto hacia atrás ya viajaba en producción por el mecanismo viejo (corte 6 de esa misma sesión, `gananciaMs=-1778`), así que ON no introduce una clase de artefacto nueva |
 | ~~76~~ | ~~**Cuando la vuelta al borde no se evalúa, no queda rastro de por qué**~~ | — | **cerrado el 11-oct.** En la segunda racha del bucle de inanición (19:57:38-19:58:14, 13 cortes) el offset real leía 69-74 s sobre una ventana de 33,6 —condición cumplida de sobra— y no se registró ni un `offset.vuelveAlBorde` ni un `offset.saltoNoAdelanta`: 38 segundos sin una línea, con cuatro guardas candidatas por igual. Dos instrumentos lo cierran. **`offset.noSeEvalua`** con el motivo —apagado en el menú, aún sin imagen, el reproductor no está listo, o cuánto queda de enfriamiento—, registrado **solo cuando el disparador habría disparado** y una vez por motivo y por enfriamiento, que es lo que lo acota a los momentos interesantes sin inundar el log. Y **`timelines` en el latido**: toda la decisión vive dentro de `onTimelineChanged`, así que si el playlist se congela el método no se llama y el mecanismo entero queda mudo; un contador que deja de subir mientras el buffer baja convierte esa sospecha en una lectura. `analizar-log.py` ya lo usa: imprime los playlists nuevos de cada racha y dice «la lista estaba congelada» cuando son cero |
-| 77 | **El escalón 1 del vigilante deja la meseta más fina que nuestro propio salto** | **A** | medido el 11-oct. `vigilante.saltaAlBorde` usa `seekToDefaultPosition()` (`Media3LiveEngine.kt:814`) y dejó las dos peores mesetas de la sesión —**10,7 s** de directo / 7,0 de buffer, que aguantó 1,11 h y cayó al primer parón, y **8,5 s** / 3,6, que murió en **26 segundos**—, con el objetivo configurado en 14 s. `offset.margenCorto`, que calcula el destino con `VueltaAlBorde.destino()`, dejó la mejor: **18,6 s** / 14,8, y de ahí salieron 4 h 07 min limpias. Los dos saltan, los dos cuestan un corte, y uno deja al reproductor sobreviviendo y el otro no. Hay que leer por qué `seekToDefaultPosition` aterriza corto —sospecha: la ventana está transitoriamente inflada cuando el vigilante dispara, porque el origen acaba de volver— y probablemente usar el mismo destino que el 75 en el escalón 1. **Se mide en el latido, sin pantalla.** Puede quedar sin sentido si se cierra 74, porque entonces la meseta la corrige el reproductor solo | **Reenunciado el 16-oct, y ahora sí medido: el enunciado original se sostiene, las dos lecturas anteriores no.** El 11-oct lo di por cierto con dos mesetas sueltas; el 15-oct lo di por refutado con el p95 global del remojo (15,8 s). **Las dos lecturas mezclaban estados** —el p95 de 36 h promedia las horas sanas con las que siguen a un salto—, y la comparación que decide es condicional al salto que causó cada meseta. Medido sobre los 64 984 latidos del remojo de 36,1 h, agrupando los 74 saltos en **42 incidentes** y tomando el buffer medio **de 2 a 10 minutos después** del último salto de cada uno (antes del minuto 2 todas se parecen, porque el buffer se está rellenando): `offset.margenCorto` deja **15,0 s** de mediana (n=7, rango 11,8-16,0), `offset.vuelveAlBorde` **13,2 s** (n=12, rango 11,8-14,2) y `vigilante.saltaAlBorde` **9,4 s** (n=23, rango 7,1-13,5). Son **4-6 s menos**, y no se solapan por arriba: la mejor meseta del vigilante (13,5) es la peor de los otros dos. Dos implementaciones independientes dan lo mismo. **Lo que NO dice esta medida:** que el escalón 1 sea peligroso —recuperó **30 de 30** y las sesiones siguieron—, ni que la causa sea el destino y no el estado del que se parte: el vigilante dispara con el reproductor ya atascado y `margenCorto` dispara preventivamente, así que la **asociación está medida y el mecanismo es inferido**. Para separarlos hace falta igualar el destino y volver a medir, que es la acción que propone esta fila. La sección «La meseta que deja cada salto» de `herramientas/analizar-log.py` la recalcula en cada remojo
+| 77 | **El escalón 1 del vigilante deja la meseta más fina que nuestro propio salto** | **A** | medido el 11-oct. `vigilante.saltaAlBorde` usa `seekToDefaultPosition()` (`Media3LiveEngine.kt:814`) y dejó las dos peores mesetas de la sesión —**10,7 s** de directo / 7,0 de buffer, que aguantó 1,11 h y cayó al primer parón, y **8,5 s** / 3,6, que murió en **26 segundos**—, con el objetivo configurado en 14 s. `offset.margenCorto`, que calcula el destino con `VueltaAlBorde.destino()`, dejó la mejor: **18,6 s** / 14,8, y de ahí salieron 4 h 07 min limpias. Los dos saltan, los dos cuestan un corte, y uno deja al reproductor sobreviviendo y el otro no. **Leído el 06-nov en la fuente de Media3 1.8.0, y la sospecha que esta fila llevaba escrita era falsa.** Decía «la ventana está transitoriamente inflada cuando el vigilante dispara, porque el origen acaba de volver». No es la ventana y no es porque el origen vuelva: es el **offset al borde**, y está inflado porque el origen **se calló**. `HlsMediaSource.getLiveWindowDefaultStartPositionUs` sitúa la posición por defecto en `playlist.durationUs + liveEdgeOffsetUs − targetOffset`, redondeada hacia atrás al principio de segmento, y `getLiveEdgeOffsetUs` es `ahora − playlist.getEndTimeUs()` cuando el playlist trae `PROGRAM-DATE-TIME` —que es nuestro caso, el de los 3,75 s de retraso de publicación del 74—. O sea que **ese término se resta del objetivo y crece con el reloj de pared mientras la lista no avanza**; el vigilante dispara por definición tras `WATCHDOG_STALL_MS` = 10 s sin avanzar, así que al llegar al escalón 1 el borde se ha comido los 14 s enteros y la posición por defecto aterriza pegada al final de los datos que existen, con el suelo de un segmento que devuelve `findClosestPrecedingSegment`. `VueltaAlBorde.destino` no mira el reloj —es `ventana − objetivo`—, y por eso un playlist congelado no mueve su destino. **Eso explica el signo del hueco y no su tamaño:** los 5,6 s de diferencia dependen de cuánto llevaba parado el origen en cada uno de los 23 incidentes, y eso no se deriva de la fuente. **Hecho el 06-nov, sin medir todavía:** el escalón 1 usa `VueltaAlBorde.rescateDelVigilante`, que devuelve el mismo destino que los otros dos mecanismos, detrás de `LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT` **apagado de fábrica** —Modo A— con siete casos nuevos de prueba, uno de ellos vigilando que el valor de fábrica siga siendo el comportamiento anterior. El log del salto pasa a llevar `via`, `ventanaMs`, `posAntesMs`, `destinoMs` y un `offset.trasElSalto` propio, y `analizar-log.py` separa `vigilante` de `vigilante+destino` en la tabla de mesetas: sin esa columna las dos variantes se mezclarían en una serie y el experimento no se podría leer. **Lo que queda es correrlo**, y son dos remojos completos con el interruptor en cada posición, no dos tramos de uno. **Se mide en el latido, sin pantalla.** Puede quedar sin sentido si se cierra 74, porque entonces la meseta la corrige el reproductor solo | **Reenunciado el 16-oct, y ahora sí medido: el enunciado original se sostiene, las dos lecturas anteriores no.** El 11-oct lo di por cierto con dos mesetas sueltas; el 15-oct lo di por refutado con el p95 global del remojo (15,8 s). **Las dos lecturas mezclaban estados** —el p95 de 36 h promedia las horas sanas con las que siguen a un salto—, y la comparación que decide es condicional al salto que causó cada meseta. Medido sobre los 64 984 latidos del remojo de 36,1 h, agrupando los 74 saltos en **42 incidentes** y tomando el buffer medio **de 2 a 10 minutos después** del último salto de cada uno (antes del minuto 2 todas se parecen, porque el buffer se está rellenando): `offset.margenCorto` deja **15,0 s** de mediana (n=7, rango 11,8-16,0), `offset.vuelveAlBorde` **13,2 s** (n=12, rango 11,8-14,2) y `vigilante.saltaAlBorde` **9,4 s** (n=23, rango 7,1-13,5). Son **4-6 s menos**, y no se solapan por arriba: la mejor meseta del vigilante (13,5) es la peor de los otros dos. Dos implementaciones independientes dan lo mismo. **Lo que NO dice esta medida:** que el escalón 1 sea peligroso —recuperó **30 de 30** y las sesiones siguieron—, ni que la causa sea el destino y no el estado del que se parte: el vigilante dispara con el reproductor ya atascado y `margenCorto` dispara preventivamente, así que la **asociación está medida y el mecanismo es inferido**. Para separarlos hace falta igualar el destino y volver a medir, que es la acción que propone esta fila. La sección «La meseta que deja cada salto» de `herramientas/analizar-log.py` la recalcula en cada remojo
 | 78 | ~~**El log afirma `tunneled=true` cuando el tunneled no se activó**~~ | — | **Cerrado: la fila se quedó abierta por descuido hasta el 30-oct, con el arreglo hecho y medido desde el 22.** El enunciado era cierto y el arreglo lo resuelve; lo que falló fue tacharlo. Un pendiente resuelto que sigue en la lista reaparece con otro número. Lo de abajo es el historial completo: medido el 12-oct en la Mecool KM9 Pro. `engine.prepare` publica lo que *pedimos*, no lo que *obtuvimos*: si el decoder de vídeo no declara `tunneled-playback`, Media3 lo desactiva en silencio (`DefaultTrackSelector.maybeConfigureRenderersForTunneling`) y el log sigue diciendo `true`. En esa caja `video/avc` y `video/mpeg2` **no** lo declaran —solo hevc, vp9 y dolby-vision—, así que el lineup entero corre sin tunneled y nadie se entera. **Hay una señal barata y ya publicada para detectarlo:** en tunneled real el contador de fotogramas no ve nada (§6), así que `tunneled=true` **y** `frames>0` en el latido significa que no enganchó. Importa más de lo que parece: el tunneled es la cura medida de los microcortes del pulldown 3:2, y en una caja así esa cura no existe aunque el log diga que sí. Arreglo: publicar el estado real, o al menos el aviso derivado del contador. **La KM9 se devolvió el 14-oct, y no hace falta:** medido ese mismo día sobre los ficheros de códecs de la propia Skyworth, `OMX.amlogic.avc.decoder.awesome2` y `OMX.amlogic.mpeg2.decoder.awesome2` **sí** declaran `feature-tunneled-playback`, mientras que el fichero entero de los de software —`/apex/com.android.media.swcodec/etc/media_codecs.xml`, con `c2.android.avc.decoder` y `c2.android.mpeg2.decoder` dentro— **no menciona `tunneled` ni una vez**. O sea que `forceSoftwareVideo`, que ya existe en el menú, reproduce la condición exacta del 78 en la caja que tenemos: se pide tunneled, Media3 lo apaga en silencio y el log sigue diciendo `true`. Es el «menú de degradación» que §9 manda usar, cumpliendo su función. **Hecho y medido el 22-oct, con la prueba y la contraprueba.** El inventario de `DeviceCapabilities` lleva ahora un campo nuevo por decoder, `tunneled`, leído de `CodecCapabilities.isFeatureSupported(FEATURE_TunneledPlayback)`; en cuanto Media3 informa del decoder de vídeo elegido se compara con lo que pedimos, y si el decoder no lo declara se corrige `tunnelingSesion` y sale `tunneled.noEngancho`. Además `engine.prepare` ya no escribe `tunneled`: escribe **`tunneledPedido`**, porque en ese momento es lo único que se sabe. **Medido en la Skyworth, mismo canal `canal22sd`, dos sintonías y un interruptor:** con `forceSoftwareVideo` el decoder es `OMX.google.h264.decoder` y salta `tunneled.noEngancho … motivo=el decoder no declara feature-tunneled-playback`; de fábrica el decoder es `OMX.amlogic.avc.decoder.awesome2` y **no salta ningún aviso**. El instrumento ve los dos resultados, que es lo que lo hace valer. **Dos límites escritos a propósito:** la prueba es de un solo lado —solo avisa cuando el decoder no declara el tunneled para nada, así que no puede dar un falso aviso, pero no vería que Media3 lo apagara por otro motivo suyo, y para eso queda la señal ya publicada de `tunneled=true` **y** `frames>0`—; y en el momento del `decoder.video` el formato todavía no está publicado, así que el `mime` sale `null` y la comprobación cae a buscar por nombre, que es el camino conservador |
 | 79 | **El heap nativo acumula ~1,7 MB/h de asignaciones vivas que nadie vuelve a leer** | **A** | medido el 15-oct sobre el remojo de 36,1 h, 290 volcados de `dumpsys meminfo`. `NativeHeap.heapAlloc` 56 → 99 MB en 24 h, **+1769 KB/h recto**, con `heapSize` acompañando. **No es una fuga:** `dumpsys meminfo --unreachable` da **132 bytes en 13 asignaciones** inalcanzables, y `smaps` reparte los ~95 MB en **239 regiones de `[anon:scudo:primary]`** sin ninguna dominante (la mayor, 3,2 MB). Tampoco es fragmentación: `heapFree` son 9,6 MB de 117. Son asignaciones **referenciadas y frías** —el kernel se lleva el 38 % a zram—. No amenaza §10 (a 48 h serían ~120 MB, con 671 MB disponibles en la caja) pero una sesión de una semana son ~290 MB. **El sitio de la asignación sigue sin medir:** hace falta `libc.debug.malloc.options=backtrace`, que exige reiniciar el proceso con la propiedad puesta — experimento aparte. **Confirmado el 22-oct en una segunda serie independiente:** remojo de release de 51,0 h, 610 volcados, `heapAlloc` 39,6 → 127,1 MB = **+1,72 MB/h** (contra +1,77 el 15-oct), `heapSize` 71 → 151, y el `SwapPss` del proceso 6,3 → 85,8 MB. La proyección de esta fila —«a 48 h serían ~120 MB»— salió **121,8 MB a la hora 48**. Dos remojos y la misma pendiente, así que el ritmo ya no es una medida suelta. **Aviso para quien lo revise:** la columna que hay que leer es `heapAlloc`; `Native Heap` **PSS** oscila entre 31 y 52 MB porque es solo la parte residente, y leerla a ella hace parecer que el crecimiento está acotado (error cometido el 22-oct y corregido el mismo día) |
 | 80 | **`LocalBinders` sube 1,8/h y no baja** | **A** | medido el 15-oct en el mismo remojo: 30 → 74 en 24 h, monótono, mientras el resto del censo queda plano (Views 23, Activities 1, ProxyBinders 39, ParcelCount 48, Threads 58, descriptores 226 → 232). Tiene la forma de algo que se registra y no se da de baja. A 1,8/h son ~300 en una semana; el límite práctico de binders por proceso está muy por encima, así que **no es urgente**, pero es la única otra columna del censo que no se aplana y conviene saber de quién es |
@@ -8979,3 +8979,110 @@ es comprobable y no una suposición. Con una sola línea de interfaz en medio no
 valdría.
 
 **Estado:** cerrada. Etiqueta `v0.1.0-rc.2` empujada.
+
+---
+
+## [A] El escalón 1 del vigilante salta a donde pide el reloj, no a donde pide la ventana — 2026-11-06
+
+**Síntoma:** ninguno visible, y eso es lo que hace a este pendiente del tipo
+caro. Los tres mecanismos que mueven la posición cuestan lo mismo —un corte— y
+no dejan al reproductor en el mismo sitio: medido sobre los 64 984 latidos del
+remojo de 36,1 h, agrupando los 74 saltos en 42 incidentes y tomando el buffer
+medio de 2 a 10 min después del último salto de cada uno, `offset.margenCorto`
+deja **15,0 s** (n=7), `offset.vuelveAlBorde` **13,2 s** (n=12) y
+`vigilante.saltaAlBorde` **9,4 s** (n=23). No se solapan por arriba: la mejor
+meseta del vigilante es la peor de los otros dos. Y la meseta es la métrica
+porque el reproductor aguanta tantos segundos de silencio del origen como
+segundos de buffer tenga — 18,6 s de directo dieron 4 h 07 sin un corte y 8,5 s
+murieron en 26 segundos.
+
+**Hipótesis:** la que esta fila llevaba escrita desde el 11-oct era «la ventana
+está transitoriamente inflada cuando el vigilante dispara, porque el origen
+acaba de volver». **Era falsa**, y se vio leyendo la fuente en vez de midiendo
+más.
+
+**Lo que dice la fuente de Media3 1.8.0:**
+
+- `HlsMediaSource.getLiveWindowDefaultStartPositionUs` pone la posición por
+  defecto en `playlist.durationUs + liveEdgeOffsetUs − targetOffset`,
+  redondeada hacia atrás al principio de segmento;
+- `getLiveEdgeOffsetUs` es `ahora − playlist.getEndTimeUs()` cuando el playlist
+  trae `PROGRAM-DATE-TIME`, que es nuestro caso — los 3,75 s de retraso de
+  publicación de Flussonic del pendiente 74 son justo ese término;
+- y `ExoPlayerImplInternal` remata la diferencia: un `seekTo` a una posición
+  concreta llama a `setTargetLiveOffsetOverrideUs` con el offset del destino,
+  mientras un `seekToDefaultPosition()` llega con `requestedContentPositionUs =
+  C.TIME_UNSET` y **borra** la anulación. El comentario de esa rama lo dice con
+  sus palabras: *«Reset overridden target live offset to media values if window
+  changes or if seekTo default live position»*.
+
+O sea: **ese `liveEdgeOffsetUs` se resta del objetivo y crece con el reloj de
+pared mientras la lista no avanza.** El vigilante dispara por definición tras
+`WATCHDOG_STALL_MS` = 10 s sin avanzar, así que al llegar al escalón 1 el borde
+ya se ha comido los 14 s enteros del objetivo y la posición por defecto
+aterriza pegada al final de los datos que existen, con el suelo de un segmento
+que devuelve `findClosestPrecedingSegment`. `VueltaAlBorde.destino` no mira el
+reloj —es `ventana − objetivo`—, y por eso los dos mecanismos que lo usan dejan
+mesetas de 13-15 s donde éste deja 9,4.
+
+**No es la ventana y no es porque el origen vuelva: es el offset al borde, y
+está inflado porque el origen se calló** — es decir, en la condición exacta en
+que este escalón actúa y en ninguna otra.
+
+**Cambio:** `VueltaAlBorde.rescateDelVigilante(calculado, ventanaMs,
+objetivoMs)`, función pura, devuelve `Calculado(destinoMs)` con el mismo destino
+que los otros dos mecanismos o `PosicionPorDefecto(motivo)` con uno de cuatro
+motivos. El escalón 1 de `Media3LiveEngine.vigilar` la usa; va detrás de
+`LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT`, **apagado de fábrica**, con
+fila en el menú de desarrollador. Es Modo A y el valor de fábrica es el
+comportamiento anterior, así que de serie no cambia nada.
+
+El log del salto pasa a llevar `via`, `ventanaMs`, `posAntesMs`, `destinoMs` y
+un `offset.trasElSalto` propio —antes el escalón 1 no registraba dónde
+aterrizaba—, y `herramientas/analizar-log.py` separa `vigilante` de
+`vigilante+destino` en la tabla de mesetas y mete el escalón 1 en la tabla de
+saltos. **Sin esa columna las dos variantes se mezclarían en una sola serie**,
+que es exactamente el error que esa sección existe para no repetir.
+
+**Prueba:** siete casos nuevos en `VueltaAlBordeTest` —de 9 a 16; la suite del
+módulo pasa de 213 a **220 en verde**—, cada regla en los dos sentidos: el
+interruptor apagado, el destino igualado, la ventana desconocida, el objetivo
+desconocido, la ventana que no da para apartarse (con el límite a un
+milisegundo, para que esté escrito y no en el aire) y las ventanas de 29-36 s
+que los seis canales miden desde el pendiente 17.
+
+Y la contraprueba del que de verdad protege algo: con
+`VIGILANTE_DESTINO_CALCULADO_DEFAULT` puesto a `true`, «el valor de fábrica es
+el comportamiento anterior» **falla**, y con él a `false` pasa. Las nueve
+comprobaciones de `comprobar.py` en verde, 32 interruptores cableados.
+
+El analizador se probó contra tres volcados sintéticos —uno por variante y uno
+mixto—, porque una herramienta que nunca ha visto el caso no se puede usar para
+leer el experimento. Con el mixto imprime las dos filas separadas y avisa de
+que el interruptor se movió a mitad de sesión.
+
+**Resultado:** el mecanismo queda **leído** donde antes había una sospecha, y
+la sospecha era otra cosa. El arreglo está escrito y **sin medir**: lo que
+queda es correrlo.
+
+**Estado:** abierta. El pendiente 77 no se cierra con esto.
+
+**Lo que esto NO dice**, y conviene separarlo:
+
+- **que el escalón 1 falle.** Recuperó **30 de 30** veces en el remojo. Lo que
+  deja es una meseta más fina, no una avería;
+- **que el destino sea la causa.** La asociación está medida; el mecanismo
+  ahora está leído, pero sigue sin separarse del **estado de partida** —el
+  vigilante salta con el reproductor ya atascado y `margenCorto` salta antes—.
+  Igualar el destino es el experimento que los separa, y hasta correrlo esto es
+  una hipótesis con lectura detrás, no un resultado;
+- **el tamaño del hueco.** La fuente explica el signo. Los 5,6 s dependen de
+  cuánto llevaba callado el origen en cada incidente;
+- **nada sobre pantalla.** Esto se mide en el latido, y son **dos remojos
+  completos** con el interruptor en cada posición. Dos tramos de un mismo
+  remojo no valen, y el analizador lo avisa.
+
+**Y puede quedar sin sentido:** si se cierra el 74 —declarando `HOLD-BACK` en
+Flussonic, que enciende la corrección por velocidad de Media3 sin tocar la
+app—, la meseta la corrige el reproductor solo y da igual dónde aterrice cada
+salto.

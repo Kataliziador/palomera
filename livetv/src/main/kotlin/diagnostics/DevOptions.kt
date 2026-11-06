@@ -443,6 +443,18 @@ class DevOptions(context: Context) {
 		set(v) = put { putBoolean(K_RESYNC_MARGEN, v) }
 
 	/**
+	 * El escalón 1 del vigilante salta al destino calculado (pendiente 77).
+	 *
+	 * Apagado de fábrica: reproduce el comportamiento anterior,
+	 * `seekToDefaultPosition()`, que es el que deja la meseta 4-6 s más fina.
+	 * El motivo leído en la fuente de Media3 está en
+	 * [LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT].
+	 */
+	var vigilanteDestinoCalculado: Boolean
+		get() = tresCapas(K_VIGILANTE_DESTINO, null, LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT)
+		set(v) = put { putBoolean(K_VIGILANTE_DESTINO, v) }
+
+	/**
 	 * Preparar el reproductor después de tener la superficie (pendiente 68).
 	 *
 	 * Apagado reproduce el comportamiento anterior, que es el que deja el error
@@ -623,6 +635,11 @@ class DevOptions(context: Context) {
 		// De fábrica va encendido desde el 12-oct, así que lo que es noticia es
 		// apagarlo. Sin esto el latido anunciaría una degradación que no lo es.
 		if (resyncPorMargen != LiveTuning.RESYNC_POR_MARGEN_DEFAULT) add("resyncPorMargen=OFF")
+		// Apagado de fábrica, así que la noticia es encenderlo. Cuando pase a
+		// ser de fábrica habrá que invertir esta línea, igual que la de arriba.
+		if (vigilanteDestinoCalculado != LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT) {
+			add("vigilanteDestinoCalculado")
+		}
 		if (!superficieDimensionada) add("superficie a pantalla completa")
 		if (!attachSoloAlCambiar) add("attach en cada recomposición")
 		if (liveEdgeResyncDisabled) add("sin resync")
@@ -710,6 +727,7 @@ class DevOptions(context: Context) {
 		const val K_RESYNC_CALC = "resyncCalculando"
 		const val K_RESYNC_ADELANTA = "resyncSoloSiAdelanta"
 		const val K_RESYNC_MARGEN = "resyncPorMargen"
+		const val K_VIGILANTE_DESTINO = "vigilanteDestinoCalculado"
 
 		/** Las que el menú local puede pisar. El overlay no cuenta: es instrumento. */
 		private val CLAVES_DEL_MENU = listOf(
@@ -720,6 +738,7 @@ class DevOptions(context: Context) {
 			K_SUPERFICIE_DIM, K_FORZAR_DEINT, K_VPU_SIN_DEINT, K_SIM_DENEGADO,
 			K_PREP_SUPERFICIE, K_RESYNC_CALC, K_RESYNC_ADELANTA, K_RESYNC_MARGEN,
 			K_ZAPEO_AVISO, K_ABR_AFINADO, K_VIGILAR_SUSPENSION, K_SIM_SUSPENDIDO,
+			K_VIGILANTE_DESTINO,
 		)
 
 		const val OVERLAY_OCULTO = 0

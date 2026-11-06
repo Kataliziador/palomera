@@ -118,4 +118,64 @@ internal object VueltaAlBorde {
 	 */
 	fun destino(ventanaMs: Long, objetivoMs: Long): Long =
 		(ventanaMs - objetivoMs).coerceAtLeast(0L)
+
+	/**
+	 * Qué clase de salto da el **escalón 1 del vigilante** (pendiente 77).
+	 *
+	 * No es una decisión de «saltar o no» —cuando esto se llama, el vigilante
+	 * ya decidió que hay que saltar—: es **a dónde**. Y está aquí, en una
+	 * función pura con pruebas, por el mismo motivo que el resto de esta clase:
+	 * la versión anterior era una línea dentro del `when` del vigilante, y una
+	 * línea ahí dentro no se puede probar ni discutir.
+	 *
+	 * El destino calculado es **el mismo** que usan los otros dos mecanismos,
+	 * que es justo el experimento que el 77 propone: igualarlo para separar el
+	 * efecto del destino del efecto del estado de partida.
+	 */
+	sealed interface Rescate {
+		/** Saltar a [destinoMs], calculado con [destino]. */
+		data class Calculado(val destinoMs: Long) : Rescate
+
+		/**
+		 * Dejarlo en manos de `seekToDefaultPosition()`, que es lo de siempre.
+		 *
+		 * Lleva [motivo] porque los cuatro caminos que llegan aquí no son lo
+		 * mismo en el log: «el interruptor está apagado» es el comportamiento
+		 * pedido, y «no sé la ventana» es un instrumento que no mide. Sin la
+		 * columna, una serie de mesetas por defecto no dice cuál de los dos
+		 * la produjo.
+		 */
+		data class PosicionPorDefecto(val motivo: String) : Rescate
+	}
+
+	/**
+	 * @param calculado [LiveTuning.VIGILANTE_DESTINO_CALCULADO_DEFAULT] o lo que
+	 *   diga el menú.
+	 * @param ventanaMs la ventana DVR conocida, o [C.TIME_UNSET].
+	 * @param objetivoMs el objetivo de latencia activo, en ms.
+	 */
+	fun rescateDelVigilante(
+		calculado: Boolean,
+		ventanaMs: Long,
+		objetivoMs: Long,
+	): Rescate {
+		if (!calculado) return Rescate.PosicionPorDefecto("interruptor apagado")
+		// Sin ventana no se inventa un destino: misma regla que [decidir] con su
+		// caso ciego, y que [RelojDeAvance]. Un instrumento que no mide no
+		// autoriza a decidir, y de los dos errores éste es el barato — el
+		// vigilante sigue rescatando por el camino de siempre.
+		if (ventanaMs == C.TIME_UNSET || ventanaMs <= 0L) {
+			return Rescate.PosicionPorDefecto("ventana desconocida")
+		}
+		if (objetivoMs <= 0L) return Rescate.PosicionPorDefecto("objetivo desconocido")
+		// La ventana no da para apartarse del borde. Es el mismo caso que
+		// [MargenDeBuffer] avisa como `SinSitioDetras` y no es un fallo nuestro:
+		// lo que hay que tocar es el `segment_count` del site. Aquí lo que
+		// importa es no mandar el salto al primer segmento de la ventana, que es
+		// el que está a punto de caducar.
+		if (ventanaMs <= objetivoMs) {
+			return Rescate.PosicionPorDefecto("la ventana no da para apartarse")
+		}
+		return Rescate.Calculado(destino(ventanaMs, objetivoMs))
+	}
 }
