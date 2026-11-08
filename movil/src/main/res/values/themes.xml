@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Tema mínimo sin barra del sistema propia: el color lo pone Compose, y el
+      acento sale de la marca del site (`CLAUDE.md` §8), nunca de aquí.
+    -->
+    <style name="Theme.PalomeraMovil" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      El nombre visible. **No es la marca del ISP**: la marca viste la app por
+      dentro, en las tres ranuras de `CLAUDE.md` §8, y el nombre del lanzador es
+      estático por construcción.
+    -->
+    <string name="app_name">Palomera</string>
+
+    <string name="esqueleto_titulo">Palomera para teléfonos</string>
+    <string name="esqueleto_cuerpo">Esqueleto de la fase 0. Lo que esta pantalla demuestra es que el motor de canales compila y se instancia en un teléfono, no que reproduzca nada todavía.</string>
+</resources>

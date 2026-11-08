@@ -457,6 +457,35 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      `uses-implied-feature … reason='requested android.permission.ACCESS_WIFI_STATE permission'`
      y ahora imprime `uses-feature-not-required: name='android.hardware.wifi'`.
 
+   - **la aplicación de teléfono** — el módulo `movil/` **(añadido el 08-nov)**,
+     y es el estreno de una categoría: hasta aquí esta lista eran enganches,
+     texto, recursos y una excepción de lógica. Esto es una **segunda
+     aplicación**, con su propio `applicationId`
+     (`mx.kataliziador.palomera.movil`), su propia ficha y su propia interfaz
+     táctil escrita desde cero. El plan está en `MOVIL_PLAN.md`.
+
+     **No toca `app/` ni una línea, y ahí está el argumento.** Depende de
+     `:livetv` por ruta de Gradle —una sola copia del motor, no una
+     bifurcación— y de nada más del árbol del upstream. Así que el diff contra
+     upstream crece en un directorio nuevo, exactamente como creció con
+     `livetv/`, y el rebase no se complica: es la misma razón por la que §4.1
+     puso el motor en un módulo.
+
+     **La regla que lo mantiene honesto:** el trabajo del teléfono **no cambia
+     el comportamiento de `:livetv`**. Lo que necesite entra aditivo o detrás
+     de un interruptor de Modo A con el valor de fábrica igual a lo anterior.
+     Sin esa regla, afinar el motor para un teléfono cambiaría también lo que
+     hace la caja de un abonado — y lo que hace la caja es lo que Edgar validó
+     en pantalla.
+
+     **Y hay una comprobación pendiente en la Play Console, que no es de este
+     módulo sino del otro.** Medido el 08-nov: `app/src/main/AndroidManifest.xml`
+     declara `LAUNCHER` **además** de `LEANBACK_LAUNCHER`, y `touchscreen` como
+     no obligatoria —las dos cosas vienen del upstream—, así que la ficha de la
+     caja es elegible para teléfonos, donde su interfaz de cruceta es
+     inservible. El manifiesto de `movil/` hace el espejo a propósito: exige
+     pantalla táctil y **no** declara `LEANBACK_LAUNCHER`.
+
    Cualquier otra cosa exige justificarse en el commit **y** decirlo aquí.
 
    **Nada de esto puede cambiar el comportamiento del VOD**, que es el

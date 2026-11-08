@@ -15,6 +15,10 @@ include(":preference")
 // Módulo LiveTV: motor de canales en vivo (ver CLAUDE.md §4)
 include(":livetv")
 
+// Aplicación de teléfono. Comparte `:livetv` por ruta de Gradle, que es el
+// punto de todo el diseño: una sola copia del motor (ver MOVIL_PLAN.md §3).
+include(":movil")
+
 pluginManagement {
 	repositories {
 		gradlePluginPortal()

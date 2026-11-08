@@ -116,6 +116,9 @@ PERMITIDO = [
 	# las pruebas de la sección que no caben en el módulo porque necesitan
 	# tipos de `app` — la tabla de decisiones del pendiente 84 (04-nov)
 	r"^app/src/test/kotlin/livetv/",
+	# la aplicación de teléfono: módulo nuevo, no toca `app/` (CLAUDE.md §4.7,
+	# 08-nov). Comparte `:livetv` por ruta de Gradle, no por copia.
+	r"^movil/",
 	# utilería fuera de la app
 	r"^herramientas/",
 	r"^headend/",

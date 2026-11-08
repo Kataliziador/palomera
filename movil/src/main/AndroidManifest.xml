@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      **La pantalla táctil sí es obligatoria aquí, y es deliberado.** Es el
+      espejo del razonamiento de `CLAUDE.md` §4.7: allí se declara como *no*
+      obligatoria para que una caja de ISP sin digitalizador siga viendo la
+      ficha. Aquí se exige para que esta ficha **no** le aparezca a una caja de
+      TV, donde una interfaz pensada para el dedo es inservible.
+
+      Y por el mismo motivo este manifiesto **no declara
+      `LEANBACK_LAUNCHER`**: sin esa categoría la app no aparece en el
+      lanzador de Android TV. Las dos cosas juntas son lo que mantiene
+      separadas las dos fichas.
+
+      No se pide `ACCESS_WIFI_STATE`: implica `android.hardware.wifi` como
+      obligatorio (§4.7 otra vez) y no hace falta. Saber si estamos en la red
+      del abonado se decide preguntando si su site contesta, no leyendo el
+      SSID — que además exige permiso de ubicación desde Android 10.
+    -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="true" />
+
+    <application
+        android:name=".PalomeraMovilApp"
+        android:allowBackup="true"
+        android:appCategory="video"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PalomeraMovil">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
