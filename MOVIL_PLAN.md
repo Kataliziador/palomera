@@ -165,13 +165,47 @@ peine y hace falta libVLC con `yadif` en los tres canales HD.
 **Esto no se simula y no se infiere: hay que verlo en un teléfono.** Es la fase
 0.2 y es la que decide el calendario.
 
-### 4.2 MPEG-2, que probablemente no está
+### 4.2 MPEG-2 — **medido el 08-nov: no está**
 
-Muchos SoC de Qualcomm y MediaTek no traen decoder de MPEG-2. Mitigado por el
-lineup real: de los 53 flujos, el único MPEG-2 de verdad es `estrellassd-mp2v`;
-el resto es H.264 + AAC. **Inferido de la documentación de los fabricantes, no
-medido en ningún teléfono** — y la pantalla del esqueleto lo contesta en una
-tabla, sin `adb`.
+Se decía aquí que «probablemente» no estaría, inferido de la documentación de
+los fabricantes. Ya está medido, y es un no rotundo.
+
+**Aparato:** Xiaomi `2511FPC34G` (`klee_global`), MediaTek Dimensity `mt6899`,
+Android 16 / API 36, `arm64-v8a` como único ABI, 11,3 GB de RAM, 1268×2756 a
+520 dpi. **Instrumento:** `MediaCodecList` a través de
+`DeviceCapabilities.of()`, que es exactamente lo que consulta la cascada — no
+un `grep` a los XML del fabricante, que fue la primera lectura y podría haber
+sido ciega.
+
+| mime | resultado |
+|---|---|
+| `video/avc` | **hardware** · `c2.mtk.avc.decoder` |
+| `video/mpeg2` | **no hay** |
+| `video/hevc` | hardware · `c2.mtk.hevc.decoder` |
+| `audio/mp4a-latm` | software · `c2.android.aac.decoder` |
+| `audio/mpeg` | software · `c2.android.mp3.decoder` |
+| `audio/ac3` | software |
+
+Ni de hardware ni de software: MPEG-2 no existe en este teléfono. Para
+`estrellassd-mp2v` —el único MPEG-2 real de los 53— hace falta libVLC o no se
+ve. **Una muestra, y del mejor caso posible**: es un teléfono nuevo de gama
+alta, así que vale la advertencia de `CLAUDE.md` §9 palabra por palabra.
+
+**Y hay una trampa de §2 reaparecida.** Este teléfono decodifica AAC, MP3 y
+AC-3 por software, así que **un canal mal normalizado se oye perfecto aquí** —
+exactamente el modo de fallo silencioso contra el que avisa §2, sólo que ahora
+el aparato engañoso es el de pruebas del desarrollador.
+
+### 4.2.bis El borde a borde es obligatorio, y ya mordió
+
+Con `targetSdk 36` Android dibuja de borde a borde y **deja de reservar sitio**
+para la barra de estado y la de navegación. Medido el 08-nov: la primera
+captura del esqueleto tenía el título pintado **encima del reloj del sistema**.
+
+Se arregla con `enableEdgeToEdge()` en la actividad y
+`windowInsetsPadding(WindowInsets.safeDrawing)` en la raíz de cada pantalla.
+Está escrito aquí porque **afecta a todas las pantallas de la fase 1**, no sólo
+a la que lo enseñó, y porque en la caja este problema no existe.
 
 ### 4.3 libVLC pesa 170 MB de los 217 del APK
 
@@ -266,9 +300,10 @@ Cada fase cierra con algo que se ve, no con código escrito.
 
 ### Fase 0 — El esqueleto y las dos medidas que deciden el proyecto
 
-**0.1 — hecho el 08-nov.** El worktree, el módulo `:movil`, el cableado de
-Gradle y una pantalla que enseña lo que el teléfono declara. `assembleDebug` y
-la prueba de humo en verde (medido: 1 prueba, 0 fallos).
+**0.1 — hecho el 08-nov, y corriendo en un teléfono de verdad.** El worktree,
+el módulo `:movil`, el cableado de Gradle y la pantalla de capacidades,
+instalada y ejecutándose en el Xiaomi de §4.2. Cierra §4.2 y deja dos lecciones
+que no se buscaban: el borde a borde (§4.2.bis) y los 67,6 MB por ABI (§4.3).
 
 **0.2 — lo siguiente, y es lo único que importa ahora.** Un canal real
 reproduciéndose en un teléfono real, con el overlay de diagnóstico a la vista.
@@ -377,6 +412,11 @@ confirmar que su ficha no se distribuye a ese formato.
 
 El manifiesto de `movil/` hace el espejo: exige pantalla táctil y **no** declara
 `LEANBACK_LAUNCHER`, que es lo que la mantiene fuera de los televisores.
+
+**Y dejó de ser teórico el 08-nov.** `pm list packages` en el teléfono de
+pruebas devolvió **`mx.kataliziador.palomera`** —la app de la caja— instalada
+junto a la de teléfono. O sea que no es que *pueda* instalarse en un teléfono:
+ya está en uno.
 
 ---
 

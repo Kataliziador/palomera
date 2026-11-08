@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,7 +38,7 @@ import org.jellyfin.livetv.capabilities.DeviceCapabilities
  */
 private val MIMES = listOf(
 	"video/avc" to "H.264 — el 98 % del lineup",
-	"video/mpeg2" to "MPEG-2 — R1: un canal de 53 lo necesita",
+	"video/mpeg2" to "MPEG-2 — un canal de 53 lo necesita (§4.2)",
 	"video/hevc" to "HEVC — VOD, no canales",
 	"audio/mp4a-latm" to "AAC — el audio normalizado (§2)",
 	"audio/mpeg" to "MP2/MP3 — no debería hacer falta",
@@ -52,6 +55,9 @@ fun PantallaCapacidades() {
 			.fillMaxSize()
 			.background(Color(0xFF101014))
 			.verticalScroll(rememberScrollState())
+			// Antes del padding propio: lo que aparta de la barra de estado y
+			// de la de navegación es esto, no los 20 dp (ver MainActivity).
+			.windowInsetsPadding(WindowInsets.safeDrawing)
 			.padding(20.dp),
 	) {
 		Texto("Palomera para teléfonos", 22.sp, FontWeight.Bold)
