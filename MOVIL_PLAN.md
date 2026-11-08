@@ -17,6 +17,9 @@ Decididas por Edgar el 08-nov, y ordenan todo lo demás:
    con canales y se descartó.
 3. **El código vive en este repositorio**, en un módulo `movil/` sobre la rama
    `movil`, trabajada desde un `git worktree` en `/home/proyectos/palomera-movil`.
+4. **Una sola APK y una sola ficha**, que detecta el aparato y enseña la
+   interfaz que toca — **añadida el 08-nov**, y reemplaza a la de dos
+   aplicaciones con dos fichas que tenía este plan. Ver §3.
 
 La primera es la que más ahorra, y conviene entender por qué: por el Wi-Fi del
 site, un teléfono es **exactamente** la misma arquitectura que la caja —LAN,
@@ -93,14 +96,70 @@ porque la base que tenemos es el motor.
 
 ---
 
-## 3. Arquitectura: un módulo más, no un proyecto más
+## 3. Arquitectura: **una sola aplicación que se adapta al aparato**
+
+**Cambiado el 08-nov, por decisión de Edgar.** Este apartado decía dos
+aplicaciones con dos `applicationId` y dos fichas. Ahora es **una**, que al
+arrancar mira en qué aparato está y enseña la interfaz que toca.
 
 ```
 jellyfin-livetv-v1/
 ├── livetv/   el motor. 9 226 líneas. **Compartido por ruta de Gradle**
-├── app/      la de TV (el fork, Leanback)     → mx.kataliziador.palomera
-└── movil/    NUEVA. Compose táctil, nuestra   → mx.kataliziador.palomera.movil
+├── movil/    la interfaz táctil. **Biblioteca, no aplicación**
+└── app/      la única aplicación   → mx.kataliziador.palomera
+             en el arranque: si no es TV, entra por `movil/`
 ```
+
+### Por qué una sola, y es el mismo argumento de §8
+
+`CLAUDE.md` §8 descartó los flavors por ISP con una frase que vale igual aquí:
+«el costo de los flavors nunca fue programarlos — era **publicar**: N fichas, N
+firmas, N revisiones de Google y N despliegues por cada corrección». Dos fichas
+por formato es el mismo coste en pequeño.
+
+**Y lo que de verdad lo hace barato ya estaba escrito, por upstream.** Medido
+el 08-nov: `app/src/main/java/.../util/ContextExtensions.kt:27` define
+
+```kotlin
+fun Context.isTvDevice(): Boolean =
+    supportedUiModes.contains(uiModeManager?.currentModeType) or
+        packageManager.hasSystemFeature("android.hardware.hdmi.cec") or
+        !packageManager.hasSystemFeature("android.hardware.touchscreen")
+```
+
+Tres señales, y **ya se usa**: `NotificationsRepository.kt:56` avisa al usuario
+cuando no está en una televisión. O sea que la app ya sabe dónde está; lo único
+que falta es que haga algo distinto con esa respuesta.
+
+### Se detecta, **no se pregunta**
+
+Se propuso una pantalla donde el abonado eligiera «móvil» o «TV». **Se
+descarta**, y por tres razones:
+
+- el sistema ya lo sabe (arriba). Preguntar algo que se puede leer es añadir
+  una forma de equivocarse donde no había ninguna;
+- **una respuesta equivocada deja la app inservible**: cruceta en un táctil, o
+  dedo en una caja sin pantalla táctil. Y quien se equivoca es quien menos
+  puede arreglarlo;
+- es un paso más en la primera pantalla, que es donde más gente se cae.
+
+**Hay interruptor manual, en Ajustes**, para el aparato que mienta. Misma
+filosofía que `deviceOverrides`: decide la caja, y nosotros tenemos palanca.
+Pero **no puede quedar al alcance de un descuido** — ver R3.
+
+### Por qué `movil/` es biblioteca y no aplicación
+
+Meter una segunda interfaz **dentro** de `app/` haría crecer el diff contra
+upstream en miles de líneas, que es justo el dolor que §4 existe para evitar.
+Como biblioteca, `app/` sólo gana **unas diez líneas de enrutado** en el
+arranque, y la interfaz entera vive en su módulo — el mismo truco que hizo
+viable `livetv/`.
+
+**Y nace como aplicación a propósito, hasta la fase 1.** Hoy `:movil` es un
+módulo de aplicación porque es el instrumento con el que se mide R1 en un
+teléfono: tiene que instalarse solo. Se convierte en biblioteca cuando `app/`
+pueda alojarlo, no antes. Convertirlo ya dejaría la fase 0.2 sin aparato donde
+correr.
 
 `movil/build.gradle.kts` declara `implementation(projects.livetv)` y con eso
 acabó. Ni submódulo, ni AAR, ni copia.
@@ -118,6 +177,16 @@ Por qué este reparto y no un repositorio aparte:
   como entró `livetv/`;
 - `herramientas/comprobar.py` crece para cubrirlo, en vez de nacer un segundo
   comprobador que diga cosas distintas.
+
+### El precio: un solo `minSdk`, y es 21
+
+La caja de un ISP necesita `minSdk 21`, y el esqueleto del teléfono se escribió
+con 24. **Una sola APK obliga a un solo número, y manda el más bajo.** Así que
+el teléfono baja a 21: Compose y la interfaz táctil tienen que funcionar en
+Android 5.
+
+No es gratis y no se descubre solo. Queda escrito aquí para que quien escriba
+la fase 1 lo sepa antes, y no después de elegir una biblioteca que pide 24.
 
 ### La regla que no se negocia
 
@@ -352,9 +421,12 @@ el teléfono sin cargador, con batería y temperatura apuntadas; y la secuencia
 «salir de casa, volver» sin que haga falta reiniciar la app.**
 
 ### Fase 5 — La ficha
-Segunda ficha, segundo paquete, capturas de teléfono, formulario de Seguridad de
-los datos. **Cierre: la lista de `PLAY.md` en verde para este paquete, y la
-comprobación de que la ficha de TV no se distribuye a teléfonos** (ver §8).
+**Mucho más corta desde la decisión de §3:** no hay ficha nueva que crear. Se
+habilita el formato de teléfono y tablet en la que ya existe, se suben sus
+capturas y se revisa si el cuestionario de Seguridad de los datos cambia —no
+debería: el teléfono manda lo mismo que la caja—. **Cierre: la ficha
+distribuyendo a los dos formatos, y un teléfono y una caja bajándose la misma
+versión desde Play y enseñando cada uno su interfaz.**
 
 ---
 
@@ -370,13 +442,23 @@ caro es el silencioso: el servidor del ISP transcodificando para veinte casas
 sin que nadie se entere hasta que su CPU llega al techo. *Detección:* la matriz
 de la fase 3, con biblioteca real. *Mitigado* por tener `MediaCodecList`.
 
-**R3 · Dos fichas, dos paquetes, dos claves.** El `applicationId` es
-irreversible al primer envío, igual que el de la caja. Y ahora son dos
-identidades que mantener, dos revisiones de Google y dos despliegues por cada
-corrección — exactamente el coste que §8 evitó al descartar los flavors por ISP.
-Se acepta porque la alternativa es peor: una sola ficha obligaría a meter la
-interfaz táctil dentro de `app/`, y con ella el lastre de Leanback y el dolor de
-rebase que §4 existe para evitar.
+**R3 · Una sola APK acopla las dos cadencias, y ésa es la factura.** Con una
+ficha no hay segundo `applicationId` que fijar para siempre ni segunda clave
+—eso desaparece de §8—, pero **cada iteración del teléfono vuelve a pasar por
+revisión y vuelve a enviarse a las cajas de los abonados**. La app de la caja
+está pensada para quedarse quieta en producción; la del teléfono va a cambiar
+cada semana.
+
+*Se gestiona* con la regla de arriba —lo del teléfono no toca `livetv/` ni el
+camino de la TV— y con el despliegue escalonado de `PLAY.md` §7. *No se elimina*:
+el binario cambia aunque el código de la TV no, así que cada versión del
+teléfono es una versión nueva para un parque de cajas que nadie va a mirar.
+
+**Y un riesgo de revisión que las dos fichas no tenían:** el formato Android TV
+de Play exige que **todo** sea navegable con cruceta. Si un revisor con un mando
+aterriza alguna vez en la interfaz táctil —detección fallida, o el interruptor
+manual pulsado sin querer— es rechazo. De ahí que el interruptor de §3 no pueda
+estar al alcance de un descuido.
 
 **R4 · El tamaño del APK.** §4.3. 170 MB de libVLC para un canal de 53.
 
@@ -406,16 +488,18 @@ argumento que la sostiene.
 
 ## 8. Lo irreversible, y lo que es de Edgar
 
-**Irreversible, y hay que confirmarlo antes del primer envío:**
+**Con una sola ficha, esta lista casi desaparece — y ése es el mejor argumento
+a favor de la decisión de §3.** Ya no hay un segundo `applicationId` que Play
+fije para siempre, ni un segundo título, ni una segunda clave de firma que
+guardar y no perder. El teléfono hereda las tres de la caja, que ya están
+decididas y ya están en Play.
 
-- **`mx.kataliziador.palomera.movil`**, provisional en
-  `movil/build.gradle.kts`. Play lo fija para siempre. Mientras sólo se compile
-  en depuración no compromete nada, porque el sufijo `.debug` hace que el id
-  instalado no sea ése;
-- **el título de la segunda ficha.** Las dos se llamarían «Palomera» y Play
-  filtra por aparato, pero conviene decidirlo, no heredarlo;
-- **la clave de firma.** No se reutiliza la de la caja: son dos fichas y
-  mezclarlas ata el destino de una a la otra.
+Lo que queda es **una sola cosa, y es de configuración, no de código**:
+
+- **habilitar el formato de teléfono y tablet en la ficha existente**, con sus
+  capturas propias. Play las exige por formato. Es reversible y se hace cuando
+  la interfaz táctil esté lista — **no antes**, porque habilitarlo hoy pondría
+  la interfaz de cruceta en los celulares de los abonados.
 
 **Y una comprobación que hay que hacer en la Play Console antes de publicar
 cualquiera de las dos.** Medido el 08-nov en `app/src/main/AndroidManifest.xml`:
