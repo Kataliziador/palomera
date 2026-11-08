@@ -226,7 +226,21 @@ teléfono, que es lo que un AAB reparte. El Xiaomi de pruebas declara
 `arm64-v8a` y nada más. Los 217 MB son los cuatro ABIs juntos, que no le
 llegan a ningún aparato.
 
-Sigue siendo mucho para un teléfono, y libVLC sigue siendo 41 de esos 67.
+**Y aun ese número engaña, medido el 08-nov en la propia Play Console.** El AAB
+de la app de TV —que también lleva libVLC, en los cuatro ABIs— declara un
+**«tamaño de nuevas descargas» de 38,9 MB** frente a sus 99,6 MiB de bundle:
+Play reparte por ABI, densidad e idioma y entrega el 38 %. 38,9 MB es un tamaño
+de app corriente.
+
+Así que la frase que había aquí —«sigue siendo mucho para un teléfono»— **se
+apoyaba en el peso de un APK gordo, que no es lo que nadie descarga**. Lo que
+pesa la descarga del teléfono sigue **sin medir**, porque todavía no hay AAB de
+`:movil`; lo medido es su hermana, y dice que el argumento para quitar libVLC
+por tamaño es mucho más débil de lo que parecía.
+
+**Lo que no cambia** es que libVLC sólo compra un canal de 53 mientras R1 no se
+mida, y que compila, descarga y se instala más lento en cada iteración de
+desarrollo — que es para lo que sirve `-Pmovil.abi`.
 
 En una caja de ISP el tamaño no le importa a nadie. En un teléfono mexicano sí,
 y un AAB reparte por ABI pero sigue dejando ~50 MB de nativo en un arm64.
