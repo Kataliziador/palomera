@@ -340,6 +340,7 @@ congelar no es no cambiar nunca, es que cada cambio pague su factura.
 | nombre del desarrollador | **Kataliziador** — puesto el 30-oct. Es un nombre comercial sin registrar, y Console lo acepta en una cuenta personal aunque el nombre legal del titular sea otro (`PLAY.md` §1) |
 | correo de contacto | `avhelmc@icloud.com` — **se publica en la ficha**, así que lo encuentran los recolectores de direcciones |
 | política de privacidad | `https://kataliziador.github.io/palomera/privacidad` — comprobada el 02-nov: 200 |
+| términos del servicio | `https://kataliziador.github.io/palomera/terminos` — **campo opcional** («si está disponible», dice Play), publicado el 08-nov a petición de Edgar. **Sin barra final:** GitHub Pages sirve `terminos.md` como `/terminos`, y `/terminos/` devuelve 404 — medido, y es lo que hizo saltar el aviso de URL inaccesible de la consola |
 | icono de la ficha | `palomera-icono-512-ficha.png`, 512×512 RGB sin alfa |
 | banner de TV | `palomera-banner-1280.png`, 1280×720 RGB sin alfa |
 | gráfico destacado | `palomera-destacado-1024.png`, 1024×500 RGB sin alfa. **Play no publica una ficha sin él**, y hasta el 02-nov no teníamos ninguno nuestro |
