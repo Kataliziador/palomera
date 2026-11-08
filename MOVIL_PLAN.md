@@ -186,6 +186,14 @@ lib/armeabi-v7a/libvlc.so 37,3 MB
 nativo total             189,4 MB   (de 217,2 MB de APK)
 ```
 
+**Y el número que de verdad importa es otro: 67,6 MB.** Medido el 08-nov
+compilando con `-Pmovil.abi=arm64-v8a`: es lo que pesa el APK para **un**
+teléfono, que es lo que un AAB reparte. El Xiaomi de pruebas declara
+`arm64-v8a` y nada más. Los 217 MB son los cuatro ABIs juntos, que no le
+llegan a ningún aparato.
+
+Sigue siendo mucho para un teléfono, y libVLC sigue siendo 41 de esos 67.
+
 En una caja de ISP el tamaño no le importa a nadie. En un teléfono mexicano sí,
 y un AAB reparte por ABI pero sigue dejando ~50 MB de nativo en un arm64.
 

@@ -36,6 +36,33 @@ android {
 
 		versionCode = 1
 		versionName = "0.0.1-esqueleto"
+
+		// **Compilar sólo para el ABI del aparato que se tiene delante.**
+		// Medido el 08-nov: el APK pesa 217 MB y libVLC son 170 de ellos,
+		// repartidos en cuatro ABIs (`MOVIL_PLAN.md` §4.3). Un teléfono usa
+		// **uno** —el Xiaomi de pruebas declara `arm64-v8a` y nada más—, así
+		// que instalar los cuatro es mandar tres cuartas partes de nada por un
+		// enlace lento.
+		//
+		// Sin la propiedad no cambia nada: se compilan los cuatro, que es lo
+		// que tiene que llegar a la tienda. Se usa así:
+		//
+		//     ./gradlew :movil:assembleDebug -Pmovil.abi=arm64-v8a
+		//
+		// **No es lo mismo que `-Pandroid.injected.build.abi`**, que es para el
+		// despliegue desde el IDE: probado el 08-nov y dejó el APK en 207 MB,
+		// o sea que no filtró nada.
+		(findProperty("movil.abi") as String?)
+			?.split(",")
+			?.map(String::trim)
+			?.filter { it.isNotEmpty() }
+			?.takeIf { it.isNotEmpty() }
+			?.let { pedidos ->
+				ndk {
+					abiFilters.clear()
+					abiFilters.addAll(pedidos)
+				}
+			}
 	}
 
 	buildFeatures {
