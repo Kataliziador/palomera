@@ -193,13 +193,29 @@ No se reabre aquí. Se deja dicho.
 
 ## 9. Lo que queda para quien lo construya
 
-Las maquetas cubren cuatro pantallas: Inicio, Catálogo, Ficha y En vivo. **No
-están diseñadas todavía**, y quien las haga decide dentro de las reglas de §2
-y §3:
+Las maquetas cubren **seis** pantallas: Inicio, Catálogo, Ficha de película,
+**Ficha de serie**, En vivo y **Reproductor**.
 
-- **el reproductor** —controles sobre vídeo, con las tintas de alfa de §2—,
-  pantalla completa y giro;
-- **la ficha de serie**: temporadas y episodios;
+Dos decisiones de las dos últimas, por si alguien las quiere cambiar a
+sabiendas:
+
+- **la ficha de serie abre en el episodio que toca**, no en «reproducir».
+  El botón dice `Reanudar T1 E3 · faltan 28 min`, que es lo que el abonado
+  necesita saber antes de tocar nada. Las temporadas van como pastillas y no
+  como desplegable: con tres o cuatro es más rápido, y en este catálogo
+  ninguna serie pasa de siete;
+- **el reproductor es la única pantalla horizontal**, y la única donde las
+  tintas no son grises fijos: sobre vídeo son blanco con alfa (0,78 y 0,62),
+  porque una película puede ser blanca a pantalla completa. El transporte va
+  al centro, que es donde ya está el pulgar cuando el teléfono se sostiene
+  apaisado.
+
+**Y falta el reproductor de TV en vivo, que no es éste.** No lleva la misma
+barra de avance —lo que hay detrás es una ventana DVR de segundos, no una
+película— y sí lleva zapeo y barra de canal.
+
+Lo que sigue sin diseñar, dentro de las reglas de §2 y §3:
+
 - **la búsqueda**;
 - **la puerta del abonado**: código de activación, acceso y marca neutra;
 - **los estados vacíos**: sin red, site sin guía, contrato suspendido, y el
