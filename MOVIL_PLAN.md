@@ -238,7 +238,45 @@ por eso que el `jellyfin-android` oficial publica dos variantes—.
 La interfaz táctil es trabajo, no incógnita. Las incógnitas son éstas, y tres
 de las cinco están **sin medir**.
 
-### 4.1 El H.264 entrelazado en un teléfono — **la peor, y nadie la ha mirado**
+### 4.1 El H.264 entrelazado en un teléfono — **medido el 09-nov: sale limpio**
+
+**Era el riesgo que podía duplicar el proyecto, y está contestado.** Lo que
+sigue debajo es el planteamiento original, que se conserva porque explica por
+qué importaba.
+
+**El montaje.** El teléfono de pruebas está en otra subred y **no alcanza el
+headend** —medido: 100 % de pérdida—, así que se tuneló con `adb reverse` sobre
+un puente HTTP que sólo escuchaba en `127.0.0.1`. Nada se expuso a la red, y el
+montaje se retiró al acabar. El reproductor fue un ExoPlayer desnudo, sin nada
+del motor: ni rescate de tunneled, ni cascada, ni vigilante.
+
+| canal | lo que trae | resultado |
+|---|---|---|
+| `test-sat70w-discoveryhd-mp4` | 1080i, orden de campo **`tt`** | **limpio**, `1920×1080 SAR 1.0` |
+| `test-sat70w-hbohd-mp4` | 1080i, orden **`bb`** + **cine 23.976 con cadencia 3:2** | **limpio**, `Qin 121 · Render 121 · Drop 0` en 5 s |
+
+El segundo es el que importa: es el canal con el orden de campo invertido **y**
+la cadencia 3:2 que hizo falla en la caja —`CLAUDE.md` §6: «el decodificador
+AVC de Amlogic ignora el pulldown 3:2 y da 2 campos a cada imagen», que es lo
+que obligó a encender el tunneled—. En este teléfono, `c2.mtk.avc.decoder`
+entrega sin descartes.
+
+**Lo que esto NO dice, y hay que leerlo entero:**
+
+- **un teléfono, y es el mejor caso posible.** Xiaomi nuevo con un Dimensity.
+  Vale la advertencia de `CLAUDE.md` §9 palabra por palabra: no dice nada de un
+  teléfono de gama baja de hace cuatro años;
+- **una captura sólo enseña peine donde hay movimiento.** La de Discovery lo
+  tenía —una mano con desenfoque de movimiento— y salió limpia; la de HBO es un
+  plano quieto, y ahí lo que sostiene la conclusión es `Drop: 0`, no la imagen;
+- **no se midió** batería, calor, estabilidad a horas, ni zapeo. Sólo que
+  decodifica y pinta.
+
+**La consecuencia para el plan:** el desentrelazado por software —que era la
+mitad del motivo de libVLC— **no hace falta en este teléfono**. Queda la otra
+mitad, el MPEG-2, que es un canal de 53 (§4.2).
+
+### 4.1.bis El planteamiento original, por qué importaba
 
 **Cuatro de los seis canales de referencia vienen entrelazados, los tres HD
 incluidos**, y no todos con el mismo orden de campos (`CHANNELS.md`). En la caja
@@ -452,10 +490,11 @@ versión desde Play y enseñando cada uno su interfaz.**
 
 ## 7. Riesgos
 
-**R1 · El entrelazado en un SoC de teléfono.** §4.1. Es el único que puede
-cambiar el proyecto de «tres meses de interfaz» a «el problema más caro de la
-caja, otra vez». *Detección:* fase 0.2, mirando una pantalla. *Salida:* libVLC
-con `yadif`, que ya está en el motor — al precio de §4.3 y de batería.
+**R1 · El entrelazado en un SoC de teléfono — cerrado el 09-nov, en un
+aparato.** §4.1. Los dos canales entrelazados de referencia salen limpios, el
+de cadencia 3:2 incluido. **No se cierra del todo** hasta verlo en un teléfono
+de gama baja, que es el parque real de un abonado; pero deja de ser el riesgo
+que podía duplicar el proyecto.
 
 **R2 · El perfil de dispositivo del VOD.** §5. Falla en los dos sentidos y el
 caro es el silencioso: el servidor del ISP transcodificando para veinte casas

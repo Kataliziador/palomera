@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import mx.kataliziador.palomera.movil.ui.PantallaCanal
 import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
 
 /**
@@ -21,6 +22,12 @@ class MainActivity : ComponentActivity() {
 		// ello en todas.
 		enableEdgeToEdge()
 		super.onCreate(savedInstanceState)
-		setContent { PantallaCapacidades() }
+		// `--es canal <url>` abre un canal a pantalla completa. Es el
+		// instrumento de la fase 0.2 y sólo se alcanza por `adb`; sin el extra,
+		// la app abre lo de siempre.
+		val canal = intent?.getStringExtra("canal")
+		setContent {
+			if (canal.isNullOrBlank()) PantallaCapacidades() else PantallaCanal(canal)
+		}
 	}
 }
