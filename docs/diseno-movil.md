@@ -301,6 +301,27 @@ dos publicados en `kataliziador.github.io/palomera`.
 catálogo, ficha, reproducción, canales, búsqueda, ajustes y los estados que
 fallan.
 
+### De la maqueta al teléfono — 09-nov
+
+**Inicio existe ya en Compose**, con la escala de §3 y los colores probados de
+§2, y corre en el teléfono. No es la pantalla terminada: no hay cliente de
+Jellyfin todavía, así que el contenido son los títulos **reales del servidor**
+puestos a mano. Mentir con texto inventado habría escondido justo lo que hay
+que mirar — dónde se corta «Transformers: El despertar de las bestias» a ancho
+de celular.
+
+Dos cosas del diseño pasaron a ser código con pruebas:
+
+- **`sinDuplicados()`**, con siete casos. Es el defecto medido: `Items/Resume`
+  devolvió **once elementos para ocho títulos**. Se queda la copia **más
+  avanzada** —es la que el abonado vio de verdad— y **en el sitio de la
+  primera**, porque si el superviviente saltara al final la fila se
+  reordenaría sola entre dos aperturas;
+- **`Tipografia`**, con el suelo en 13 sp en vez de los 16 de la caja, y
+  `etiqueta` de 11 sp reservada a marcas que se reconocen sin leerse. Al lado,
+  `BLANCO_TACTIL_DP = 44`, que **manda sobre la tipografía**: un renglón
+  pequeño se acompaña del relleno que haga falta, no se encoge su zona táctil.
+
 ### Una deuda que esto crea, y conviene no olvidar
 
 `LiveTvPaleta` vive en `app/`, y `movil/` no puede depender de `app/`. Así que
