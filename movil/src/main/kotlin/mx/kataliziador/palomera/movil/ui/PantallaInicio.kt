@@ -37,7 +37,7 @@ import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 
 /** Un título del catálogo, con el bloque de color que hace de cartel. */
-data class Portada(val titulo: String, val tono: Color)
+data class Portada(val id: String, val titulo: String, val tono: Color)
 
 /** Un carril con nombre. */
 data class Carril(val nombre: String, val portadas: List<Portada>)
@@ -58,12 +58,12 @@ fun PantallaInicio(
 	acento: Color,
 	enProgreso: List<EnProgreso>,
 	carriles: List<Carril>,
+	alAbrir: (String) -> Unit = {},
 ) {
 	Column(
 		Modifier
 			.fillMaxSize()
-			.background(Paleta.fondo)
-			.windowInsetsPadding(WindowInsets.safeDrawing),
+			.background(Paleta.fondo),
 	) {
 		Cabecera(proveedor, acento)
 
@@ -76,14 +76,13 @@ fun PantallaInicio(
 			// **Sin duplicados**, que es el defecto medido el 09-nov: el mismo
 			// título vive en varias bibliotecas y el servidor lo devuelve una
 			// vez por copia.
-			CarrilDeProgreso(sinDuplicados(enProgreso), acento)
+			CarrilDeProgreso(sinDuplicados(enProgreso), acento, alAbrir)
 
-			for (carril in carriles) CarrilDePortadas(carril)
+			for (carril in carriles) CarrilDePortadas(carril, alAbrir)
 
 			Spacer(Modifier.height(8.dp))
 		}
 
-		BarraInferior(acento)
 	}
 }
 
@@ -114,7 +113,7 @@ private fun Cabecera(proveedor: String, acento: Color) {
 }
 
 @Composable
-private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color) {
+private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color, alAbrir: (String) -> Unit) {
 	if (items.isEmpty()) return
 
 	Column {
@@ -128,7 +127,7 @@ private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color) {
 			horizontalArrangement = Arrangement.spacedBy(10.dp),
 		) {
 			items(items, key = { it.id }) { item ->
-				Column(Modifier.width(158.dp).clickable { }) {
+				Column(Modifier.width(158.dp).clickable { alAbrir(item.id) }) {
 					Box(
 						Modifier
 							.fillMaxWidth()
@@ -176,7 +175,7 @@ private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color) {
 }
 
 @Composable
-private fun CarrilDePortadas(carril: Carril) {
+private fun CarrilDePortadas(carril: Carril, alAbrir: (String) -> Unit) {
 	Column {
 		BasicText(
 			carril.nombre,
@@ -188,7 +187,7 @@ private fun CarrilDePortadas(carril: Carril) {
 			horizontalArrangement = Arrangement.spacedBy(10.dp),
 		) {
 			items(carril.portadas) { portada ->
-				Column(Modifier.width(112.dp).clickable { }) {
+				Column(Modifier.width(112.dp).clickable { alAbrir(portada.id) }) {
 					Box(
 						Modifier
 							.fillMaxWidth()
@@ -215,39 +214,3 @@ private fun CarrilDePortadas(carril: Carril) {
 	}
 }
 
-@Composable
-private fun BarraInferior(acento: Color) {
-	Row(
-		Modifier
-			.fillMaxWidth()
-			.height(64.dp)
-			.background(Paleta.fondo),
-	) {
-		val pestanas = listOf("Inicio", "Catálogo", "En vivo", "Buscar")
-		for ((indice, nombre) in pestanas.withIndex()) {
-			val activa = indice == 0
-			Column(
-				Modifier
-					.weight(1f)
-					.fillMaxWidth()
-					.clickable { },
-				horizontalAlignment = Alignment.CenterHorizontally,
-				verticalArrangement = Arrangement.Center,
-			) {
-				Box(
-					Modifier
-						.size(20.dp)
-						.clip(RoundedCornerShape(5.dp))
-						.background(if (activa) acento else Paleta.elevado),
-				)
-				Spacer(Modifier.height(5.dp))
-				BasicText(
-					nombre,
-					style = Tipografia.etiqueta.copy(
-						color = if (activa) Paleta.tinta else Paleta.tintaSutil,
-					),
-				)
-			}
-		}
-	}
-}

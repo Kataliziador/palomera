@@ -69,8 +69,7 @@ fun PantallaEnVivo(configUrl: String) {
 	Column(
 		Modifier
 			.fillMaxSize()
-			.background(Paleta.fondo)
-			.windowInsetsPadding(WindowInsets.safeDrawing),
+			.background(Paleta.fondo),
 	) {
 		BasicText(
 			"TV en vivo",

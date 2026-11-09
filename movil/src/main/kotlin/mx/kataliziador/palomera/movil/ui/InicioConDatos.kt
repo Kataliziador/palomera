@@ -31,12 +31,10 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 fun InicioConDatos(
 	proveedor: String,
 	acento: Color,
-	baseUrl: String,
-	token: String,
-	usuarioId: String,
+	jf: Jellyfin,
+	alAbrir: (String) -> Unit,
 ) {
-	val datos by produceState<Datos?>(initialValue = null, baseUrl, token, usuarioId) {
-		val jf = Jellyfin(baseUrl, token, usuarioId)
+	val datos by produceState<Datos?>(initialValue = null, jf) {
 		// Las bibliotecas primero: son las que deciden qué carriles hay, y el
 		// ISP ya eligió por nosotros al crearlas. El site de pruebas sirve 21.
 		val bibliotecas = jf.bibliotecas().take(CARRILES_MAXIMOS)
@@ -71,6 +69,7 @@ fun InicioConDatos(
 		acento = acento,
 		enProgreso = d.enProgreso,
 		carriles = d.carriles,
+		alAbrir = alAbrir,
 	)
 }
 
@@ -92,22 +91,6 @@ private const val CARRILES_MAXIMOS = 6
 /** Un carril, o nada si no hay qué poner: una fila vacía es peor que ninguna. */
 private fun carril(nombre: String, titulos: List<Titulo>): Carril? =
 	titulos.takeIf { it.isNotEmpty() }?.let { lista ->
-		Carril(nombre, lista.map { Portada(it.nombre, tonoDe(it.id)) })
+		Carril(nombre, lista.map { Portada(it.id, it.nombre, tonoDeCartel(it.id)) })
 	}
 
-/**
- * Un color estable para el hueco del cartel, mientras no haya imágenes.
- *
- * Se deriva del id, así que el mismo título tiene siempre el mismo tono y la
- * rejilla no parpadea entre dos aperturas. Son cuatro grises templados de la
- * familia de [Paleta.mosaico]: lo bastante distintos para separar tarjetas, lo
- * bastante apagados para no competir con el texto.
- */
-private fun tonoDe(id: String): Color = TONOS[Math.floorMod(id.hashCode(), TONOS.size)]
-
-private val TONOS = listOf(
-	Color(0xFF2A2D34),
-	Color(0xFF332B2B),
-	Color(0xFF26302B),
-	Color(0xFF2E2A33),
-)

@@ -10,7 +10,8 @@ import mx.kataliziador.palomera.movil.ui.Carril
 import mx.kataliziador.palomera.movil.ui.PantallaCanal
 import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
 import mx.kataliziador.palomera.movil.ui.PantallaEnVivo
-import mx.kataliziador.palomera.movil.ui.InicioConDatos
+import mx.kataliziador.palomera.movil.catalogo.Jellyfin
+import mx.kataliziador.palomera.movil.ui.PantallaPrincipal
 import mx.kataliziador.palomera.movil.ui.PantallaInicio
 import mx.kataliziador.palomera.movil.ui.Portada
 
@@ -45,12 +46,15 @@ class MainActivity : ComponentActivity() {
 				// muestra. Se pasan por `adb` y **nunca viajan en el
 				// repositorio** (`CLAUDE.md` §9), y es un token, no una
 				// contraseña: la app no sabe autenticar.
-				!intent?.getStringExtra("token").isNullOrBlank() -> InicioConDatos(
+				!intent?.getStringExtra("token").isNullOrBlank() -> PantallaPrincipal(
 					proveedor = intent?.getStringExtra("proveedor") ?: PROVEEDOR_DE_MUESTRA,
 					acento = ACENTO_DE_MUESTRA,
-					baseUrl = intent?.getStringExtra("jf").orEmpty(),
-					token = intent?.getStringExtra("token").orEmpty(),
-					usuarioId = intent?.getStringExtra("uid").orEmpty(),
+					jf = Jellyfin(
+						baseUrl = intent?.getStringExtra("jf").orEmpty(),
+						token = intent?.getStringExtra("token").orEmpty(),
+						usuarioId = intent?.getStringExtra("uid").orEmpty(),
+					),
+					configUrl = intent?.getStringExtra("config"),
 				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,
@@ -92,21 +96,21 @@ private val CARRILES_DE_MUESTRA = listOf(
 	Carril(
 		"Películas",
 		listOf(
-			Portada("Transformers: El despertar de las bestias", Color(0xFF2E2A33)),
-			Portada("Top Gun: Maverick", Color(0xFF2A2D34)),
-			Portada("Tomb Raider: Las aventuras de Lara Croft", Color(0xFF332B2B)),
-			Portada("Scream 7", Color(0xFF302A2A)),
-			Portada("RoboCop", Color(0xFF26302B)),
+			Portada("m9363", "Transformers: El despertar de las bestias", Color(0xFF2E2A33)),
+			Portada("m2709", "Top Gun: Maverick", Color(0xFF2A2D34)),
+			Portada("m5899", "Tomb Raider: Las aventuras de Lara Croft", Color(0xFF332B2B)),
+			Portada("m4124", "Scream 7", Color(0xFF302A2A)),
+			Portada("m8010", "RoboCop", Color(0xFF26302B)),
 		),
 	),
 	Carril(
 		"Series",
 		listOf(
-			Portada("Outlander: Sangre de mi sangre", Color(0xFF26302B)),
-			Portada("Los Simpson", Color(0xFF33302A)),
-			Portada("American Horror Story", Color(0xFF2E2A33)),
-			Portada("Chucky", Color(0xFF302A2A)),
-			Portada("Peppa Pig", Color(0xFF2A2D34)),
+			Portada("m8887", "Outlander: Sangre de mi sangre", Color(0xFF26302B)),
+			Portada("m3114", "Los Simpson", Color(0xFF33302A)),
+			Portada("m529", "American Horror Story", Color(0xFF2E2A33)),
+			Portada("m9952", "Chucky", Color(0xFF302A2A)),
+			Portada("m4908", "Peppa Pig", Color(0xFF2A2D34)),
 		),
 	),
 )

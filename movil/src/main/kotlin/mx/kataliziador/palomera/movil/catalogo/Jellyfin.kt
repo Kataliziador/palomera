@@ -25,6 +25,9 @@ class Jellyfin(
 	suspend fun enProgreso(limite: Int = 12): List<EnProgreso> =
 		leerEnProgreso(pedir("/Users/$usuarioId/Items/Resume?Limit=$limite&MediaTypes=Video&Fields=RunTimeTicks"))
 
+	/** La ficha de un título, o `null` si el site no la da. */
+	suspend fun detalle(id: String): Detalle? = leerDetalle(pedir("/Users/$usuarioId/Items/$id"))
+
 	/** Las bibliotecas del site, que son los carriles de Inicio. */
 	suspend fun bibliotecas(): List<BibliotecaDelSite> =
 		leerBibliotecas(pedir("/Users/$usuarioId/Views"))
