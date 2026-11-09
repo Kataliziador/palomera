@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,6 +55,13 @@ fun PantallaFicha(jf: Jellyfin, id: String, acento: Color, alVolver: () -> Unit)
 		Modifier
 			.fillMaxSize()
 			.background(Paleta.fondo)
+			// **La ficha pone sus propios márgenes del sistema.** Se dibuja
+			// *antes* que el contenedor de secciones —una ficha es un destino
+			// y se abre encima—, así que no hereda los suyos. Sin esto, la
+			// flecha de volver se pinta sobre el reloj; se vio en el teléfono
+			// el 09-nov, y es el mismo defecto de borde a borde que ya mordió
+			// en la pantalla de capacidades.
+			.windowInsetsPadding(WindowInsets.safeDrawing)
 			.verticalScroll(rememberScrollState()),
 	) {
 		// El arte iría aquí. Sin él, una superficie lisa: el sistema de diseño

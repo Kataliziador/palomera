@@ -70,9 +70,11 @@ fun PantallaCatalogo(jf: Jellyfin, acento: Color, alAbrir: (String) -> Unit) {
 		}
 	}
 
-	val titulos by produceState(initialValue = emptyList<Titulo>(), elegida) {
-		value = elegida?.let { jf.ultimosDe(it.id, limite = 60) }.orEmpty()
+	val pagina by produceState(initialValue = emptyList<Titulo>() to 0, elegida) {
+		value = elegida?.let { jf.paginaDe(it.id, limite = 60) } ?: (emptyList<Titulo>() to 0)
 	}
+	val titulos = pagina.first
+	val total = pagina.second
 
 	Column(Modifier.fillMaxSize().background(Paleta.fondo)) {
 		BasicText(
@@ -113,8 +115,11 @@ fun PantallaCatalogo(jf: Jellyfin, acento: Color, alAbrir: (String) -> Unit) {
 			return@Column
 		}
 
+		// **El total de la biblioteca, no el de la página.** Decía «60 títulos»
+		// con 248 detrás: ése es el número que se pidió, no el que hay. Un
+		// recuento que cuenta la página miente, y se vio en el teléfono.
 		BasicText(
-			"${titulos.size} títulos",
+			"$total títulos",
 			modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 8.dp),
 			style = Tipografia.detalle.copy(color = Paleta.tintaSutil),
 		)

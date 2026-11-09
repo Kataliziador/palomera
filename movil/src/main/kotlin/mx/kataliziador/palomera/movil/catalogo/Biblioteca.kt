@@ -53,6 +53,17 @@ fun leerBibliotecas(cuerpo: String): List<BibliotecaDelSite> = elementos(cuerpo)
 	BibliotecaDelSite(id, nombre)
 }
 
+/**
+ * Cuántos hay **en total**, no cuántos vinieron.
+ *
+ * La primera versión de Catálogo enseñaba el tamaño de la lista recibida —«60
+ * títulos»— cuando la biblioteca tiene 248. Un recuento que cuenta la página y
+ * no el catálogo es un texto que miente, y se vio en el teléfono.
+ */
+fun leerTotal(cuerpo: String): Int = runCatching {
+	json.parseToJsonElement(cuerpo).jsonObject["TotalRecordCount"]?.jsonPrimitive?.intOrNull
+}.getOrNull() ?: 0
+
 /** Los títulos de una respuesta de `/Items`. */
 fun leerTitulos(cuerpo: String): List<Titulo> = elementos(cuerpo).mapNotNull { item ->
 	val id = item.texto("Id") ?: return@mapNotNull null

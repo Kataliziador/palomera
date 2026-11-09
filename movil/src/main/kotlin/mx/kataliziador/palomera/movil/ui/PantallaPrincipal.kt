@@ -39,9 +39,14 @@ fun PantallaPrincipal(
 	acento: Color,
 	jf: Jellyfin,
 	configUrl: String?,
+	// Para abrir una sección directamente desde `adb`. Existe porque el
+	// teléfono de pruebas tiene denegada la inyección de eventos, así que no se
+	// puede tocar una pestaña desde aquí; sin esto, sólo se puede mirar Inicio.
+	seccionInicial: Seccion = Seccion.INICIO,
+	fichaInicial: String? = null,
 ) {
-	var seccion by remember { mutableStateOf(Seccion.INICIO) }
-	var fichaAbierta by remember { mutableStateOf<String?>(null) }
+	var seccion by remember { mutableStateOf(seccionInicial) }
+	var fichaAbierta by remember { mutableStateOf(fichaInicial) }
 
 	val abierta = fichaAbierta
 	if (abierta != null) {

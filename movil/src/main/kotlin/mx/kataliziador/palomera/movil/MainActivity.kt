@@ -12,6 +12,7 @@ import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
 import mx.kataliziador.palomera.movil.ui.PantallaEnVivo
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.ui.PantallaPrincipal
+import mx.kataliziador.palomera.movil.ui.Seccion
 import mx.kataliziador.palomera.movil.ui.PantallaInicio
 import mx.kataliziador.palomera.movil.ui.Portada
 
@@ -55,6 +56,13 @@ class MainActivity : ComponentActivity() {
 						usuarioId = intent?.getStringExtra("uid").orEmpty(),
 					),
 					configUrl = intent?.getStringExtra("config"),
+					seccionInicial = when (intent?.getStringExtra("seccion")) {
+						"catalogo" -> Seccion.CATALOGO
+						"envivo" -> Seccion.EN_VIVO
+						"buscar" -> Seccion.BUSCAR
+						else -> Seccion.INICIO
+					},
+					fichaInicial = intent?.getStringExtra("ficha"),
 				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,

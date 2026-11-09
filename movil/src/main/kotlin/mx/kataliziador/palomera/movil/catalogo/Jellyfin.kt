@@ -49,6 +49,16 @@ class Jellyfin(
 		),
 	)
 
+	/** Una página de una biblioteca, con cuántos hay en total detrás. */
+	suspend fun paginaDe(bibliotecaId: String, limite: Int): Pair<List<Titulo>, Int> {
+		val cuerpo = pedir(
+			"/Items?userId=$usuarioId&parentId=$bibliotecaId&Recursive=true" +
+				"&IncludeItemTypes=Movie,Series" +
+				"&Limit=$limite&SortBy=SortName&SortOrder=Ascending&Fields=ProductionYear",
+		)
+		return leerTitulos(cuerpo) to leerTotal(cuerpo)
+	}
+
 	/** Lo último que entró en la biblioteca, por tipo. */
 	suspend fun ultimos(tipo: String, limite: Int = 12): List<Titulo> = leerTitulos(
 		pedir(
