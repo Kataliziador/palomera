@@ -240,11 +240,41 @@ usa el peor caso real del catálogo: **los seis Transformers**, seis títulos qu
 sólo se distinguen por el subtítulo. Es lo que prueba que el título necesita
 dos líneas.
 
+### El reproductor de TV en vivo y los estados — hechos el 09-nov
+
+**El reproductor de canales no es el de VOD, y la diferencia es una sola:** su
+barra **no es de búsqueda**, es el avance del programa según la guía. Detrás no
+hay una película sino una ventana DVR de segundos, así que arrastrarla no
+tendría dónde ir. Lleva además el distintivo **EN VIVO** con su punto rojo, el
+zapeo arriba/abajo —que es como se cambia de canal con el pulgar— y **«Volver
+al directo»**, que sólo aparece cuando el reproductor se ha quedado atrás. Ese
+botón es la cara visible de lo que el vigilante del motor arregla solo.
+
+**Los estados vacíos se juzgan por lo que dicen, no por cómo se ven.** Por eso
+están los cuatro juntos en una hoja: para leer la copia en paralelo. Tres usan
+los textos reales de la app de TV. Las cuatro reglas que siguen:
+
+- **decir qué pasa, no que algo falló.** «Este canal no está llegando», no
+  «error de reproducción»;
+- **descartar en voz alta la causa que el abonado va a suponer**: «no es tu
+  internet», «no hace falta un código nuevo», «puede estar reiniciándose»;
+- **decir qué sigue funcionando**, cuando algo sigue: con el servicio
+  suspendido, las películas y series siguen en Inicio — que es la regla de
+  `CLAUDE.md` §6 dicha donde el abonado la lee;
+- **una acción, y que sea la correcta.** «Ver los canales» cuando falta la
+  guía, no «volver a probar»: no hay nada que reintentar.
+
+**El estado de fuera de casa lleva pantalla propia**, porque es el único que no
+existe en la caja y el que más fácil se lee mal. Su icono es una casa, no un
+triángulo de aviso: **no se ha roto nada**. Y lo dice explícito —«no es una
+falla ni se te acabaron los datos»— porque sin eso un abonado llama a soporte
+por algo que funciona.
+
 Lo que sigue sin diseñar, dentro de las reglas de §2 y §3:
 
-- **la puerta del abonado**: código de activación, acceso y marca neutra;
-- **los estados vacíos**: sin red, site sin guía, contrato suspendido, y el
-  caso de §8 —fuera de casa—, que tiene que decir eso y no «no hay internet».
+- **los ajustes**, incluido el interruptor manual de aparato de §3;
+- **la pantalla de información**, con los avisos legales que §8 obliga a
+  llevar.
 
 ### Una deuda que esto crea, y conviene no olvidar
 
