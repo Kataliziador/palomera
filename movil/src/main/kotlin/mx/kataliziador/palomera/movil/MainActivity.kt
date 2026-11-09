@@ -10,6 +10,7 @@ import mx.kataliziador.palomera.movil.ui.Carril
 import mx.kataliziador.palomera.movil.ui.PantallaCanal
 import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
 import mx.kataliziador.palomera.movil.ui.PantallaEnVivo
+import mx.kataliziador.palomera.movil.ui.InicioConDatos
 import mx.kataliziador.palomera.movil.ui.PantallaInicio
 import mx.kataliziador.palomera.movil.ui.Portada
 
@@ -39,6 +40,17 @@ class MainActivity : ComponentActivity() {
 				pantalla == "capacidades" -> PantallaCapacidades()
 				pantalla == "envivo" -> PantallaEnVivo(
 					intent?.getStringExtra("config") ?: CONFIG_DE_MUESTRA,
+				)
+				// Con credenciales llega el catálogo de verdad; sin ellas, la
+				// muestra. Se pasan por `adb` y **nunca viajan en el
+				// repositorio** (`CLAUDE.md` §9), y es un token, no una
+				// contraseña: la app no sabe autenticar.
+				!intent?.getStringExtra("token").isNullOrBlank() -> InicioConDatos(
+					proveedor = intent?.getStringExtra("proveedor") ?: PROVEEDOR_DE_MUESTRA,
+					acento = ACENTO_DE_MUESTRA,
+					baseUrl = intent?.getStringExtra("jf").orEmpty(),
+					token = intent?.getStringExtra("token").orEmpty(),
+					usuarioId = intent?.getStringExtra("uid").orEmpty(),
 				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,
