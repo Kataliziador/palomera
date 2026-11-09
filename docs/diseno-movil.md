@@ -343,11 +343,34 @@ Al girar el teléfono, Inicio **se aprieta**: la barra inferior se come casi
 todo el primer carril. No se rompe —se desliza igual— pero está claro que las
 pantallas de catálogo se pensaron en vertical.
 
-Hay dos salidas y es decisión de Edgar: **fijar las pantallas de catálogo en
-vertical** y dejar el apaisado sólo al reproductor, que es lo que hacen casi
-todas las apps de vídeo; o **diseñar el apaisado** de catálogo, que son carriles
-más bajos y una barra lateral en vez de inferior. Lo primero es gratis; lo
-segundo son pantallas nuevas.
+**Decidido el 09-nov: vertical fijo.** Las pantallas de catálogo se declaran
+`portrait` en el manifiesto y el apaisado se queda para el reproductor, que lo
+pedirá para sí mismo. Es lo que hacen casi todas las apps de vídeo, cuesta cero
+frente a rediseñar carriles y barra lateral, y un teléfono se sostiene en
+vertical para elegir qué ver.
+
+### En vivo con datos reales — 09-nov
+
+La pantalla de canales **lee el `config.json` del site con el parser de la
+caja**: `ConfigRepository` y `LiveConfigParser` viven en `:livetv` y los dos
+aparatos usan el mismo código. Es para lo que se compartió el módulo, y
+significa que un canal mal formado se descarta igual aquí que en la sala de un
+abonado.
+
+Contra el site de pruebas: **53 canales, 8 grupos**, y el acento `#17B9A8` que
+trae su propio `config.json` —no escrito por nosotros—, que da **7,74:1** sobre
+el fondo y pasa de sobra.
+
+Dos correcciones que sólo se vieron en el aparato:
+
+- **el número del canal en el recuadro, no las iniciales.** El primer intento
+  ponía tres letras del nombre, y «Azteca Uno» y «Azteca 7» salían las dos como
+  «AZT». El número es único y es lo que el abonado se sabe. Cuando el site
+  sirva `logoUrl`, ahí va el logo y esto queda de respaldo;
+- **fuera el punto de acento de cada renglón.** Lo había puesto como marca de
+  «en vivo», pero al estar en los 53 no decía nada. El sistema es explícito: el
+  acento va **poco y con intención**. Se queda sólo en la pastilla del grupo
+  activo.
 
 ### Una deuda que esto crea, y conviene no olvidar
 

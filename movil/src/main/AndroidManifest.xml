@@ -33,11 +33,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PalomeraMovil">
 
+        <!--
+          **Vertical fijo, y es una decisión.** Al girar el teléfono, las
+          pantallas de catálogo se aprietan: la barra inferior se come el
+          primer carril. Se pensaron en vertical, que es como se sostiene un
+          teléfono para elegir qué ver.
+
+          El apaisado se queda para el reproductor, que lo pedirá para sí
+          mismo cuando exista. Es lo que hacen casi todas las apps de vídeo, y
+          cuesta cero frente a rediseñar carriles y barra lateral.
+        -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

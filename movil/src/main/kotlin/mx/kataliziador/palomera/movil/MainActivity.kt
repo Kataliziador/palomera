@@ -9,6 +9,7 @@ import mx.kataliziador.palomera.movil.catalogo.EnProgreso
 import mx.kataliziador.palomera.movil.ui.Carril
 import mx.kataliziador.palomera.movil.ui.PantallaCanal
 import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
+import mx.kataliziador.palomera.movil.ui.PantallaEnVivo
 import mx.kataliziador.palomera.movil.ui.PantallaInicio
 import mx.kataliziador.palomera.movil.ui.Portada
 
@@ -36,6 +37,9 @@ class MainActivity : ComponentActivity() {
 			when {
 				!canal.isNullOrBlank() -> PantallaCanal(canal)
 				pantalla == "capacidades" -> PantallaCapacidades()
+				pantalla == "envivo" -> PantallaEnVivo(
+					intent?.getStringExtra("config") ?: CONFIG_DE_MUESTRA,
+				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,
 					acento = ACENTO_DE_MUESTRA,
@@ -53,6 +57,11 @@ class MainActivity : ComponentActivity() {
 // de que exista el cliente de Jellyfin. Se borra cuando la fase 1 traiga los
 // datos de verdad; hasta entonces, mentir con lorem ipsum habría escondido
 // justo lo que hay que mirar: dónde se corta un título largo en español.
+// El `config.json` del site de pruebas. Va aquí y **no en un archivo
+// versionado**: `CLAUDE.md` §9 no permite direcciones en el repositorio, y
+// `comprobar.py h)` lo rechazaría. Se pasa por `adb` con `--es config <url>`.
+private const val CONFIG_DE_MUESTRA = ""
+
 private const val PROVEEDOR_DE_MUESTRA = "TotalPlay"
 private val ACENTO_DE_MUESTRA = Color(0xFFC8E04A)
 
