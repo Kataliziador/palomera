@@ -214,9 +214,34 @@ sabiendas:
 barra de avance —lo que hay detrás es una ventana DVR de segundos, no una
 película— y sí lleva zapeo y barra de canal.
 
+### La puerta y la búsqueda — hechas el 09-nov
+
+**La puerta son dos pantallas, no una**, y usa la **marca neutra**: cuando se
+ve, todavía no sabemos de quién es cliente el abonado. Los textos son los
+reales de la app de TV (`livetv_servidor_titulo`, `livetv_proveedor_*`,
+`livetv_acceso_codigo_paso_*`).
+
+1. **Qué proveedor es.** Enseña las **tres rutas a la vez**: la red reconocida
+   («¿Eres cliente de RedTV?» — cero teclado), el código que dio el proveedor,
+   y **escribir la dirección**, que no se esconde nunca porque es la única que
+   funciona sin internet y es por donde entra el revisor de Google.
+2. **Activar este aparato.** Los tres pasos y el código, que es **lo único
+   grande de la pantalla** porque es lo que se dicta por teléfono. Debajo,
+   «Usar contraseña», que tampoco se quita nunca.
+
+**Un texto que hubo que cambiar, y conviene arreglarlo también en la app de
+TV cuando se toque:** `livetv_acceso_titulo` dice «Activa tu televisión». En un
+teléfono eso es falso. Aquí dice «Activa este aparato», que vale para los dos.
+
+**La búsqueda devuelve una lista mezclada, no agrupada por tipo.** Agrupar
+gasta alto de pantalla, que es lo que escasea; en su lugar, cada renglón lleva
+su tipo —`Película · 2023 · 2 h 8 min`— y hay chips para filtrar. La maqueta
+usa el peor caso real del catálogo: **los seis Transformers**, seis títulos que
+sólo se distinguen por el subtítulo. Es lo que prueba que el título necesita
+dos líneas.
+
 Lo que sigue sin diseñar, dentro de las reglas de §2 y §3:
 
-- **la búsqueda**;
 - **la puerta del abonado**: código de activación, acceso y marca neutra;
 - **los estados vacíos**: sin red, site sin guía, contrato suspendido, y el
   caso de §8 —fuera de casa—, que tiene que decir eso y no «no hay internet».
