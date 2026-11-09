@@ -9198,11 +9198,36 @@ repositorio ni deben estar.
 **Y tampoco mide la app.** Lo anterior prueba que el servidor hace lo que
 decimos; no prueba que la app lo llame bien.
 
+**Prueba en la caja — hecha el 09-nov, y pasó.** Skyworth YDA con el APK de
+depuración, apuntando a su site. Las dos líneas del registro de la caja:
+
+```
+13:00:35  tele.liberada    salida=CERRAR_SESION servidor=… usuario=5815379a…
+13:00:40  tele.noLiberada  salida=CERRAR_SESION … motivo=sin token que liberar
+```
+
+La primera liberó: `tele.liberada` sólo se escribe si la llamada volvió sin
+excepción, y el SDK lanza con cualquier código que no sea 2xx. Edgar confirmó
+en pantalla que **el dispositivo desapareció solo** de su Jellyfin.
+
+La segunda línea es de una segunda pulsación cinco segundos después, y es el
+guardián funcionando: ya no quedaba token. Sin buscarlo, quedó ejercitado en
+hardware el caso que cubre la prueba `sin token no hay nada que liberar`.
+
+**Y esa segunda pulsación destapó un defecto anterior al arreglo.** En el menú
+de la tarjeta, «Borrar» recarga la lista de usuarios y «Desconectar» **no**, así
+que tras desconectar la tarjeta se quedaba igual y su menú seguía ofreciendo
+«Desconectar» sobre un usuario sin sesión: la pantalla mentía. Edgar pulsó otra
+vez porque nada se movía. El arreglo de la sesión lo empeoraba —ahora hay hasta
+5 s de espera sin que nada cambie—, así que se añade la recarga que «Borrar» ya
+hacía. **Esa recarga todavía no está validada en pantalla**: la caja quedó
+desconectada y comprobarla pide otro ciclo de entrar y salir.
+
 **Estado: abierta.** Falta lo del punto 6 de la petición, que es de Edgar y es
 en pantalla:
 
-1. caja activada → «Cerrar sesión»; en el log, `tele.liberada salida=CERRAR_SESION`;
-2. en Jellyfin, el dispositivo de esa cuenta **desaparece solo** de Dispositivos;
+1. ~~caja activada → «Desconectar»; en el log, `tele.liberada`~~ **hecho el 09-nov**;
+2. ~~en Jellyfin, el dispositivo desaparece solo~~ **hecho el 09-nov**;
 3. el panel reactiva la caja con un código nuevo **sin borrar nada a mano**;
 4. y, porque esto es lógica en el camino de entrada compartido (`CLAUDE.md`
    §4.7), **que el VOD siga entrando igual**: películas y series como siempre.

@@ -302,7 +302,19 @@ class ServerFragment : Fragment() {
 					item(context.getString(R.string.lbl_sign_out)) {
 						// Suspende hasta 5 s mientras avisa a Jellyfin de que
 						// esta tele deja la cuenta. Si no contesta, sale igual.
-						alcance.launch { authenticationRepository.logout(user) }
+						alcance.launch {
+							authenticationRepository.logout(user)
+							// **Recargar, como hace «Borrar» dos renglones más
+							// abajo.** Sin esto la tarjeta se queda igual y su
+							// menú sigue ofreciendo «Desconectar» sobre un
+							// usuario que ya no tiene sesión: la pantalla
+							// miente. Visto en la caja el 09-nov — Edgar lo
+							// pulsó dos veces porque nada se movía, y la
+							// segunda quedó registrada como «sin token que
+							// liberar». Con la espera de hasta 5 s del aviso a
+							// Jellyfin, el hueco es más largo que antes.
+							startupViewModel.loadUsers(server)
+						}
 					}
 				}
 
