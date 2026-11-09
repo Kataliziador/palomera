@@ -1,5 +1,7 @@
 package org.jellyfin.androidtv.ui.startup.preference
 
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
 import org.jellyfin.androidtv.auth.repository.ServerUserRepository
@@ -40,8 +42,14 @@ class EditUserScreen : OptionsFragment() {
 				icon = R.drawable.ic_logout
 
 				onActivate = {
-					authenticationRepository.logout(user)
-					rebuild()
+					// `logout` suspende desde que avisa a Jellyfin (hasta 5 s),
+					// así que la reconstrucción de la pantalla tiene que
+					// esperarlo: si no, se redibujaría con el token todavía
+					// puesto y la fila seguiría ofreciendo «Cerrar sesión».
+					lifecycleScope.launch {
+						authenticationRepository.logout(user)
+						rebuild()
+					}
 				}
 
 				// Disable action when access token is not set (already signed out)

@@ -113,6 +113,12 @@ PERMITIDO = [
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/ServerFragment\.kt$",
 	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/fragment/UserLogin(Credentials|QuickConnect)Fragment\.kt$",
 	r"^app/src/test/kotlin/auth/",
+	# la salida de esa misma puerta: avisar a Jellyfin al dejar una cuenta,
+	# para que la sesión no ocupe el cupo de teles (CLAUDE.md §4.7, 09-nov)
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/model/LiberarTele\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/auth/repository/LiberadorDeTele\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/di/AuthModule\.kt$",
+	r"^app/src/main/java/org/jellyfin/androidtv/ui/startup/preference/EditUserScreen\.kt$",
 	# las pruebas de la sección que no caben en el módulo porque necesitan
 	# tipos de `app` — la tabla de decisiones del pendiente 84 (04-nov)
 	r"^app/src/test/kotlin/livetv/",

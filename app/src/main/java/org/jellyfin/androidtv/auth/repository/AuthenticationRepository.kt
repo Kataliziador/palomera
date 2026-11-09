@@ -14,6 +14,7 @@ import org.jellyfin.androidtv.auth.model.AuthenticationStoreUser
 import org.jellyfin.androidtv.auth.model.AutomaticAuthenticateMethod
 import org.jellyfin.androidtv.auth.model.CredentialAuthenticateMethod
 import org.jellyfin.androidtv.auth.model.LoginState
+import org.jellyfin.androidtv.auth.model.SalidaDeCuenta
 import org.jellyfin.androidtv.auth.model.PrivateUser
 import org.jellyfin.androidtv.auth.model.QuickConnectAuthenticateMethod
 import org.jellyfin.androidtv.auth.model.RequireSignInState
@@ -50,7 +51,15 @@ import java.time.Instant
  */
 interface AuthenticationRepository {
 	fun authenticate(server: Server, method: AuthenticateMethod): Flow<LoginState>
-	fun logout(user: User): Boolean
+	/**
+	 * Cierra la sesión de [user] **avisando primero a Jellyfin**.
+	 *
+	 * Suspende porque el aviso es una llamada de red acotada a
+	 * [LiberadorDeTele.ESPERA_MS]. Antes no suspendía y por eso no avisaba: el
+	 * token se olvidaba sólo aquí y la sesión seguía ocupando una de las teles
+	 * de la cuenta, hasta que esa misma caja no podía reactivarse.
+	 */
+	suspend fun logout(user: User): Boolean
 	fun getUserImageUrl(server: Server, user: User): String?
 }
 
@@ -61,6 +70,7 @@ class AuthenticationRepositoryImpl(
 	private val userApiClient: ApiClient,
 	private val authenticationPreferences: AuthenticationPreferences,
 	private val defaultDeviceInfo: DeviceInfo,
+	private val liberadorDeTele: LiberadorDeTele,
 ) : AuthenticationRepository {
 	override fun authenticate(server: Server, method: AuthenticateMethod): Flow<LoginState> {
 		return when (method) {
@@ -226,12 +236,29 @@ class AuthenticationRepositoryImpl(
 		return authenticated
 	}
 
-	override fun logout(user: User): Boolean {
-		val authStoreUser = authenticationStore
-			.getUser(user.serverId, user.id)
-			?.copy(accessToken = null)
+	override suspend fun logout(user: User): Boolean {
+		// Se lee el servidor entero y no sólo el usuario porque hace falta su
+		// dirección para el aviso, y porque así son una lectura del almacén y
+		// no dos.
+		val servidor = authenticationStore.getServer(user.serverId)
+		val authStoreUser = servidor?.users?.get(user.id)
 
-		return if (authStoreUser != null) authenticationStore.putUser(user.serverId, user.id, authStoreUser)
+		// **El aviso va antes de olvidar el token**, y no es un detalle de
+		// orden: `POST /Sessions/Logout` se autentica con ese mismo token.
+		// Después de borrarlo ya no habría con qué avisar, que es exactamente
+		// el hueco que dejaba la versión anterior.
+		if (servidor != null) {
+			liberadorDeTele.liberar(
+				salida = SalidaDeCuenta.CERRAR_SESION,
+				direccion = servidor.address,
+				usuario = user.id,
+				token = authStoreUser?.accessToken,
+			)
+		}
+
+		val sinToken = authStoreUser?.copy(accessToken = null)
+
+		return if (sinToken != null) authenticationStore.putUser(user.serverId, user.id, sinToken)
 		else false
 	}
 

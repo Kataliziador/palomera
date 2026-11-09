@@ -19,6 +19,7 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -86,7 +87,17 @@ class ServerFragment : Fragment() {
 
 		_binding = FragmentServerBinding.inflate(inflater, container, false)
 
-		val userAdapter = UserAdapter(requireContext(), server, startupViewModel, authenticationRepository, serverUserRepository)
+		// El alcance va por constructor porque `UserAdapter` es una clase suelta,
+		// no interna: desde ahí no se ve el ciclo de vida del fragmento. Hace
+		// falta desde que `logout` suspende para avisar a Jellyfin.
+		val userAdapter = UserAdapter(
+			requireContext(),
+			server,
+			startupViewModel,
+			authenticationRepository,
+			serverUserRepository,
+			viewLifecycleOwner.lifecycleScope,
+		)
 		userAdapter.onItemPressed = { user -> autenticar(server, user) }
 		binding.users.adapter = userAdapter
 
@@ -269,6 +280,7 @@ class ServerFragment : Fragment() {
 		private val startupViewModel: StartupViewModel,
 		private val authenticationRepository: AuthenticationRepository,
 		private val serverUserRepository: ServerUserRepository,
+		private val alcance: CoroutineScope,
 	) : ListAdapter<User, UserAdapter.ViewHolder>() {
 		var onItemPressed: (User) -> Unit = {}
 
@@ -288,7 +300,9 @@ class ServerFragment : Fragment() {
 				// Logout button
 				if (user is PrivateUser && user.accessToken != null) {
 					item(context.getString(R.string.lbl_sign_out)) {
-						authenticationRepository.logout(user)
+						// Suspende hasta 5 s mientras avisa a Jellyfin de que
+						// esta tele deja la cuenta. Si no contesta, sale igual.
+						alcance.launch { authenticationRepository.logout(user) }
 					}
 				}
 

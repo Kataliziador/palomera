@@ -9140,3 +9140,74 @@ de integración en el mismo commit, aquí, aunque la app no se toque.
 Y los once pendientes abiertos siguen abiertos, con su estado escrito arriba.
 Ninguno se cierra por congelar; cuatro necesitan a Edgar en pantalla, tres el
 headend, dos la ZTE y el satélite, uno tsduck con buen clima.
+
+---
+
+## [B] Al salir de una cuenta, la caja ya avisa a Jellyfin — 2026-11-09
+
+**Síntoma, medido en producción y no aquí.** El 09-nov, en el site de Palomera
+Probadores, una caja **Roku** activada para `testroku` perdió su sesión local.
+Al reactivarla, el panel de abonados contestó tres veces «No se pudo activar:
+la clave no tiene permiso». Borrar a mano el dispositivo de esa cuenta en el
+panel de Jellyfin la dejó entrar **a la primera**.
+
+**Causa.** El panel fija un límite de teles por cuenta en `MaxActiveSessions`.
+Jellyfin **cuenta antes de limpiar**: `AuthenticateNewSessionInternal` cuenta
+las sesiones del usuario y lanza `SecurityException` → 403 **antes** de llamar
+a `GetAuthorizationToken`, que es lo que cerraría la sesión vieja **del mismo
+aparato**. Y una sesión no se va sola. Así que **la misma caja chocaba contra
+su propio fantasma**, y como el cuerpo del 403 en producción es «Error
+processing request.», el panel lo traducía como un problema de la clave.
+
+Esta app tenía el mismo hueco que tenía Roku: al cerrar sesión o borrar un
+servidor, olvidaba el token **sólo en la caja** y nunca avisaba al servidor.
+
+**Cambio.** Las dos salidas llaman a `POST /Sessions/Logout` **antes** de
+olvidar el token —después no habría con qué autenticar la llamada—, con un
+plazo de 5 s (`LiberadorDeTele.ESPERA_MS`, los mismos que Roku). Si no
+contesta, se registra con su código y **se sale igual**: una caja que no deja
+cerrar sesión no la desbloquea nadie, y un cupo atascado sí lo desbloquea el
+proveedor desde el panel.
+
+Qué libera y qué no vive en `decidirLiberarTele`, una función pura con cinco
+casos de prueba, porque equivocarse cuesta caro en los dos sentidos: **liberar
+de menos** deja al abonado sin poder reactivar su caja, y **liberar de más**
+echa de Jellyfin a una que seguía en uso. **Cambiar de usuario conservando el
+perfil no libera**, y hay una prueba que lo fija.
+
+`logout` pasa a suspender, y de ahí salen los dos cambios de interfaz:
+`EditUserScreen` y el adaptador de `ServerFragment` esperan esa llamada.
+
+**Prueba — la mitad que no necesita pantalla, medida hoy.** El documento de la
+petición describía el mecanismo **leyendo la fuente de `release-10.11.z`**, no
+midiéndolo. Se midió contra el **Jellyfin de la oficina, versión 12.0.0**, con
+un `DeviceId` inventado para no tocar ningún dispositivo real:
+
+| paso | resultado |
+|---|---|
+| autenticar y pedir `/Devices` | el dispositivo **está** |
+| `POST /Sessions/Logout` con ese token | **HTTP 204** |
+| pedir `/Devices` desde otra sesión | el dispositivo **ya no está** |
+
+**Lo que esto NO mide, y hay que decirlo:** se midió en **12.0.0**, y los sites
+de producción corren **10.11.11**. La lectura de la fuente es de la rama 10.11
+y el comportamiento coincide, pero *medido* sólo está el tronco nuevo. Medir
+10.11.11 exigiría credenciales del site de demostración que no están en este
+repositorio ni deben estar.
+
+**Y tampoco mide la app.** Lo anterior prueba que el servidor hace lo que
+decimos; no prueba que la app lo llame bien.
+
+**Estado: abierta.** Falta lo del punto 6 de la petición, que es de Edgar y es
+en pantalla:
+
+1. caja activada → «Cerrar sesión»; en el log, `tele.liberada salida=CERRAR_SESION`;
+2. en Jellyfin, el dispositivo de esa cuenta **desaparece solo** de Dispositivos;
+3. el panel reactiva la caja con un código nuevo **sin borrar nada a mano**;
+4. y, porque esto es lógica en el camino de entrada compartido (`CLAUDE.md`
+   §4.7), **que el VOD siga entrando igual**: películas y series como siempre.
+
+**La otra mitad no es de las apps.** Las cajas que se van sin avisar —reseteo,
+reinstalación, aparato roto— sólo las resuelve el panel de abonados, y eso se
+está haciendo allí: contar las teles antes de autorizar, ofrecer cuál se
+reemplaza, un botón para quitar una tele y mensajes con la causa real.

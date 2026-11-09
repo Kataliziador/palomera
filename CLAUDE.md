@@ -431,6 +431,44 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      código, y con el servidor mudo se ve el aviso de siempre sin salir de la
      lista de usuarios. Los dos son mejores que lo anterior y los dos **exigen
      que Edgar valide la entrada al VOD en pantalla**, no sólo la del canal;
+
+     **Y la misma puerta tiene una salida, que hasta el 09-nov no avisaba a
+     nadie** (añadidos ese día `auth/model/LiberarTele.kt`,
+     `auth/repository/LiberadorDeTele.kt`, `di/AuthModule.kt` y
+     `ui/startup/preference/EditUserScreen.kt`). Al cerrar sesión o borrar un
+     servidor, la app olvidaba el token **sólo en la caja**: la sesión seguía
+     viva en Jellyfin ocupando una de las teles que permite
+     `MaxActiveSessions` —la política que escribe el panel de abonados desde
+     el plan—, y al reactivar **esa misma caja** Jellyfin contestaba 403,
+     porque `AuthenticateNewSessionInternal` cuenta las sesiones **antes** de
+     llamar a `GetAuthorizationToken`, que es lo que cerraría la vieja del
+     mismo aparato. La caja chocaba contra su propio fantasma.
+
+     **Medido en producción**, no deducido: ocurrió el 09-nov en el site de
+     Palomera Probadores con una caja Roku, y borrar el dispositivo a mano en
+     Jellyfin la dejó entrar a la primera. En Roku ya estaba arreglado, y
+     `docs/peticion-liberar-tele.md` es la petición de hacerlo igual aquí.
+
+     Ahora las dos salidas llaman a `POST /Sessions/Logout` **antes** de
+     olvidar el token —después ya no habría con qué autenticar la llamada—,
+     con un plazo de 5 s y **sin retener nunca al abonado**: si el servidor no
+     contesta, se registra con su código y se sale igual. Una caja que no deja
+     cerrar sesión no la desbloquea nadie; un cupo atascado sí lo desbloquea el
+     proveedor desde el panel.
+
+     **`logout` pasa a suspender**, y de ahí salen los dos archivos de interfaz
+     de la lista: `EditUserScreen` y el adaptador de `ServerFragment` tienen
+     que esperar esa llamada. `LiberarTele.kt` es la decisión —qué salidas
+     liberan y cuáles no— en una función pura con pruebas, porque equivocarse
+     cuesta caro en los dos sentidos: **liberar de menos** deja al abonado sin
+     poder reactivar su caja, y **liberar de más** echa de Jellyfin a una que
+     seguía en uso. Cambiar de usuario conservando el perfil **no** libera, y
+     hay una prueba que lo fija.
+
+     Vale lo mismo que el párrafo de arriba: es lógica en el camino de entrada
+     compartido con el VOD, así que **exige que Edgar compruebe en pantalla**
+     que cerrar sesión y borrar un servidor siguen comportándose bien, y que el
+     dispositivo desaparece solo de Jellyfin;
    - **utilería fuera de la app** — `herramientas/`, `headend/` y `.claude/`,
      que no se compilan ni viajan en el APK. `.claude/` son las skills y
      agentes del repositorio **(añadido el 10-oct)**: viven aquí y no en la
