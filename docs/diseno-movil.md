@@ -270,11 +270,36 @@ triángulo de aviso: **no se ha roto nada**. Y lo dice explícito —«no es una
 falla ni se te acabaron los datos»— porque sin eso un abonado llama a soporte
 por algo que funciona.
 
-Lo que sigue sin diseñar, dentro de las reglas de §2 y §3:
+### Ajustes e Información — hechas el 09-nov, y con esto está el juego completo
 
-- **los ajustes**, incluido el interruptor manual de aparato de §3;
-- **la pantalla de información**, con los avisos legales que §8 obliga a
-  llevar.
+**Ajustes es corto a propósito.** Sólo lo que un abonado puede necesitar
+cambiar: su proveedor y cerrar sesión, el idioma de audio y los subtítulos, la
+interfaz, y un enlace a Información. Nada de calidad ni de red: la v1 es dentro
+de casa y por Wi-Fi.
+
+Dos renglones llevan una línea de explicación debajo, y los dos la necesitan:
+
+- **el idioma de audio** aclara que es una preferencia y no una imposición,
+  porque `CLAUDE.md` §4.6 lo exige: en algunos satélites la etiqueta miente, y
+  poder cambiar de pista **no es un lujo, es el único remedio**;
+- **«Interfaz»** es la palanca manual de la detección de aparato. Nace en
+  «Automática», va **al final de la lista** y dice «cámbialo sólo si se
+  equivocó». Es a propósito: un abonado que la toque sin querer se queda con la
+  interfaz de cruceta, y eso es justo lo que R3 del plan avisa que es rechazo
+  en la revisión del formato TV.
+
+**Información es casi toda obligación**, no diseño: lleva lo que `CLAUDE.md` §8
+manda —la no afiliación a Jellyfin, de quién es el contenido, y las dos
+licencias con la dirección del código— más el **identificador de esta
+instalación**, que es lo que el aviso de privacidad pide para ejercer derechos
+y por eso va arriba y en monoespaciada, no escondido al final.
+
+Enlaza además el **aviso de privacidad** y los **términos del servicio**, los
+dos publicados en `kataliziador.github.io/palomera`.
+
+**Con esto, las catorce pantallas cubren el recorrido completo**: alta,
+catálogo, ficha, reproducción, canales, búsqueda, ajustes y los estados que
+fallan.
 
 ### Una deuda que esto crea, y conviene no olvidar
 
