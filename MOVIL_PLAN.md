@@ -213,6 +213,26 @@ con `app/` ya publicado.
 
 ---
 
+## 3.bis El diseño, y transmitir a la tele
+
+El diseño de la interfaz está en **`docs/diseno-movil.md`**, con sus maquetas.
+Lo que decide la forma de la app: **el catálogo manda** —al abrir, lo primero
+es «Seguir viendo» y los carriles, y la TV en vivo es una pestaña—, al revés
+que en la caja.
+
+**Transmitir a la tele queda aplazado** (decisión de Edgar, 09-nov), pero se
+midió ese día y conviene no perderlo: la caja **ya escucha** órdenes remotas
+—`SocketHandler.kt:106` y `:110` se suscriben a `PlayMessage` y
+`PlaystateMessage`, código de upstream— y el SDK **ya trae** `getSessions()`,
+`play()` y `sendPlaystateCommand()`. Mandar una película del teléfono a la caja
+es cablear, no inventar, y sin dependencias propietarias. Los **canales** no
+van por ahí: `PlayMessage` lleva identificadores de Jellyfin y los nuestros
+vienen del servicio del ISP.
+
+Descartados y por qué: **AirPlay** no tiene forma de emitir desde Android, y
+**Chromecast** necesita el SDK de Google Play Services, que es propietario —es
+por eso que el `jellyfin-android` oficial publica dos variantes—.
+
 ## 4. Lo que es nuevo de verdad, y no es la interfaz
 
 La interfaz táctil es trabajo, no incógnita. Las incógnitas son éstas, y tres

@@ -17,11 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mx.kataliziador.palomera.movil.arranque.leerAparato
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
 
 /**
@@ -49,11 +51,12 @@ private val MIMES = listOf(
 fun PantallaCapacidades() {
 	val contexto = LocalContext.current
 	val caps = remember { DeviceCapabilities.of(contexto) }
+	val aparato = remember { contexto.leerAparato() }
 
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(Color(0xFF101014))
+			.background(Paleta.fondo)
 			.verticalScroll(rememberScrollState())
 			// Antes del padding propio: lo que aparta de la barra de estado y
 			// de la de navegación es esto, no los 20 dp (ver MainActivity).
@@ -61,7 +64,7 @@ fun PantallaCapacidades() {
 			.padding(20.dp),
 	) {
 		Texto("Palomera para teléfonos", 22.sp, FontWeight.Bold)
-		Texto("Fase 0 · lo que este aparato declara", 14.sp, color = Color(0xFF9A9AA6))
+		Texto("Fase 0 · lo que este aparato declara", 14.sp, color = Paleta.tintaSutil)
 		Spacer(Modifier.height(20.dp))
 
 		Fila("fabricante", caps.manufacturer)
@@ -69,6 +72,7 @@ fun PantallaCapacidades() {
 		Fila("API", caps.sdkInt.toString())
 		Fila("RAM", "${caps.totalRamMb} MB")
 		Fila("ABIs", caps.abis.joinToString(", "))
+		Fila("interfaz", aparato.name)
 
 		Spacer(Modifier.height(20.dp))
 		Texto("Decoders", 18.sp, FontWeight.Bold)
@@ -82,7 +86,7 @@ fun PantallaCapacidades() {
 				else -> "software · ${mejor.name}"
 			}
 			Fila(mime, veredicto)
-			Texto("    $para", 11.sp, color = Color(0xFF6E6E7A))
+			Texto("    $para", 11.sp, color = Paleta.tintaSutil)
 			Spacer(Modifier.height(6.dp))
 		}
 
@@ -92,7 +96,7 @@ fun PantallaCapacidades() {
 				"teléfono. No demuestra que reproduzca: eso es la fase 0.2, y se " +
 				"juzga mirando la pantalla.",
 			11.sp,
-			color = Color(0xFF6E6E7A),
+			color = Paleta.tintaSutil,
 			align = TextAlign.Start,
 		)
 	}
@@ -101,7 +105,7 @@ fun PantallaCapacidades() {
 @Composable
 private fun Fila(clave: String, valor: String) {
 	Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-		Texto(clave, 13.sp, color = Color(0xFF9A9AA6), modifier = Modifier.weight(1f))
+		Texto(clave, 13.sp, color = Paleta.tintaSutil, modifier = Modifier.weight(1f))
 		Texto(valor, 13.sp, FontWeight.Medium, modifier = Modifier.weight(1.4f))
 	}
 }
@@ -111,7 +115,7 @@ private fun Texto(
 	texto: String,
 	tamano: androidx.compose.ui.unit.TextUnit,
 	peso: FontWeight = FontWeight.Normal,
-	color: Color = Color(0xFFECECF1),
+	color: Color = Paleta.tinta,
 	align: TextAlign? = null,
 	modifier: Modifier = Modifier,
 ) = androidx.compose.foundation.text.BasicText(
