@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.EnProgreso
 import mx.kataliziador.palomera.movil.catalogo.sinDuplicados
+import mx.kataliziador.palomera.movil.catalogo.tiempoRestante
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 
@@ -135,13 +136,6 @@ private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color) {
 							.clip(RoundedCornerShape(8.dp))
 							.background(Paleta.mosaico),
 					) {
-						BasicText(
-							item.titulo,
-							modifier = Modifier.align(Alignment.BottomStart).padding(8.dp, 12.dp),
-							maxLines = 2,
-							overflow = TextOverflow.Ellipsis,
-							style = Tipografia.etiqueta.copy(color = Paleta.tintaApagada),
-						)
 						// La marca sólo donde dice algo: aquí, cuánto llevas.
 						Box(
 							Modifier
@@ -160,7 +154,19 @@ private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color) {
 					}
 					Spacer(Modifier.height(7.dp))
 					BasicText(
-						"${100 - item.porcentaje}% por ver",
+						item.titulo,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+						style = Tipografia.tarjeta.copy(color = Paleta.tintaApagada),
+					)
+					// **Minutos, no porcentaje.** La primera versión decía
+					// «69 % por ver»: cierto, e inútil. Nadie decide si le da
+					// tiempo a terminar una película en porcentajes. Se vio
+					// mirando el teléfono, no la maqueta — que ya lo decía bien.
+					BasicText(
+						tiempoRestante(item.minutosRestantes),
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
 						style = Tipografia.detalle.copy(color = Paleta.tintaSutil),
 					)
 				}
@@ -189,15 +195,10 @@ private fun CarrilDePortadas(carril: Carril) {
 							.height(168.dp)
 							.clip(RoundedCornerShape(8.dp))
 							.background(portada.tono),
-					) {
-						BasicText(
-							portada.titulo,
-							modifier = Modifier.align(Alignment.BottomStart).padding(9.dp),
-							maxLines = 3,
-							overflow = TextOverflow.Ellipsis,
-							style = Tipografia.etiqueta.copy(color = Paleta.tintaApagada),
-						)
-					}
+					)
+					// Sin texto dentro: ahí va la imagen que sirve el servidor.
+					// Pintarlo además del renglón de abajo se lee como un fallo,
+					// y así se vio en el teléfono el 09-nov.
 					Spacer(Modifier.height(7.dp))
 					// Dos líneas, no una: con una, «Transformers: El despertar
 					// de las bestias» y «Transformers: El último caballero» son

@@ -57,14 +57,14 @@ private const val PROVEEDOR_DE_MUESTRA = "TotalPlay"
 private val ACENTO_DE_MUESTRA = Color(0xFFC8E04A)
 
 private val EN_PROGRESO_DE_MUESTRA = listOf(
-	EnProgreso("1", "F1 la película", 31),
-	EnProgreso("2", "¡Canta! 2", 19),
-	EnProgreso("3", "¡Canta! 2", 19),
-	EnProgreso("4", "Las guerreras k-pop", 8),
-	EnProgreso("5", "Madagascar", 26),
-	EnProgreso("6", "La purga infinita", 29),
-	EnProgreso("7", "Mayday", 13),
-	EnProgreso("8", "Mayday", 13),
+	EnProgreso("1", "F1 la película", 31, 98),
+	EnProgreso("2", "¡Canta! 2", 19, 91),
+	EnProgreso("3", "¡Canta! 2", 19, 91),
+	EnProgreso("4", "Las guerreras k-pop", 8, 95),
+	EnProgreso("5", "Madagascar", 26, 66),
+	EnProgreso("6", "La purga infinita", 29, 74),
+	EnProgreso("7", "Mayday", 13, 87),
+	EnProgreso("8", "Mayday", 13, 87),
 )
 
 private val CARRILES_DE_MUESTRA = listOf(

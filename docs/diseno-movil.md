@@ -322,6 +322,33 @@ Dos cosas del diseño pasaron a ser código con pruebas:
   `BLANCO_TACTIL_DP = 44`, que **manda sobre la tipografía**: un renglón
   pequeño se acompaña del relleno que haga falta, no se encoge su zona táctil.
 
+### Dos cosas que sólo se vieron en el teléfono
+
+Las dos estaban bien en la maqueta y mal en el código, y las dos se vieron
+mirando la pantalla. Es el argumento de `PLAY.md` §7 otra vez: **mirar es un
+instrumento de medida**.
+
+- **«69 % por ver» en vez de «Quedan 1 h 38 min».** Cierto e inútil: nadie
+  decide si le da tiempo a terminar una película en porcentajes. La maqueta ya
+  lo decía bien; se estropeó al pasarlo a Compose. Ahora vive en
+  `tiempoRestante()`, con pruebas, y «Casi terminada» en vez de «Quedan 0 min»,
+  que se leería como un fallo;
+- **el título pintado dos veces**, dentro del cartel y debajo. En la maqueta el
+  bloque de color *representaba* el cartel; en el aparato parece un error. El
+  bloque se queda sin texto: ahí va la imagen del servidor.
+
+### Vertical y horizontal: una decisión que falta
+
+Al girar el teléfono, Inicio **se aprieta**: la barra inferior se come casi
+todo el primer carril. No se rompe —se desliza igual— pero está claro que las
+pantallas de catálogo se pensaron en vertical.
+
+Hay dos salidas y es decisión de Edgar: **fijar las pantallas de catálogo en
+vertical** y dejar el apaisado sólo al reproductor, que es lo que hacen casi
+todas las apps de vídeo; o **diseñar el apaisado** de catálogo, que son carriles
+más bajos y una barra lateral en vez de inferior. Lo primero es gratis; lo
+segundo son pantallas nuevas.
+
 ### Una deuda que esto crea, y conviene no olvidar
 
 `LiveTvPaleta` vive en `app/`, y `movil/` no puede depender de `app/`. Así que
