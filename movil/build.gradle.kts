@@ -37,6 +37,12 @@ android {
 		versionCode = 1
 		versionName = "0.0.1-esqueleto"
 
+		// **§8: la app se presenta al Jellyfin del ISP como «Palomera».** No es la
+		// marca del ISP —esa viste la app por dentro—: es lo que el operador ve en
+		// su panel de abonados al confirmar un alta, y ahí necesita saber que lo
+		// que entró es nuestra app. No se traduce y no cambia en caliente.
+		buildConfigField("String", "CLIENT_NAME", "\"Palomera\"")
+
 		// **Compilar sólo para el ABI del aparato que se tiene delante.**
 		// Medido el 08-nov: el APK pesa 217 MB y libVLC son 170 de ellos,
 		// repartidos en cuatro ABIs (`MOVIL_PLAN.md` §4.3). Un teléfono usa

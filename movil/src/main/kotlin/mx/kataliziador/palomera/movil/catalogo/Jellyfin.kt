@@ -20,6 +20,16 @@ class Jellyfin(
 	private val baseUrl: String,
 	private val token: String,
 	private val usuarioId: String,
+	/**
+	 * Cómo se presenta la app (ver [cabeceraDeAutorizacion]).
+	 *
+	 * Se le pasa ya hecha porque lleva dentro el modelo del teléfono y el
+	 * identificador de instalación, que son datos de Android, y esta clase no
+	 * toca Android. Sin ella la app sigue leyendo el catálogo, pero **el
+	 * servidor no la ve como una sesión** y nada de lo que reproduzca queda
+	 * guardado.
+	 */
+	private val cabecera: String = "MediaBrowser Token=\"$token\"",
 ) {
 	/** Lo dejado a medias. Vacío en una cuenta nueva, que es el primer día de un probador. */
 	suspend fun enProgreso(limite: Int = 12): List<EnProgreso> =
@@ -39,6 +49,30 @@ class Jellyfin(
 		token = token,
 		itemId = id,
 	)
+
+	/**
+	 * Avisar al servidor de lo que se está viendo.
+	 *
+	 * **Esto faltaba entero hasta el 10-nov**, y lo que se rompía no era la
+	 * sesión invisible: era que **«Seguir viendo» no avanzaba nunca** desde el
+	 * teléfono. Ese carril es lo primero del inicio y se alimenta de
+	 * `PlaybackPositionTicks`, que sólo escribe quien reproduce. Medido: una
+	 * película cinco minutos en marcha y `GET /Sessions` sin rastro de ella.
+	 *
+	 * Nunca lanza y nunca retiene al reproductor: si el site no contesta, la
+	 * película sigue. Un servidor caído no puede parar lo que ya se está viendo.
+	 */
+	suspend fun avisar(aviso: Aviso, itemId: String, posicionMs: Long, enPausa: Boolean) {
+		val ruta = when (aviso) {
+			Aviso.EMPEZO -> "/Sessions/Playing"
+			Aviso.AVANZA -> "/Sessions/Playing/Progress"
+			Aviso.PARO -> "/Sessions/Playing/Stopped"
+		}
+		val cuerpo = """{"ItemId":"$itemId","PositionTicks":${aTicks(posicionMs)},""" +
+			""""IsPaused":$enPausa,"CanSeek":true,"PlayMethod":"DirectPlay"}"""
+
+		enviar(ruta, cuerpo)
+	}
 
 	/** La ficha de un título, o `null` si el site no la da. */
 	suspend fun detalle(id: String): Detalle? = leerDetalle(pedir("/Users/$usuarioId/Items/$id"))
@@ -92,7 +126,7 @@ class Jellyfin(
 				readTimeout = 15_000
 				doOutput = true
 				setRequestProperty("Content-Type", "application/json")
-				setRequestProperty("Authorization", "MediaBrowser Token=\"$token\"")
+				setRequestProperty("Authorization", cabecera)
 			}
 			conexion.outputStream.use { it.write(cuerpo.toByteArray()) }
 			val codigo = conexion.responseCode
@@ -122,7 +156,7 @@ class Jellyfin(
 			conexion = (URL(baseUrl.trimEnd('/') + ruta).openConnection() as HttpURLConnection).apply {
 				connectTimeout = 8_000
 				readTimeout = 15_000
-				setRequestProperty("Authorization", "MediaBrowser Token=\"$token\"")
+				setRequestProperty("Authorization", cabecera)
 			}
 			val codigo = conexion.responseCode
 			if (codigo !in 200..299) {

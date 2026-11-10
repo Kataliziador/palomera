@@ -1,5 +1,6 @@
 package mx.kataliziador.palomera.movil.ui
 
+import android.os.SystemClock
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -34,7 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import mx.kataliziador.palomera.movil.catalogo.Aviso
+import mx.kataliziador.palomera.movil.catalogo.tocaLatido
 import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
@@ -57,6 +64,14 @@ fun PantallaVideo(
 	url: String,
 	titulo: String,
 	enDirecto: Boolean,
+	/**
+	 * Qué contarle al servidor del ISP mientras esto corre.
+	 *
+	 * Por defecto, nada: el reproductor funciona igual sin servidor, y los
+	 * canales en vivo no se reportan ([seReporta]). Cuando sí hay a quién
+	 * avisar, es esto lo que hace avanzar «Seguir viendo».
+	 */
+	avisar: suspend (Aviso, Long, Boolean) -> Unit = { _, _, _ -> },
 	alVolver: () -> Unit,
 ) {
 	val contexto = LocalContext.current
@@ -73,14 +88,41 @@ fun PantallaVideo(
 		}
 	}
 
-	DisposableEffect(Unit) { onDispose { exo.release() } }
+	// **El aviso de fin necesita sobrevivir a la pantalla que lo manda.** Al
+	// salir, la corrutina del latido ya está cancelada y el `exo` a punto de
+	// soltarse, así que la posición se lee **antes** de soltar nada y el envío
+	// va por un alcance propio: `rememberCoroutineScope()` se cancela justo en
+	// ese instante, que es cuando hace falta.
+	val alcanceDeSalida = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+	DisposableEffect(Unit) {
+		onDispose {
+			val ultima = exo.currentPosition.coerceAtLeast(0L)
+			exo.release()
+			alcanceDeSalida.launch { avisar(Aviso.PARO, ultima, false) }
+		}
+	}
 
-	// El reloj de la barra. Un segundo basta: nadie lee décimas en una barra.
+	// El reloj de la barra, y con él el latido al servidor. Un segundo basta
+	// para la barra —nadie lee décimas— y es la resolución justa para que una
+	// pausa salga al momento en el panel del proveedor.
 	LaunchedEffect(exo) {
+		var ultimoAvisoMs = 0L
+		var pausaAnterior = true // arranca «en pausa» para que el primer aviso salga solo
+		var empezado = false
+
 		while (true) {
 			posicion = exo.currentPosition.coerceAtLeast(0L)
 			duracion = exo.duration.coerceAtLeast(0L)
 			reproduciendo = exo.isPlaying
+
+			val ahora = SystemClock.elapsedRealtime()
+			val enPausa = !exo.isPlaying
+			if (tocaLatido(ultimoAvisoMs, ahora, pausaAnterior, enPausa)) {
+				avisar(if (empezado) Aviso.AVANZA else Aviso.EMPEZO, posicion, enPausa)
+				empezado = true
+				ultimoAvisoMs = ahora
+				pausaAnterior = enPausa
+			}
 			delay(1_000)
 		}
 	}

@@ -1,5 +1,6 @@
 package mx.kataliziador.palomera.movil
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,9 @@ import mx.kataliziador.palomera.movil.ui.Carril
 import mx.kataliziador.palomera.movil.ui.PantallaCanal
 import mx.kataliziador.palomera.movil.ui.PantallaCapacidades
 import mx.kataliziador.palomera.movil.ui.PantallaEnVivo
+import mx.kataliziador.palomera.movil.catalogo.cabeceraDeAutorizacion
+import mx.kataliziador.palomera.movil.catalogo.idDeInstalacion
+import mx.kataliziador.palomera.movil.catalogo.nombreDeAparato
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.ui.PantallaPrincipal
 import mx.kataliziador.palomera.movil.ui.Seccion
@@ -54,6 +58,16 @@ class MainActivity : ComponentActivity() {
 						baseUrl = intent?.getStringExtra("jf").orEmpty(),
 						token = intent?.getStringExtra("token").orEmpty(),
 						usuarioId = intent?.getStringExtra("uid").orEmpty(),
+						// Sin esta cabecera el servidor atiende las peticiones y
+						// **no crea sesión**, así que nada de lo que se reproduzca
+						// queda guardado. Ver `Identidad.kt`.
+						cabecera = cabeceraDeAutorizacion(
+							cliente = BuildConfig.CLIENT_NAME,
+							aparato = nombreDeAparato(Build.MANUFACTURER, Build.MODEL),
+							idDeInstalacion = idDeInstalacion(),
+							version = BuildConfig.VERSION_NAME,
+							token = intent?.getStringExtra("token").orEmpty(),
+						),
 					),
 					configUrl = intent?.getStringExtra("config"),
 					seccionInicial = when (intent?.getStringExtra("seccion")) {
@@ -64,6 +78,7 @@ class MainActivity : ComponentActivity() {
 					},
 					fichaInicial = intent?.getStringExtra("ficha"),
 					reproducirAlArrancar = intent?.getStringExtra("reproducir"),
+					cerrarVideoEnS = intent?.getStringExtra("cerrarEn")?.toIntOrNull(),
 				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,

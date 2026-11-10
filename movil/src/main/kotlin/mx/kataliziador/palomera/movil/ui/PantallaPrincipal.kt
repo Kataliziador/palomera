@@ -19,9 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Reproduccion
+import mx.kataliziador.palomera.movil.catalogo.seReporta
 import mx.kataliziador.palomera.movil.catalogo.perfilDeDispositivo
 import timber.log.Timber
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
@@ -54,6 +56,15 @@ fun PantallaPrincipal(
 	// el teléfono de pruebas no deja inyectar toques, así que sin esto no hay
 	// forma de llegar al reproductor desde aquí.
 	reproducirAlArrancar: String? = null,
+	/**
+	 * Sólo para desarrollo: cerrar el vídeo solo a los N segundos.
+	 *
+	 * Existe porque **en el teléfono de pruebas `INJECT_EVENTS` está denegado**
+	 * por HyperOS, así que no hay forma de pulsar «atrás» desde `adb`. Sin esto,
+	 * el único camino de salida del reproductor —y con él el aviso de fin que
+	 * guarda la posición— no se puede ejercitar sin una persona delante.
+	 */
+	cerrarVideoEnS: Int? = null,
 ) {
 	var seccion by remember { mutableStateOf(seccionInicial) }
 	var fichaAbierta by remember { mutableStateOf(fichaInicial) }
@@ -69,17 +80,35 @@ fun PantallaPrincipal(
 		val id = reproducirAlArrancar ?: return@LaunchedEffect
 		val d = jf.detalle(id)
 		when (val r = jf.comoReproducir(id, perfil)) {
-			is Reproduccion.Directo -> video = Video(r.url, d?.nombre.orEmpty(), false)
+			is Reproduccion.Directo -> video = Video(r.url, d?.nombre.orEmpty(), false, id)
 			is Reproduccion.Transcodificado -> {
 				Timber.i("vod.transcodifica titulo=%s motivo=%s", d?.nombre, r.motivo)
-				video = Video(r.url, d?.nombre.orEmpty(), false)
+				video = Video(r.url, d?.nombre.orEmpty(), false, id)
 			}
 			Reproduccion.NoSePuede -> Timber.w("vod.noSePuede id=%s", id)
 		}
 	}
 
+	// Ver arriba: es el sustituto de un dedo.
+	LaunchedEffect(video, cerrarVideoEnS) {
+		val segundos = cerrarVideoEnS ?: return@LaunchedEffect
+		if (video == null) return@LaunchedEffect
+		delay(segundos * 1_000L)
+		video = null
+	}
+
 	video?.let { v ->
-		PantallaVideo(v.url, v.titulo, v.enDirecto) { video = null }
+		PantallaVideo(
+			url = v.url,
+			titulo = v.titulo,
+			enDirecto = v.enDirecto,
+			avisar = { aviso, posicion, enPausa ->
+				if (seReporta(v.enDirecto, v.itemId)) {
+					jf.avisar(aviso, v.itemId!!, posicion, enPausa)
+				}
+			},
+			alVolver = { video = null },
+		)
 		return
 	}
 
@@ -91,7 +120,7 @@ fun PantallaPrincipal(
 			acento = acento,
 			perfil = perfil,
 			alVolver = { fichaAbierta = null },
-			alReproducir = { url, titulo -> video = Video(url, titulo, enDirecto = false) },
+			alReproducir = { url, titulo -> video = Video(url, titulo, enDirecto = false, itemId = abierta) },
 		)
 		return
 	}
@@ -119,7 +148,18 @@ fun PantallaPrincipal(
 }
 
 /** Lo que se está viendo. */
-private data class Video(val url: String, val titulo: String, val enDirecto: Boolean)
+/**
+ * Lo que se está viendo.
+ *
+ * [itemId] es lo que permite avisar al servidor; un canal en vivo no lo tiene y
+ * no se reporta ([seReporta]).
+ */
+private data class Video(
+	val url: String,
+	val titulo: String,
+	val enDirecto: Boolean,
+	val itemId: String? = null,
+)
 
 @Composable
 private fun Pendiente(texto: String) {
