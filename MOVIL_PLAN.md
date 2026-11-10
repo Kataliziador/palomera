@@ -213,7 +213,22 @@ con `app/` ya publicado.
 
 ---
 
-### Lo que la APK única tendrá que soltar, medido el 10-nov
+### Hecho el 10-nov: ya es una sola APK
+
+`movil` dejó de ser `com.android.application` y pasó a biblioteca. `:app` la
+hospeda en `ui/tactil/PalomeraTactilActivity`, y **quién abre qué lo decide el
+lanzador**: `LAUNCHER` para la táctil, `LEANBACK_LAUNCHER` para la de siempre.
+Verificado con la misma APK en los dos aparatos.
+
+Medido al cerrarlo, y las dos cifras importan porque eran las dudas:
+
+| | |
+|---|---|
+| arranque en frío en la Skyworth | mediana **5353 ms antes, 5376 después** — ruido. Cinco muestras por condición, una sola caja (§9) |
+| dex | 53,5 → **54,1 MB** |
+| `uses-implied-feature` | **ninguna**, que es lo que mantiene la ficha visible para las cajas |
+
+### Lo que hubo que soltar, medido el 10-nov
 
 `aapt2 dump badging` sobre el APK de `movil` imprime hoy:
 
