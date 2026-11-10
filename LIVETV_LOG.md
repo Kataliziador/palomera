@@ -9236,3 +9236,69 @@ en pantalla:
 reinstalación, aparato roto— sólo las resuelve el panel de abonados, y eso se
 está haciendo allí: contar las teles antes de autorizar, ofrecer cuál se
 reemplaza, un botón para quitar una tele y mensajes con la causa real.
+
+---
+
+## El AAB `0.1.0-rc.3` — 2026-11-10
+
+**Síntoma:** la `rc.2` que están usando los 12 probadores lleva dentro el
+defecto de la sesión que no se devuelve, y eso en una prueba cerrada de 14 días
+no es una molestia: **es el final de la prueba para quien lo pise**. Las siete
+cuentas de probador del site tienen `MaxActiveSessions: 2` —leído del servidor,
+no supuesto—, así que a un probador le bastan **dos** salidas de cuenta para
+dejar sus dos cupos ocupados por fantasmas de su propia caja y no poder volver
+a entrar. Nadie lo desbloquea desde la caja.
+
+**Cambio:** recompilado como `0.1.0-rc.3` sobre el árbol de `116e49e2b`, con
+`JELLYFIN_VERSION=0.1.0-rc.3 ./gradlew :app:bundleRelease :app:assembleRelease`.
+
+Lo que entra sobre la `rc.2` son dos cambios de comportamiento y cinco de
+documentos o herramientas:
+
+- **la liberación de la tele al salir de una cuenta** (`062282a03`), que es el
+  motivo de esta versión, más la recarga de la lista al desconectar
+  (`7cb7c427d`);
+- **el escalón 1 del vigilante** (`a92e969a4`), que es Modo A y entra
+  **apagado de fábrica**: `VIGILANTE_DESTINO_CALCULADO_DEFAULT = false`
+  reproduce el comportamiento anterior, así que ningún probador lo ve. Está
+  ahí para poder encenderlo por `adb` cuando se mida el pendiente 77, no para
+  que se use.
+
+**Leído del artefacto, no supuesto** (`aapt2 dump badging` sobre el APK de
+release del mismo árbol y la misma variable):
+
+| | leído |
+|---|---|
+| paquete | `mx.kataliziador.palomera` |
+| versión | `versionCode='10003' versionName='0.1.0-rc.3'` |
+| etiqueta | `Palomera` |
+| `minSdk` / `targetSdk` | 21 / 36 |
+| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` y `wifi` |
+| `uses-implied-feature` | **ninguna** — sigue visible para una caja sólo-Ethernet (§4.7) |
+| firma | `CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX`, SHA-256 `E7:0D:C8:DF:…:C0:B6`, la misma clave que `rc.2` |
+| tamaño | 99,6 MB |
+
+**Las nueve comprobaciones de `comprobar.py` en verde**, más las 30 pruebas de
+`:app` y las de `:livetv`.
+
+**El punto 6 de la lista de `PLAY.md` se cumple y es comprobable:** entre
+`v0.1.0-rc.2` y este árbol hay **cero** líneas de diff en `app/src/main/res/` y
+ninguna cadena visible cambiada. Los tres archivos de interfaz que se tocan son
+`LiveTvDevMenuFragment` —detrás de `BuildConfig.DEBUG`, invisible en release—,
+`ServerFragment` y `EditUserScreen`, y en los tres el cambio es lógica, no
+texto ni disposición. Las cuatro capturas de la ficha siguen valiendo sin
+rehacerse.
+
+**Lo que esta versión NO cierra, y hay que decirlo.** El pendiente de la
+liberación sigue **abierto**: de los cuatro puntos de validación, los dos
+primeros están hechos y los dos últimos no —que el panel reactive la caja con
+un código nuevo sin borrar nada a mano, y que el VOD siga entrando igual, que
+es obligatorio por ser lógica en el camino compartido (`CLAUDE.md` §4.7)—. La
+recarga de la lista al desconectar **tampoco está validada en pantalla**.
+
+Se publica igualmente, y el criterio es el de §2 aplicado a la operación: el
+daño de lo que ya está en campo es mayor y es seguro, y el de lo nuevo es menor
+y es hipotético. Un probador con sus dos cupos atascados está bloqueado hoy;
+el riesgo de la `rc.3` es un camino de entrada que se midió en una caja y que
+Edgar todavía tiene que mirar. **No es un visto bueno de Modo A**, es una
+decisión de despliegue, y la validación que falta sigue debiendo hacerse.
