@@ -22,16 +22,22 @@ android {
 	defaultConfig {
 		applicationId = appId
 
-		// **No es el 21 del proyecto, y es una decisión, no un descuido.** El
-		// suelo de 21 existe por las cajas viejas de ISP; un teléfono con
-		// Android 5 en 2026 es una fracción desaparecida del parque y arrastra
-		// el coste de Compose en hardware de 2014. El 24 (Android 7.0, 2016)
-		// cubre prácticamente todo y da las `VideoCapabilities` de MediaCodec
-		// que hacen falta para decidir el perfil de dispositivo del VOD.
+		// **El mismo que `app` y `livetv`, y es la condición de la APK única.**
+		// Bajado de 24 a 21 el 10-nov: mientras `movil` fuera una app aparte el
+		// 24 era defendible, pero en una sola APK que elige interfaz según el
+		// aparato no puede haber dos suelos — el instalador ve uno.
 		//
-		// El módulo `:livetv` declara 21, así que subirlo aquí es legal: un
-		// consumidor puede pedir más que su biblioteca, nunca menos.
-		minSdk = 24
+		// El 24 estaba por las `VideoCapabilities` de `MediaCodec`, que deciden
+		// el perfil de dispositivo del VOD. **Comprobado el 10-nov leyendo
+		// `DeviceCapabilities`**: lo único posterior a 21 que usa es
+		// `maxSupportedInstances` (API 23), y va dentro de un `runCatching` que
+		// cae a un valor por defecto. No hay nada que se rompa.
+		//
+		// **Lo que no está medido es cómo se ve.** Compila en 21 y el único
+		// aparato viejo a mano es un emulador de Android TV API 22, que no sirve
+		// para juzgar una interfaz táctil. Un teléfono de gama baja real sigue
+		// siendo el pendiente de `MOVIL_PLAN.md` §7.
+		minSdk = libs.versions.android.minSdk.get().toInt()
 		targetSdk = libs.versions.android.targetSdk.get().toInt()
 
 		versionCode = 1
@@ -42,6 +48,12 @@ android {
 		// su panel de abonados al confirmar un alta, y ahí necesita saber que lo
 		// que entró es nuestra app. No se traduce y no cambia en caliente.
 		buildConfigField("String", "CLIENT_NAME", "\"Palomera\"")
+
+		// La dirección del registro va compilada por el mismo motivo que en la
+		// caja: la app tiene que poder preguntar «¿quién te da el servicio?»
+		// **antes** de saber ninguna dirección. Es un dominio y no una IP, para
+		// que mudar el servidor sea un registro DNS y no una versión nueva.
+		buildConfigField("String", "REGISTRY_URL", "\"https://authjelly.satmx.net\"")
 
 		// **Compilar sólo para el ABI del aparato que se tiene delante.**
 		// Medido el 08-nov: el APK pesa 217 MB y libVLC son 170 de ellos,

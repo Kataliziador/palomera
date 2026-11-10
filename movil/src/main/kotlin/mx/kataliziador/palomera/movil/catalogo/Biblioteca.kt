@@ -1,6 +1,7 @@
 package mx.kataliziador.palomera.movil.catalogo
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -17,6 +18,14 @@ data class Titulo(
 	val nombre: String,
 	val tipo: String,
 	val anio: Int?,
+	/**
+	 * La etiqueta del cartel, o `null` si el título no tiene.
+	 *
+	 * Un título sin cartel **no se descarta**: se enseña con su bloque de
+	 * color. Perderlo del catálogo por no tener imagen sería desproporcionado,
+	 * que es la misma regla que rige para todo lo demás aquí.
+	 */
+	val cartel: String? = null,
 )
 
 /**
@@ -73,6 +82,7 @@ fun leerTitulos(cuerpo: String): List<Titulo> = elementos(cuerpo).mapNotNull { i
 		nombre = nombre,
 		tipo = item.texto("Type") ?: "Desconocido",
 		anio = item["ProductionYear"]?.jsonPrimitive?.intOrNull,
+		cartel = (item["ImageTags"] as? JsonObject)?.texto("Primary"),
 	)
 }
 
@@ -94,6 +104,8 @@ fun leerEnProgreso(cuerpo: String): List<EnProgreso> = elementos(cuerpo).mapNotN
 		titulo = nombre,
 		porcentaje = porcentaje.toInt(),
 		minutosRestantes = (minutosTotales * (100 - porcentaje) / 100).toInt(),
+		cartel = (item["BackdropImageTags"] as? JsonArray)
+			?.firstOrNull()?.jsonPrimitive?.contentOrNull,
 	)
 }
 

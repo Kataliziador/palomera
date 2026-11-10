@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.BibliotecaDelSite
+import mx.kataliziador.palomera.movil.catalogo.Forma
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Titulo
 import mx.kataliziador.palomera.movil.catalogo.proveedorDe
@@ -132,12 +133,14 @@ fun PantallaCatalogo(jf: Jellyfin, acento: Color, alAbrir: (String) -> Unit) {
 		) {
 			items(titulos, key = { it.id }) { titulo ->
 				Column(Modifier.clickable { alAbrir(titulo.id) }) {
-					Box(
-						Modifier
+					Cartel(
+						url = jf.cartel(titulo.id, titulo.cartel, Forma.CARTEL, 336),
+						id = titulo.id,
+						descripcion = titulo.nombre,
+						modifier = Modifier
 							.fillMaxWidth()
 							.aspectRatio(2f / 3f)
-							.clip(RoundedCornerShape(8.dp))
-							.background(tonoDeCartel(titulo.id)),
+							.clip(RoundedCornerShape(8.dp)),
 					)
 					Spacer(Modifier.height(7.dp))
 					BasicText(

@@ -31,10 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.Detalle
 import kotlinx.coroutines.launch
+import mx.kataliziador.palomera.movil.catalogo.Forma
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Reproduccion
 import timber.log.Timber
@@ -81,9 +83,31 @@ fun PantallaFicha(
 			.windowInsetsPadding(WindowInsets.safeDrawing)
 			.verticalScroll(rememberScrollState()),
 	) {
-		// El arte iría aquí. Sin él, una superficie lisa: el sistema de diseño
-		// es explícito en que un hueco sin arte no se rellena con ilustración.
-		Box(Modifier.fillMaxWidth().height(200.dp).background(Paleta.mosaico)) {
+		Box(Modifier.fillMaxWidth().height(220.dp)) {
+			Cartel(
+				url = detalle?.let { jf.cartel(it.id, it.fondo, Forma.FONDO, 1080) },
+				id = id,
+				descripcion = detalle?.nombre.orEmpty(),
+				modifier = Modifier.fillMaxSize(),
+			)
+
+			// **El velo no es estética.** Detrás puede haber un fotograma
+			// blanco —nieve, un plató, unos créditos—, y sin él la flecha de
+			// volver desaparece justo en la única pantalla sin otra salida.
+			// Baja desde arriba, donde está la flecha, y vuelve a cerrar
+			// abajo, donde empieza el texto.
+			Box(
+				Modifier
+					.fillMaxSize()
+					.background(
+						Brush.verticalGradient(
+							0f to Color.Black.copy(alpha = 0.55f),
+							0.35f to Color.Black.copy(alpha = 0.10f),
+							1f to Paleta.fondo,
+						),
+					),
+			)
+
 			Box(
 				Modifier
 					.padding(6.dp, 8.dp)
@@ -91,7 +115,7 @@ fun PantallaFicha(
 					.clickable(onClick = alVolver),
 				contentAlignment = Alignment.Center,
 			) {
-				BasicText("‹", style = Tipografia.titulo.copy(color = Paleta.tinta))
+				BasicText("‹", style = Tipografia.titulo.copy(color = Color.White))
 			}
 		}
 

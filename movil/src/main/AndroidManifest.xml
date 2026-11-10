@@ -20,6 +20,20 @@
       obligatorio (§4.7 otra vez) y no hace falta. Saber si estamos en la red
       del abonado se decide preguntando si su site contesta, no leyendo el
       SSID — que además exige permiso de ubicación desde Android 10.
+
+      **Y esto caduca el día de la APK única** (`MOVIL_PLAN.md` §3). Con una
+      sola ficha para caja y teléfono, este `required="true"` deja fuera del
+      catálogo de Play a todas las cajas de ISP, que es exactamente el fallo
+      que §4.7 cuenta que ya ocurrió una vez. Medido el 10-nov con
+      `aapt2 dump badging` sobre este APK:
+
+          uses-feature: name='android.hardware.touchscreen'
+          uses-implied-feature: name='android.hardware.screen.portrait'
+            reason='one or more activities have specified a portrait orientation'
+
+      Son **dos** los que habría que soltar, no uno: el táctil y el vertical
+      que `screenOrientation="portrait"` implica sin que nadie lo escriba. El
+      segundo es el que no se ve venir.
     -->
     <uses-feature
         android:name="android.hardware.touchscreen"

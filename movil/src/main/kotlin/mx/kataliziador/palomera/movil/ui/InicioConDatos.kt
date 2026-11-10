@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.EnProgreso
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import mx.kataliziador.palomera.movil.catalogo.Forma
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Titulo
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
@@ -45,7 +46,7 @@ fun InicioConDatos(
 			val rieles = bibliotecas.map { b -> b.nombre to async { jf.ultimosDe(b.id) } }
 			Datos(
 				enProgreso = progreso.await(),
-				carriles = rieles.mapNotNull { (nombre, pendiente) -> carril(nombre, pendiente.await()) },
+				carriles = rieles.mapNotNull { (nombre, pendiente) -> carril(nombre, pendiente.await(), jf) },
 			)
 		}
 	}
@@ -69,6 +70,10 @@ fun InicioConDatos(
 		acento = acento,
 		enProgreso = d.enProgreso,
 		carriles = d.carriles,
+		urlDeProgreso = { id ->
+			d.enProgreso.firstOrNull { it.id == id }
+				?.let { jf.cartel(it.id, it.cartel, Forma.FONDO, 480) }
+		},
 		alAbrir = alAbrir,
 	)
 }
@@ -89,8 +94,20 @@ private data class Datos(
 private const val CARRILES_MAXIMOS = 6
 
 /** Un carril, o nada si no hay qué poner: una fila vacía es peor que ninguna. */
-private fun carril(nombre: String, titulos: List<Titulo>): Carril? =
+private fun carril(nombre: String, titulos: List<Titulo>, jf: Jellyfin): Carril? =
 	titulos.takeIf { it.isNotEmpty() }?.let { lista ->
-		Carril(nombre, lista.map { Portada(it.id, it.nombre, tonoDeCartel(it.id)) })
+		Carril(
+			nombre,
+			lista.map {
+				Portada(
+					id = it.id,
+					titulo = it.nombre,
+					tono = tonoDeCartel(it.id),
+					// 336 px es el doble de los 168 dp de alto de la tarjeta:
+					// a 2x o 3x de densidad, pedir 168 se vería blando.
+					url = jf.cartel(it.id, it.cartel, Forma.CARTEL, 336),
+				)
+			},
+		)
 	}
 

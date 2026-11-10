@@ -1,6 +1,7 @@
 package mx.kataliziador.palomera.movil.catalogo
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -22,6 +23,8 @@ data class Detalle(
 	val audios: List<String>,
 	val subtitulos: List<String>,
 	val minutosVistos: Int,
+	/** La etiqueta del fondo apaisado, para la cabecera. */
+	val fondo: String? = null,
 )
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -52,6 +55,7 @@ fun leerDetalle(cuerpo: String): Detalle? {
 		audios = idiomasDe(pistas, "Audio"),
 		subtitulos = idiomasDe(pistas, "Subtitle"),
 		minutosVistos = enMinutos(usuario?.get("PlaybackPositionTicks")?.jsonPrimitive?.longOrNull),
+		fondo = (item["BackdropImageTags"] as? JsonArray)?.firstOrNull()?.jsonPrimitive?.contentOrNull,
 	)
 }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,8 +37,19 @@ import mx.kataliziador.palomera.movil.catalogo.tiempoRestante
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 
-/** Un título del catálogo, con el bloque de color que hace de cartel. */
-data class Portada(val id: String, val titulo: String, val tono: Color)
+/**
+ * Un título del catálogo.
+ *
+ * [tono] no es un respaldo de segunda: es lo que se ve mientras la imagen
+ * descarga y lo que queda si el título no tiene cartel, así que la pantalla
+ * nunca enseña un hueco.
+ */
+data class Portada(
+	val id: String,
+	val titulo: String,
+	val tono: Color,
+	val url: String? = null,
+)
 
 /** Un carril con nombre. */
 data class Carril(val nombre: String, val portadas: List<Portada>)
@@ -58,6 +70,8 @@ fun PantallaInicio(
 	acento: Color,
 	enProgreso: List<EnProgreso>,
 	carriles: List<Carril>,
+	/** Cómo se pide el fondo apaisado de lo que está a medias. */
+	urlDeProgreso: (String) -> String? = { null },
 	alAbrir: (String) -> Unit = {},
 ) {
 	Column(
@@ -76,7 +90,7 @@ fun PantallaInicio(
 			// **Sin duplicados**, que es el defecto medido el 09-nov: el mismo
 			// título vive en varias bibliotecas y el servidor lo devuelve una
 			// vez por copia.
-			CarrilDeProgreso(sinDuplicados(enProgreso), acento, alAbrir)
+			CarrilDeProgreso(sinDuplicados(enProgreso), acento, urlDeProgreso, alAbrir)
 
 			for (carril in carriles) CarrilDePortadas(carril, alAbrir)
 
@@ -113,7 +127,12 @@ private fun Cabecera(proveedor: String, acento: Color) {
 }
 
 @Composable
-private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color, alAbrir: (String) -> Unit) {
+private fun CarrilDeProgreso(
+	items: List<EnProgreso>,
+	acento: Color,
+	urlDe: (String) -> String?,
+	alAbrir: (String) -> Unit,
+) {
 	if (items.isEmpty()) return
 
 	Column {
@@ -132,9 +151,19 @@ private fun CarrilDeProgreso(items: List<EnProgreso>, acento: Color, alAbrir: (S
 						Modifier
 							.fillMaxWidth()
 							.height(89.dp)
-							.clip(RoundedCornerShape(8.dp))
-							.background(Paleta.mosaico),
+							.clip(RoundedCornerShape(8.dp)),
 					) {
+						// **El fondo apaisado, no el cartel.** Es la única
+						// tarjeta horizontal de la app —158×89, o sea 16:9— y
+						// un cartel vertical aquí recortaría la cara de quien
+						// salga en él.
+						Cartel(
+							url = urlDe(item.id),
+							id = item.id,
+							descripcion = item.titulo,
+							modifier = Modifier.fillMaxSize(),
+						)
+
 						// La marca sólo donde dice algo: aquí, cuánto llevas.
 						Box(
 							Modifier
@@ -188,12 +217,14 @@ private fun CarrilDePortadas(carril: Carril, alAbrir: (String) -> Unit) {
 		) {
 			items(carril.portadas) { portada ->
 				Column(Modifier.width(112.dp).clickable { alAbrir(portada.id) }) {
-					Box(
-						Modifier
+					Cartel(
+						url = portada.url,
+						tono = portada.tono,
+						descripcion = portada.titulo,
+						modifier = Modifier
 							.fillMaxWidth()
 							.height(168.dp)
-							.clip(RoundedCornerShape(8.dp))
-							.background(portada.tono),
+							.clip(RoundedCornerShape(8.dp)),
 					)
 					// Sin texto dentro: ahí va la imagen que sirve el servidor.
 					// Pintarlo además del renglón de abajo se lee como un fallo,

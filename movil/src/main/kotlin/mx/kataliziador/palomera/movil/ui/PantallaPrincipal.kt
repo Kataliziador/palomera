@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,6 +27,9 @@ import mx.kataliziador.palomera.movil.catalogo.Reproduccion
 import mx.kataliziador.palomera.movil.catalogo.seReporta
 import mx.kataliziador.palomera.movil.catalogo.perfilDeDispositivo
 import timber.log.Timber
+import org.jellyfin.livetv.config.Brand
+import org.jellyfin.livetv.config.ConfigRepository
+import org.jellyfin.livetv.config.LiveConfig
 import org.jellyfin.livetv.capabilities.DeviceCapabilities
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
@@ -47,6 +51,8 @@ fun PantallaPrincipal(
 	acento: Color,
 	jf: Jellyfin,
 	configUrl: String?,
+	/** Con qué nombre se guarda la lista de este site. Ver `destinoDeCanales`. */
+	claveDeCache: String = "sin-servidor",
 	// Para abrir una sección directamente desde `adb`. Existe porque el
 	// teléfono de pruebas tiene denegada la inyección de eventos, así que no se
 	// puede tocar una pestaña desde aquí; sin esto, sólo se puede mirar Inicio.
@@ -74,6 +80,28 @@ fun PantallaPrincipal(
 	// reproducción sería preguntar lo mismo al sistema una y otra vez.
 	val contexto = LocalContext.current
 	val perfil = remember { perfilDeDispositivo(DeviceCapabilities.of(contexto)) }
+
+	// **La marca del ISP, leída una vez y aplicada a toda la app.**
+	// Sale del servicio de canales del site y **no del Jellyfin**: si saliera
+	// de ahí, cualquiera que apunte la app a un Jellyfin propio podría vestirla
+	// (`CLAUDE.md` §8). Mientras no llega, se usa lo que vino de la sesión:
+	// una pantalla medio teñida que luego cambia de color se ve como un fallo.
+	// Una sola carga para las dos cosas que salen de ahí: la marca y la lista
+	// de canales. Dos lecturas del mismo archivo serían dos cachés y dos
+	// momentos distintos en que la pantalla cambia de aspecto.
+	val config by produceState(initialValue = null as LiveConfig?, configUrl, claveDeCache) {
+		value = ConfigRepository(contexto).load(configUrl, claveDeCache).config
+	}
+	val acentoVivo = config?.brand?.accent?.let { Color(it) } ?: acento
+	// **El nombre del proveedor gana al neutro, y ésa es la corrección.**
+	// `BrandParser` nunca devuelve `null`: si el site no configura
+	// `displayName`, entrega el de `Brand.NEUTRA` —«TV en vivo»—, así que
+	// tomarlo sin mirar hacía que el nombre que el registro ya nos había dado
+	// no se usara jamás. Medido el 10-nov: el site de los probadores trae
+	// `accent` y no `displayName`, y la cabecera decía «TV en vivo» teniendo
+	// «Palomera Probadores» a mano.
+	val delSite = config?.brand?.displayName?.takeIf { it != Brand.NEUTRA.displayName }
+	val nombreVivo = delSite ?: proveedor
 
 	// El vídeo va encima de todo, y al salir devuelve donde estaba.
 	LaunchedEffect(reproducirAlArrancar) {
@@ -117,7 +145,7 @@ fun PantallaPrincipal(
 		PantallaFicha(
 			jf = jf,
 			id = abierta,
-			acento = acento,
+			acento = acentoVivo,
 			perfil = perfil,
 			alVolver = { fichaAbierta = null },
 			alReproducir = { url, titulo -> video = Video(url, titulo, enDirecto = false, itemId = abierta) },
@@ -133,21 +161,30 @@ fun PantallaPrincipal(
 	) {
 		Box(Modifier.weight(1f)) {
 			when (seccion) {
-				Seccion.INICIO -> InicioConDatos(proveedor, acento, jf) { fichaAbierta = it }
-				Seccion.CATALOGO -> PantallaCatalogo(jf, acento) { fichaAbierta = it }
+				Seccion.INICIO -> InicioConDatos(nombreVivo, acentoVivo, jf) { fichaAbierta = it }
+				Seccion.CATALOGO -> PantallaCatalogo(jf, acentoVivo) { fichaAbierta = it }
 				Seccion.EN_VIVO ->
 					if (configUrl.isNullOrBlank()) Pendiente("Falta la dirección del servicio de canales.")
 					else PantallaEnVivo(configUrl) { url, nombre ->
 						video = Video(url, nombre, enDirecto = true)
 					}
-				Seccion.BUSCAR -> Pendiente("La búsqueda está diseñada y todavía no construida.")
+				Seccion.BUSCAR -> PantallaBuscar(
+					jf = jf,
+					acento = acentoVivo,
+					// Si el site no trae lista, la búsqueda sigue sirviendo
+					// para el catálogo: media búsqueda es mejor que ninguna.
+					canales = config?.channels.orEmpty(),
+					alAbrirTitulo = { fichaAbierta = it },
+					alAbrirCanal = { canal ->
+						video = Video(canal.url, canal.name, enDirecto = true)
+					},
+				)
 			}
 		}
-		BarraInferior(seccion, acento) { seccion = it }
+		BarraInferior(seccion, acentoVivo) { seccion = it }
 	}
 }
 
-/** Lo que se está viendo. */
 /**
  * Lo que se está viendo.
  *

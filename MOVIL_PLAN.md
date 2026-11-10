@@ -213,6 +213,28 @@ con `app/` ya publicado.
 
 ---
 
+### Lo que la APK única tendrá que soltar, medido el 10-nov
+
+`aapt2 dump badging` sobre el APK de `movil` imprime hoy:
+
+```
+uses-feature: name='android.hardware.touchscreen'
+uses-implied-feature: name='android.hardware.screen.portrait'
+  reason='one or more activities have specified a portrait orientation'
+```
+
+Los dos **filtran el catálogo de dispositivos de Play**, y con una sola ficha
+para caja y teléfono dejarían fuera a todas las cajas de ISP — que es
+literalmente el fallo que `CLAUDE.md` §4.7 cuenta que ya ocurrió una vez con
+`ACCESS_WIFI_STATE`.
+
+Mientras `movil` sea una ficha aparte están **bien puestos**: son lo que impide
+que esta app le aparezca a una caja de TV. Queda escrito porque el día de la
+fusión hay que soltar **dos** y sólo uno está escrito en el manifiesto: el
+vertical lo implica `screenOrientation="portrait"` sin que nadie lo declare, y
+ése es el que no se ve venir.
+
+
 ## 3.bis El diseño, y transmitir a la tele
 
 El diseño de la interfaz está en **`docs/diseno-movil.md`**, con sus maquetas.

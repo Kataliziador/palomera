@@ -74,6 +74,31 @@ class Jellyfin(
 		enviar(ruta, cuerpo)
 	}
 
+	/**
+	 * La imagen de un título, o `null` si no tiene.
+	 *
+	 * Vive aquí y no en las pantallas porque la dirección del site es de esta
+	 * clase: una pantalla que compone URLs necesita conocerla, y entonces hay
+	 * dos sitios que saben dónde está el servidor.
+	 */
+	fun cartel(itemId: String, etiqueta: String?, forma: Forma, tamanoPx: Int): String? =
+		urlDeCartel(baseUrl, itemId, etiqueta, forma, tamanoPx)
+
+	/**
+	 * Buscar en el catálogo del site.
+	 *
+	 * `SearchTerm` y no un filtro por nombre: es lo que Jellyfin indexa, y
+	 * busca también por título original, que es como media gente recuerda una
+	 * película. El límite existe porque esto se consulta mientras se teclea.
+	 */
+	suspend fun buscar(consulta: String, limite: Int = 40): List<Titulo> = leerTitulos(
+		pedir(
+			"/Users/$usuarioId/Items?Recursive=true&IncludeItemTypes=Movie,Series" +
+				"&SearchTerm=" + java.net.URLEncoder.encode(consulta, "UTF-8") +
+				"&Limit=$limite&Fields=ProductionYear",
+		),
+	)
+
 	/** La ficha de un título, o `null` si el site no la da. */
 	suspend fun detalle(id: String): Detalle? = leerDetalle(pedir("/Users/$usuarioId/Items/$id"))
 

@@ -63,6 +63,15 @@ class IdentidadTest : FunSpec({
 		nombreDeAparato(fabricante = "Xiaomi", modelo = "") shouldBe "Xiaomi"
 	}
 
+	test("un fabricante que se llama unknown no se enseña") {
+		// **Medido el 10-nov en el emulador**: el servidor guardó la sesión
+		// como «unknown Android SDK built for x86_64», y eso es lo que el
+		// operador vería en su panel. No es sólo cosa de emuladores: hay
+		// aparatos de marca blanca que dejan ese campo literalmente así.
+		nombreDeAparato(fabricante = "unknown", modelo = "SDK phone") shouldBe "SDK phone"
+		nombreDeAparato(fabricante = "unknown", modelo = "") shouldBe "Teléfono"
+	}
+
 	test("el modelo no repite el fabricante") {
 		// «Xiaomi Xiaomi 2511FPC34G» es lo que sale de concatenar sin mirar.
 		nombreDeAparato(fabricante = "Xiaomi", modelo = "Xiaomi 2511FPC34G") shouldBe "Xiaomi 2511FPC34G"

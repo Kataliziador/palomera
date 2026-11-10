@@ -13,6 +13,14 @@ data class EnProgreso(
 	val porcentaje: Int,
 	/** Lo que falta para el final. Es lo que se enseña; ver [tiempoRestante]. */
 	val minutosRestantes: Int = 0,
+	/**
+	 * La etiqueta de su **fondo apaisado**, no la del cartel.
+	 *
+	 * Este carril es el único de la app con tarjetas horizontales (158×89, o
+	 * sea 16:9), y meterle ahí un cartel vertical recortaría la cara de quien
+	 * salga en él. Si el título no tiene fondo, queda su bloque de color.
+	 */
+	val cartel: String? = null,
 )
 
 /**

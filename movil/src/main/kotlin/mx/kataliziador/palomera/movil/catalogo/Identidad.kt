@@ -50,7 +50,10 @@ fun cabeceraDeAutorizacion(
  * un último recurso.
  */
 fun nombreDeAparato(fabricante: String, modelo: String): String {
-	val fab = fabricante.trim()
+	// **`unknown` no es un fabricante.** Lo ponen los emuladores y algunos
+	// aparatos de marca blanca, y acaba impreso tal cual en el panel del
+	// proveedor: «unknown Android SDK built for x86_64». Medido el 10-nov.
+	val fab = fabricante.trim().takeUnless { it.equals("unknown", ignoreCase = true) }.orEmpty()
 	val mod = modelo.trim()
 
 	return when {
