@@ -9,9 +9,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import mx.kataliziador.palomera.movil.acceso.Puerta
 import mx.kataliziador.palomera.movil.acceso.Sesion
 import mx.kataliziador.palomera.movil.acceso.guardarSesion
+import mx.kataliziador.palomera.movil.acceso.liberarLaTele
+import mx.kataliziador.palomera.movil.acceso.olvidarSesion
 import mx.kataliziador.palomera.movil.acceso.sesionGuardada
 import mx.kataliziador.palomera.movil.ui.acceso.PantallaPuerta
 import org.jellyfin.livetv.config.RegistryRepository
@@ -145,6 +151,24 @@ class MainActivity : ComponentActivity() {
 					// pedirle algo que no sabe.
 					configUrl = destino.first,
 					claveDeCache = destino.second,
+					sesion = efectiva,
+					alCerrarSesion = {
+						// **Se avisa a Jellyfin antes de olvidar el token**,
+						// que es el arreglo que la caja necesitó el 09-nov: sin
+						// eso la sesión queda viva ocupando una de las teles
+						// que permite `MaxActiveSessions`, y al reactivar este
+						// mismo aparato el servidor contesta 403.
+						//
+						// Va por un alcance propio y no por el de la pantalla:
+						// ésta desaparece en cuanto la sesión se olvida.
+						val quien = cabeceraPara(efectiva.token)
+						val donde = efectiva.servidor
+						CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+							liberarLaTele(donde, quien)
+						}
+						olvidarSesion()
+						sesion = null
+					},
 					seccionInicial = when (intent?.getStringExtra("seccion")) {
 						"catalogo" -> Seccion.CATALOGO
 						"envivo" -> Seccion.EN_VIVO

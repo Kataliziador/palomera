@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.EnProgreso
 import mx.kataliziador.palomera.movil.catalogo.sinDuplicados
 import mx.kataliziador.palomera.movil.catalogo.tiempoRestante
+import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 
@@ -73,13 +74,14 @@ fun PantallaInicio(
 	/** Cómo se pide el fondo apaisado de lo que está a medias. */
 	urlDeProgreso: (String) -> String? = { null },
 	alAbrir: (String) -> Unit = {},
+	alAbrirAjustes: () -> Unit = {},
 ) {
 	Column(
 		Modifier
 			.fillMaxSize()
 			.background(Paleta.fondo),
 	) {
-		Cabecera(proveedor, acento)
+		Cabecera(proveedor, acento, alAbrirAjustes)
 
 		Column(
 			Modifier
@@ -101,7 +103,7 @@ fun PantallaInicio(
 }
 
 @Composable
-private fun Cabecera(proveedor: String, acento: Color) {
+private fun Cabecera(proveedor: String, acento: Color, alAbrirAjustes: () -> Unit) {
 	Row(
 		Modifier
 			.fillMaxWidth()
@@ -122,7 +124,27 @@ private fun Cabecera(proveedor: String, acento: Color) {
 				style = Tipografia.tarjeta.copy(color = Paleta.fondo),
 			)
 		}
-		BasicText(proveedor, style = Tipografia.seccion.copy(color = Paleta.tinta))
+		BasicText(
+			proveedor,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
+			style = Tipografia.seccion.copy(color = Paleta.tinta),
+		)
+
+		// **Los ajustes van aquí y no en la barra de abajo.** Esa barra tiene
+		// cuatro destinos y son los que el abonado usa a diario; unos ajustes
+		// que se abren dos veces en la vida no valen un cuarto de ella. Arriba
+		// a la derecha es donde se busca en un teléfono.
+		Box(
+			Modifier
+				.size(BLANCO_TACTIL_DP.dp)
+				.clip(RoundedCornerShape(22.dp))
+				.clickable(onClick = alAbrirAjustes),
+			contentAlignment = Alignment.Center,
+		) {
+			BasicText("⋯", style = Tipografia.titulo.copy(color = Paleta.tintaApagada))
+		}
 	}
 }
 

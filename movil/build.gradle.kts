@@ -55,6 +55,16 @@ android {
 		// que mudar el servidor sea un registro DNS y no una versión nueva.
 		buildConfigField("String", "REGISTRY_URL", "\"https://authjelly.satmx.net\"")
 
+		// **La oferta de la GPL-2.0 necesita una dirección** (`PLAY.md` §5), y
+		// vive junto al nombre del cliente por lo mismo que allí: los sitios que
+		// la usan son varios y a mano se desincronizan. En la caja ya costó un
+		// mes de informes apuntando al repositorio del upstream.
+		buildConfigField(
+			"String",
+			"CLIENT_REPOSITORY",
+			"\"https://github.com/Kataliziador/palomera\"",
+		)
+
 		// **Compilar sólo para el ABI del aparato que se tiene delante.**
 		// Medido el 08-nov: el APK pesa 217 MB y libVLC son 170 de ellos,
 		// repartidos en cuatro ABIs (`MOVIL_PLAN.md` §4.3). Un teléfono usa

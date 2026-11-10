@@ -102,6 +102,26 @@ class Jellyfin(
 	/** La ficha de un título, o `null` si el site no la da. */
 	suspend fun detalle(id: String): Detalle? = leerDetalle(pedir("/Users/$usuarioId/Items/$id"))
 
+	/**
+	 * Los episodios de una serie, todos de una vez.
+	 *
+	 * **Sin paginar y sin pedir temporada.** Una serie del catálogo de un ISP
+	 * tiene decenas de episodios, no miles, y traerlos juntos evita una
+	 * petición por cada vez que el abonado cambia de temporada en la ficha.
+	 */
+	suspend fun episodios(serieId: String): List<Episodio> = leerEpisodios(
+		pedir("/Shows/$serieId/Episodes?userId=$usuarioId&Fields=ItemCounts"),
+	)
+
+	/**
+	 * Por dónde iba el abonado en esta serie, o `null`.
+	 *
+	 * Es lo que decide si el botón dice «Reproducir T1:E1» o «Continuar T2:E5».
+	 * Lo calcula el servidor, que es quien sabe lo que se ha visto.
+	 */
+	suspend fun siguienteEpisodio(serieId: String): Episodio? =
+		leerEpisodios(pedir("/Shows/NextUp?userId=$usuarioId&seriesId=$serieId")).firstOrNull()
+
 	/** Las bibliotecas del site, que son los carriles de Inicio. */
 	suspend fun bibliotecas(): List<BibliotecaDelSite> =
 		leerBibliotecas(pedir("/Users/$usuarioId/Views"))

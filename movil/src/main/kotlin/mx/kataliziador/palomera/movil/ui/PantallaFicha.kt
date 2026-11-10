@@ -44,6 +44,10 @@ import mx.kataliziador.palomera.movil.catalogo.tiempoRestante
 import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
+import androidx.compose.ui.text.style.TextOverflow
+import mx.kataliziador.palomera.movil.catalogo.Episodio
+import mx.kataliziador.palomera.movil.catalogo.etiquetaDeEpisodio
+import mx.kataliziador.palomera.movil.catalogo.rotulo
 
 /**
  * La ficha de un título.
@@ -68,6 +72,17 @@ fun PantallaFicha(
 	val alcance = rememberCoroutineScope()
 	var aviso by remember { mutableStateOf<String?>(null) }
 	val detalle by produceState<Detalle?>(initialValue = null, id) { value = jf.detalle(id) }
+
+	// **Una serie no se puede reproducir, sus episodios sí.** Esta pantalla
+	// servía las dos cosas con el mismo botón y el servidor contestaba
+	// `Error processing request` (medido el 10-nov).
+	val esSerie = detalle?.tipo == "Series"
+	val siguiente by produceState<Episodio?>(initialValue = null, id, esSerie) {
+		value = if (esSerie) jf.siguienteEpisodio(id) else null
+	}
+	val episodios by produceState(initialValue = emptyList<Episodio>(), id, esSerie) {
+		value = if (esSerie) jf.episodios(id) else emptyList()
+	}
 
 
 	Column(
@@ -147,35 +162,53 @@ fun PantallaFicha(
 
 			// El botón dice qué pasa al tocarlo, no cómo se llama la acción.
 			val empezado = d.minutosVistos > 0
+
+			// **Lo que suena no siempre es lo que se está mirando.** En una
+			// serie es un episodio, y el botón dice cuál antes de que lo
+			// pulsen: «Reproducir» a secas, en ocho temporadas, es pedirle al
+			// abonado que pulse para averiguar dónde cae.
+			val etiqueta = when {
+				esSerie && siguiente == null -> "Esta serie aún no tiene episodios"
+				esSerie -> etiquetaDeEpisodio(
+					siguiente?.temporada,
+					siguiente?.numero,
+					empezado = (siguiente?.porcentaje ?: 0) > 0,
+				)
+				empezado -> tiempoRestante(d.minutos - d.minutosVistos).replace("Quedan", "Reanudar ·")
+				else -> "Reproducir"
+			}
+			val sePuede = !esSerie || siguiente != null
+
 			Box(
 				Modifier
 					.fillMaxWidth()
 					.heightIn(min = 48.dp)
 					.clip(RoundedCornerShape(24.dp))
-					.background(acento)
-					.clickable {
-						alcance.launch {
-							when (val r = jf.comoReproducir(d.id, perfil)) {
-								is Reproduccion.Directo -> alReproducir(r.url, d.nombre)
-								// Funciona igual, y se registra: transcodificar
-								// gasta CPU del site, así que conviene saber
-								// cuántas veces pasa y por qué.
-								is Reproduccion.Transcodificado -> {
-									Timber.i("vod.transcodifica titulo=%s motivo=%s", d.nombre, r.motivo)
-									alReproducir(r.url, d.nombre)
+					.background(if (sePuede) acento else Paleta.mosaico)
+					.then(
+						if (!sePuede) {
+							Modifier
+						} else {
+							Modifier.clickable {
+								alcance.launch {
+									reproducir(
+										jf, perfil,
+										if (esSerie) siguiente!!.id else d.id,
+										nombreDeLoQueSuena(d, if (esSerie) siguiente else null),
+										alReproducir,
+									) { aviso = it }
 								}
-								Reproduccion.NoSePuede ->
-									aviso = "Tu proveedor no puede enviarte este título ahora mismo."
 							}
-						}
-					}
+						},
+					)
 					.padding(vertical = 14.dp),
 				contentAlignment = Alignment.Center,
 			) {
 				BasicText(
-					if (empezado) tiempoRestante(d.minutos - d.minutosVistos).replace("Quedan", "Reanudar ·")
-					else "Reproducir",
-					style = Tipografia.cuerpo.copy(color = Paleta.fondo),
+					etiqueta,
+					style = Tipografia.cuerpo.copy(
+						color = if (sePuede) Paleta.fondo else Paleta.tintaSutil,
+					),
 				)
 			}
 
@@ -190,6 +223,22 @@ fun PantallaFicha(
 			// Lo que un abonado consulta antes de darle: en qué idioma lo va a oír.
 			Dato("Audio", d.audios.joinToString(", ").ifBlank { "Una sola pista" })
 			Dato("Subtítulos", d.subtitulos.joinToString(", ").ifBlank { "No trae" })
+
+			if (esSerie && episodios.isNotEmpty()) {
+				Episodios(
+					episodios = episodios,
+					acento = acento,
+					jf = jf,
+				) { episodio ->
+					alcance.launch {
+						reproducir(
+							jf, perfil, episodio.id,
+							nombreDeLoQueSuena(d, episodio),
+							alReproducir,
+						) { aviso = it }
+					}
+				}
+			}
 		}
 	}
 }
@@ -207,3 +256,131 @@ private fun Dato(etiqueta: String, valor: String) {
 
 private fun duracion(minutos: Int): String =
 	if (minutos < 60) "$minutos min" else "${minutos / 60} h ${minutos % 60} min"
+
+/**
+ * Cómo se llama lo que va a sonar, para la barra del reproductor.
+ *
+ * Un episodio se llama «Episodio 1» en casi todas las series del catálogo, y
+ * eso solo no dice de qué serie es. Con la serie delante, sí.
+ */
+private fun nombreDeLoQueSuena(d: Detalle, episodio: Episodio?): String = when (episodio) {
+	null -> d.nombre
+	else -> listOfNotNull(
+		d.nombre,
+		rotulo(episodio.temporada, episodio.numero).takeIf { it.isNotEmpty() },
+	).joinToString(" · ")
+}
+
+/**
+ * Preguntar al servidor cómo ver algo, y llevarlo al reproductor.
+ *
+ * Está suelto porque lo usan los dos botones —el principal y cada episodio— y
+ * duplicarlo dejaría dos sitios donde olvidar el registro de la
+ * transcodificación o el aviso de que no se puede.
+ */
+private suspend fun reproducir(
+	jf: Jellyfin,
+	perfil: String,
+	itemId: String,
+	comoSeLlama: String,
+	alReproducir: (String, String) -> Unit,
+	alFallar: (String) -> Unit,
+) {
+	when (val r = jf.comoReproducir(itemId, perfil)) {
+		is Reproduccion.Directo -> alReproducir(r.url, comoSeLlama)
+		// Funciona igual, y se registra: transcodificar gasta CPU del site, así
+		// que conviene saber cuántas veces pasa y por qué.
+		is Reproduccion.Transcodificado -> {
+			Timber.i("vod.transcodifica titulo=%s motivo=%s", comoSeLlama, r.motivo)
+			alReproducir(r.url, comoSeLlama)
+		}
+		Reproduccion.NoSePuede ->
+			alFallar("Tu proveedor no puede enviarte este título ahora mismo.")
+	}
+}
+
+/**
+ * Los episodios, agrupados por temporada.
+ *
+ * **Sin selector de temporada.** Con una o dos temporadas, un selector es un
+ * toque de más para ver lo que ya cabía; con muchas, el encabezado pegado a su
+ * grupo dice lo mismo mientras se desplaza. El catálogo de un ISP no tiene
+ * series de veinte temporadas.
+ */
+@Composable
+private fun Episodios(
+	episodios: List<Episodio>,
+	acento: Color,
+	jf: Jellyfin,
+	alPulsar: (Episodio) -> Unit,
+) {
+	// `groupBy` conserva el orden de llegada, que es el del servidor: por
+	// temporada y número. No hay que reordenar nada.
+	for ((temporada, delGrupo) in episodios.groupBy { it.temporada }) {
+		BasicText(
+			temporada?.let { "Temporada $it" } ?: "Otros episodios",
+			modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+			style = Tipografia.seccion.copy(color = Paleta.tinta),
+		)
+		for (episodio in delGrupo) {
+			FilaDeEpisodio(episodio, acento, jf, alPulsar)
+		}
+	}
+}
+
+@Composable
+private fun FilaDeEpisodio(
+	episodio: Episodio,
+	acento: Color,
+	jf: Jellyfin,
+	alPulsar: (Episodio) -> Unit,
+) {
+	Row(
+		Modifier
+			.fillMaxWidth()
+			.clip(RoundedCornerShape(8.dp))
+			.clickable { alPulsar(episodio) }
+			.padding(vertical = 7.dp),
+		horizontalArrangement = Arrangement.spacedBy(12.dp),
+	) {
+		Box(Modifier.width(104.dp)) {
+			Cartel(
+				url = jf.cartel(episodio.id, episodio.cartel, Forma.CARTEL, 180),
+				id = episodio.id,
+				descripcion = episodio.nombre,
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(59.dp)
+					.clip(RoundedCornerShape(6.dp)),
+			)
+			// Lo visto, donde ya está la imagen: una barra y no un porcentaje,
+			// que es lo mismo que hace «Seguir viendo».
+			if (episodio.porcentaje > 0) {
+				Box(
+					Modifier
+						.align(Alignment.BottomStart)
+						.fillMaxWidth(episodio.porcentaje / 100f)
+						.height(3.dp)
+						.background(acento),
+				)
+			}
+		}
+		Column {
+			BasicText(
+				listOfNotNull(
+					rotulo(episodio.temporada, episodio.numero).takeIf { it.isNotEmpty() },
+					episodio.nombre,
+				).joinToString("  "),
+				maxLines = 2,
+				overflow = TextOverflow.Ellipsis,
+				style = Tipografia.cuerpo.copy(color = Paleta.tinta),
+			)
+			episodio.minutos.takeIf { it > 0 }?.let {
+				BasicText(
+					duracion(it),
+					style = Tipografia.etiqueta.copy(color = Paleta.tintaSutil),
+				)
+			}
+		}
+	}
+}

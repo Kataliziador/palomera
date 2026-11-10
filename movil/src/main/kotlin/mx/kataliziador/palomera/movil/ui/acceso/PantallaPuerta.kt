@@ -1,5 +1,6 @@
 package mx.kataliziador.palomera.movil.ui.acceso
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -53,6 +54,13 @@ fun PantallaPuerta(
 	// `null` = todavía en el selector. Con valor = ya hay a dónde ir.
 	var destino by remember { mutableStateOf<Pair<String, String>?>(null) }
 	var escribiendoDireccion by remember { mutableStateOf(false) }
+
+	// Lo mismo en la puerta: atrás deshace el paso, no la instalación. En la
+	// primera pantalla se deja pasar — ahí no hay nada que deshacer.
+	BackHandler(enabled = destino != null) { destino = null; escribiendoDireccion = false }
+	BackHandler(enabled = destino == null && escribiendoDireccion) {
+		escribiendoDireccion = false
+	}
 
 	val d = destino
 	when {

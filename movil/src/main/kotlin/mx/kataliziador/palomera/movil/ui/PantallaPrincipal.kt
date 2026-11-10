@@ -1,5 +1,6 @@
 package mx.kataliziador.palomera.movil.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
+import mx.kataliziador.palomera.movil.acceso.Sesion
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Reproduccion
 import mx.kataliziador.palomera.movil.catalogo.seReporta
+import mx.kataliziador.palomera.movil.catalogo.idDeInstalacion
 import mx.kataliziador.palomera.movil.catalogo.perfilDeDispositivo
 import timber.log.Timber
 import org.jellyfin.livetv.config.Brand
@@ -53,6 +56,9 @@ fun PantallaPrincipal(
 	configUrl: String?,
 	/** Con qué nombre se guarda la lista de este site. Ver `destinoDeCanales`. */
 	claveDeCache: String = "sin-servidor",
+	/** La sesión abierta, para los ajustes. `null` con un token de `adb`. */
+	sesion: Sesion? = null,
+	alCerrarSesion: () -> Unit = {},
 	// Para abrir una sección directamente desde `adb`. Existe porque el
 	// teléfono de pruebas tiene denegada la inyección de eventos, así que no se
 	// puede tocar una pestaña desde aquí; sin esto, sólo se puede mirar Inicio.
@@ -75,6 +81,29 @@ fun PantallaPrincipal(
 	var seccion by remember { mutableStateOf(seccionInicial) }
 	var fichaAbierta by remember { mutableStateOf(fichaInicial) }
 	var video by remember { mutableStateOf<Video?>(null) }
+	var enAjustes by remember { mutableStateOf(false) }
+
+	// **El botón atrás de Android tiene que hacer algo aquí.** Sin esto sale
+	// de la app desde cualquier pantalla —ficha, reproductor, ajustes—, y en
+	// un teléfono atrás es el gesto que más se usa: nadie busca la flecha de
+	// la esquina, se desliza desde el borde. Medido el 10-nov en el emulador:
+	// dos «atrás» desde el reproductor dejaban al abonado en el marcador del
+	// teléfono.
+	//
+	// El orden deshace lo último que se abrió, que es lo que la pantalla
+	// enseña encima. Sólo en Inicio se deja pasar, porque ahí salir **es** lo
+	// correcto y atraparlo dejaría una app de la que no se puede salir.
+	BackHandler(enabled = video != null) { video = null }
+	BackHandler(enabled = video == null && enAjustes) { enAjustes = false }
+	BackHandler(enabled = video == null && !enAjustes && fichaAbierta != null) {
+		fichaAbierta = null
+	}
+	BackHandler(
+		enabled = video == null && !enAjustes && fichaAbierta == null &&
+			seccion != Seccion.INICIO,
+	) {
+		seccion = Seccion.INICIO
+	}
 
 	// El perfil del aparato se calcula una vez: leer `MediaCodecList` en cada
 	// reproducción sería preguntar lo mismo al sistema una y otra vez.
@@ -140,6 +169,17 @@ fun PantallaPrincipal(
 		return
 	}
 
+	if (enAjustes && sesion != null) {
+		PantallaAjustes(
+			sesion = sesion,
+			acento = acentoVivo,
+			idDeInstalacion = contexto.idDeInstalacion(),
+			alCerrarSesion = alCerrarSesion,
+			alVolver = { enAjustes = false },
+		)
+		return
+	}
+
 	val abierta = fichaAbierta
 	if (abierta != null) {
 		PantallaFicha(
@@ -161,7 +201,13 @@ fun PantallaPrincipal(
 	) {
 		Box(Modifier.weight(1f)) {
 			when (seccion) {
-				Seccion.INICIO -> InicioConDatos(nombreVivo, acentoVivo, jf) { fichaAbierta = it }
+				Seccion.INICIO -> InicioConDatos(
+					proveedor = nombreVivo,
+					acento = acentoVivo,
+					jf = jf,
+					alAbrir = { fichaAbierta = it },
+					alAbrirAjustes = { enAjustes = true },
+				)
 				Seccion.CATALOGO -> PantallaCatalogo(jf, acentoVivo) { fichaAbierta = it }
 				Seccion.EN_VIVO ->
 					if (configUrl.isNullOrBlank()) Pendiente("Falta la dirección del servicio de canales.")

@@ -25,6 +25,15 @@ data class Detalle(
 	val minutosVistos: Int,
 	/** La etiqueta del fondo apaisado, para la cabecera. */
 	val fondo: String? = null,
+	/**
+	 * `Movie`, `Series`…
+	 *
+	 * No es decorativo: **una serie no se puede reproducir**. Pedirle
+	 * `PlaybackInfo` al servidor con el id de la serie devuelve
+	 * `Error processing request` —medido el 10-nov—, así que la ficha tiene
+	 * que saber qué tiene delante antes de ofrecer un botón.
+	 */
+	val tipo: String = "Movie",
 )
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -56,6 +65,7 @@ fun leerDetalle(cuerpo: String): Detalle? {
 		subtitulos = idiomasDe(pistas, "Subtitle"),
 		minutosVistos = enMinutos(usuario?.get("PlaybackPositionTicks")?.jsonPrimitive?.longOrNull),
 		fondo = (item["BackdropImageTags"] as? JsonArray)?.firstOrNull()?.jsonPrimitive?.contentOrNull,
+		tipo = item.texto("Type") ?: "Movie",
 	)
 }
 

@@ -34,6 +34,7 @@ fun InicioConDatos(
 	acento: Color,
 	jf: Jellyfin,
 	alAbrir: (String) -> Unit,
+	alAbrirAjustes: () -> Unit = {},
 ) {
 	val datos by produceState<Datos?>(initialValue = null, jf) {
 		// Las bibliotecas primero: son las que deciden qué carriles hay, y el
@@ -70,6 +71,7 @@ fun InicioConDatos(
 		acento = acento,
 		enProgreso = d.enProgreso,
 		carriles = d.carriles,
+		alAbrirAjustes = alAbrirAjustes,
 		urlDeProgreso = { id ->
 			d.enProgreso.firstOrNull { it.id == id }
 				?.let { jf.cartel(it.id, it.cartel, Forma.FONDO, 480) }
