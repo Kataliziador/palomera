@@ -30,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import mx.kataliziador.palomera.movil.BuildConfig
+import mx.kataliziador.palomera.movil.Identidad
 import mx.kataliziador.palomera.movil.acceso.Sesion
 import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
@@ -48,7 +48,7 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
  *    logo como marca propia;
  * 2. **las licencias con su dirección** — la GPL-2.0 exige una oferta del
  *    código fuente, y una oferta sin dirección no es una oferta. Sale de
- *    `BuildConfig.CLIENT_REPOSITORY`, no escrita a mano, porque en la caja ya
+ *    `identidad.repositorio`, no escrita a mano, porque en la caja ya
  *    costó un mes de informes apuntando al repositorio equivocado;
  * 3. **de quién es el contenido** — una sola app sirve a varios ISPs y lo que
  *    se ve en ella es de cada uno. Es lo que un revisor de una app de
@@ -61,6 +61,7 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 @Composable
 fun PantallaAjustes(
 	sesion: Sesion,
+	identidad: Identidad,
 	acento: Color,
 	idDeInstalacion: String,
 	alCerrarSesion: () -> Unit,
@@ -136,12 +137,12 @@ fun PantallaAjustes(
 			Apartado("Licencias del software")
 			Parrafo(
 				"Derivada de jellyfin-androidtv, bajo GPL-2.0. Código fuente: " +
-					BuildConfig.CLIENT_REPOSITORY,
+					identidad.repositorio,
 			)
 
 			Spacer(Modifier.height(12.dp))
 			Apartado("Esta instalación")
-			Dato("Versión", BuildConfig.VERSION_NAME)
+			Dato("Versión", identidad.version)
 			// Es lo que se le pide a un abonado para encontrar su caso en los
 			// registros, y por eso está a la vista y se puede leer en voz alta.
 			Dato("Identificador", idDeInstalacion)

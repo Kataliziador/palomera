@@ -134,7 +134,15 @@
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.VIEW" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <!--
+                  **`LAUNCHER` se fue el 10-nov, y es la mitad de la APK
+                  única.** Esta actividad es la interfaz de mando a distancia;
+                  con `LAUNCHER` puesto, un abonado que instalara la app en su
+                  teléfono se encontraba una interfaz de caja. Ahora el
+                  lanzador de teléfono abre `PalomeraTactilActivity` y el de
+                  televisión abre ésta — lo decide el sistema, sin una línea
+                  de código y sin poder equivocarse.
+                -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
 
@@ -142,6 +150,25 @@
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
+        <!--
+          **La entrada en un teléfono.** Lleva `LAUNCHER` y no
+          `LEANBACK_LAUNCHER`, que es lo que hace que una caja no la vea.
+          `configChanges` para que girar o abrir el teclado no recree la
+          pantalla; el vertical lo fija la propia actividad **desde el
+          código**, porque declararlo aquí implicaría
+          `android.hardware.screen.portrait` y filtraría el catálogo de Play.
+        -->
+        <activity
+            android:name=".ui.tactil.PalomeraTactilActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <activity-alias
             android:name=".startup.StartupActivity"
             android:targetActivity=".ui.startup.StartupActivity" />

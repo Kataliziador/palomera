@@ -293,6 +293,33 @@ no tocarlo pero alterar su comportamiento desde fuera está prohibido.
      invariante se mantiene —los casos `MOVIES`, `TVSHOWS` y `MUSIC` no se
      tocan— y **exige que Edgar compruebe en pantalla que sus bibliotecas
      siguen abriéndose igual**;
+   - **la puerta de la interfaz táctil** — `ui/tactil/PalomeraTactilActivity.kt`
+     y la pérdida de `LAUNCHER` en `StartupActivity` **(añadidos el 10-nov)**.
+     Es la APK única: hasta ese día la app de teléfono era un
+     `applicationId` aparte, o sea **una segunda ficha en Play**, y se unificó
+     antes del primer envío porque Play fija el nombre de paquete en esa
+     subida — publicar `…​.movil` una vez habría cerrado la puerta para
+     siempre, y volver atrás exigiría una app nueva y migrar a todos los
+     abonados. El coste de dos fichas es el que §8 ya rechazó para los
+     flavors —«nunca fue programarlos, era publicar»— y el del tamaño no
+     existía: **medido el 10-nov, las dos APKs llevaban los mismos 16
+     archivos nativos**, 189 MB de libVLC y Media3.
+
+     **Quién abre qué lo decide el lanzador, no el código**: esta actividad
+     lleva `LAUNCHER` y `StartupActivity` se queda con `LEANBACK_LAUNCHER`, así
+     que una caja abre la de siempre y un teléfono la táctil, sin una rama que
+     pueda equivocarse. Y **aun así verifica**: hay cajas que ignoran la
+     categoría de Leanback, y si la táctil se abre en una, cede a
+     `StartupActivity` en vez de enseñar una interfaz de dedo a quien tiene un
+     mando. Comprobado en la Skyworth: acaba en la interfaz de TV.
+
+     **`StartupActivity` no cambia una línea de código**, sólo pierde una
+     categoría del manifiesto, así que el invariante del VOD no se toca. Lo
+     que sí **exige que Edgar compruebe en pantalla** es que la caja sigue
+     abriéndose desde su lanzador como siempre. Medido el arranque en frío en
+     la Skyworth, cinco muestras por condición y una sola caja (§9): mediana
+     **5353 ms antes y 5376 después**, o sea ruido; el dex crece 0,6 MB;
+
    - **archivos de compilación** — `app/build.gradle.kts`,
      `settings.gradle.kts`, `.gitignore` y `gradle/libs.versions.toml`. El
      primero lleva además el `applicationId`, que es identidad publicada y no

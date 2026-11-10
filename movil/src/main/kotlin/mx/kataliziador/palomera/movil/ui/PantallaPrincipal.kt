@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
+import mx.kataliziador.palomera.movil.Identidad
 import mx.kataliziador.palomera.movil.acceso.Sesion
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Reproduccion
@@ -59,6 +60,8 @@ fun PantallaPrincipal(
 	claveDeCache: String = "sin-servidor",
 	/** La sesión abierta, para los ajustes. `null` con un token de `adb`. */
 	sesion: Sesion? = null,
+	/** Quién es esta app. La necesita la pantalla de avisos legales. */
+	identidad: Identidad? = null,
 	alCerrarSesion: () -> Unit = {},
 	// Para abrir una sección directamente desde `adb`. Existe porque el
 	// teléfono de pruebas tiene denegada la inyección de eventos, así que no se
@@ -174,9 +177,10 @@ fun PantallaPrincipal(
 		return
 	}
 
-	if (enAjustes && sesion != null) {
+	if (enAjustes && sesion != null && identidad != null) {
 		PantallaAjustes(
 			sesion = sesion,
+			identidad = identidad,
 			acento = acentoVivo,
 			idDeInstalacion = contexto.idDeInstalacion(),
 			alCerrarSesion = alCerrarSesion,

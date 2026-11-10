@@ -40,6 +40,8 @@ ROJO, VERDE, GRIS, FIN = "\033[31m", "\033[32m", "\033[90m", "\033[0m"
 # es un error o hay que justificarlo en el commit **y** añadirlo a §4.7; eso
 # último lo manda el propio documento.
 PERMITIDO = [
+	# La puerta de la interfaz táctil: es la APK única (CLAUDE.md §4.7).
+	"app/src/main/java/org/jellyfin/androidtv/ui/tactil/",
 	# archivos de compilación
 	r"^\.gitignore$",
 	r"^settings\.gradle\.kts$",

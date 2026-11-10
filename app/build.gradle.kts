@@ -348,6 +348,9 @@ dependencies {
 
 	// LiveTV — el motor de canales en vivo
 	implementation(projects.livetv)
+	// La interfaz táctil. **Es una biblioteca, no una app**: desde el 10-nov
+	// hay una sola APK y una sola ficha, y `:app` elige qué interfaz enseñar.
+	implementation(projects.movil)
 
 	// Markdown
 	implementation(libs.bundles.markwon)

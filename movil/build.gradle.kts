@@ -1,26 +1,33 @@
 plugins {
-	id("com.android.application")
+	id("com.android.library")
 	kotlin("android")
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.kotlin.compose)
 }
 
-// **Identidad publicada, y lo único irreversible de este módulo.** Play fija el
-// nombre de paquete en el primer envío. Es un segundo paquete y por tanto una
-// segunda ficha: el de la TV (`mx.kataliziador.palomera`) sólo puede llevar un
-// juego de APKs, y su interfaz es Leanback.
+// **Ya no es una app: es la interfaz táctil de la única APK.**
 //
-// **Provisional hasta que Edgar lo confirme** (ver `MOVIL_PLAN.md` §8). Mientras
-// sólo se compile en depuración no compromete nada, porque el sufijo `.debug`
-// hace que el id instalado no sea éste.
-val appId = "mx.kataliziador.palomera.movil"
+// Hasta el 10-nov esto era `com.android.application` con su propio
+// `applicationId`, o sea una segunda ficha en Play. Se unifica antes del
+// primer envío porque Play fija el nombre de paquete en esa subida y después
+// no se cambia: una vez publicado `…​.movil`, volver atrás exigiría una app
+// nueva y migrar a todos los abonados.
+//
+// El coste de dos fichas es el que §8 ya rechazó para los flavors por ISP —
+// «nunca fue programarlos, era publicar»— y el del tamaño no existía:
+// **medido el 10-nov, las dos APKs llevaban los mismos 16 archivos nativos**,
+// 189 MB de libVLC y Media3, así que una sola pesa casi lo mismo que una.
+//
+// El paquete Kotlin se queda como estaba. Es el `namespace`, sólo existe en
+// tiempo de compilación y renombrarlo movería 40 archivos sin que nadie lo
+// note.
+val namespaceMovil = "mx.kataliziador.palomera.movil"
 
 android {
-	namespace = appId
+	namespace = namespaceMovil
 	compileSdk = libs.versions.android.compileSdk.get().toInt()
 
 	defaultConfig {
-		applicationId = appId
 
 		// **El mismo que `app` y `livetv`, y es la condición de la APK única.**
 		// Bajado de 24 a 21 el 10-nov: mientras `movil` fuera una app aparte el
@@ -40,8 +47,6 @@ android {
 		minSdk = libs.versions.android.minSdk.get().toInt()
 		targetSdk = libs.versions.android.targetSdk.get().toInt()
 
-		versionCode = 1
-		versionName = "0.0.1-esqueleto"
 
 		// **§8: la app se presenta al Jellyfin del ISP como «Palomera».** No es la
 		// marca del ISP —esa viste la app por dentro—: es lo que el operador ve en
@@ -102,7 +107,6 @@ android {
 		debug {
 			// Para poder tener instaladas la de release y la de depuración a la
 			// vez, igual que hace `:app`.
-			applicationIdSuffix = ".debug"
 			buildConfigField("boolean", "DEVELOPMENT", "true")
 		}
 
