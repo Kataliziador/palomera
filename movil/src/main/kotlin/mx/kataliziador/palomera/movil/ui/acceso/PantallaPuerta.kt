@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -52,8 +53,8 @@ fun PantallaPuerta(
 	alEntrar: (Sesion) -> Unit,
 ) {
 	// `null` = todavía en el selector. Con valor = ya hay a dónde ir.
-	var destino by remember { mutableStateOf<Pair<String, String>?>(null) }
-	var escribiendoDireccion by remember { mutableStateOf(false) }
+	var destino by rememberSaveable { mutableStateOf<Pair<String, String>?>(null) }
+	var escribiendoDireccion by rememberSaveable { mutableStateOf(false) }
 
 	// Lo mismo en la puerta: atrás deshace el paso, no la instalación. En la
 	// primera pantalla se deja pasar — ahí no hay nada que deshacer.

@@ -31,6 +31,17 @@ class Jellyfin(
 	 */
 	private val cabecera: String = "MediaBrowser Token=\"$token\"",
 ) {
+	/**
+	 * El código HTTP de la última petición, o `null` si no hubo ni respuesta.
+	 *
+	 * **Lo que distingue una pantalla vacía de una pantalla que explica.** Sin
+	 * esto, un abonado dado de baja y uno sin cobertura ven exactamente lo
+	 * mismo: negro (medido el 10-nov). Ver [estadoDelCatalogo].
+	 */
+	@Volatile
+	var ultimoCodigo: Int? = null
+		private set
+
 	/** Lo dejado a medias. Vacío en una cuenta nueva, que es el primer día de un probador. */
 	suspend fun enProgreso(limite: Int = 12): List<EnProgreso> =
 		leerEnProgreso(pedir("/Users/$usuarioId/Items/Resume?Limit=$limite&MediaTypes=Video&Fields=RunTimeTicks"))
@@ -175,12 +186,16 @@ class Jellyfin(
 			}
 			conexion.outputStream.use { it.write(cuerpo.toByteArray()) }
 			val codigo = conexion.responseCode
+			ultimoCodigo = codigo
 			if (codigo !in 200..299) {
 				Timber.w("catalogo.noContesta ruta=%s codigo=%d", ruta, codigo)
 				return@withContext ""
 			}
 			conexion.inputStream.bufferedReader().use { it.readText() }
 		} catch (err: Exception) {
+			// Sin código: ni siquiera hubo respuesta, que es un caso distinto
+			// de cualquier error HTTP y lleva a otro mensaje.
+			ultimoCodigo = null
 			Timber.w(err, "catalogo.falló ruta=%s motivo=%s", ruta, err::class.simpleName)
 			""
 		} finally {
@@ -204,12 +219,16 @@ class Jellyfin(
 				setRequestProperty("Authorization", cabecera)
 			}
 			val codigo = conexion.responseCode
+			ultimoCodigo = codigo
 			if (codigo !in 200..299) {
 				Timber.w("catalogo.noContesta ruta=%s codigo=%d", ruta, codigo)
 				return@withContext ""
 			}
 			conexion.inputStream.bufferedReader().use { it.readText() }
 		} catch (err: Exception) {
+			// Sin código: ni siquiera hubo respuesta, que es un caso distinto
+			// de cualquier error HTTP y lleva a otro mensaje.
+			ultimoCodigo = null
 			Timber.w(err, "catalogo.falló ruta=%s motivo=%s", ruta, err::class.simpleName)
 			""
 		} finally {

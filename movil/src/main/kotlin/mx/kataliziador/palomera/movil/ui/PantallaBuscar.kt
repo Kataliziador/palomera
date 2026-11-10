@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +73,7 @@ fun PantallaBuscar(
 	alAbrirTitulo: (String) -> Unit,
 	alAbrirCanal: (ChannelProfile) -> Unit,
 ) {
-	var consulta by remember { mutableStateOf("") }
+	var consulta by rememberSaveable { mutableStateOf("") }
 	var titulos by remember { mutableStateOf(emptyList<Titulo>()) }
 	var buscando by remember { mutableStateOf(false) }
 

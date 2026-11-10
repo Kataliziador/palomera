@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,10 +79,14 @@ fun PantallaPrincipal(
 	 */
 	cerrarVideoEnS: Int? = null,
 ) {
-	var seccion by remember { mutableStateOf(seccionInicial) }
-	var fichaAbierta by remember { mutableStateOf(fichaInicial) }
+	// **`rememberSaveable` y no `remember`.** Android recrea la actividad por
+	// su cuenta —poca memoria, el abonado cambia de app y vuelve, un ajuste
+	// del sistema— y con `remember` todo esto se pierde: la sección, la ficha
+	// abierta. El abonado volvía a Inicio sin haber tocado nada.
+	var seccion by rememberSaveable { mutableStateOf(seccionInicial) }
+	var fichaAbierta by rememberSaveable { mutableStateOf(fichaInicial) }
 	var video by remember { mutableStateOf<Video?>(null) }
-	var enAjustes by remember { mutableStateOf(false) }
+	var enAjustes by rememberSaveable { mutableStateOf(false) }
 
 	// **El botón atrás de Android tiene que hacer algo aquí.** Sin esto sale
 	// de la app desde cualquier pantalla —ficha, reproductor, ajustes—, y en

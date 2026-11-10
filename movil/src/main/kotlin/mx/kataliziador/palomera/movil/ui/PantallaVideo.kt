@@ -45,6 +45,17 @@ import mx.kataliziador.palomera.movil.catalogo.tocaLatido
 import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 
 /**
  * El reproductor.
@@ -79,6 +90,8 @@ fun PantallaVideo(
 	var reproduciendo by remember { mutableStateOf(true) }
 	var posicion by remember { mutableLongStateOf(0L) }
 	var duracion by remember { mutableLongStateOf(0L) }
+	// La forma del vídeo. Llega con el primer fotograma, no antes.
+	var aspecto by remember { mutableDoubleStateOf(0.0) }
 
 	val exo = remember {
 		ExoPlayer.Builder(contexto).build().apply {
@@ -88,12 +101,43 @@ fun PantallaVideo(
 		}
 	}
 
+	// **Se pausa al salir de la pantalla, y es un requisito de teléfono.**
+	// Medido el 10-nov en el emulador: con HOME pulsado la película seguía —el
+	// servidor marcaba `pausa: False` y el audio del aparato `state:started`—,
+	// así que al abonado se le gastaban datos y batería en el bolsillo y
+	// «Seguir viendo» avanzaba sin que nadie mirase. En una caja esto no
+	// existe; una tele no se guarda en un bolsillo.
+	//
+	// **No se reanuda solo al volver.** Quien vuelve a la app puede estar
+	// volviendo a otra cosa, y arrancar sonido sin que lo pidan es peor que
+	// un botón de más. La barra aparece con «Reproducir».
+	val duenoDelCiclo = LocalLifecycleOwner.current
+	DisposableEffect(duenoDelCiclo) {
+		val vigia = LifecycleEventObserver { _, evento ->
+			if (evento == Lifecycle.Event.ON_PAUSE || evento == Lifecycle.Event.ON_STOP) {
+				exo.pause()
+			}
+		}
+		duenoDelCiclo.lifecycle.addObserver(vigia)
+		onDispose { duenoDelCiclo.lifecycle.removeObserver(vigia) }
+	}
+
 	// **El aviso de fin necesita sobrevivir a la pantalla que lo manda.** Al
 	// salir, la corrutina del latido ya está cancelada y el `exo` a punto de
 	// soltarse, así que la posición se lee **antes** de soltar nada y el envío
 	// va por un alcance propio: `rememberCoroutineScope()` se cancela justo en
 	// ese instante, que es cuando hace falta.
 	val alcanceDeSalida = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+	DisposableEffect(exo) {
+		val oyente = object : Player.Listener {
+			override fun onVideoSizeChanged(tamano: VideoSize) {
+				aspecto = aspectoDeVideo(tamano.width, tamano.height, tamano.pixelWidthHeightRatio)
+			}
+		}
+		exo.addListener(oyente)
+		onDispose { exo.removeListener(oyente) }
+	}
+
 	DisposableEffect(Unit) {
 		onDispose {
 			val ultima = exo.currentPosition.coerceAtLeast(0L)
@@ -138,10 +182,29 @@ fun PantallaVideo(
 	Box(
 		Modifier
 			.fillMaxSize()
-			.background(Color.Black)
-			.clickable { controlesVisibles = !controlesVisibles },
+			.background(Color.Black),
 	) {
-		AndroidViewDelVideo(exo)
+		AndroidViewDelVideo(exo, aspecto)
+
+		// **La capa del toque va encima del vídeo, no debajo.** Medido el
+		// 10-nov: con el `clickable` en el contenedor, el `SurfaceView` del
+		// `AndroidView` se comía el toque y los controles, una vez ocultos a
+		// los 4 s, **no volvían nunca**. Sin ellos no hay pausa, ni retroceso,
+		// ni título — y antes de que existiera el `BackHandler`, tampoco
+		// salida.
+		//
+		// Los botones se dibujan después de esta capa, así que reciben el
+		// toque antes que ella: pulsar «Pausa» pausa, y no esconde la barra.
+		Box(
+			Modifier
+				.fillMaxSize()
+				.clickable(
+					// Sin onda ni resalte: esto es la pantalla entera, y un
+					// destello al tocar un vídeo se lee como un fallo.
+					indication = null,
+					interactionSource = remember { MutableInteractionSource() },
+				) { controlesVisibles = !controlesVisibles },
+		)
 
 		if (!controlesVisibles) return@Box
 
@@ -156,13 +219,22 @@ fun PantallaVideo(
 		Box(
 			Modifier
 				.fillMaxWidth()
-				.height(140.dp)
+				.height(190.dp)
 				.align(Alignment.BottomCenter)
 				.background(Color.Black.copy(alpha = 0.65f)),
 		)
 
+		// **Los controles respetan las zonas del sistema; el vídeo no.**
+		// Medido el 10-nov: sin esto, «Pausa», «−10 s» y «+10 s» caían detrás
+		// de la barra de navegación de Android y no se podían pulsar, y el
+		// título se pintaba donde va el reloj. El vídeo sí ocupa la pantalla
+		// entera a propósito — es lo que se ha venido a ver.
 		Row(
-			Modifier.align(Alignment.TopStart).padding(6.dp, 10.dp).fillMaxWidth(),
+			Modifier
+				.align(Alignment.TopStart)
+				.windowInsetsPadding(WindowInsets.safeDrawing)
+				.padding(6.dp, 10.dp)
+				.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			Box(
@@ -180,7 +252,11 @@ fun PantallaVideo(
 		}
 
 		Column(
-			Modifier.align(Alignment.BottomStart).padding(16.dp, 14.dp).fillMaxWidth(),
+			Modifier
+				.align(Alignment.BottomStart)
+				.windowInsetsPadding(WindowInsets.safeDrawing)
+				.padding(16.dp, 14.dp)
+				.fillMaxWidth(),
 			verticalArrangement = Arrangement.spacedBy(10.dp),
 		) {
 			if (!enDirecto && duracion > 0) {
@@ -228,13 +304,33 @@ fun PantallaVideo(
 	}
 }
 
+/**
+ * El vídeo, **con su forma**.
+ *
+ * Hasta el 10-nov era un `SurfaceView` a `fillMaxSize()` sin corrección
+ * ninguna, así que un canal 16:9 se estiraba a los 1080×2400 de un teléfono
+ * en vertical. Se vio en Las Estrellas: el logo del anuncio salía alargado.
+ *
+ * Se centra y se le da su proporción —incluido el SAR, que §6 exige por los
+ * canales anamórficos— dejando banda negra donde sobre. `SurfaceView` y no
+ * `TextureView`, que es lo que §6 fija también.
+ */
 @OptIn(UnstableApi::class)
 @Composable
-private fun AndroidViewDelVideo(exo: ExoPlayer) {
-	androidx.compose.ui.viewinterop.AndroidView(
-		factory = { ctx -> SurfaceView(ctx).also { exo.setVideoSurfaceView(it) } },
-		modifier = Modifier.fillMaxSize(),
-	)
+private fun AndroidViewDelVideo(exo: ExoPlayer, aspecto: Double) {
+	Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+		androidx.compose.ui.viewinterop.AndroidView(
+			factory = { ctx -> SurfaceView(ctx).also { exo.setVideoSurfaceView(it) } },
+			modifier = if (aspecto > 0.0) {
+				Modifier.fillMaxWidth().aspectRatio(aspecto.toFloat())
+			} else {
+				// Todavía sin tamaño: ocupa todo y se recoloca al llegar el
+				// primer fotograma. Un salto en el primer segundo es mejor que
+				// una forma inventada que puede no ser la buena.
+				Modifier.fillMaxSize()
+			},
+		)
+	}
 }
 
 @Composable

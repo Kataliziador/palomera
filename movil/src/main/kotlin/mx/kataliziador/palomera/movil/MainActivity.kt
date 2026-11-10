@@ -20,6 +20,7 @@ import mx.kataliziador.palomera.movil.acceso.liberarLaTele
 import mx.kataliziador.palomera.movil.acceso.olvidarSesion
 import mx.kataliziador.palomera.movil.acceso.sesionGuardada
 import mx.kataliziador.palomera.movil.ui.acceso.PantallaPuerta
+import org.jellyfin.livetv.config.Brand
 import org.jellyfin.livetv.config.RegistryRepository
 import androidx.compose.ui.graphics.Color
 import mx.kataliziador.palomera.movil.catalogo.EnProgreso
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
 				efectiva == null -> {
 					val registro = remember { RegistryRepository(applicationContext) }
 					PantallaPuerta(
-						acento = ACENTO_DE_MUESTRA,
+						acento = ACENTO_NEUTRO,
 						preguntarAlRegistro = { codigo ->
 							registro.proveedor(BuildConfig.REGISTRY_URL, codigo)
 						},
@@ -134,8 +135,8 @@ class MainActivity : ComponentActivity() {
 				}
 
 				else -> PantallaPrincipal(
-					proveedor = efectiva.proveedor ?: PROVEEDOR_DE_MUESTRA,
-					acento = ACENTO_DE_MUESTRA,
+					proveedor = efectiva.proveedor ?: PROVEEDOR_NEUTRO,
+					acento = ACENTO_NEUTRO,
 					jf = Jellyfin(
 						baseUrl = efectiva.servidor,
 						token = efectiva.token,
@@ -193,5 +194,17 @@ class MainActivity : ComponentActivity() {
 // `comprobar.py h)` lo rechazaría. Se pasa por `adb` con `--es config <url>`.
 private const val CONFIG_DE_MUESTRA = ""
 
-private const val PROVEEDOR_DE_MUESTRA = "TotalPlay"
-private val ACENTO_DE_MUESTRA = Color(0xFFC8E04A)
+/**
+ * La marca que se ve **antes de que llegue la del ISP**.
+ *
+ * Sale de `Brand.NEUTRA`, que es donde `CLAUDE.md` §8 la pone, y **no de una
+ * cadena escrita aquí**. Hasta el 10-nov eran «TotalPlay» y un verde lima
+ * inventados, y se veían de verdad: con el token caducado el `config.json` no
+ * carga y la cabecera enseñaba la marca de **otra empresa** al abonado de un
+ * ISP cualquiera. Medido ese día en el emulador.
+ *
+ * Es además §5.12 al pie de la letra: ni marca, ni color, ni nombre escritos
+ * en el módulo.
+ */
+private val PROVEEDOR_NEUTRO = Brand.NEUTRA.displayName
+private val ACENTO_NEUTRO = Color(Brand.NEUTRA.accent)

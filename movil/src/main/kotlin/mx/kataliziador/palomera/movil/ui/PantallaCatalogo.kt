@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,8 +52,8 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
  */
 @Composable
 fun PantallaCatalogo(jf: Jellyfin, acento: Color, alAbrir: (String) -> Unit) {
-	var esSerie by remember { mutableStateOf(false) }
-	var proveedor by remember { mutableStateOf<String?>(null) }
+	var esSerie by rememberSaveable { mutableStateOf(false) }
+	var proveedor by rememberSaveable { mutableStateOf<String?>(null) }
 
 	val bibliotecas by produceState(initialValue = emptyList<BibliotecaDelSite>()) {
 		value = jf.bibliotecas()

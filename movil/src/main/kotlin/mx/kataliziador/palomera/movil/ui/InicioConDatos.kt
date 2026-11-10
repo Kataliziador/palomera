@@ -20,6 +20,12 @@ import mx.kataliziador.palomera.movil.catalogo.Jellyfin
 import mx.kataliziador.palomera.movil.catalogo.Titulo
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
 import mx.kataliziador.palomera.movil.ui.tema.Tipografia
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import mx.kataliziador.palomera.movil.catalogo.EstadoDelCatalogo
+import mx.kataliziador.palomera.movil.catalogo.estadoDelCatalogo
 
 /**
  * Inicio con el catálogo del ISP de verdad.
@@ -53,6 +59,15 @@ fun InicioConDatos(
 	}
 
 	val d = datos
+
+	// **Una pantalla vacía no explica nada, y eso es lo que había.** Con el
+	// token revocado se veía negro entre la cabecera y la barra; el registro
+	// decía `401` y el abonado no (medido el 10-nov en el emulador).
+	if (d != null && d.enProgreso.isEmpty() && d.carriles.isEmpty()) {
+		SinCatalogo(estadoDelCatalogo(hayContenido = false, ultimoCodigo = jf.ultimoCodigo))
+		return
+	}
+
 	if (d == null) {
 		Box(
 			Modifier.fillMaxSize().background(Paleta.fondo).padding(32.dp),
@@ -113,3 +128,55 @@ private fun carril(nombre: String, titulos: List<Titulo>, jf: Jellyfin): Carril?
 		)
 	}
 
+/**
+ * Lo que se enseña cuando no hay catálogo, y **por qué** no lo hay.
+ *
+ * Cada caso lleva a una acción distinta del abonado, así que no comparten
+ * texto: mandar a reactivar a quien está suspendido le deja entrar sin pagar,
+ * y mandar a mirar el router a quien tiene el token caducado le hace perder la
+ * tarde.
+ */
+@Composable
+private fun SinCatalogo(estado: EstadoDelCatalogo) {
+	val (titulo, detalle) = when (estado) {
+		EstadoDelCatalogo.SesionCaducada ->
+			"Hay que activar este teléfono otra vez" to
+				"Tu sesión ya no es válida. Cierra sesión desde Ajustes y vuelve a " +
+					"activarlo con el código de tu proveedor."
+
+		EstadoDelCatalogo.Suspendido ->
+			"Tu servicio está suspendido" to
+				"Llama a tu proveedor para reactivarlo. Volver a activar el teléfono " +
+					"no lo soluciona."
+
+		EstadoDelCatalogo.SinConexion ->
+			"No podemos contactar con tu proveedor" to
+				"Comprueba que tienes conexión y que estás en la red de tu proveedor. " +
+					"Lo volveremos a intentar solo."
+
+		EstadoDelCatalogo.Vacio ->
+			"Todavía no hay nada que ver" to
+				"Tu proveedor aún no ha publicado películas ni series. Los canales en " +
+					"vivo sí pueden estar disponibles."
+
+		// No se llega: con contenido no se pinta esta pantalla. Está por el
+		// `when` exhaustivo, que es lo que avisa si mañana se añade un estado.
+		EstadoDelCatalogo.Bien -> return
+	}
+
+	Column(
+		Modifier.fillMaxSize().background(Paleta.fondo).padding(32.dp),
+		verticalArrangement = Arrangement.Center,
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		BasicText(
+			titulo,
+			style = Tipografia.titulo.copy(color = Paleta.tinta),
+		)
+		Spacer(Modifier.height(10.dp))
+		BasicText(
+			detalle,
+			style = Tipografia.cuerpo.copy(color = Paleta.tintaApagada),
+		)
+	}
+}
