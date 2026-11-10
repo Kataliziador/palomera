@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
 						else -> Seccion.INICIO
 					},
 					fichaInicial = intent?.getStringExtra("ficha"),
+					reproducirAlArrancar = intent?.getStringExtra("reproducir"),
 				)
 				else -> PantallaInicio(
 					proveedor = PROVEEDOR_DE_MUESTRA,

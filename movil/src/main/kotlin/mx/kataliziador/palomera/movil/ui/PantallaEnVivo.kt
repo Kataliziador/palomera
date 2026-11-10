@@ -57,7 +57,7 @@ import org.jellyfin.livetv.source.ChannelProfile
  * que no ocurre (`docs/diseno-movil.md` §5).
  */
 @Composable
-fun PantallaEnVivo(configUrl: String) {
+fun PantallaEnVivo(configUrl: String, alVerCanal: (url: String, nombre: String) -> Unit = { _, _ -> }) {
 	val contexto = LocalContext.current
 	var grupoElegido by remember { mutableStateOf<String?>(null) }
 
@@ -100,7 +100,7 @@ fun PantallaEnVivo(configUrl: String) {
 				)
 
 				LazyColumn(Modifier.weight(1f)) {
-					items(canales, key = { it.id }) { canal -> Renglon(canal) }
+					items(canales, key = { it.id }) { canal -> Renglon(canal, alVerCanal) }
 				}
 			}
 		}
@@ -163,12 +163,12 @@ private fun Pastilla(texto: String, activa: Boolean, acento: Color, alPulsar: ()
 }
 
 @Composable
-private fun Renglon(canal: ChannelProfile) {
+private fun Renglon(canal: ChannelProfile, alVerCanal: (String, String) -> Unit) {
 	Row(
 		Modifier
 			.fillMaxWidth()
 			.heightIn(min = BLANCO_TACTIL_DP.dp + 20.dp)
-			.clickable { }
+			.clickable { alVerCanal(canal.url, canal.name) }
 			.padding(horizontal = 16.dp, vertical = 10.dp),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -496,10 +496,31 @@ de cadencia 3:2 incluido. **No se cierra del todo** hasta verlo en un teléfono
 de gama baja, que es el parque real de un abonado; pero deja de ser el riesgo
 que podía duplicar el proyecto.
 
-**R2 · El perfil de dispositivo del VOD.** §5. Falla en los dos sentidos y el
-caro es el silencioso: el servidor del ISP transcodificando para veinte casas
-sin que nadie se entere hasta que su CPU llega al techo. *Detección:* la matriz
-de la fase 3, con biblioteca real. *Mitigado* por tener `MediaCodecList`.
+**R2 · El perfil de dispositivo del VOD — medido el 09-nov, y era real.** §5.
+Falla en los dos sentidos y el caro es el silencioso: el servidor del ISP
+transcodificando para veinte casas sin que nadie se entere hasta que su CPU
+llega al techo.
+
+**Ya ocurrió, con el primer perfil que escribí.** Contra «Top Gun: Maverick»
+del site de los probadores —un `mkv` con un `.srt` al lado— el servidor
+contestó `SupportsDirectPlay: false` y ofreció transcodificar. La diferencia
+era **una línea**:
+
+| perfil | resultado |
+|---|---|
+| sin declarar subtítulos externos | `directPlay: false` → **el site transcodifica** |
+| declarando `subrip`/`srt` como `External` | `directPlay: true` |
+
+Sin esa línea, el servidor decide **incrustar** los subtítulos, y para eso tiene
+que convertir el vídeo entero. Este catálogo trae `.srt` junto a las películas,
+así que afectaba a casi todas.
+
+Está fijado por una prueba que falla si alguien la quita, y el perfil se
+construye desde `DeviceCapabilities` —lo que el aparato **tiene**, no una lista
+escrita a mano—, que viene del módulo `:livetv`.
+
+*Lo que sigue sin medir:* la matriz de la fase 3, veinte títulos de dos ISPs.
+Un título no es un catálogo.
 
 **R3 · Una sola APK acopla las dos cadencias, y ésa es la factura.** Con una
 ficha no hay segundo `applicationId` que fijar para siempre ni segunda clave

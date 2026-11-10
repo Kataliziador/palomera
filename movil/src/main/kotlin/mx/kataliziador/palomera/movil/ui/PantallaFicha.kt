@@ -23,14 +23,21 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import mx.kataliziador.palomera.movil.catalogo.Detalle
+import kotlinx.coroutines.launch
 import mx.kataliziador.palomera.movil.catalogo.Jellyfin
+import mx.kataliziador.palomera.movil.catalogo.Reproduccion
+import timber.log.Timber
 import mx.kataliziador.palomera.movil.catalogo.tiempoRestante
 import mx.kataliziador.palomera.movil.ui.tema.BLANCO_TACTIL_DP
 import mx.kataliziador.palomera.movil.ui.tema.Paleta
@@ -48,8 +55,18 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
  * abre encima y se sale con atrás.
  */
 @Composable
-fun PantallaFicha(jf: Jellyfin, id: String, acento: Color, alVolver: () -> Unit) {
+fun PantallaFicha(
+	jf: Jellyfin,
+	id: String,
+	acento: Color,
+	perfil: String,
+	alVolver: () -> Unit,
+	alReproducir: (url: String, titulo: String) -> Unit,
+) {
+	val alcance = rememberCoroutineScope()
+	var aviso by remember { mutableStateOf<String?>(null) }
 	val detalle by produceState<Detalle?>(initialValue = null, id) { value = jf.detalle(id) }
+
 
 	Column(
 		Modifier
@@ -112,7 +129,22 @@ fun PantallaFicha(jf: Jellyfin, id: String, acento: Color, alVolver: () -> Unit)
 					.heightIn(min = 48.dp)
 					.clip(RoundedCornerShape(24.dp))
 					.background(acento)
-					.clickable { }
+					.clickable {
+						alcance.launch {
+							when (val r = jf.comoReproducir(d.id, perfil)) {
+								is Reproduccion.Directo -> alReproducir(r.url, d.nombre)
+								// Funciona igual, y se registra: transcodificar
+								// gasta CPU del site, así que conviene saber
+								// cuántas veces pasa y por qué.
+								is Reproduccion.Transcodificado -> {
+									Timber.i("vod.transcodifica titulo=%s motivo=%s", d.nombre, r.motivo)
+									alReproducir(r.url, d.nombre)
+								}
+								Reproduccion.NoSePuede ->
+									aviso = "Tu proveedor no puede enviarte este título ahora mismo."
+							}
+						}
+					}
 					.padding(vertical = 14.dp),
 				contentAlignment = Alignment.Center,
 			) {
@@ -121,6 +153,10 @@ fun PantallaFicha(jf: Jellyfin, id: String, acento: Color, alVolver: () -> Unit)
 					else "Reproducir",
 					style = Tipografia.cuerpo.copy(color = Paleta.fondo),
 				)
+			}
+
+			aviso?.let {
+				BasicText(it, style = Tipografia.tarjeta.copy(color = Paleta.aviso))
 			}
 
 			d.sinopsis?.let {

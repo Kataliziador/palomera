@@ -25,6 +25,21 @@ class Jellyfin(
 	suspend fun enProgreso(limite: Int = 12): List<EnProgreso> =
 		leerEnProgreso(pedir("/Users/$usuarioId/Items/Resume?Limit=$limite&MediaTypes=Video&Fields=RunTimeTicks"))
 
+	/**
+	 * Cómo ver un título: directo si se puede, convertido si no.
+	 *
+	 * Se le manda al servidor el perfil del aparato —lo que de verdad sabe
+	 * decodificar— y él contesta. **No se adivina desde aquí**: adivinar de más
+	 * es una pantalla negra y adivinar de menos pone a transcodificar al
+	 * servidor del ISP (ver `perfilDeDispositivo`).
+	 */
+	suspend fun comoReproducir(id: String, perfil: String): Reproduccion = leerReproduccion(
+		cuerpo = enviar("/Items/$id/PlaybackInfo?userId=$usuarioId", """{"DeviceProfile":$perfil}"""),
+		baseUrl = baseUrl,
+		token = token,
+		itemId = id,
+	)
+
 	/** La ficha de un título, o `null` si el site no la da. */
 	suspend fun detalle(id: String): Detalle? = leerDetalle(pedir("/Users/$usuarioId/Items/$id"))
 
@@ -66,6 +81,33 @@ class Jellyfin(
 				"&Limit=$limite&SortBy=DateCreated&SortOrder=Descending&Fields=ProductionYear",
 		),
 	)
+
+	/** Lo mismo que [pedir], pero mandando un cuerpo. */
+	private suspend fun enviar(ruta: String, cuerpo: String): String = withContext(Dispatchers.IO) {
+		var conexion: HttpURLConnection? = null
+		try {
+			conexion = (URL(baseUrl.trimEnd('/') + ruta).openConnection() as HttpURLConnection).apply {
+				requestMethod = "POST"
+				connectTimeout = 8_000
+				readTimeout = 15_000
+				doOutput = true
+				setRequestProperty("Content-Type", "application/json")
+				setRequestProperty("Authorization", "MediaBrowser Token=\"$token\"")
+			}
+			conexion.outputStream.use { it.write(cuerpo.toByteArray()) }
+			val codigo = conexion.responseCode
+			if (codigo !in 200..299) {
+				Timber.w("catalogo.noContesta ruta=%s codigo=%d", ruta, codigo)
+				return@withContext ""
+			}
+			conexion.inputStream.bufferedReader().use { it.readText() }
+		} catch (err: Exception) {
+			Timber.w(err, "catalogo.falló ruta=%s motivo=%s", ruta, err::class.simpleName)
+			""
+		} finally {
+			conexion?.disconnect()
+		}
+	}
 
 	/**
 	 * Una petición, o una cadena vacía.
