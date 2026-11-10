@@ -9302,3 +9302,54 @@ y es hipotético. Un probador con sus dos cupos atascados está bloqueado hoy;
 el riesgo de la `rc.3` es un camino de entrada que se midió en una caja y que
 Edgar todavía tiene que mirar. **No es un visto bueno de Modo A**, es una
 decisión de despliegue, y la validación que falta sigue debiendo hacerse.
+
+---
+
+## Una sola APK para la caja y el teléfono — 2026-11-10
+
+**Síntoma:** ninguno observado. Lo que había era una decisión a punto de
+volverse irreversible: la app de teléfono era un `applicationId` aparte
+—`mx.kataliziador.palomera.movil`—, o sea una **segunda ficha en Play**, y
+Play fija el nombre de paquete en el primer envío. Publicarla una vez habría
+cerrado la puerta para siempre.
+
+**Hipótesis:** que unificarlas costaría tamaño y arranque. **Las dos eran
+falsas y se midieron.**
+
+**Cambio:** `movil` pasa de `com.android.application` a `com.android.library`
+y `:app` la hospeda en `ui/tactil/PalomeraTactilActivity`. Quién abre qué lo
+decide el lanzador —`LAUNCHER` para la táctil, `LEANBACK_LAUNCHER` para la de
+siempre—, sin una rama que pueda equivocarse. Y aun así verifica: si la táctil
+se abre en una caja que ignora la categoría de Leanback, cede a
+`StartupActivity`.
+
+**Medido:**
+
+| | |
+|---|---|
+| arranque en frío, Skyworth | mediana **5353 ms antes, 5376 después**. Cinco muestras por condición, **una sola caja** (§9): es ruido |
+| dex | 53,5 → 54,1 MB |
+| código nativo compartido | **los mismos 16 archivos, 189 MB**, en las dos APKs de antes. Por eso una sola pesa casi lo mismo que una |
+| `uses-implied-feature` | **ninguna** |
+
+**Los dos `uses-feature` que hubo que soltar**, y el segundo no se veía venir:
+el táctil obligatorio, y `android.hardware.screen.portrait`, que
+`screenOrientation="portrait"` implicaba sin que nadie lo escribiera. Los dos
+filtran el catálogo de Play y habrían dejado la ficha invisible para todas las
+cajas de ISP — el mismo fallo que §4.7 cuenta que ya ocurrió con
+`ACCESS_WIFI_STATE`. El vertical se fija ahora desde la actividad.
+
+**Validado en pantalla por Edgar el 10-nov**, que es lo que faltaba:
+`StartupActivity` no cambia una línea de código pero pierde una categoría del
+manifiesto, y era justo esa categoría la que decide si la caja sigue
+apareciendo en su lanzador. Abrió el debug en la Skyworth y la interfaz de TV
+está como siempre.
+
+**Y lo que esto destapó, que era lo más importante:** la rama `movil` iba
+**seis commits por detrás de `main`** y no llevaba el arreglo de liberar la
+tele. Se vio contando pruebas —`app` daba 25 donde `main` da 30, y las cinco
+que faltaban eran `LiberarTeleTests`—, así que la primera APK unificada que se
+instaló en la caja era, sin saberlo, un retroceso. `main` quedó fusionado y
+las 30 vuelven.
+
+**Estado: cerrada.** 140 pruebas en verde y las nueve comprobaciones.
