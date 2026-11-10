@@ -503,13 +503,27 @@ def comprobar_canales(cfg: dict) -> None:
         # fallo previsible, y un canal apagado desde hace semanas también.
         nota(f"{len(apagados)} apagado(s) a propósito con «unavailable»: "
              + ", ".join(apagados))
-    # La app no puede impedir el ABR, sólo verlo (`CLAUDE.md` §6). Aquí sí se
-    # puede impedir, que es más barato que un aviso en un registro.
+    # **Esta comprobación estaba al revés, y su consejo era dañino.** Decía
+    # «masters con varias calidades» como fallo y mandaba publicar
+    # `index.m3u8?filter=tracks:v2a1a2`. Eso era correcto hasta el 02-nov y
+    # desde entonces `CLAUDE.md` §6 lo prohíbe con todas las letras: el ABR se
+    # quiere —Media3 ya lo hacía— y **el filtro no debe usarse**, porque con él
+    # se pierde.
+    #
+    # Y el consejo no sólo sobraba: seguirlo rompe algo. El `video.m3u8` y los
+    # filtros multiplexan los audios, así que Media3 expone **una sola pista** y
+    # el abonado se queda sin la de inglés. Es la trampa en la que ya cayó el
+    # primer lineup de los probadores.
+    #
+    # Se descubrió el 09-nov corriendo esto por primera vez contra el site de
+    # los probadores: los 53 canales salían «mal» por traer dos calidades, que
+    # es justo lo que tienen que traer.
     if variantes:
-        mal("abr", "masters con varias calidades: " + ", ".join(variantes))
-        nota("el generador debe publicar index.m3u8?filter=tracks:v2a1a2")
+        nota(f"{len(variantes)} canal(es) con varias calidades: ABR, que es lo que se quiere")
+        bien("los masters traen más de una calidad y los audios aparte")
     else:
-        bien("una sola calidad por canal: nada de ABR")
+        nota("ningún canal trae varias calidades: sin ABR, la red del abonado "
+             "no tiene de dónde elegir")
 
     por_defecto = cfg.get("defaultChannel")
     if por_defecto and por_defecto not in {c.get("id") for c in canales}:

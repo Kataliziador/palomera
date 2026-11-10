@@ -9140,3 +9140,165 @@ de integración en el mismo commit, aquí, aunque la app no se toque.
 Y los once pendientes abiertos siguen abiertos, con su estado escrito arriba.
 Ninguno se cierra por congelar; cuatro necesitan a Edgar en pantalla, tres el
 headend, dos la ZTE y el satélite, uno tsduck con buen clima.
+
+---
+
+## [B] Al salir de una cuenta, la caja ya avisa a Jellyfin — 2026-11-09
+
+**Síntoma, medido en producción y no aquí.** El 09-nov, en el site de Palomera
+Probadores, una caja **Roku** activada para `testroku` perdió su sesión local.
+Al reactivarla, el panel de abonados contestó tres veces «No se pudo activar:
+la clave no tiene permiso». Borrar a mano el dispositivo de esa cuenta en el
+panel de Jellyfin la dejó entrar **a la primera**.
+
+**Causa.** El panel fija un límite de teles por cuenta en `MaxActiveSessions`.
+Jellyfin **cuenta antes de limpiar**: `AuthenticateNewSessionInternal` cuenta
+las sesiones del usuario y lanza `SecurityException` → 403 **antes** de llamar
+a `GetAuthorizationToken`, que es lo que cerraría la sesión vieja **del mismo
+aparato**. Y una sesión no se va sola. Así que **la misma caja chocaba contra
+su propio fantasma**, y como el cuerpo del 403 en producción es «Error
+processing request.», el panel lo traducía como un problema de la clave.
+
+Esta app tenía el mismo hueco que tenía Roku: al cerrar sesión o borrar un
+servidor, olvidaba el token **sólo en la caja** y nunca avisaba al servidor.
+
+**Cambio.** Las dos salidas llaman a `POST /Sessions/Logout` **antes** de
+olvidar el token —después no habría con qué autenticar la llamada—, con un
+plazo de 5 s (`LiberadorDeTele.ESPERA_MS`, los mismos que Roku). Si no
+contesta, se registra con su código y **se sale igual**: una caja que no deja
+cerrar sesión no la desbloquea nadie, y un cupo atascado sí lo desbloquea el
+proveedor desde el panel.
+
+Qué libera y qué no vive en `decidirLiberarTele`, una función pura con cinco
+casos de prueba, porque equivocarse cuesta caro en los dos sentidos: **liberar
+de menos** deja al abonado sin poder reactivar su caja, y **liberar de más**
+echa de Jellyfin a una que seguía en uso. **Cambiar de usuario conservando el
+perfil no libera**, y hay una prueba que lo fija.
+
+`logout` pasa a suspender, y de ahí salen los dos cambios de interfaz:
+`EditUserScreen` y el adaptador de `ServerFragment` esperan esa llamada.
+
+**Prueba — la mitad que no necesita pantalla, medida hoy.** El documento de la
+petición describía el mecanismo **leyendo la fuente de `release-10.11.z`**, no
+midiéndolo. Se midió contra el **Jellyfin de la oficina, versión 12.0.0**, con
+un `DeviceId` inventado para no tocar ningún dispositivo real:
+
+| paso | resultado |
+|---|---|
+| autenticar y pedir `/Devices` | el dispositivo **está** |
+| `POST /Sessions/Logout` con ese token | **HTTP 204** |
+| pedir `/Devices` desde otra sesión | el dispositivo **ya no está** |
+
+**Lo que esto NO mide, y hay que decirlo:** se midió en **12.0.0**, y los sites
+de producción corren **10.11.11**. La lectura de la fuente es de la rama 10.11
+y el comportamiento coincide, pero *medido* sólo está el tronco nuevo. Medir
+10.11.11 exigiría credenciales del site de demostración que no están en este
+repositorio ni deben estar.
+
+**Y tampoco mide la app.** Lo anterior prueba que el servidor hace lo que
+decimos; no prueba que la app lo llame bien.
+
+**Prueba en la caja — hecha el 09-nov, y pasó.** Skyworth YDA con el APK de
+depuración, apuntando a su site. Las dos líneas del registro de la caja:
+
+```
+13:00:35  tele.liberada    salida=CERRAR_SESION servidor=… usuario=5815379a…
+13:00:40  tele.noLiberada  salida=CERRAR_SESION … motivo=sin token que liberar
+```
+
+La primera liberó: `tele.liberada` sólo se escribe si la llamada volvió sin
+excepción, y el SDK lanza con cualquier código que no sea 2xx. Edgar confirmó
+en pantalla que **el dispositivo desapareció solo** de su Jellyfin.
+
+La segunda línea es de una segunda pulsación cinco segundos después, y es el
+guardián funcionando: ya no quedaba token. Sin buscarlo, quedó ejercitado en
+hardware el caso que cubre la prueba `sin token no hay nada que liberar`.
+
+**Y esa segunda pulsación destapó un defecto anterior al arreglo.** En el menú
+de la tarjeta, «Borrar» recarga la lista de usuarios y «Desconectar» **no**, así
+que tras desconectar la tarjeta se quedaba igual y su menú seguía ofreciendo
+«Desconectar» sobre un usuario sin sesión: la pantalla mentía. Edgar pulsó otra
+vez porque nada se movía. El arreglo de la sesión lo empeoraba —ahora hay hasta
+5 s de espera sin que nada cambie—, así que se añade la recarga que «Borrar» ya
+hacía. **Esa recarga todavía no está validada en pantalla**: la caja quedó
+desconectada y comprobarla pide otro ciclo de entrar y salir.
+
+**Estado: abierta.** Falta lo del punto 6 de la petición, que es de Edgar y es
+en pantalla:
+
+1. ~~caja activada → «Desconectar»; en el log, `tele.liberada`~~ **hecho el 09-nov**;
+2. ~~en Jellyfin, el dispositivo desaparece solo~~ **hecho el 09-nov**;
+3. el panel reactiva la caja con un código nuevo **sin borrar nada a mano**;
+4. y, porque esto es lógica en el camino de entrada compartido (`CLAUDE.md`
+   §4.7), **que el VOD siga entrando igual**: películas y series como siempre.
+
+**La otra mitad no es de las apps.** Las cajas que se van sin avisar —reseteo,
+reinstalación, aparato roto— sólo las resuelve el panel de abonados, y eso se
+está haciendo allí: contar las teles antes de autorizar, ofrecer cuál se
+reemplaza, un botón para quitar una tele y mensajes con la causa real.
+
+---
+
+## El AAB `0.1.0-rc.3` — 2026-11-10
+
+**Síntoma:** la `rc.2` que están usando los 12 probadores lleva dentro el
+defecto de la sesión que no se devuelve, y eso en una prueba cerrada de 14 días
+no es una molestia: **es el final de la prueba para quien lo pise**. Las siete
+cuentas de probador del site tienen `MaxActiveSessions: 2` —leído del servidor,
+no supuesto—, así que a un probador le bastan **dos** salidas de cuenta para
+dejar sus dos cupos ocupados por fantasmas de su propia caja y no poder volver
+a entrar. Nadie lo desbloquea desde la caja.
+
+**Cambio:** recompilado como `0.1.0-rc.3` sobre el árbol de `116e49e2b`, con
+`JELLYFIN_VERSION=0.1.0-rc.3 ./gradlew :app:bundleRelease :app:assembleRelease`.
+
+Lo que entra sobre la `rc.2` son dos cambios de comportamiento y cinco de
+documentos o herramientas:
+
+- **la liberación de la tele al salir de una cuenta** (`062282a03`), que es el
+  motivo de esta versión, más la recarga de la lista al desconectar
+  (`7cb7c427d`);
+- **el escalón 1 del vigilante** (`a92e969a4`), que es Modo A y entra
+  **apagado de fábrica**: `VIGILANTE_DESTINO_CALCULADO_DEFAULT = false`
+  reproduce el comportamiento anterior, así que ningún probador lo ve. Está
+  ahí para poder encenderlo por `adb` cuando se mida el pendiente 77, no para
+  que se use.
+
+**Leído del artefacto, no supuesto** (`aapt2 dump badging` sobre el APK de
+release del mismo árbol y la misma variable):
+
+| | leído |
+|---|---|
+| paquete | `mx.kataliziador.palomera` |
+| versión | `versionCode='10003' versionName='0.1.0-rc.3'` |
+| etiqueta | `Palomera` |
+| `minSdk` / `targetSdk` | 21 / 36 |
+| `uses-feature-not-required` | `leanback`, `touchscreen`, `faketouch`, `microphone` y `wifi` |
+| `uses-implied-feature` | **ninguna** — sigue visible para una caja sólo-Ethernet (§4.7) |
+| firma | `CN=Edgar Abel Martinez Camara, O=Kataliziador, C=MX`, SHA-256 `E7:0D:C8:DF:…:C0:B6`, la misma clave que `rc.2` |
+| tamaño | 99,6 MB |
+
+**Las nueve comprobaciones de `comprobar.py` en verde**, más las 30 pruebas de
+`:app` y las de `:livetv`.
+
+**El punto 6 de la lista de `PLAY.md` se cumple y es comprobable:** entre
+`v0.1.0-rc.2` y este árbol hay **cero** líneas de diff en `app/src/main/res/` y
+ninguna cadena visible cambiada. Los tres archivos de interfaz que se tocan son
+`LiveTvDevMenuFragment` —detrás de `BuildConfig.DEBUG`, invisible en release—,
+`ServerFragment` y `EditUserScreen`, y en los tres el cambio es lógica, no
+texto ni disposición. Las cuatro capturas de la ficha siguen valiendo sin
+rehacerse.
+
+**Lo que esta versión NO cierra, y hay que decirlo.** El pendiente de la
+liberación sigue **abierto**: de los cuatro puntos de validación, los dos
+primeros están hechos y los dos últimos no —que el panel reactive la caja con
+un código nuevo sin borrar nada a mano, y que el VOD siga entrando igual, que
+es obligatorio por ser lógica en el camino compartido (`CLAUDE.md` §4.7)—. La
+recarga de la lista al desconectar **tampoco está validada en pantalla**.
+
+Se publica igualmente, y el criterio es el de §2 aplicado a la operación: el
+daño de lo que ya está en campo es mayor y es seguro, y el de lo nuevo es menor
+y es hipotético. Un probador con sus dos cupos atascados está bloqueado hoy;
+el riesgo de la `rc.3` es un camino de entrada que se midió en una caja y que
+Edgar todavía tiene que mirar. **No es un visto bueno de Modo A**, es una
+decisión de despliegue, y la validación que falta sigue debiendo hacerse.

@@ -1,6 +1,7 @@
 package org.jellyfin.androidtv.auth.repository
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.auth.model.AuthenticationStoreServer
 import org.jellyfin.androidtv.auth.model.ConnectedState
@@ -15,6 +17,7 @@ import org.jellyfin.androidtv.auth.model.ConnectingState
 import org.jellyfin.androidtv.auth.model.Server
 import org.jellyfin.androidtv.auth.model.ServerAdditionState
 import org.jellyfin.androidtv.auth.model.UnableToConnectState
+import org.jellyfin.androidtv.auth.model.SalidaDeCuenta
 import org.jellyfin.androidtv.auth.store.AuthenticationStore
 import org.jellyfin.androidtv.util.sdk.toServer
 import org.jellyfin.sdk.Jellyfin
@@ -62,6 +65,7 @@ interface ServerRepository {
 class ServerRepositoryImpl(
 	private val jellyfin: Jellyfin,
 	private val authenticationStore: AuthenticationStore,
+	private val liberadorDeTele: LiberadorDeTele,
 ) : ServerRepository {
 	// State
 	private val _storedServers = MutableStateFlow(emptyList<Server>())
@@ -249,6 +253,30 @@ class ServerRepositoryImpl(
 	}
 
 	override suspend fun deleteServer(server: UUID): Boolean {
+		// Borrar el servidor se lleva por delante **todos** sus usuarios
+		// guardados, así que hay que devolver una tele por cada uno que tuviera
+		// token. Si no, una caja que cambia de site deja tantos fantasmas como
+		// cuentas tuviera, y ninguno se cae solo.
+		val almacenado = authenticationStore.getServer(server)
+		if (almacenado != null) {
+			// En paralelo, no en fila: cada aviso espera hasta
+			// `LiberadorDeTele.ESPERA_MS`, y en serie tres usuarios serían
+			// quince segundos mirando una pantalla quieta. `liberar` no lanza
+			// nada salvo cancelación, así que ninguno puede tumbar a los otros.
+			coroutineScope {
+				almacenado.users.forEach { (idUsuario, usuario) ->
+					launch {
+						liberadorDeTele.liberar(
+							salida = SalidaDeCuenta.BORRAR_SERVIDOR,
+							direccion = almacenado.address,
+							usuario = idUsuario,
+							token = usuario.accessToken,
+						)
+					}
+				}
+			}
+		}
+
 		val success = authenticationStore.removeServer(server)
 		if (success) loadStoredServers()
 		return success

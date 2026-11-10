@@ -340,10 +340,11 @@ congelar no es no cambiar nunca, es que cada cambio pague su factura.
 | nombre del desarrollador | **Kataliziador** — puesto el 30-oct. Es un nombre comercial sin registrar, y Console lo acepta en una cuenta personal aunque el nombre legal del titular sea otro (`PLAY.md` §1) |
 | correo de contacto | `avhelmc@icloud.com` — **se publica en la ficha**, así que lo encuentran los recolectores de direcciones |
 | política de privacidad | `https://kataliziador.github.io/palomera/privacidad` — comprobada el 02-nov: 200 |
+| términos del servicio | `https://kataliziador.github.io/palomera/terminos` — **campo opcional** («si está disponible», dice Play), publicado el 08-nov a petición de Edgar. **Sin barra final:** GitHub Pages sirve `terminos.md` como `/terminos`, y `/terminos/` devuelve 404 — medido, y es lo que hizo saltar el aviso de URL inaccesible de la consola |
 | icono de la ficha | `palomera-icono-512-ficha.png`, 512×512 RGB sin alfa |
 | banner de TV | `palomera-banner-1280.png`, 1280×720 RGB sin alfa |
 | gráfico destacado | `palomera-destacado-1024.png`, 1024×500 RGB sin alfa. **Play no publica una ficha sin él**, y hasta el 02-nov no teníamos ninguno nuestro |
-| países | México |
+| países | **Producción: México** — es donde están los ISPs, y los demás se añaden cuando haya cliente en ellos (es reversible, al revés que el nombre de paquete). **Prueba cerrada: ocho** —Argentina, Canadá, Estados Unidos, Guatemala, México, Perú, República Dominicana y Venezuela— puestos el 08-nov. No es descuido: la app **no enseña nada sin un site**, así que un alcance ancho reparte una aplicación vacía, no contenido; y Play exige **12 probadores apuntados 14 días seguidos**, así que un probador fuera de México al que el país le bloquee la instalación **retrasa el lanzamiento entero**. De los dos errores, éste es el barato. **Depende de que el Alpha deje de sincronizar con producción**: con la sincronía encendida, los ocho se colarían en el lanzamiento |
 | público objetivo | 18+ — el contenido lo pone el ISP y la app no puede garantizar que sea para menores |
 | anuncios | no |
 | clasificación de contenido | el cuestionario de IARC; la app no tiene contenido propio, pero da acceso a televisión abierta y de paga, así que se contesta como app de *streaming* de vídeo |

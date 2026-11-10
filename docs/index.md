@@ -12,6 +12,8 @@ responsable de ese contenido y de los derechos para transmitirlo. Palomera no
 produce, elige ni distribuye contenido propio: es la aplicación con la que lo
 ves. Cualquier reclamación sobre lo emitido corresponde a tu proveedor.
 
+- **[Términos del servicio](terminos)** — las condiciones de uso de la
+  aplicación y del servicio.
 - **[Aviso de privacidad](privacidad)** — qué recoge la aplicación, para qué, y
   cómo pedir acceso, rectificación o cancelación de tus datos.
 - **[Código fuente](https://github.com/Kataliziador/palomera)** — la

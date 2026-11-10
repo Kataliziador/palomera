@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.di
 import org.jellyfin.androidtv.auth.AccountManagerMigration
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepositoryImpl
+import org.jellyfin.androidtv.auth.repository.LiberadorDeTele
 import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.androidtv.auth.repository.ServerRepositoryImpl
 import org.jellyfin.androidtv.auth.repository.ServerUserRepository
@@ -18,10 +19,16 @@ val authModule = module {
 	single { AuthenticationStore(get(), get()) }
 	single { AuthenticationPreferences(get()) }
 
+	// Avisa a Jellyfin de que esta caja deja una cuenta, para que la sesión no
+	// se quede ocupando el cupo de `MaxActiveSessions` (ver `LiberadorDeTele`).
+	// Lo comparten los dos repositorios porque las dos salidas que liberan
+	// —cerrar sesión y borrar el servidor— viven una en cada uno.
+	single { LiberadorDeTele(get(), get(defaultDeviceInfo)) }
+
 	single<AuthenticationRepository> {
-		AuthenticationRepositoryImpl(get(), get(), get(), get(), get(), get(defaultDeviceInfo))
+		AuthenticationRepositoryImpl(get(), get(), get(), get(), get(), get(defaultDeviceInfo), get())
 	}
-	single<ServerRepository> { ServerRepositoryImpl(get(), get()) }
+	single<ServerRepository> { ServerRepositoryImpl(get(), get(), get()) }
 	single<ServerUserRepository> { ServerUserRepositoryImpl(get(), get()) }
 	single<SessionRepository> {
 		SessionRepositoryImpl(get(), get(), get(), get(), get(defaultDeviceInfo), get(), get(), get())
