@@ -9399,3 +9399,44 @@ haberse llevado por delante el enrutado:
 **Estado: cerrada.** Las nueve comprobaciones en verde. El AAB del `rc.3` se
 borró de la carpeta, que es el punto 1 de la lista de `PLAY.md` y existe para
 no subir el archivo equivocado — hoy, por segunda vez, eso habría importado.
+
+---
+
+## El AAB `0.1.0-rc.5`, con el reproductor del teléfono — 2026-11-11
+
+**Síntoma:** lo vio Edgar al probar el `rc.4` en un celular — «la reproducción
+se quedaba en vertical, eso no es lo óptimo», y pidió además «controles
+básicos».
+
+**Las dos cosas eran ciertas y detrás había una tercera.** El vertical estaba
+fijado para toda la app, así que el reproductor no podía girar: un 16:9 en una
+pantalla 9:20 ocupa menos de un tercio del alto. La barra de avance sólo
+pintaba, no se arrastraba — en una película de dos horas, setecientos toques de
+diez segundos para llegar al final. Y no se podía **cambiar la pista de audio**,
+que §6 convierte en casi obligatoria: «en algunos satélites la etiqueta de
+idioma miente… poder cambiar de audio no es un lujo del canal de cine: es el
+único remedio cuando el headend etiqueta mal».
+
+**Cambio:** recompilado como `0.1.0-rc.5` sobre el árbol de `2ce14005e`.
+
+**Leído del artefacto:**
+
+| | |
+|---|---|
+| versión | `versionCode='10005' versionName='0.1.0-rc.5'` |
+| lanzador de TV | `StartupActivity` |
+| lanzador de teléfono | `PalomeraTactilActivity` |
+| `uses-feature-not-required` | `faketouch`, `microphone`, `touchscreen`, `wifi`, `leanback` |
+| `uses-implied-feature` | **ninguna** |
+| firma | `CN = Edgar Abel Martinez Camara, O = Kataliziador, C = MX`, SHA-256 `E7:0D:C8:DF:…` |
+
+**Probado en release, que es donde no estaba probado.** El selector de pistas
+usa `Tracks` y `C` de Media3 y R8 podía habérselos llevado por delante:
+
+- la captura sale **2400×1080** —apaisada— sin barras del sistema;
+- el botón de audio abre la lista con **Español** e **Inglés**, y la que suena
+  sale resaltada;
+- sin `ClassNotFound`, `NoSuchMethod` ni `NoClassDef`.
+
+**Estado: cerrada.** El AAB del `rc.4` borrado de la carpeta — punto 1 de la
+lista de `PLAY.md`, que ya importó dos veces esta semana.
