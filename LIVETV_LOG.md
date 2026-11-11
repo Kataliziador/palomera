@@ -9353,3 +9353,49 @@ instaló en la caja era, sin saberlo, un retroceso. `main` quedó fusionado y
 las 30 vuelven.
 
 **Estado: cerrada.** 140 pruebas en verde y las nueve comprobaciones.
+
+---
+
+## El AAB `0.1.0-rc.4`, porque el `rc.3` no llevaba las dos interfaces — 2026-11-11
+
+**Síntoma, y lo vio Edgar:** instaló el `rc.3` desde el enlace de probadores de
+Google **en un celular** y se abrió la interfaz de mando a distancia.
+
+**Causa:** el `rc.3` se compiló de `main` el 10-nov **por la mañana**, antes de
+unificar las dos apps. La unificación vivía en la rama `movil`, que ni siquiera
+se había empujado. Leído del artefacto que se subió: `StartupActivity`
+declaraba `launchable-activity` **y** `leanback-launchable-activity` a la vez,
+así que en un teléfono el lanzador abría la interfaz de caja. El síntoma es
+exactamente lo que el manifiesto decía que pasaría.
+
+**Y el fallo de comunicación es anterior al técnico.** Al decidir sacarlo se
+escribió «sacar el `rc.3` tal cual, sin esperar al móvil», que describe la
+decisión pero **no dice lo que el artefacto no lleva**. Edgar lo leyó como que
+ya iba dentro. Una versión se describe por lo que contiene, no por lo que se
+decidió sobre ella.
+
+**Cambio:** `movil` fusionada en `main` (26 commits) y recompilado como
+`0.1.0-rc.4`.
+
+**Leído del artefacto**, no supuesto:
+
+| | `rc.3` | `rc.4` |
+|---|---|---|
+| versión | `10003` | `10004` |
+| lanzador de TV | `StartupActivity` | `StartupActivity` |
+| lanzador de teléfono | **`StartupActivity`** ← el fallo | **`PalomeraTactilActivity`** |
+| `uses-implied-feature` | ninguna | ninguna |
+
+**Probado en release, que es lo que no estaba probado.** Hasta ahora la
+unificación sólo se había visto en compilaciones de depuración, y R8 podía
+haberse llevado por delante el enrutado:
+
+- en un emulador de teléfono, el lanzador abre la **táctil** y la puerta del
+  abonado se pinta entera;
+- en un emulador de Android TV, el lanzador abre **`StartupActivity`**;
+- y forzando la táctil en el aparato de TV, **cede** y acaba en la interfaz de
+  siempre. Sin `ClassNotFound` ni `NoSuchMethod`: R8 no tocó la cascada.
+
+**Estado: cerrada.** Las nueve comprobaciones en verde. El AAB del `rc.3` se
+borró de la carpeta, que es el punto 1 de la lista de `PLAY.md` y existe para
+no subir el archivo equivocado — hoy, por segunda vez, eso habría importado.
