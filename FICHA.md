@@ -332,6 +332,55 @@ media tarde no se rehace cada vez que cambia una pantalla. Convertirlo en una
 orden es lo que hace sostenible la congelación de `CLAUDE.md` §7 — porque
 congelar no es no cambiar nunca, es que cada cambio pague su factura.
 
+---
+
+## 5.bis Capturas de teléfono — mínimo 2, máximo 2:1
+
+**Hacen falta desde el `rc.4`**, que es cuando la misma APK empezó a instalar
+la interfaz táctil en un celular. Hasta entonces las cuatro de la ficha eran de
+televisión y bastaban; desde ese día un revisor puede abrir la app en un
+teléfono y ver pantallas que no aparecen en ninguna captura.
+
+**Se suben tres**, las mismas que en televisión y por el mismo motivo —
+cuentan la historia entera:
+
+1. `1-canales.png` — la lista de canales **con sus logos**;
+2. `2-canal.png` — un canal reproduciendo, apaisado y a pantalla completa;
+3. `3-activacion.png` — «Activa este teléfono» con el código.
+
+El inicio y el catálogo se capturan a `no-se-suben/` como comprobación barata
+de que siguen en pie. No se suben porque la demo tiene **dos** títulos, y una
+pantalla medio vacía en un carrusel de tienda trabaja en contra — la misma
+razón por la que se descartó la cuarta de televisión el 04-nov.
+
+**Se rehacen con una orden:**
+
+```bash
+python3 -I herramientas/capturar-ficha-movil.py
+```
+
+### Lo aprendido sacándolas el 11-nov
+
+- **Play rechaza más de 2:1, y un teléfono moderno es 2,22:1.** Las primeras
+  salieron a 1080×2400 porque es lo que mide el emulador por defecto. El AVD se
+  configura a **1080×1920** (1,78:1); la herramienta lo hace sola;
+- **el reproductor apaisado sale 1920×1080**, que es 1,78:1 también, así que
+  las tres pasan aunque dos sean verticales y una horizontal;
+- **`uiautomator` no ve los composables del reproductor.** Devuelve vacío
+  aunque la captura los muestre, y eso costó dos conclusiones equivocadas el
+  10-nov. En el reproductor se usan coordenadas; en las demás pantallas el
+  árbol sí sirve;
+- **y los logos de canal no se pintaban.** La lista enseñaba el número aunque
+  el `config.json` de la demo trae **8 de 8** con `logoUrl`: el código tenía
+  escrito «cuando el site sirva `logoUrl`, aquí va el logo» y el site ya lo
+  servía. Lo destapó esta captura, no una prueba — `PLAY.md` §7 otra vez.
+
+**Nada de lo que se ve tiene licencia de nadie**, igual que en las de
+televisión y comprobado del mismo modo: los ocho canales son «Palomera
+Uno»…«Palomera Ocho» con logos que son cuadrados de color nuestros, y lo que
+se ve bajo la barra del canal es una carta de ajuste generada por la propia
+demo.
+
 ## 6. Otros campos
 
 | campo | valor |

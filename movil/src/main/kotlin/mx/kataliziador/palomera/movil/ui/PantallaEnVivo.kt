@@ -42,6 +42,8 @@ import mx.kataliziador.palomera.movil.ui.tema.Tipografia
 import org.jellyfin.livetv.config.ConfigRepository
 import org.jellyfin.livetv.config.LiveConfig
 import org.jellyfin.livetv.source.ChannelProfile
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 
 /**
  * Los canales del site, de verdad.
@@ -173,12 +175,18 @@ private fun Renglon(canal: ChannelProfile, alVerCanal: (String, String) -> Unit)
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
-		// **El número, no las iniciales.** Los 53 canales del demo vienen sin
-		// logo, y el primer intento puso tres letras del nombre: «Azteca Uno»
-		// y «Azteca 7» salían las dos como «AZT», que no distingue nada. El
-		// número es único y además es lo que el abonado se sabe de memoria.
-		// Cuando el site sirva `logoUrl`, aquí va el logo y esto es el
-		// respaldo.
+		// **El logo del canal, y el número cuando no hay.**
+		//
+		// Esto decía «cuando el site sirva `logoUrl`, aquí va el logo», y el
+		// 11-nov resultó que el site ya lo servía: la demo trae **8 de 8** con
+		// logo y la app seguía pintando números. Lo destapó una captura para
+		// la ficha de Play, no una prueba — que es el argumento de `PLAY.md`
+		// §7 otra vez.
+		//
+		// El número sigue siendo el respaldo, y es mejor que las iniciales: el
+		// primer intento puso tres letras del nombre y «Azteca Uno» y «Azteca
+		// 7» salían las dos como «AZT». El número es único y además es lo que
+		// el abonado se sabe de memoria.
 		Box(
 			Modifier
 				.size(48.dp)
@@ -186,10 +194,21 @@ private fun Renglon(canal: ChannelProfile, alVerCanal: (String, String) -> Unit)
 				.background(Paleta.mosaico),
 			contentAlignment = Alignment.Center,
 		) {
-			BasicText(
-				canal.number?.toString() ?: "—",
-				style = Tipografia.cuerpo.copy(color = Paleta.tintaApagada),
-			)
+			if (canal.logoUrl.isNullOrBlank()) {
+				BasicText(
+					canal.number?.toString() ?: "—",
+					style = Tipografia.cuerpo.copy(color = Paleta.tintaApagada),
+				)
+			} else {
+				AsyncImage(
+					model = canal.logoUrl,
+					contentDescription = canal.name,
+					// `Fit` y no `Crop`: un logo recortado deja de ser el logo
+					// de nadie, y los de un ISP no vienen todos cuadrados.
+					contentScale = ContentScale.Fit,
+					modifier = Modifier.fillMaxSize().padding(5.dp),
+				)
+			}
 		}
 
 		Column(Modifier.weight(1f)) {
