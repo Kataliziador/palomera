@@ -56,6 +56,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.heightIn
+import androidx.media3.common.C
+import androidx.media3.common.Tracks
 
 /**
  * El reproductor.
@@ -86,12 +92,24 @@ fun PantallaVideo(
 	alVolver: () -> Unit,
 ) {
 	val contexto = LocalContext.current
+
+	// Apaisado y sin barras del sistema mientras esto esté puesto. Ver
+	// [ModoCine]: un 16:9 en una pantalla 9:20 ocupa menos de un tercio.
+	ModoCine()
+
 	var controlesVisibles by remember { mutableStateOf(true) }
 	var reproduciendo by remember { mutableStateOf(true) }
 	var posicion by remember { mutableLongStateOf(0L) }
 	var duracion by remember { mutableLongStateOf(0L) }
 	// La forma del vídeo. Llega con el primer fotograma, no antes.
 	var aspecto by remember { mutableDoubleStateOf(0.0) }
+	// Dónde está el dedo mientras arrastra la barra, de 0 a 1. `null` = no
+	// está arrastrando, y entonces manda la posición del reproductor.
+	var arrastre by remember { mutableStateOf<Float?>(null) }
+	// Las pistas de audio que trae lo que se está viendo, y cuál suena.
+	var pistas by remember { mutableStateOf(emptyList<Pista>()) }
+	var pistaActiva by remember { mutableStateOf<String?>(null) }
+	var eligiendoPista by remember { mutableStateOf(false) }
 
 	val exo = remember {
 		ExoPlayer.Builder(contexto).build().apply {
@@ -133,6 +151,24 @@ fun PantallaVideo(
 			override fun onVideoSizeChanged(tamano: VideoSize) {
 				aspecto = aspectoDeVideo(tamano.width, tamano.height, tamano.pixelWidthHeightRatio)
 			}
+
+			override fun onTracksChanged(tracks: Tracks) {
+				// §6: **la etiqueta de idioma puede mentir**, así que lo que
+				// importa no es acertar la pista sino poder cambiarla. Aquí
+				// sólo se lee qué hay.
+				val deAudio = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+				pistas = deAudio.mapIndexedNotNull { indice, grupo ->
+					val formato = grupo.getTrackFormat(0)
+					Pista(
+						id = formato.id ?: "${indice + 1}",
+						idioma = formato.language,
+						canales = formato.channelCount.coerceAtLeast(0),
+						etiqueta = formato.label,
+					)
+				}
+				pistaActiva = deAudio.firstOrNull { it.isSelected }
+					?.getTrackFormat(0)?.id
+			}
 		}
 		exo.addListener(oyente)
 		onDispose { exo.removeListener(oyente) }
@@ -172,8 +208,14 @@ fun PantallaVideo(
 	}
 
 	// Los controles se van solos: lo que se ve es la película, no los botones.
-	LaunchedEffect(controlesVisibles, reproduciendo) {
-		if (controlesVisibles && reproduciendo) {
+	//
+	// **Salvo con un menú abierto o el dedo en la barra.** Elegir pista de
+	// audio es leer dos o tres nombres y decidir, y cuatro segundos no dan: se
+	// cerraba la lista mientras el abonado la miraba. Lo mismo arrastrando —
+	// que la barra desaparezca bajo el dedo es de las cosas más molestas que
+	// puede hacer un reproductor.
+	LaunchedEffect(controlesVisibles, reproduciendo, eligiendoPista, arrastre) {
+		if (controlesVisibles && reproduciendo && !eligiendoPista && arrastre == null) {
 			delay(4_000)
 			controlesVisibles = false
 		}
@@ -265,27 +307,105 @@ fun PantallaVideo(
 					horizontalArrangement = Arrangement.spacedBy(12.dp),
 				) {
 					BasicText(
-						reloj(posicion),
+						reloj(arrastre?.let { (it * duracion).toLong() } ?: posicion),
 						style = Tipografia.detalle.copy(color = Color.White.copy(alpha = 0.78f)),
 					)
+					// **La barra se arrastra.** Hasta el 11-nov sólo pintaba
+					// el avance, así que en una película de dos horas lo único
+					// para moverse eran saltos de diez segundos: setecientos
+					// toques para llegar al final. Es el control que más se usa
+					// de un reproductor y era el único que no hacía nada.
+					//
+					// Mientras el dedo está puesto se pinta `arrastre` y no la
+					// posición real: si se siguiera al reproductor, la barra
+					// daría tirones hacia atrás cada vez que el reloj la
+					// adelanta.
+					val fraccion = arrastre ?: (posicion.toFloat() / duracion).coerceIn(0f, 1f)
 					Box(
 						Modifier
 							.weight(1f)
-							.height(3.dp)
-							.clip(RoundedCornerShape(2.dp))
-							.background(Color.White.copy(alpha = 0.26f)),
+							// Alto de toque de 28 dp aunque la línea mida 3:
+							// un objetivo de 3 dp no se acierta con el pulgar.
+							.height(28.dp)
+							.pointerInput(duracion) {
+								detectHorizontalDragGestures(
+									onDragStart = { posicionDelDedo ->
+										arrastre = (posicionDelDedo.x / size.width)
+											.coerceIn(0f, 1f)
+									},
+									onDragEnd = {
+										arrastre?.let { exo.seekTo((it * duracion).toLong()) }
+										arrastre = null
+									},
+									onDragCancel = { arrastre = null },
+								) { cambio, delta ->
+									cambio.consume()
+									arrastre = ((arrastre ?: 0f) + delta / size.width)
+										.coerceIn(0f, 1f)
+								}
+							}
+							.pointerInput(duracion) {
+								// Un toque suelto también salta, que es lo que
+								// se espera al picar en mitad de la barra.
+								detectTapGestures { donde ->
+									exo.seekTo(
+										((donde.x / size.width).coerceIn(0f, 1f) * duracion)
+											.toLong(),
+									)
+								}
+							},
+						contentAlignment = Alignment.CenterStart,
 					) {
 						Box(
 							Modifier
-								.fillMaxWidth((posicion.toFloat() / duracion).coerceIn(0f, 1f))
+								.fillMaxWidth()
 								.height(3.dp)
+								.clip(RoundedCornerShape(2.dp))
+								.background(Color.White.copy(alpha = 0.26f)),
+						)
+						Box(
+							Modifier
+								.fillMaxWidth(fraccion)
+								.height(3.dp)
+								.clip(RoundedCornerShape(2.dp))
 								.background(Color.White),
 						)
+						// El tirador sólo aparece al arrastrar: en reposo la
+						// barra es una línea fina y no una pieza de interfaz
+						// encima de la película.
+						if (arrastre != null) {
+							Box(
+								Modifier
+									.fillMaxWidth(fraccion)
+									.height(3.dp),
+								contentAlignment = Alignment.CenterEnd,
+							) {
+								Box(
+									Modifier
+										.size(13.dp)
+										.clip(RoundedCornerShape(7.dp))
+										.background(Color.White),
+								)
+							}
+						}
 					}
 					BasicText(
 						"−" + reloj(duracion - posicion),
 						style = Tipografia.detalle.copy(color = Color.White.copy(alpha = 0.78f)),
 					)
+				}
+			}
+
+			if (eligiendoPista) {
+				ListaDePistas(pistas, pistaActiva) { elegida ->
+					exo.trackSelectionParameters = exo.trackSelectionParameters
+						.buildUpon()
+						.setPreferredAudioLanguage(
+							pistas.firstOrNull { it.id == elegida }?.idioma,
+						)
+						.build()
+					pistaActiva = elegida
+					eligiendoPista = false
 				}
 			}
 
@@ -298,6 +418,11 @@ fun PantallaVideo(
 				if (!enDirecto) {
 					Boton("−10 s") { exo.seekTo((exo.currentPosition - 10_000).coerceAtLeast(0)) }
 					Boton("+10 s") { exo.seekTo(exo.currentPosition + 10_000) }
+				}
+				// Sólo cuando hay entre qué elegir: un botón que abre una
+				// lista de una fila es un botón que miente.
+				if (pistas.size > 1) {
+					Boton("Audio") { eligiendoPista = !eligiendoPista; controlesVisibles = true }
 				}
 			}
 		}
@@ -355,4 +480,46 @@ private fun reloj(ms: Long): String {
 	val m = (s % 3600) / 60
 	val seg = s % 60
 	return if (h > 0) "%d:%02d:%02d".format(h, m, seg) else "%d:%02d".format(m, seg)
+}
+
+/**
+ * Las pistas de audio, para elegir.
+ *
+ * Va encima de los botones y no en un diálogo aparte: son dos o tres filas y
+ * un diálogo a pantalla completa sobre un vídeo en marcha tapa justo lo que se
+ * está intentando juzgar — si esta pista es la del idioma correcto.
+ */
+@Composable
+private fun ListaDePistas(
+	pistas: List<Pista>,
+	activa: String?,
+	alElegir: (String) -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+		for (pista in pistas) {
+			val esLaQueSuena = pista.id == activa
+			Box(
+				Modifier
+					.heightIn(min = BLANCO_TACTIL_DP.dp)
+					.clip(RoundedCornerShape(8.dp))
+					.background(
+						if (esLaQueSuena) Color.White.copy(alpha = 0.22f) else Color.Transparent,
+					)
+					.clickable { alElegir(pista.id) }
+					.padding(horizontal = 14.dp, vertical = 11.dp),
+				contentAlignment = Alignment.CenterStart,
+			) {
+				BasicText(
+					nombreDePista(pista),
+					style = Tipografia.cuerpo.copy(
+						color = if (esLaQueSuena) {
+							Color.White
+						} else {
+							Color.White.copy(alpha = 0.78f)
+						},
+					),
+				)
+			}
+		}
+	}
 }
