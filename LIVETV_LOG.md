@@ -9440,3 +9440,33 @@ usa `Tracks` y `C` de Media3 y R8 podía habérselos llevado por delante:
 
 **Estado: cerrada.** El AAB del `rc.4` borrado de la carpeta — punto 1 de la
 lista de `PLAY.md`, que ya importó dos veces esta semana.
+
+---
+
+## El AAB `0.1.0-rc.6`, para que la app y su captura coincidan — 2026-11-12
+
+**Síntoma:** ninguno en campo. Lo que había era un desfase entre lo que se iba
+a subir y lo que se iba a enseñar: las capturas de teléfono de la ficha salen
+**con los logos de canal**, y el `rc.5` se compiló antes de ese arreglo. Un
+revisor que compare la foto con la app vería ocho cuadros grises donde la
+tienda promete ocho logos de color.
+
+**Causa del desfase:** el arreglo de los logos salió **de sacar las capturas**,
+no de una prueba, así que nació después del binario. Es `PLAY.md` §7 otra vez
+—preparar lo que se publica es un instrumento de medida— y el precio de que lo
+sea es que a veces encuentra algo cuando el AAB ya está hecho.
+
+**Cambio:** recompilado como `0.1.0-rc.6` sobre el árbol de `91ddd77e2`.
+
+**Leído del artefacto:** `versionCode='10006'`, lanzador de TV
+`StartupActivity`, lanzador de teléfono `PalomeraTactilActivity`, ninguna
+`uses-implied-feature`, firmado con la clave de producción
+(`CN = Edgar Abel Martinez Camara`, SHA-256 `E7:0D:C8:DF:…`).
+
+**Verificado en pantalla**, que es lo único que cerraba esto: instalado el APK
+de **release** en el emulador de teléfono, la lista de canales de la demo sale
+con sus ocho logos de color. Lo que se sube y lo que enseña la foto son ya la
+misma cosa.
+
+**Estado: cerrada.** El AAB del `rc.5` borrado de la carpeta — punto 1 de la
+lista de `PLAY.md`, por tercera vez esta semana.
